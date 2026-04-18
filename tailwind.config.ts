@@ -9,41 +9,99 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+      },
       colors: {
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        /* shadcn/ui tokens */
+        input:       'var(--input)',
+        ring:        'var(--ring)',
+        background:  'var(--background)',
+        foreground:  'var(--foreground)',
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT:    'var(--primary)',
+          foreground: 'var(--primary-foreground)',
         },
         secondary: {
-          DEFAULT: 'hsl(var(--secondary))',
-          foreground: 'hsl(var(--secondary-foreground))',
+          DEFAULT:    'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
         },
         destructive: {
-          DEFAULT: 'hsl(var(--destructive))',
-          foreground: 'hsl(var(--destructive-foreground))',
+          DEFAULT:    'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT:    'var(--muted)',
+          foreground: 'var(--muted-foreground)',
         },
         accent: {
-          DEFAULT: 'hsl(var(--accent))',
-          foreground: 'hsl(var(--accent-foreground))',
+          DEFAULT:    'var(--accent)',
+          hover:      'var(--accent-hover)',
+          subtle:     'var(--accent-subtle)',
+          text:       'var(--accent-text)',
+          foreground: 'var(--text-inverse)',
         },
         card: {
-          DEFAULT: 'hsl(var(--card))',
-          foreground: 'hsl(var(--card-foreground))',
+          DEFAULT:    'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT:    'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+
+        /* Maré Design System tokens */
+        bg: {
+          base:    'var(--bg-base)',
+          surface: 'var(--bg-surface)',
+          subtle:  'var(--bg-subtle)',
+          muted:   'var(--bg-muted)',
+        },
+        text: {
+          primary:   'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary:  'var(--text-tertiary)',
+          inverse:   'var(--text-inverse)',
+        },
+        positive: {
+          DEFAULT: 'var(--positive)',
+          hover:   'var(--positive-hover)',
+          subtle:  'var(--positive-subtle)',
+          text:    'var(--positive-text)',
+        },
+        negative: {
+          DEFAULT: 'var(--negative)',
+          hover:   'var(--negative-hover)',
+          subtle:  'var(--negative-subtle)',
+          text:    'var(--negative-text)',
+        },
+        warning: {
+          DEFAULT: 'var(--warning)',
+          subtle:  'var(--warning-subtle)',
+          text:    'var(--warning-text)',
+        },
+        border: {
+          DEFAULT: 'var(--border)',
+          strong:  'var(--border-strong)',
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        sm:   '6px',
+        md:   '10px',
+        lg:   '16px',
+        xl:   '20px',
+        '2xl': '24px',
+        full: '9999px',
+      },
+      boxShadow: {
+        'mare-sm': 'var(--shadow-sm)',
+        'mare-md': 'var(--shadow-md)',
+        'mare-lg': 'var(--shadow-lg)',
+      },
+      letterSpacing: {
+        tight:    '-0.02em',
+        tighter:  '-0.03em',
+        tightest: '-0.04em',
       },
       keyframes: {
         'accordion-down': {

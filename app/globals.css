@@ -4,52 +4,133 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --primary: 220 90% 56%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 20% 98%;
-    --ring: 220 90% 56%;
-    --radius: 0.5rem;
+    /* ── Maré Design Tokens ── */
+
+    /* Background */
+    --bg-base:        oklch(97.2% 0.008 222);
+    --bg-surface:     oklch(99.5% 0.004 222);
+    --bg-subtle:      oklch(94.5% 0.012 222);
+    --bg-muted:       oklch(91.5% 0.014 222);
+
+    /* Text */
+    --text-primary:   oklch(16% 0.022 230);
+    --text-secondary: oklch(48% 0.018 228);
+    --text-tertiary:  oklch(66% 0.014 226);
+    --text-inverse:   oklch(98% 0.004 222);
+
+    /* Accent — Ocean Blue */
+    --accent:         oklch(50% 0.14 230);
+    --accent-hover:   oklch(44% 0.14 230);
+    --accent-subtle:  oklch(94% 0.04 225);
+    --accent-text:    oklch(38% 0.12 230);
+
+    /* Positive — Income / Maré Alta */
+    --positive:        oklch(54% 0.13 172);
+    --positive-hover:  oklch(48% 0.13 172);
+    --positive-subtle: oklch(94% 0.04 170);
+    --positive-text:   oklch(36% 0.11 170);
+
+    /* Negative — Expense / Maré Baixa */
+    --negative:        oklch(54% 0.13 20);
+    --negative-hover:  oklch(48% 0.13 20);
+    --negative-subtle: oklch(95% 0.04 20);
+    --negative-text:   oklch(38% 0.12 22);
+
+    /* Warning */
+    --warning:        oklch(72% 0.14 75);
+    --warning-subtle: oklch(96% 0.04 75);
+    --warning-text:   oklch(42% 0.12 70);
+
+    /* Border */
+    --border:         oklch(90% 0.012 225);
+    --border-strong:  oklch(82% 0.018 225);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px oklch(16% 0.022 230 / 0.06), 0 1px 2px oklch(16% 0.022 230 / 0.04);
+    --shadow-md: 0 4px 12px oklch(16% 0.022 230 / 0.08), 0 2px 4px oklch(16% 0.022 230 / 0.04);
+    --shadow-lg: 0 12px 32px oklch(16% 0.022 230 / 0.10), 0 4px 8px oklch(16% 0.022 230 / 0.05);
+
+    /* ── shadcn/ui compatibility (mapped to Maré tokens) ── */
+    --background:           var(--bg-base);
+    --foreground:           var(--text-primary);
+    --card:                 var(--bg-surface);
+    --card-foreground:      var(--text-primary);
+    --popover:              var(--bg-surface);
+    --popover-foreground:   var(--text-primary);
+    --primary:              var(--accent);
+    --primary-foreground:   var(--text-inverse);
+    --secondary:            var(--bg-subtle);
+    --secondary-foreground: var(--text-primary);
+    --muted:                var(--bg-subtle);
+    --muted-foreground:     var(--text-secondary);
+    --accent-ui:            var(--accent-subtle);
+    --accent-ui-foreground: var(--text-primary);
+    --destructive:          var(--negative);
+    --destructive-foreground: var(--text-inverse);
+    --input:                var(--border);
+    --ring:                 var(--accent);
+    --radius:               10px;
   }
 
-  .dark {
-    --background: 224 71.4% 4.1%;
-    --foreground: 210 20% 98%;
-    --card: 224 71.4% 4.1%;
-    --card-foreground: 210 20% 98%;
-    --border: 215 27.9% 16.9%;
-    --input: 215 27.9% 16.9%;
-    --primary: 220 90% 56%;
-    --primary-foreground: 210 20% 98%;
-    --secondary: 215 27.9% 16.9%;
-    --secondary-foreground: 210 20% 98%;
-    --muted: 215 27.9% 16.9%;
-    --muted-foreground: 217.9 10.6% 64.9%;
-    --accent: 215 27.9% 16.9%;
-    --accent-foreground: 210 20% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 20% 98%;
-    --ring: 220 90% 56%;
-  }
-}
-
-@layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* ── Buttons ── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium cursor-pointer whitespace-nowrap transition-all active:scale-[0.97];
+  }
+  .btn-primary   { background: var(--accent); @apply text-white rounded-md; }
+  .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-sm); }
+  .btn-secondary { background: var(--bg-subtle); color: var(--text-primary); @apply rounded-md; }
+  .btn-secondary:hover { background: var(--bg-muted); }
+  .btn-ghost     { background: transparent; color: var(--text-secondary); @apply rounded-md; }
+  .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-primary); }
+  .btn-outline   { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); @apply rounded-md; }
+  .btn-outline:hover { background: var(--accent-subtle); }
+
+  .btn-lg { @apply h-[52px] px-6 rounded-[10px] text-[15px]; }
+  .btn-md { @apply h-[44px] px-5 rounded-[10px] text-[14px]; }
+  .btn-sm { @apply h-[34px] px-4 text-[13px]; }
+  .btn-xs { @apply h-[28px] px-3 text-[12px]; }
+
+  /* ── Input ── */
+  .input-mare {
+    background: var(--bg-surface);
+    border: 1.5px solid var(--border);
+    color: var(--text-primary);
+    @apply h-12 px-4 rounded-[10px] text-[15px] w-full outline-none transition-all;
+  }
+  .input-mare::placeholder { color: var(--text-tertiary); }
+  .input-mare:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px oklch(50% 0.14 230 / 0.12);
+  }
+
+  /* ── Card ── */
+  .card-mare {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    @apply rounded-2xl;
+  }
+
+  /* ── Badge ── */
+  .badge-mare {
+    @apply inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
