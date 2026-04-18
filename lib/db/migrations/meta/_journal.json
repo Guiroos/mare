@@ -8,6 +8,13 @@
       "when": 1776482790079,
       "tag": "0000_cold_phantom_reporter",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776526079302,
+      "tag": "0001_grey_silhouette",
+      "breakpoints": true
     }
   ]
 }

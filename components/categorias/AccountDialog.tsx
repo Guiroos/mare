@@ -1,0 +1,168 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { Plus, Pencil } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  createPaymentAccount,
+  updatePaymentAccount,
+} from '@/lib/actions/categories';
+
+type BaseProps = Record<never, never>;
+type CreateProps = BaseProps & { mode: 'create' };
+type EditProps = BaseProps & {
+  mode: 'edit';
+  account: {
+    id: string;
+    name: string;
+    type: string;
+    closingDay: number | null;
+  };
+};
+
+type Props = CreateProps | EditProps;
+
+const ACCOUNT_TYPES = [
+  { value: 'credit', label: 'Crédito' },
+  { value: 'debit', label: 'Débito' },
+  { value: 'pix', label: 'Pix / Transferência' },
+];
+
+export function AccountDialog(props: Props) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState(
+    props.mode === 'edit' ? props.account.type : 'credit'
+  );
+  const [error, setError] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    setError('');
+    startTransition(async () => {
+      try {
+        const closingDayRaw = fd.get('closingDay') as string;
+        const data = {
+          name: (fd.get('name') as string).trim(),
+          type: fd.get('type') as string,
+          closingDay: closingDayRaw ? Number(closingDayRaw) : undefined,
+        };
+        if (props.mode === 'create') {
+          await createPaymentAccount(data);
+        } else {
+          await updatePaymentAccount(props.account.id, data);
+        }
+        setOpen(false);
+      } catch {
+        setError('Erro ao salvar.');
+      }
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {props.mode === 'create' ? (
+          <Button size="sm" variant="outline" className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            Nova conta
+          </Button>
+        ) : (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-muted-foreground"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {props.mode === 'create' ? 'Nova conta / cartão' : 'Editar conta'}
+          </DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <Label>Nome</Label>
+            <Input
+              name="name"
+              defaultValue={props.mode === 'edit' ? props.account.name : ''}
+              placeholder="Ex: NuBank, Débito, Pix..."
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Tipo</Label>
+            <Select
+              name="type"
+              defaultValue={
+                props.mode === 'edit' ? props.account.type : 'credit'
+              }
+              onValueChange={setType}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCOUNT_TYPES.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {type === 'credit' && (
+            <div className="space-y-1.5">
+              <Label>
+                Dia de fechamento{' '}
+                <span className="text-muted-foreground font-normal">
+                  (opcional)
+                </span>
+              </Label>
+              <Input
+                name="closingDay"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ex: 10"
+                defaultValue={
+                  props.mode === 'edit'
+                    ? (props.account.closingDay ?? '')
+                    : ''
+                }
+              />
+            </div>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

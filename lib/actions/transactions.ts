@@ -86,6 +86,7 @@ export async function toggleFixedExpensePaid(id: string, paid: boolean) {
     .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
 
   revalidatePath('/dashboard');
+  revalidatePath('/configuracao-mes');
 }
 
 export async function deleteFixedExpense(id: string) {

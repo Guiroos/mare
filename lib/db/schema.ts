@@ -59,6 +59,7 @@ export const categoryGroups = pgTable('category_groups', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 100 }).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
 });
 
 export const categories = pgTable('categories', {
