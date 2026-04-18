@@ -1,1 +1,170 @@
 'use server';
+
+import { revalidatePath } from 'next/cache';
+import { db } from '@/lib/db';
+import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema';
+import { auth } from '@/lib/auth';
+import { eq, and } from 'drizzle-orm';
+import { addMonths, format } from 'date-fns';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
+  const userId = (session?.user as any)?.id as string | undefined;
+  if (!userId) throw new Error('Não autorizado');
+  return userId;
+}
+
+function toReferenceMonth(dateStr: string) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
+}
+
+// ─── Gasto avulso ─────────────────────────────────────────────────────────────
+
+export type CreateTransactionInput = {
+  name: string;
+  amount: string;
+  date: string;
+  categoryId: string;
+  accountId: string;
+};
+
+export async function createTransaction(data: CreateTransactionInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db.insert(transactions).values({
+    userId,
+    name: data.name,
+    amount: data.amount,
+    date: data.date,
+    referenceMonth: toReferenceMonth(data.date),
+    categoryId: data.categoryId,
+    accountId: data.accountId,
+  });
+
+  revalidatePath('/dashboard');
+}
+
+// ─── Gasto fixo ───────────────────────────────────────────────────────────────
+
+export type CreateFixedExpenseInput = {
+  name: string;
+  amount: string;
+  dueDay: number;
+  categoryId: string;
+  accountId: string;
+  referenceMonth: string;
+};
+
+export async function createFixedExpense(data: CreateFixedExpenseInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db.insert(fixedExpenses).values({
+    userId,
+    name: data.name,
+    amount: data.amount,
+    dueDay: data.dueDay,
+    categoryId: data.categoryId,
+    accountId: data.accountId,
+    referenceMonth: data.referenceMonth,
+    paid: false,
+  });
+
+  revalidatePath('/dashboard');
+}
+
+export async function toggleFixedExpensePaid(id: string, paid: boolean) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .update(fixedExpenses)
+    .set({ paid })
+    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
+
+export async function deleteFixedExpense(id: string) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .delete(fixedExpenses)
+    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
+
+// ─── Compra parcelada ─────────────────────────────────────────────────────────
+
+export type CreateInstallmentInput = {
+  name: string;
+  totalAmount: string;
+  totalInstallments: number;
+  startDate: string;
+  categoryId: string;
+  accountId: string;
+};
+
+export async function createInstallmentPurchase(data: CreateInstallmentInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  const installmentAmount = (
+    parseFloat(data.totalAmount) / data.totalInstallments
+  ).toFixed(2);
+
+  const [group] = await db
+    .insert(installmentGroups)
+    .values({
+      userId,
+      name: data.name,
+      totalAmount: data.totalAmount,
+      totalInstallments: data.totalInstallments,
+      startDate: data.startDate,
+      categoryId: data.categoryId,
+      accountId: data.accountId,
+    })
+    .returning({ id: installmentGroups.id });
+
+  const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
+    const installmentDate = addMonths(new Date(data.startDate + 'T12:00:00'), i);
+    const dateStr = format(installmentDate, 'yyyy-MM-dd');
+    return {
+      userId,
+      name: `${data.name} (${i + 1}/${data.totalInstallments})`,
+      amount: installmentAmount,
+      date: dateStr,
+      referenceMonth: format(
+        new Date(installmentDate.getFullYear(), installmentDate.getMonth(), 1),
+        'yyyy-MM-dd'
+      ),
+      categoryId: data.categoryId,
+      accountId: data.accountId,
+      installmentGroupId: group.id,
+      installmentNumber: i + 1,
+      totalInstallments: data.totalInstallments,
+    };
+  });
+
+  await db.insert(transactions).values(installmentRows);
+
+  revalidatePath('/dashboard');
+}
+
+// ─── Exclusão de transação avulsa ─────────────────────────────────────────────
+
+export async function deleteTransaction(id: string) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .delete(transactions)
+    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
