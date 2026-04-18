@@ -10,6 +10,8 @@ import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList';
 import { IncomeList } from '@/components/dashboard/IncomeList';
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB';
 import { InvestmentList } from '@/components/dashboard/InvestmentList';
+import { ExpensePieChart } from '@/components/charts/ExpensePieChart';
+import { MonthlyEvolutionChart } from '@/components/charts/MonthlyEvolutionChart';
 
 export default async function DashboardPage({
   searchParams,
@@ -25,6 +27,12 @@ export default async function DashboardPage({
 
   const data = await getDashboardData(userId, referenceMonth);
 
+  const pieData = data.groupProgress
+    .flatMap((g) =>
+      g.categories.map((c) => ({ id: c.id, name: c.name, totalSpent: c.spent, totalBudget: c.budget }))
+    )
+    .filter((c) => c.totalSpent > 0);
+
   return (
     <div className="space-y-6">
       <MonthSelector currentMonth={month} />
@@ -33,6 +41,14 @@ export default async function DashboardPage({
 
       <Section title="Orçamento por categoria">
         <CategoryGroupProgress groups={data.groupProgress} />
+      </Section>
+
+      <Section title="Gastos por categoria">
+        <ExpensePieChart data={pieData} />
+      </Section>
+
+      <Section title="Evolução mensal">
+        <MonthlyEvolutionChart data={data.monthlyEvolution} />
       </Section>
 
       <Section title="Gastos fixos">

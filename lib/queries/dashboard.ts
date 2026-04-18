@@ -181,7 +181,7 @@ export async function getMonthInvestments(
 // ─── Dados completos do dashboard (single call) ───────────────────────────────
 
 export async function getDashboardData(userId: string, referenceMonth: string) {
-  const [summary, groupProgress, monthTransactions, fixedExpenseList, incomeList, investmentList] =
+  const [summary, groupProgress, monthTransactions, fixedExpenseList, incomeList, investmentList, monthlyEvolutionData] =
     await Promise.all([
       getMonthSummary(userId, referenceMonth),
       getCategoryGroupProgress(userId, referenceMonth),
@@ -189,6 +189,7 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
       getMonthFixedExpenses(userId, referenceMonth),
       getMonthIncomes(userId, referenceMonth),
       getMonthInvestments(userId, referenceMonth),
+      getMonthlyEvolution(userId),
     ]);
 
   return {
@@ -198,5 +199,65 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
     fixedExpenses: fixedExpenseList,
     incomes: incomeList,
     investments: investmentList,
+    monthlyEvolution: monthlyEvolutionData,
   };
+}
+
+// ─── Evolução mensal (últimos N meses) ────────────────────────────────────────
+
+export async function getMonthlyEvolution(userId: string, monthsBack: number = 6) {
+  const today = new Date();
+
+  // Build list of the last N months (oldest first) as YYYY-MM-01 strings
+  const months: string[] = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    months.push(`${year}-${String(month).padStart(2, '0')}-01`);
+  }
+
+  const results = await Promise.all(
+    months.map(async (referenceMonth) => {
+      const [incomesResult, transactionsResult, investmentsResult] =
+        await Promise.all([
+          db
+            .select({ total: sum(incomes.amount) })
+            .from(incomes)
+            .where(
+              and(
+                eq(incomes.userId, userId),
+                eq(incomes.referenceMonth, referenceMonth)
+              )
+            ),
+          db
+            .select({ total: sum(transactions.amount) })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.userId, userId),
+                eq(transactions.referenceMonth, referenceMonth)
+              )
+            ),
+          db
+            .select({ total: sum(investments.amount) })
+            .from(investments)
+            .where(
+              and(
+                eq(investments.userId, userId),
+                eq(investments.referenceMonth, referenceMonth)
+              )
+            ),
+        ]);
+
+      return {
+        month: referenceMonth.slice(0, 7), // YYYY-MM
+        totalIncomes: Number(incomesResult[0]?.total ?? 0),
+        totalExpenses: Number(transactionsResult[0]?.total ?? 0),
+        totalInvested: Number(investmentsResult[0]?.total ?? 0),
+      };
+    })
+  );
+
+  return results;
 }
