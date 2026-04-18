@@ -42,7 +42,7 @@ export function GoalDialog(props: Props) {
   const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const [investmentTypeId, setInvestmentTypeId] = useState(
-    props.mode === 'edit' ? (props.goal.investmentTypeId ?? '') : ''
+    props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
   );
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,7 +59,7 @@ export function GoalDialog(props: Props) {
           name,
           targetAmount,
           targetDate,
-          investmentTypeId: investmentTypeId || null,
+          investmentTypeId: investmentTypeId === 'none' ? null : investmentTypeId || null,
           existingId: props.mode === 'edit' ? props.goal.id : undefined,
         });
         setOpen(false);
@@ -137,7 +137,7 @@ export function GoalDialog(props: Props) {
                   <SelectValue placeholder="Sem vínculo (aporte manual)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem vínculo (aporte manual)</SelectItem>
+                  <SelectItem value="none">Sem vínculo (aporte manual)</SelectItem>
                   {props.investmentTypes.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
