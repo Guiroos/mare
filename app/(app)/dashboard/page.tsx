@@ -9,6 +9,7 @@ import { TransactionList } from '@/components/dashboard/TransactionList';
 import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList';
 import { IncomeList } from '@/components/dashboard/IncomeList';
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB';
+import { InvestmentList } from '@/components/dashboard/InvestmentList';
 
 export default async function DashboardPage({
   searchParams,
@@ -44,6 +45,10 @@ export default async function DashboardPage({
 
       <Section title="Entradas">
         <IncomeList incomes={data.incomes} />
+      </Section>
+
+      <Section title="Investimentos">
+        <InvestmentList investments={data.investments} />
       </Section>
 
       <DashboardFAB month={month} />

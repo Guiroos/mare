@@ -29,6 +29,11 @@ type Account = {
   type: string;
 };
 
+type InvestmentType = {
+  id: string;
+  name: string;
+};
+
 type RegistrationDialogCtx = {
   open: (month?: string) => void;
 };
@@ -45,6 +50,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
   const [formData, setFormData] = useState<{
     categoryGroups: CategoryGroup[];
     accounts: Account[];
+    investmentTypes: InvestmentType[];
   } | null>(null);
 
   const openDialog = useCallback((defaultMonth?: string) => {
@@ -76,6 +82,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
             <TransactionForm
               categoryGroups={formData.categoryGroups}
               accounts={formData.accounts}
+              investmentTypes={formData.investmentTypes}
               defaultMonth={month}
               onSuccess={() => setIsOpen(false)}
               showFullPageLink

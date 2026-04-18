@@ -23,6 +23,7 @@ import {
   createInstallmentPurchase,
 } from '@/lib/actions/transactions';
 import { createIncome } from '@/lib/actions/incomes';
+import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments';
 
 type CategoryGroup = {
   id: string;
@@ -36,18 +37,26 @@ type Account = {
   type: string;
 };
 
-type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada';
+type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate';
 
 const TABS: { value: FormType; label: string }[] = [
   { value: 'avulso', label: 'Gasto avulso' },
   { value: 'fixo', label: 'Gasto fixo' },
   { value: 'parcelado', label: 'Parcelado' },
   { value: 'entrada', label: 'Entrada' },
+  { value: 'investimento', label: 'Investimento' },
+  { value: 'resgate', label: 'Resgate' },
 ];
+
+type InvestmentType = {
+  id: string;
+  name: string;
+};
 
 type Props = {
   categoryGroups: CategoryGroup[];
   accounts: Account[];
+  investmentTypes?: InvestmentType[];
   defaultMonth?: string;
   onSuccess?: () => void;
   showFullPageLink?: boolean;
@@ -56,6 +65,7 @@ type Props = {
 export function TransactionForm({
   categoryGroups,
   accounts,
+  investmentTypes = [],
   defaultMonth,
   onSuccess,
   showFullPageLink = false,
@@ -114,6 +124,22 @@ export function TransactionForm({
             amount: str('amount'),
             referenceMonth: str('referenceMonth') + '-01',
           });
+        } else if (type === 'investimento') {
+          await upsertInvestment({
+            investmentTypeId: str('investmentTypeId'),
+            referenceMonth: str('referenceMonth') + '-01',
+            amount: str('amount') || null,
+            yieldAmount: str('yieldAmount') || null,
+            notes: str('notes') || null,
+          });
+        } else if (type === 'resgate') {
+          await createWithdrawal({
+            investmentTypeId: str('investmentTypeId'),
+            amount: str('amount'),
+            date: str('date'),
+            destination: str('destination') as 'income' | 'transfer',
+            notes: str('notes') || null,
+          });
         }
         resetForm();
         onSuccess?.();
@@ -123,19 +149,19 @@ export function TransactionForm({
     });
   };
 
-  const isExpense = type !== 'entrada';
+  const isExpense = type !== 'entrada' && type !== 'investimento' && type !== 'resgate';
 
   return (
     <div className="space-y-5">
       {/* Tipo */}
-      <div className="flex rounded-lg border p-1 gap-1">
+      <div className="grid grid-cols-3 rounded-lg border p-1 gap-1">
         {TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
             onClick={() => { setType(tab.value); resetForm(); }}
             className={cn(
-              'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+              'rounded-md px-2 py-1.5 text-xs font-medium transition-colors text-center',
               type === tab.value
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground'
@@ -147,27 +173,47 @@ export function TransactionForm({
       </div>
 
       <form key={key} onSubmit={handleSubmit} className="space-y-4">
-        {/* Nome / Origem */}
-        <Field label={type === 'entrada' ? 'Origem' : 'Nome'}>
-          <Input
-            name={type === 'entrada' ? 'source' : 'name'}
-            placeholder={type === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'}
-            required
-            autoFocus
-          />
-        </Field>
+        {/* Nome / Origem — só para gastos e entradas */}
+        {(type === 'avulso' || type === 'fixo' || type === 'parcelado' || type === 'entrada') && (
+          <Field label={type === 'entrada' ? 'Origem' : 'Nome'}>
+            <Input
+              name={type === 'entrada' ? 'source' : 'name'}
+              placeholder={type === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'}
+              required
+              autoFocus
+            />
+          </Field>
+        )}
+
+        {/* Tipo de investimento — para investimento e resgate */}
+        {(type === 'investimento' || type === 'resgate') && (
+          <Field label="Tipo de investimento">
+            <Select name="investmentTypeId" required>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                {investmentTypes.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
 
         {/* Valor */}
-        <Field label={type === 'parcelado' ? 'Valor total' : 'Valor'}>
-          <Input
-            name={type === 'parcelado' ? 'totalAmount' : 'amount'}
-            type="number"
-            step="0.01"
-            min="0.01"
-            placeholder="0,00"
-            required
-          />
-        </Field>
+        {type !== 'investimento' && (
+          <Field label={type === 'parcelado' ? 'Valor total' : 'Valor'}>
+            <Input
+              name={type === 'parcelado' ? 'totalAmount' : 'amount'}
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="0,00"
+              required
+            />
+          </Field>
+        )}
 
         {/* Campos por tipo */}
         {type === 'avulso' && (
@@ -198,10 +244,51 @@ export function TransactionForm({
           </div>
         )}
 
-        {(type === 'fixo' || type === 'entrada') && type === 'entrada' && (
+        {type === 'entrada' && (
           <Field label="Mês de referência">
             <Input name="referenceMonth" type="month" defaultValue={month} required />
           </Field>
+        )}
+
+        {type === 'investimento' && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Aporte (R$)">
+                <Input name="amount" type="number" step="0.01" min="0" placeholder="0,00" autoFocus />
+              </Field>
+              <Field label="Rendimento (R$)">
+                <Input name="yieldAmount" type="number" step="0.01" placeholder="0,00" />
+              </Field>
+            </div>
+            <Field label="Mês de referência">
+              <Input name="referenceMonth" type="month" defaultValue={month} required />
+            </Field>
+            <Field label="Observações">
+              <Input name="notes" placeholder="Opcional" />
+            </Field>
+          </>
+        )}
+
+        {type === 'resgate' && (
+          <>
+            <Field label="Data do resgate">
+              <Input name="date" type="date" defaultValue={today} required />
+            </Field>
+            <Field label="Destino">
+              <Select name="destination" required>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
+                  <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Observações">
+              <Input name="notes" placeholder="Opcional" />
+            </Field>
+          </>
         )}
 
         {/* Categoria + Conta — só para gastos */}

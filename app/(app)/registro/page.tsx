@@ -13,7 +13,7 @@ export default async function RegistroPage({
   if (!session) redirect('/login');
 
   const month = searchParams.month ?? currentYearMonth();
-  const { categoryGroups, accounts } = await getRegistrationFormData();
+  const { categoryGroups, accounts, investmentTypes } = await getRegistrationFormData();
 
   return (
     <div className="max-w-md space-y-6">
@@ -27,6 +27,7 @@ export default async function RegistroPage({
       <TransactionForm
         categoryGroups={categoryGroups}
         accounts={accounts}
+        investmentTypes={investmentTypes}
         defaultMonth={month}
       />
     </div>

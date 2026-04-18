@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories';
+import { getInvestmentTypes } from '@/lib/queries/investments';
 
 function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
   const userId = (session?.user as any)?.id as string | undefined;
@@ -13,10 +14,11 @@ export async function getRegistrationFormData() {
   const session = await auth();
   const userId = requireUserId(session);
 
-  const [categoryGroups, accounts] = await Promise.all([
+  const [categoryGroups, accounts, investmentTypes] = await Promise.all([
     getCategoriesWithGroups(userId),
     getPaymentAccounts(userId),
+    getInvestmentTypes(userId),
   ]);
 
-  return { categoryGroups, accounts };
+  return { categoryGroups, accounts, investmentTypes };
 }
