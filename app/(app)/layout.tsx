@@ -14,8 +14,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <RegistrationDialogProvider>
       <div className="min-h-screen bg-background">
-        <Sidebar />
-        <main className="lg:pl-60 pb-16 lg:pb-0">
+        <Sidebar user={{ name: session.user?.name, email: session.user?.email }} />
+        <main className="lg:pl-60 pb-[76px] lg:pb-0">
           <div className="mx-auto max-w-4xl px-4 py-6">
             {children}
           </div>
