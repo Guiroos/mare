@@ -93,7 +93,7 @@ export function BottomNav() {
                   'flex items-center gap-3 px-4 py-3 rounded-lg border text-sm font-medium transition-colors',
                   isActive(href)
                     ? 'border-primary bg-primary/5 text-primary'
-                    : 'border-border text-foreground hover:bg-accent'
+                    : 'border-border text-foreground hover:bg-bg-subtle'
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
