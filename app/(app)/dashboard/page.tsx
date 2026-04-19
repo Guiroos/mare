@@ -10,6 +10,7 @@ import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList';
 import { IncomeList } from '@/components/dashboard/IncomeList';
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB';
 import { InvestmentList } from '@/components/dashboard/InvestmentList';
+import { PendencyBanner } from '@/components/dashboard/PendencyBanner';
 import { ExpensePieChart } from '@/components/charts/ExpensePieChart';
 import { MonthlyEvolutionChart } from '@/components/charts/MonthlyEvolutionChart';
 
@@ -27,6 +28,14 @@ export default async function DashboardPage({
 
   const data = await getDashboardData(userId, referenceMonth);
 
+  const isCurrentMonth = month === currentYearMonth();
+  const unpaidFixedCount = isCurrentMonth
+    ? data.fixedExpenses.filter((e) => !e.paid).length
+    : 0;
+  const pendingYieldCount = isCurrentMonth
+    ? data.investments.filter((i) => i.amount !== null && i.yieldAmount === null).length
+    : 0;
+
   const pieData = data.groupProgress
     .flatMap((g) =>
       g.categories.map((c) => ({ id: c.id, name: c.name, totalSpent: c.spent, totalBudget: c.budget }))
@@ -36,6 +45,11 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6">
       <MonthSelector currentMonth={month} />
+
+      <PendencyBanner
+        unpaidFixedCount={unpaidFixedCount}
+        pendingYieldCount={pendingYieldCount}
+      />
 
       <SummaryCards summary={data.summary} />
 
