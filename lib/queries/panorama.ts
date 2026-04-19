@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import {
   transactions,
+  fixedExpenses,
   incomes,
   investments,
   categories,
@@ -24,7 +25,7 @@ export async function getAnnualOverview(userId: string, year: number) {
 
   const results = await Promise.all(
     months.map(async (referenceMonth) => {
-      const [incomesResult, transactionsResult, investmentsResult] =
+      const [incomesResult, transactionsResult, fixedExpensesResult, investmentsResult] =
         await Promise.all([
           db
             .select({ total: sum(incomes.amount) })
@@ -45,6 +46,15 @@ export async function getAnnualOverview(userId: string, year: number) {
               )
             ),
           db
+            .select({ total: sum(fixedExpenses.amount) })
+            .from(fixedExpenses)
+            .where(
+              and(
+                eq(fixedExpenses.userId, userId),
+                eq(fixedExpenses.referenceMonth, referenceMonth)
+              )
+            ),
+          db
             .select({ total: sum(investments.amount) })
             .from(investments)
             .where(
@@ -56,7 +66,9 @@ export async function getAnnualOverview(userId: string, year: number) {
         ]);
 
       const totalIncomes = Number(incomesResult[0]?.total ?? 0);
-      const totalExpenses = Number(transactionsResult[0]?.total ?? 0);
+      const totalExpenses =
+        Number(transactionsResult[0]?.total ?? 0) +
+        Number(fixedExpensesResult[0]?.total ?? 0);
       const totalInvested = Number(investmentsResult[0]?.total ?? 0);
       const balance = totalIncomes - totalExpenses - totalInvested;
 
@@ -93,26 +105,42 @@ export async function getAnnualExpensesByGroup(userId: string, year: number) {
     }
   }
 
-  // Fetch all transactions for the year in one query
-  const allTransactions = await db
-    .select({
-      categoryId: transactions.categoryId,
-      referenceMonth: transactions.referenceMonth,
-      amount: transactions.amount,
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        gte(transactions.referenceMonth, firstMonth),
-        lte(transactions.referenceMonth, lastMonth)
-      )
-    );
+  // Fetch all transactions and fixed expenses for the year in one query each
+  const [allTransactions, allFixedExpenses] = await Promise.all([
+    db
+      .select({
+        categoryId: transactions.categoryId,
+        referenceMonth: transactions.referenceMonth,
+        amount: transactions.amount,
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          gte(transactions.referenceMonth, firstMonth),
+          lte(transactions.referenceMonth, lastMonth)
+        )
+      ),
+    db
+      .select({
+        categoryId: fixedExpenses.categoryId,
+        referenceMonth: fixedExpenses.referenceMonth,
+        amount: fixedExpenses.amount,
+      })
+      .from(fixedExpenses)
+      .where(
+        and(
+          eq(fixedExpenses.userId, userId),
+          gte(fixedExpenses.referenceMonth, firstMonth),
+          lte(fixedExpenses.referenceMonth, lastMonth)
+        )
+      ),
+  ]);
 
   // Aggregate in memory: month → groupId → total
   const monthGroupMap = new Map<string, Map<string, { groupName: string; total: number }>>();
 
-  for (const t of allTransactions) {
+  for (const t of [...allTransactions, ...allFixedExpenses]) {
     const month = t.referenceMonth.slice(0, 7); // YYYY-MM
     const groupInfo = categoryToGroup.get(t.categoryId);
     if (!groupInfo) continue;

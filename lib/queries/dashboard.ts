@@ -15,7 +15,7 @@ import { eq, and, sql, sum, desc } from 'drizzle-orm';
 // ─── Resumo do mês ────────────────────────────────────────────────────────────
 
 export async function getMonthSummary(userId: string, referenceMonth: string) {
-  const [incomesResult, transactionsResult, investmentsResult] =
+  const [incomesResult, transactionsResult, fixedExpensesResult, investmentsResult] =
     await Promise.all([
       db
         .select({ total: sum(incomes.amount) })
@@ -36,6 +36,15 @@ export async function getMonthSummary(userId: string, referenceMonth: string) {
           )
         ),
       db
+        .select({ total: sum(fixedExpenses.amount) })
+        .from(fixedExpenses)
+        .where(
+          and(
+            eq(fixedExpenses.userId, userId),
+            eq(fixedExpenses.referenceMonth, referenceMonth)
+          )
+        ),
+      db
         .select({ total: sum(investments.amount) })
         .from(investments)
         .where(
@@ -47,7 +56,9 @@ export async function getMonthSummary(userId: string, referenceMonth: string) {
     ]);
 
   const totalIncomes = Number(incomesResult[0]?.total ?? 0);
-  const totalExpenses = Number(transactionsResult[0]?.total ?? 0);
+  const totalExpenses =
+    Number(transactionsResult[0]?.total ?? 0) +
+    Number(fixedExpensesResult[0]?.total ?? 0);
   const totalInvested = Number(investmentsResult[0]?.total ?? 0);
   const balance = totalIncomes - totalExpenses - totalInvested;
 
@@ -73,23 +84,42 @@ export async function getCategoryGroupProgress(
     },
   });
 
-  const spentByCategory = await db
-    .select({
-      categoryId: transactions.categoryId,
-      total: sum(transactions.amount),
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        eq(transactions.referenceMonth, referenceMonth)
+  const [spentByCategory, fixedByCategory] = await Promise.all([
+    db
+      .select({
+        categoryId: transactions.categoryId,
+        total: sum(transactions.amount),
+      })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.referenceMonth, referenceMonth)
+        )
       )
-    )
-    .groupBy(transactions.categoryId);
+      .groupBy(transactions.categoryId),
+    db
+      .select({
+        categoryId: fixedExpenses.categoryId,
+        total: sum(fixedExpenses.amount),
+      })
+      .from(fixedExpenses)
+      .where(
+        and(
+          eq(fixedExpenses.userId, userId),
+          eq(fixedExpenses.referenceMonth, referenceMonth)
+        )
+      )
+      .groupBy(fixedExpenses.categoryId),
+  ]);
 
-  const spentMap = new Map(
-    spentByCategory.map((r) => [r.categoryId, Number(r.total ?? 0)])
-  );
+  const spentMap = new Map<string, number>();
+  for (const r of spentByCategory) {
+    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + Number(r.total ?? 0));
+  }
+  for (const r of fixedByCategory) {
+    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + Number(r.total ?? 0));
+  }
 
   return groups.map((group) => {
     const categoryDetails = group.categories.map((cat) => {
@@ -219,7 +249,7 @@ export async function getMonthlyEvolution(userId: string, monthsBack: number = 6
 
   const results = await Promise.all(
     months.map(async (referenceMonth) => {
-      const [incomesResult, transactionsResult, investmentsResult] =
+      const [incomesResult, transactionsResult, fixedExpensesResult, investmentsResult] =
         await Promise.all([
           db
             .select({ total: sum(incomes.amount) })
@@ -240,6 +270,15 @@ export async function getMonthlyEvolution(userId: string, monthsBack: number = 6
               )
             ),
           db
+            .select({ total: sum(fixedExpenses.amount) })
+            .from(fixedExpenses)
+            .where(
+              and(
+                eq(fixedExpenses.userId, userId),
+                eq(fixedExpenses.referenceMonth, referenceMonth)
+              )
+            ),
+          db
             .select({ total: sum(investments.amount) })
             .from(investments)
             .where(
@@ -253,7 +292,9 @@ export async function getMonthlyEvolution(userId: string, monthsBack: number = 6
       return {
         month: referenceMonth.slice(0, 7), // YYYY-MM
         totalIncomes: Number(incomesResult[0]?.total ?? 0),
-        totalExpenses: Number(transactionsResult[0]?.total ?? 0),
+        totalExpenses:
+          Number(transactionsResult[0]?.total ?? 0) +
+          Number(fixedExpensesResult[0]?.total ?? 0),
         totalInvested: Number(investmentsResult[0]?.total ?? 0),
       };
     })
