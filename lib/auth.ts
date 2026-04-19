@@ -22,7 +22,8 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user }) {
-      return user.email === process.env.ALLOWED_EMAIL;
+      const allowed = (process.env.ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim());
+      return allowed.includes(user.email ?? '');
     },
     async session({ session, token }) {
       if (session.user && token.sub) {
