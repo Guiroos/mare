@@ -138,6 +138,46 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
   revalidatePath('/dashboard');
 }
 
+export type UpdateWithdrawalInput = {
+  id: string;
+  investmentTypeId: string;
+  amount: string;
+  date: string;
+  notes?: string | null;
+};
+
+export async function updateWithdrawal(data: UpdateWithdrawalInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  const [withdrawal] = await db.query.investmentWithdrawals.findMany({
+    where: and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)),
+    limit: 1,
+  });
+
+  if (!withdrawal) throw new Error('Resgate não encontrado');
+
+  await db
+    .update(investmentWithdrawals)
+    .set({
+      investmentTypeId: data.investmentTypeId,
+      amount: data.amount,
+      date: data.date,
+      notes: data.notes || null,
+    })
+    .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)));
+
+  if (withdrawal.incomeId) {
+    await db
+      .update(incomes)
+      .set({ amount: data.amount, referenceMonth: toReferenceMonth(data.date) })
+      .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)));
+  }
+
+  revalidatePath('/investimentos');
+  revalidatePath('/dashboard');
+}
+
 export async function deleteWithdrawal(id: string) {
   const session = await auth();
   const userId = requireUserId(session);

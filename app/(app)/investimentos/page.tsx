@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog';
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
 import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog';
+import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton';
 import { DeleteButton } from '@/components/investimentos/DeleteButton';
 import { PatrimonyChart } from '@/components/charts/PatrimonyChart';
 
@@ -237,12 +238,18 @@ export default async function InvestimentosPage() {
                       {w.notes ?? ''}
                     </td>
                     <td className="px-4 py-2">
-                      <DeleteButton
-                        onDelete={async () => {
-                          'use server';
-                          await deleteWithdrawal(w.id);
-                        }}
-                      />
+                      <div className="flex items-center gap-1">
+                        <WithdrawalEditButton
+                          withdrawal={w}
+                          investmentTypes={investmentTypeOptions}
+                        />
+                        <DeleteButton
+                          onDelete={async () => {
+                            'use server';
+                            await deleteWithdrawal(w.id);
+                          }}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ))}

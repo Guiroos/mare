@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { GoalDialog } from '@/components/metas/GoalDialog';
 import { ContributionDialog } from '@/components/metas/ContributionDialog';
+import { ContributionEditButton } from '@/components/metas/ContributionEditButton';
 import { DeleteButton } from '@/components/investimentos/DeleteButton';
 
 export default async function MetasPage() {
@@ -158,12 +159,15 @@ export default async function MetasPage() {
                                     {formatCurrency(c.amount)}
                                   </td>
                                   <td className="py-1.5 pl-2">
-                                    <DeleteButton
-                                      onDelete={async () => {
-                                        'use server';
-                                        await deleteGoalContribution(c.id);
-                                      }}
-                                    />
+                                    <div className="flex items-center gap-1">
+                                      <ContributionEditButton contribution={c} />
+                                      <DeleteButton
+                                        onDelete={async () => {
+                                          'use server';
+                                          await deleteGoalContribution(c.id);
+                                        }}
+                                      />
+                                    </div>
                                   </td>
                                 </tr>
                               ))}

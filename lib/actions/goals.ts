@@ -69,6 +69,26 @@ export async function addGoalContribution(data: AddContributionInput) {
   revalidatePath('/metas');
 }
 
+export type UpdateContributionInput = {
+  id: string;
+  amount: string;
+  referenceMonth: string;
+};
+
+export async function updateGoalContribution(data: UpdateContributionInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .update(goalContributions)
+    .set({ amount: data.amount, referenceMonth: data.referenceMonth })
+    .where(
+      and(eq(goalContributions.id, data.id), eq(goalContributions.userId, userId))
+    );
+
+  revalidatePath('/metas');
+}
+
 export async function deleteGoalContribution(id: string) {
   const session = await auth();
   const userId = requireUserId(session);
