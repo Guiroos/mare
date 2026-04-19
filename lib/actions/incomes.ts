@@ -32,6 +32,24 @@ export async function createIncome(data: CreateIncomeInput) {
   revalidatePath('/dashboard');
 }
 
+export type UpdateIncomeInput = {
+  id: string;
+  source: string;
+  amount: string;
+};
+
+export async function updateIncome(data: UpdateIncomeInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .update(incomes)
+    .set({ source: data.source, amount: data.amount })
+    .where(and(eq(incomes.id, data.id), eq(incomes.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
+
 export async function deleteIncome(id: string) {
   const session = await auth();
   const userId = requireUserId(session);

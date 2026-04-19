@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { deleteIncome } from '@/lib/actions/incomes';
 import { cn } from '@/lib/utils';
+import { IncomeEditButton } from './IncomeEditDialog';
 
 type Income = {
   id: string;
@@ -54,6 +55,8 @@ function IncomeRow({ income }: { income: Income }) {
       <span className="text-sm font-semibold text-green-600 shrink-0">
         {formatCurrency(Number(income.amount))}
       </span>
+
+      <IncomeEditButton income={income} />
 
       <Button
         variant="ghost"

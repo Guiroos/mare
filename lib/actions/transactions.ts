@@ -76,6 +76,33 @@ export async function createFixedExpense(data: CreateFixedExpenseInput) {
   revalidatePath('/dashboard');
 }
 
+export type UpdateFixedExpenseInput = {
+  id: string;
+  name: string;
+  amount: string;
+  dueDay: number;
+  categoryId: string;
+  accountId: string;
+};
+
+export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .update(fixedExpenses)
+    .set({
+      name: data.name,
+      amount: data.amount,
+      dueDay: data.dueDay,
+      categoryId: data.categoryId,
+      accountId: data.accountId,
+    })
+    .where(and(eq(fixedExpenses.id, data.id), eq(fixedExpenses.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
+
 export async function toggleFixedExpensePaid(id: string, paid: boolean) {
   const session = await auth();
   const userId = requireUserId(session);
@@ -155,6 +182,85 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   await db.insert(transactions).values(installmentRows);
 
   revalidatePath('/dashboard');
+}
+
+// ─── Edição de transação avulsa ───────────────────────────────────────────────
+
+export type UpdateTransactionInput = {
+  id: string;
+  name: string;
+  amount: string;
+  date: string;
+  categoryId: string;
+  accountId: string;
+};
+
+export async function updateTransaction(data: UpdateTransactionInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  await db
+    .update(transactions)
+    .set({
+      name: data.name,
+      amount: data.amount,
+      date: data.date,
+      referenceMonth: toReferenceMonth(data.date),
+      categoryId: data.categoryId,
+      accountId: data.accountId,
+    })
+    .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)));
+
+  revalidatePath('/dashboard');
+}
+
+// ─── Edição de compra parcelada ───────────────────────────────────────────────
+
+export type UpdateInstallmentGroupInput = {
+  id: string;
+  name: string;
+  categoryId: string;
+  accountId: string;
+};
+
+export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
+  const session = await auth();
+  const userId = requireUserId(session);
+
+  // Fetch group to get totalInstallments for renaming transactions
+  const [group] = await db
+    .select({ totalInstallments: installmentGroups.totalInstallments })
+    .from(installmentGroups)
+    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)));
+
+  if (!group) throw new Error('Grupo não encontrado');
+
+  await db
+    .update(installmentGroups)
+    .set({ name: data.name, categoryId: data.categoryId, accountId: data.accountId })
+    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)));
+
+  // Update all child transactions: rename and sync category/account
+  const childTransactions = await db
+    .select({ id: transactions.id, installmentNumber: transactions.installmentNumber })
+    .from(transactions)
+    .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)));
+
+  await Promise.all(
+    childTransactions.map((t) =>
+      db
+        .update(transactions)
+        .set({
+          name: `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
+          categoryId: data.categoryId,
+          accountId: data.accountId,
+        })
+        .where(eq(transactions.id, t.id))
+    )
+  );
+
+  revalidatePath('/dashboard');
+  revalidatePath('/parcelas');
 }
 
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────

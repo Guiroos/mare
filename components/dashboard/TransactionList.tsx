@@ -7,12 +7,15 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/format';
 import { deleteTransaction } from '@/lib/actions/transactions';
 import { cn } from '@/lib/utils';
+import { TransactionEditButton } from './TransactionEditDialog';
 
 type Transaction = {
   id: string;
   name: string;
   amount: string;
   date: string;
+  categoryId: string | null;
+  accountId: string | null;
   installmentNumber: number | null;
   totalInstallments: number | null;
   category: { name: string } | null;
@@ -118,16 +121,19 @@ function TransactionRow({
       </span>
 
       {!t.installmentGroup && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-          onClick={() => onDelete(t.id)}
-          disabled={deleting}
-          aria-label="Excluir"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        <>
+          <TransactionEditButton transaction={t} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+            onClick={() => onDelete(t.id)}
+            disabled={deleting}
+            aria-label="Excluir"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </>
       )}
     </div>
   );
