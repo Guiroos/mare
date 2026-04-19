@@ -33,6 +33,8 @@ export async function getActiveInstallmentGroups(userId: string) {
       return {
         id: group.id,
         name: group.name,
+        categoryId: group.categoryId,
+        accountId: group.accountId,
         accountName: group.account.name,
         categoryName: group.category.name,
         totalAmount,

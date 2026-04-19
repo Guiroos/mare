@@ -4,10 +4,8 @@ import {
   getActiveInstallmentGroups,
   getInstallmentTimeline,
 } from '@/lib/queries/parcelas';
-import { formatCurrency } from '@/lib/format';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { InstallmentTimelineChart } from '@/components/charts/InstallmentTimelineChart';
+import { InstallmentGroupCard } from '@/components/parcelas/InstallmentGroupCard';
 
 export default async function ParcelasPage() {
   const session = await auth();
@@ -43,52 +41,7 @@ export default async function ParcelasPage() {
         ) : (
           <div className="space-y-3">
             {groups.map((group) => (
-              <div key={group.id} className="rounded-xl border bg-card px-4 py-4 space-y-3">
-                {/* Name + category */}
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="space-y-0.5">
-                    <p className="font-semibold leading-tight">{group.name}</p>
-                    <p className="text-xs text-muted-foreground">{group.accountName}</p>
-                  </div>
-                  <Badge variant="secondary" className="shrink-0 text-xs">
-                    {group.categoryName}
-                  </Badge>
-                </div>
-
-                {/* Progress bar */}
-                <div className="space-y-1">
-                  <Progress
-                    value={group.paidInstallments}
-                    max={group.totalInstallments}
-                    className="h-1.5"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Parcela {group.paidInstallments} de {group.totalInstallments}
-                  </p>
-                </div>
-
-                {/* Amounts */}
-                <div className="flex flex-wrap gap-x-5 gap-y-1">
-                  <div>
-                    <p className="text-xs text-muted-foreground">por mês</p>
-                    <p className="text-sm font-semibold tabular-nums">
-                      {formatCurrency(group.installmentAmount)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">restante</p>
-                    <p className="text-sm font-semibold tabular-nums">
-                      {formatCurrency(group.remainingAmount)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">total</p>
-                    <p className="text-sm tabular-nums text-muted-foreground">
-                      {formatCurrency(group.totalAmount)}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <InstallmentGroupCard key={group.id} group={group} />
             ))}
           </div>
         )}
