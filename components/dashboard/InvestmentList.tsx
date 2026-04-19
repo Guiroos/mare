@@ -3,12 +3,15 @@
 import { formatCurrency } from '@/lib/format';
 import { deleteInvestment } from '@/lib/actions/investments';
 import { DeleteButton } from '@/components/investimentos/DeleteButton';
+import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
 
 type Investment = {
   id: string;
   amount: string | null;
   yieldAmount: string | null;
   notes: string | null;
+  referenceMonth: string;
+  investmentTypeId: string;
   investmentType: { name: string };
 };
 
@@ -45,6 +48,16 @@ export function InvestmentList({ investments }: { investments: Investment[] }) {
               <p className="text-xs text-yellow-600">Rendimento pendente</p>
             )}
           </div>
+          <InvestmentEntryDialog
+            investmentTypeId={inv.investmentTypeId}
+            existing={{
+              id: inv.id,
+              amount: inv.amount !== null ? Number(inv.amount) : null,
+              yieldAmount: inv.yieldAmount !== null ? Number(inv.yieldAmount) : null,
+              notes: inv.notes,
+              referenceMonth: inv.referenceMonth,
+            }}
+          />
           <DeleteButton onDelete={() => deleteInvestment(inv.id)} />
         </div>
       ))}
