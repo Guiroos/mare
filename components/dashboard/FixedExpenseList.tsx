@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/format';
 import { toggleFixedExpensePaid } from '@/lib/actions/transactions';
 import { cn } from '@/lib/utils';
+import { FixedExpenseEditButton } from './FixedExpenseEditDialog';
 
 type FixedExpense = {
   id: string;
@@ -13,6 +14,8 @@ type FixedExpense = {
   amount: string;
   dueDay: number;
   paid: boolean;
+  categoryId: string | null;
+  accountId: string | null;
   category: { name: string } | null;
   account: { name: string } | null;
 };
@@ -101,6 +104,8 @@ function FixedExpenseRow({ expense: e }: { expense: FixedExpense }) {
       <span className={cn('text-sm font-semibold shrink-0', e.paid ? 'text-muted-foreground' : 'text-red-600')}>
         {formatCurrency(Number(e.amount))}
       </span>
+
+      <FixedExpenseEditButton expense={e} />
     </div>
   );
 }
