@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -69,11 +70,6 @@ export function GoalDialog(props: Props) {
     });
   };
 
-  const defaultTargetAmount =
-    props.mode === 'edit'
-      ? String(props.goal.targetAmount.toFixed(2)).replace('.', ',')
-      : '';
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -107,13 +103,9 @@ export function GoalDialog(props: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Valor alvo (R$)</Label>
-            <Input
+            <CurrencyInput
               name="targetAmount"
-              type="number"
-              step="0.01"
-              min="0.01"
               defaultValue={props.mode === 'edit' ? props.goal.targetAmount : ''}
-              placeholder="0,00"
               required
             />
           </div>

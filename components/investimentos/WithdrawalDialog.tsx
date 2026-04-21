@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -95,14 +96,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Valor (R$)</Label>
-            <Input
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              placeholder="0,00"
-            />
+            <CurrencyInput name="amount" required />
           </div>
           <div className="space-y-1.5">
             <Label>Data do resgate</Label>

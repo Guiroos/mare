@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -102,25 +103,11 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label>Aporte (R$)</Label>
-            <Input
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0,00"
-              defaultValue={existing?.amount ?? ''}
-              autoFocus
-            />
+            <CurrencyInput name="amount" defaultValue={existing?.amount ?? ''} autoFocus />
           </div>
           <div className="space-y-1.5">
             <Label>Rendimento líquido (R$)</Label>
-            <Input
-              name="yieldAmount"
-              type="number"
-              step="0.01"
-              placeholder="0,00"
-              defaultValue={existing?.yieldAmount ?? ''}
-            />
+            <CurrencyInput name="yieldAmount" defaultValue={existing?.yieldAmount ?? ''} />
           </div>
           <div className="space-y-1.5">
             <Label>Observações</Label>

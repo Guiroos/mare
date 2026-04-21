@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import { updateGoalContribution } from '@/lib/actions/goals';
 import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format';
@@ -65,15 +66,7 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <Label className="text-sm">Valor (R$)</Label>
-              <Input
-                name="amount"
-                type="number"
-                step="0.01"
-                min="0.01"
-                defaultValue={contribution.amount}
-                required
-                autoFocus
-              />
+              <CurrencyInput name="amount" defaultValue={contribution.amount} required autoFocus />
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Mês de referência</Label>

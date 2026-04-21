@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -97,14 +98,7 @@ function EditForm({
 
       <div className="space-y-1.5">
         <Label className="text-sm">Valor</Label>
-        <Input
-          name="amount"
-          type="number"
-          step="0.01"
-          min="0.01"
-          defaultValue={transaction.amount}
-          required
-        />
+        <CurrencyInput name="amount" defaultValue={transaction.amount} required />
       </div>
 
       <div className="space-y-1.5">

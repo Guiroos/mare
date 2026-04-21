@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -90,12 +90,8 @@ export function BudgetOverrideDialog({
           )}
           <div className="space-y-1.5">
             <Label>Orçamento deste mês</Label>
-            <Input
+            <CurrencyInput
               name="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0,00"
               defaultValue={override?.amount ?? defaultBudget ?? ''}
               required
               autoFocus

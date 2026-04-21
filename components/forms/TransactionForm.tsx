@@ -5,6 +5,7 @@ import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -204,12 +205,8 @@ export function TransactionForm({
         {/* Valor */}
         {type !== 'investimento' && (
           <Field label={type === 'parcelado' ? 'Valor total' : 'Valor'}>
-            <Input
+            <CurrencyInput
               name={type === 'parcelado' ? 'totalAmount' : 'amount'}
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="0,00"
               required
             />
           </Field>
@@ -254,10 +251,10 @@ export function TransactionForm({
           <>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Aporte (R$)">
-                <Input name="amount" type="number" step="0.01" min="0" placeholder="0,00" autoFocus />
+                <CurrencyInput name="amount" autoFocus />
               </Field>
               <Field label="Rendimento (R$)">
-                <Input name="yieldAmount" type="number" step="0.01" placeholder="0,00" />
+                <CurrencyInput name="yieldAmount" />
               </Field>
             </div>
             <Field label="Mês de referência">
