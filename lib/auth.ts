@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import { DrizzleAdapter } from '@auth/drizzle-adapter';
 import { db } from '@/lib/db';
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema';
+import { seedDefaultCategories } from '@/lib/db/seed-user';
 
 export const authOptions: NextAuthOptions = {
   adapter: DrizzleAdapter(db, {
@@ -30,6 +31,13 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.sub;
       }
       return session;
+    },
+  },
+  events: {
+    async createUser({ user }) {
+      if (user.id) {
+        await seedDefaultCategories(user.id);
+      }
     },
   },
   pages: {
