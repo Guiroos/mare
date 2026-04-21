@@ -107,11 +107,13 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
 
       {isDesktop ? (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="max-w-md w-full max-h-[90dvh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-md w-full max-h-[90dvh] flex flex-col p-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-6 flex-shrink-0">
               <DialogTitle>Novo lançamento</DialogTitle>
             </DialogHeader>
-            <FormContent formData={formData} month={month} onSuccess={() => setIsOpen(false)} />
+            <div className="overflow-y-auto flex-1 px-6 pb-6">
+              <FormContent formData={formData} month={month} onSuccess={() => setIsOpen(false)} />
+            </div>
           </DialogContent>
         </Dialog>
       ) : (
