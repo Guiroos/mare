@@ -31,9 +31,9 @@ export function PendencyBanner({ unpaidFixedCount, pendingYieldCount }: Props) {
       className="flex items-start gap-2 rounded-[12px] px-3.5 py-2.5 text-[13px] font-medium bg-warning-subtle border border-warning text-warning-text"
     >
       <svg
-        className="mt-[1px] shrink-0"
+        className="mt-[1px] shrink-0 text-warning"
         width="15" height="15" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-warning"
+        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
       >
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
