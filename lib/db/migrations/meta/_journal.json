@@ -15,6 +15,13 @@
       "when": 1776526079302,
       "tag": "0001_grey_silhouette",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776830601019,
+      "tag": "0002_large_nightmare",
+      "breakpoints": true
     }
   ]
 }

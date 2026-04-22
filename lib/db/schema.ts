@@ -72,6 +72,8 @@ export const categories = pgTable('categories', {
     .references(() => categoryGroups.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 100 }).notNull(),
   defaultBudget: decimal('default_budget', { precision: 10, scale: 2 }),
+  color: varchar('color', { length: 7 }),
+  bgColor: varchar('bg_color', { length: 7 }),
 });
 
 export const monthlyBudgetOverrides = pgTable('monthly_budget_overrides', {

@@ -61,10 +61,20 @@ export async function reorderCategoryGroups(orderedIds: string[]) {
 
 // ─── Categorias ───────────────────────────────────────────────────────────────
 
+function deriveBgColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const mix = (ch: number) => Math.round(ch * 0.12 + 255 * 0.88);
+  const toHex = (n: number) => n.toString(16).padStart(2, '0');
+  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+}
+
 export type CategoryInput = {
   name: string;
   groupId: string;
   defaultBudget?: string;
+  color?: string;
 };
 
 export async function createCategory(data: CategoryInput) {
@@ -75,6 +85,8 @@ export async function createCategory(data: CategoryInput) {
     name: data.name,
     groupId: data.groupId,
     defaultBudget: data.defaultBudget || null,
+    color: data.color || null,
+    bgColor: data.color ? deriveBgColor(data.color) : null,
   });
   revalidatePath('/categorias');
 }
@@ -88,6 +100,8 @@ export async function updateCategory(id: string, data: CategoryInput) {
       name: data.name,
       groupId: data.groupId,
       defaultBudget: data.defaultBudget || null,
+      color: data.color || null,
+      bgColor: data.color ? deriveBgColor(data.color) : null,
     })
     .where(and(eq(categories.id, id), eq(categories.userId, userId)));
   revalidatePath('/categorias');

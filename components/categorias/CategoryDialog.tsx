@@ -34,6 +34,7 @@ type EditProps = BaseProps & {
     name: string;
     groupId: string;
     defaultBudget: string | null;
+    color: string | null;
   };
 };
 
@@ -55,6 +56,7 @@ export function CategoryDialog(props: Props) {
           name: (fd.get('name') as string).trim(),
           groupId: fd.get('groupId') as string,
           defaultBudget: (fd.get('defaultBudget') as string) || undefined,
+          color: (fd.get('color') as string) || undefined,
         };
         if (props.mode === 'create') {
           await createCategory(data);
@@ -135,6 +137,26 @@ export function CategoryDialog(props: Props) {
               name="defaultBudget"
               defaultValue={props.mode === 'edit' ? (props.category.defaultBudget ?? '') : ''}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>
+              Cor{' '}
+              <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                name="color"
+                defaultValue={
+                  props.mode === 'edit' ? (props.category.color ?? '#6b7280') : '#6b7280'
+                }
+                className="h-9 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1"
+              />
+              <span className="text-xs text-muted-foreground">
+                A cor de fundo é gerada automaticamente a partir desta cor.
+              </span>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isPending}>

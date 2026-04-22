@@ -120,6 +120,7 @@ export default async function CategoriasPage() {
                                 name: cat.name,
                                 groupId: group.id,
                                 defaultBudget: cat.defaultBudget,
+                                color: cat.color,
                               }}
                             />
                             <DeleteButton
