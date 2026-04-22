@@ -33,8 +33,12 @@ export function FixedExpenseList({ expenses, yearMonth }: { expenses: FixedExpen
   const today = new Date();
   const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1];
   const [displayYear, displayMonth] = yearMonth.split('-').map(Number);
+  const isPastMonth = displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth);
   const isCurrentMonth = displayYear === currentYear && displayMonth === currentMonth;
   const todayDay = today.getDate();
+
+  const isOverdue = (e: FixedExpense) =>
+    !e.paid && (isPastMonth || (isCurrentMonth && e.dueDay < todayDay));
 
   const pending = expenses.filter((e) => !e.paid);
   const paid = expenses.filter((e) => e.paid);
@@ -42,7 +46,7 @@ export function FixedExpenseList({ expenses, yearMonth }: { expenses: FixedExpen
   return (
     <div className="space-y-1">
       {pending.map((e) => (
-        <FixedExpenseRow key={e.id} expense={e} overdue={isCurrentMonth && e.dueDay < todayDay} />
+        <FixedExpenseRow key={e.id} expense={e} overdue={isOverdue(e)} />
       ))}
       {paid.length > 0 && (
         <>
