@@ -1,11 +1,8 @@
 'use client';
 
-import { useTransition } from 'react';
-import { Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format';
 import { deleteIncome } from '@/lib/actions/incomes';
-import { cn } from '@/lib/utils';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { IncomeEditButton } from './IncomeEditDialog';
 
 type Income = {
@@ -33,21 +30,8 @@ export function IncomeList({ incomes }: { incomes: Income[] }) {
 }
 
 function IncomeRow({ income }: { income: Income }) {
-  const [isPending, startTransition] = useTransition();
-
-  const handleDelete = () => {
-    startTransition(async () => {
-      await deleteIncome(income.id);
-    });
-  };
-
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 rounded-lg border bg-card px-3 py-3 transition-opacity',
-        isPending && 'opacity-40'
-      )}
-    >
+    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-3">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{income.source}</p>
       </div>
@@ -57,17 +41,7 @@ function IncomeRow({ income }: { income: Income }) {
       </span>
 
       <IncomeEditButton income={income} />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-        onClick={handleDelete}
-        disabled={isPending}
-        aria-label="Excluir"
-      >
-        <Trash2 className="h-3.5 w-3.5" />
-      </Button>
+      <DeleteButton onDelete={() => deleteIncome(income.id)} />
     </div>
   );
 }

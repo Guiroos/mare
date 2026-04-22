@@ -1,12 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { formatCurrency } from '@/lib/format';
 import { deleteTransaction } from '@/lib/actions/transactions';
-import { cn } from '@/lib/utils';
 import { TransactionEditButton } from './TransactionEditDialog';
 
 type Transaction = {
@@ -24,17 +21,6 @@ type Transaction = {
 };
 
 export function TransactionList({ transactions }: { transactions: Transaction[] }) {
-  const [, startTransition] = useTransition();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const handleDelete = (id: string) => {
-    setDeletingId(id);
-    startTransition(async () => {
-      await deleteTransaction(id);
-      setDeletingId(null);
-    });
-  };
-
   if (transactions.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -49,12 +35,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
   return (
     <div className="space-y-1">
       {standalone.map((t) => (
-        <TransactionRow
-          key={t.id}
-          transaction={t}
-          deleting={deletingId === t.id}
-          onDelete={handleDelete}
-        />
+        <TransactionRow key={t.id} transaction={t} />
       ))}
       {installments.length > 0 && (
         <>
@@ -62,12 +43,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
             Parcelas
           </p>
           {installments.map((t) => (
-            <TransactionRow
-              key={t.id}
-              transaction={t}
-              deleting={deletingId === t.id}
-              onDelete={handleDelete}
-            />
+            <TransactionRow key={t.id} transaction={t} />
           ))}
         </>
       )}
@@ -75,25 +51,12 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
   );
 }
 
-function TransactionRow({
-  transaction: t,
-  deleting,
-  onDelete,
-}: {
-  transaction: Transaction;
-  deleting: boolean;
-  onDelete: (id: string) => void;
-}) {
+function TransactionRow({ transaction: t }: { transaction: Transaction }) {
   const [year, month, day] = t.date.split('-');
   const dateLabel = `${day}/${month}`;
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 rounded-lg border bg-card px-3 py-3 transition-opacity',
-        deleting && 'opacity-40'
-      )}
-    >
+    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-3">
       <span className="text-xs text-muted-foreground w-10 shrink-0">{dateLabel}</span>
 
       <div className="flex-1 min-w-0">
@@ -123,16 +86,7 @@ function TransactionRow({
       {!t.installmentGroup && (
         <>
           <TransactionEditButton transaction={t} />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
-            onClick={() => onDelete(t.id)}
-            disabled={deleting}
-            aria-label="Excluir"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+          <DeleteButton onDelete={() => deleteTransaction(t.id)} />
         </>
       )}
     </div>
