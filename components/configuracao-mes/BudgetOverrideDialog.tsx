@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import {
   upsertBudgetOverride,
   deleteBudgetOverride,
@@ -33,13 +34,11 @@ export function BudgetOverrideDialog({
   override,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const amount = new FormData(e.currentTarget).get('amount') as string;
-    setError('');
     startTransition(async () => {
       try {
         await upsertBudgetOverride({
@@ -50,7 +49,7 @@ export function BudgetOverrideDialog({
         });
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -62,7 +61,7 @@ export function BudgetOverrideDialog({
         await deleteBudgetOverride(override.id);
         setOpen(false);
       } catch {
-        setError('Erro ao remover.');
+        toast.error('Erro ao remover.');
       }
     });
   };
@@ -97,7 +96,6 @@ export function BudgetOverrideDialog({
               autoFocus
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={isPending}>
               {isPending ? 'Salvando...' : 'Definir'}

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
 import {
   createPaymentAccount,
   updatePaymentAccount,
@@ -49,13 +50,11 @@ export function AccountDialog(props: Props) {
   const [type, setType] = useState(
     props.mode === 'edit' ? props.account.type : 'credit'
   );
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    setError('');
     startTransition(async () => {
       try {
         const closingDayRaw = fd.get('closingDay') as string;
@@ -71,7 +70,7 @@ export function AccountDialog(props: Props) {
         }
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -157,7 +156,6 @@ export function AccountDialog(props: Props) {
             </div>
           )}
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

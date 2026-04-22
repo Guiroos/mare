@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { updateWithdrawal } from '@/lib/actions/investments';
 
 type Withdrawal = {
@@ -37,12 +38,10 @@ type Props = {
 export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
   const [typeId, setTypeId] = useState(withdrawal.investmentTypeId);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
     const fd = new FormData(e.currentTarget);
     const str = (name: string) => (fd.get(name) as string) ?? '';
 
@@ -57,7 +56,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         });
         setOpen(false);
       } catch {
-        setError('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.');
       }
     });
   };
@@ -114,8 +113,6 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
             <p className="text-xs text-muted-foreground">
               O destino do resgate não pode ser alterado.
             </p>
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? 'Salvando...' : 'Salvar alterações'}

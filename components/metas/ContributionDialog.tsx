@@ -13,12 +13,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { addGoalContribution } from '@/lib/actions/goals';
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/format';
 
 export function ContributionDialog({ goalId }: { goalId: string }) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -27,7 +27,6 @@ export function ContributionDialog({ goalId }: { goalId: string }) {
     const amount = (fd.get('amount') as string).trim();
     const yearMonth = fd.get('referenceMonth') as string;
 
-    setError('');
     startTransition(async () => {
       try {
         await addGoalContribution({
@@ -37,7 +36,7 @@ export function ContributionDialog({ goalId }: { goalId: string }) {
         });
         setOpen(false);
       } catch {
-        setError('Erro ao registrar aporte.');
+        toast.error('Erro ao registrar aporte.');
       }
     });
   };
@@ -68,7 +67,6 @@ export function ContributionDialog({ goalId }: { goalId: string }) {
               required
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

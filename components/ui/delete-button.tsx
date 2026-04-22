@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from 'react';
 import { Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
 export function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
   const [confirm, setConfirm] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
 
   if (confirm) {
     return (
@@ -22,7 +22,7 @@ export function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
               try {
                 await onDelete();
               } catch {
-                setError('Não é possível excluir — item em uso.');
+                toast.error('Não é possível excluir — item em uso.');
                 setConfirm(false);
               }
             })
@@ -38,7 +38,6 @@ export function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
         >
           Cancelar
         </Button>
-        {error && <span className="text-xs text-destructive">{error}</span>}
       </div>
     );
   }

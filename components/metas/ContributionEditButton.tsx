@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { updateGoalContribution } from '@/lib/actions/goals';
 import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format';
 
@@ -24,11 +25,9 @@ type Contribution = {
 export function ContributionEditButton({ contribution }: { contribution: Contribution }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
     const fd = new FormData(e.currentTarget);
     const str = (name: string) => (fd.get(name) as string) ?? '';
 
@@ -41,7 +40,7 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
         });
         setOpen(false);
       } catch {
-        setError('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.');
       }
     });
   };
@@ -77,7 +76,6 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
                 required
               />
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? 'Salvando...' : 'Salvar alterações'}
             </Button>

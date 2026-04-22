@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { createWithdrawal, type CreateWithdrawalInput } from '@/lib/actions/investments';
 
 type Props = {
@@ -28,7 +29,6 @@ type Props = {
 
 export function WithdrawalDialog({ investmentTypes }: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const [destination, setDestination] = useState<'income' | 'transfer'>('income');
   const [typeId, setTypeId] = useState('');
@@ -41,7 +41,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
     const notes = (fd.get('notes') as string).trim();
 
     if (!typeId) {
-      setError('Selecione o tipo de investimento.');
+      toast.error('Selecione o tipo de investimento.');
       return;
     }
 
@@ -53,7 +53,6 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
       notes: notes || null,
     };
 
-    setError('');
     startTransition(async () => {
       try {
         await createWithdrawal(data);
@@ -61,7 +60,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
         setTypeId('');
         setDestination('income');
       } catch {
-        setError('Erro ao registrar resgate.');
+        toast.error('Erro ao registrar resgate.');
       }
     });
   };
@@ -121,7 +120,6 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
             <Label>Observações</Label>
             <Input name="notes" placeholder="Opcional" />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Registrar'}
           </Button>

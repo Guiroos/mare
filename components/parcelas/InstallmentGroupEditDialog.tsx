@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { updateInstallmentGroup } from '@/lib/actions/transactions';
 import { getRegistrationFormData } from '@/lib/actions/form-data';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -61,11 +62,9 @@ function EditForm({
   onSuccess: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
     const fd = new FormData(e.currentTarget);
     const str = (name: string) => (fd.get(name) as string) ?? '';
 
@@ -79,7 +78,7 @@ function EditForm({
         });
         onSuccess();
       } catch {
-        setError('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.');
       }
     });
   };
@@ -131,8 +130,6 @@ function EditForm({
       <p className="text-xs text-muted-foreground">
         Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do grupo.
       </p>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}

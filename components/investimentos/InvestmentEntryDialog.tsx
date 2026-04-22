@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments';
 import { formatMonth, referenceMonthToYearMonth, currentYearMonth } from '@/lib/format';
 
@@ -31,7 +32,6 @@ type Props = {
 
 export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const defaultMonth = existing
@@ -55,13 +55,12 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
       existingId: existing?.id,
     };
 
-    setError('');
     startTransition(async () => {
       try {
         await upsertInvestment(data);
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -117,7 +116,6 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
               defaultValue={existing?.notes ?? ''}
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

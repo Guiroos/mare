@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { DM_Sans } from 'next/font/google';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -23,7 +24,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={dmSans.className}>{children}</body>
+      <body className={dmSans.className}>
+        {children}
+        <Toaster richColors position="top-center" />
+      </body>
     </html>
   );
 }

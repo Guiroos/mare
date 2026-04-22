@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { toast } from 'sonner';
 import { createCategory, updateCategory } from '@/lib/actions/categories';
 
 type Group = { id: string; name: string };
@@ -40,7 +41,6 @@ type Props = CreateProps | EditProps;
 
 export function CategoryDialog(props: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const defaultGroupId =
@@ -49,7 +49,6 @@ export function CategoryDialog(props: Props) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    setError('');
     startTransition(async () => {
       try {
         const data = {
@@ -64,7 +63,7 @@ export function CategoryDialog(props: Props) {
         }
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -138,7 +137,6 @@ export function CategoryDialog(props: Props) {
             />
           </div>
 
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

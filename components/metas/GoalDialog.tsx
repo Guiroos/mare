@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { upsertGoal } from '@/lib/actions/goals';
 
 type InvestmentTypeOption = { id: string; name: string };
@@ -40,7 +41,6 @@ type Props =
 
 export function GoalDialog(props: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
   const [investmentTypeId, setInvestmentTypeId] = useState(
     props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
@@ -53,7 +53,6 @@ export function GoalDialog(props: Props) {
     const targetAmount = (fd.get('targetAmount') as string).trim();
     const targetDate = (fd.get('targetDate') as string).trim() || null;
 
-    setError('');
     startTransition(async () => {
       try {
         await upsertGoal({
@@ -65,7 +64,7 @@ export function GoalDialog(props: Props) {
         });
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -142,7 +141,6 @@ export function GoalDialog(props: Props) {
               </p>
             </div>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

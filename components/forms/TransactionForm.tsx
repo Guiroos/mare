@@ -23,6 +23,7 @@ import {
   createFixedExpense,
   createInstallmentPurchase,
 } from '@/lib/actions/transactions';
+import { toast } from 'sonner';
 import { createIncome } from '@/lib/actions/incomes';
 import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments';
 
@@ -76,17 +77,14 @@ export function TransactionForm({
 
   const [type, setType] = useState<FormType>('avulso');
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
   const [key, setKey] = useState(0);
 
   const resetForm = () => {
     setKey((k) => k + 1);
-    setError('');
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
     const fd = new FormData(e.currentTarget);
 
     const str = (name: string) => (fd.get(name) as string) ?? '';
@@ -145,7 +143,7 @@ export function TransactionForm({
         resetForm();
         onSuccess?.();
       } catch {
-        setError('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.');
       }
     });
   };
@@ -327,8 +325,6 @@ export function TransactionForm({
             </Field>
           </>
         )}
-
-        {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex items-center gap-3 pt-1">
           <Button type="submit" className="flex-1" disabled={isPending}>

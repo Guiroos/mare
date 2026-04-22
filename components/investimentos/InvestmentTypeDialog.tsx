@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { createInvestmentType, updateInvestmentType } from '@/lib/actions/investments';
 
 type Props =
@@ -20,13 +21,11 @@ type Props =
 
 export function InvestmentTypeDialog(props: Props) {
   const [open, setOpen] = useState(false);
-  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const name = (new FormData(e.currentTarget).get('name') as string).trim();
-    setError('');
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
@@ -36,7 +35,7 @@ export function InvestmentTypeDialog(props: Props) {
         }
         setOpen(false);
       } catch {
-        setError('Erro ao salvar.');
+        toast.error('Erro ao salvar.');
       }
     });
   };
@@ -72,7 +71,6 @@ export function InvestmentTypeDialog(props: Props) {
               autoFocus
             />
           </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

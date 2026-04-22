@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 import { updateIncome } from '@/lib/actions/incomes';
 import { useMediaQuery } from '@/hooks/use-media-query';
 
@@ -35,11 +36,9 @@ function EditForm({
   onSuccess: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError('');
     const fd = new FormData(e.currentTarget);
     const str = (name: string) => (fd.get(name) as string) ?? '';
 
@@ -52,7 +51,7 @@ function EditForm({
         });
         onSuccess();
       } catch {
-        setError('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.');
       }
     });
   };
@@ -68,8 +67,6 @@ function EditForm({
         <Label className="text-sm">Valor</Label>
         <CurrencyInput name="amount" defaultValue={income.amount} required />
       </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}
