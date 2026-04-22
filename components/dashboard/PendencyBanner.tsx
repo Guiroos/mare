@@ -1,7 +1,5 @@
 'use client';
 
-import { AlertCircle } from 'lucide-react';
-
 interface Props {
   unpaidFixedCount: number;
   pendingYieldCount: number;
@@ -29,11 +27,19 @@ export function PendencyBanner({ unpaidFixedCount, pendingYieldCount }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-      <span>
-        {items.length === 1 ? items[0] : items.join(' · ')}
-      </span>
+    <div
+      className="flex items-start gap-2 rounded-[12px] px-3.5 py-2.5 text-[13px] font-medium bg-warning-subtle border border-warning text-warning-text"
+    >
+      <svg
+        className="mt-[1px] shrink-0"
+        width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-warning"
+      >
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      <span>{items.length === 1 ? items[0] : items.join(' · ')}</span>
     </div>
   );
 }

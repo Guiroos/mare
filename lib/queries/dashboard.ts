@@ -126,7 +126,7 @@ export async function getCategoryGroupProgress(
       const override = cat.budgetOverrides[0];
       const budget = Number(override?.amount ?? cat.defaultBudget ?? 0);
       const spent = spentMap.get(cat.id) ?? 0;
-      return { id: cat.id, name: cat.name, budget, spent };
+      return { id: cat.id, name: cat.name, color: cat.color ?? undefined, bgColor: cat.bgColor ?? undefined, budget, spent };
     });
 
     const totalBudget = categoryDetails.reduce((s, c) => s + c.budget, 0);
@@ -222,8 +222,11 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
       getMonthlyEvolution(userId),
     ]);
 
+  const totalBudget = groupProgress.reduce((s, g) => s + g.totalBudget, 0);
+  const totalSpent = groupProgress.reduce((s, g) => s + g.totalSpent, 0);
+
   return {
-    summary,
+    summary: { ...summary, totalBudget, totalSpent },
     groupProgress,
     transactions: monthTransactions,
     fixedExpenses: fixedExpenseList,

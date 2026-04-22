@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen bg-background">
         <Sidebar user={{ name: session.user?.name, email: session.user?.email }} />
         <main className="lg:pl-60 pb-[76px] lg:pb-0">
-          <div className="mx-auto max-w-4xl px-4 py-6">
+          <div className="px-4 py-6 lg:px-8 lg:py-7">
             {children}
           </div>
         </main>
