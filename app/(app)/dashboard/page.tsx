@@ -66,7 +66,7 @@ export default async function DashboardPage({
       </Section>
 
       <Section title="Gastos fixos">
-        <FixedExpenseList expenses={data.fixedExpenses} />
+        <FixedExpenseList expenses={data.fixedExpenses} yearMonth={month} />
       </Section>
 
       <Section title="Transações">

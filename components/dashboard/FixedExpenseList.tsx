@@ -21,7 +21,7 @@ type FixedExpense = {
   account: { name: string } | null;
 };
 
-export function FixedExpenseList({ expenses }: { expenses: FixedExpense[] }) {
+export function FixedExpenseList({ expenses, yearMonth }: { expenses: FixedExpense[]; yearMonth: string }) {
   if (expenses.length === 0) {
     return (
       <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -30,13 +30,19 @@ export function FixedExpenseList({ expenses }: { expenses: FixedExpense[] }) {
     );
   }
 
+  const today = new Date();
+  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1];
+  const [displayYear, displayMonth] = yearMonth.split('-').map(Number);
+  const isCurrentMonth = displayYear === currentYear && displayMonth === currentMonth;
+  const todayDay = today.getDate();
+
   const pending = expenses.filter((e) => !e.paid);
   const paid = expenses.filter((e) => e.paid);
 
   return (
     <div className="space-y-1">
       {pending.map((e) => (
-        <FixedExpenseRow key={e.id} expense={e} />
+        <FixedExpenseRow key={e.id} expense={e} overdue={isCurrentMonth && e.dueDay < todayDay} />
       ))}
       {paid.length > 0 && (
         <>
@@ -44,7 +50,7 @@ export function FixedExpenseList({ expenses }: { expenses: FixedExpense[] }) {
             Pagos
           </p>
           {paid.map((e) => (
-            <FixedExpenseRow key={e.id} expense={e} />
+            <FixedExpenseRow key={e.id} expense={e} overdue={false} />
           ))}
         </>
       )}
@@ -52,7 +58,7 @@ export function FixedExpenseList({ expenses }: { expenses: FixedExpense[] }) {
   );
 }
 
-function FixedExpenseRow({ expense: e }: { expense: FixedExpense }) {
+function FixedExpenseRow({ expense: e, overdue }: { expense: FixedExpense; overdue: boolean }) {
   const [isPending, startTransition] = useTransition();
 
   const toggle = () => {
@@ -88,7 +94,7 @@ function FixedExpenseRow({ expense: e }: { expense: FixedExpense }) {
         {e.paid && <Check className="h-3 w-3" />}
       </button>
 
-      <span className="text-xs text-muted-foreground w-8 shrink-0">
+      <span className={cn('text-xs w-8 shrink-0', overdue ? 'text-destructive font-medium' : 'text-muted-foreground')}>
         dia {e.dueDay}
       </span>
 
