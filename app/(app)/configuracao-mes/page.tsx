@@ -134,7 +134,7 @@ export default async function ConfiguracaoMesPage({
 
       {/* ─── Gastos fixos ───────────────────────────────────────────────── */}
       <Section title="Gastos fixos">
-        <FixedExpenseList expenses={fixedExpenses} />
+        <FixedExpenseList expenses={fixedExpenses} yearMonth={month} />
       </Section>
 
       {/* ─── Parcelas neste mês ─────────────────────────────────────────── */}
