@@ -1,10 +1,11 @@
 'use client';
 
 import { useTransition } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/format';
-import { toggleFixedExpensePaid } from '@/lib/actions/transactions';
+import { toggleFixedExpensePaid, deleteFixedExpense } from '@/lib/actions/transactions';
 import { cn } from '@/lib/utils';
 import { FixedExpenseEditButton } from './FixedExpenseEditDialog';
 
@@ -60,6 +61,12 @@ function FixedExpenseRow({ expense: e }: { expense: FixedExpense }) {
     });
   };
 
+  const handleDelete = () => {
+    startTransition(async () => {
+      await deleteFixedExpense(e.id);
+    });
+  };
+
   return (
     <div
       className={cn(
@@ -106,6 +113,16 @@ function FixedExpenseRow({ expense: e }: { expense: FixedExpense }) {
       </span>
 
       <FixedExpenseEditButton expense={e} />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+        onClick={handleDelete}
+        disabled={isPending}
+        aria-label="Excluir"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </Button>
     </div>
   );
 }
