@@ -67,6 +67,13 @@ NEXTAUTH_URL=http://localhost:3000
 - Tailwind CSS; `tailwind-merge` + `clsx` via `lib/utils.ts`
 - Responsive layout: sidebar on `lg`, bottom nav on mobile
 
+### Shared UI components
+
+Before creating a new UI component, check `components/ui/` for an existing one. Key shared components:
+
+- `components/ui/delete-button.tsx` — `<DeleteButton onDelete={fn} />` — lixeira com confirmação inline ("Excluir" / "Cancelar"). Use em todo lugar que precise de exclusão. Nunca crie botões de delete ad-hoc com `Trash2` direto.
+- Re-exports são proibidos: se um componente precisa ser compartilhado, mova-o para `components/ui/` e atualize todos os imports para apontar diretamente para lá.
+
 ## Context Engineering (Main Agent Discipline)
 
 The main agent is an **orchestrator**, not an executor.
