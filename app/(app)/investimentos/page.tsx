@@ -18,7 +18,7 @@ import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeD
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
 import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog';
 import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton';
-import { DeleteButton } from '@/components/investimentos/DeleteButton';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { PatrimonyChart } from '@/components/charts/PatrimonyChart';
 
 export default async function InvestimentosPage() {

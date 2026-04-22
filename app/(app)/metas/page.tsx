@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { GoalDialog } from '@/components/metas/GoalDialog';
 import { ContributionDialog } from '@/components/metas/ContributionDialog';
 import { ContributionEditButton } from '@/components/metas/ContributionEditButton';
-import { DeleteButton } from '@/components/investimentos/DeleteButton';
+import { DeleteButton } from '@/components/ui/delete-button';
 
 export default async function MetasPage() {
   const session = await auth();

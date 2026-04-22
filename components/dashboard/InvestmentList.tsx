@@ -2,7 +2,7 @@
 
 import { formatCurrency } from '@/lib/format';
 import { deleteInvestment } from '@/lib/actions/investments';
-import { DeleteButton } from '@/components/investimentos/DeleteButton';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
 
 type Investment = {

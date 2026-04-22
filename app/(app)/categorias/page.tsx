@@ -5,7 +5,7 @@ import { formatCurrency } from '@/lib/format';
 import { GroupDialog } from '@/components/categorias/GroupDialog';
 import { CategoryDialog } from '@/components/categorias/CategoryDialog';
 import { AccountDialog } from '@/components/categorias/AccountDialog';
-import { DeleteButton } from '@/components/categorias/DeleteButton';
+import { DeleteButton } from '@/components/ui/delete-button';
 import { ReorderButtons } from '@/components/categorias/ReorderButtons';
 import {
   deleteCategoryGroup,
