@@ -13,6 +13,7 @@ import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList';
 import { BudgetOverrideDialog } from '@/components/configuracao-mes/BudgetOverrideDialog';
 import { CopyPrevMonthButton } from '@/components/configuracao-mes/CopyPrevMonthButton';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { cn } from '@/lib/utils';
 
 export default async function ConfiguracaoMesPage({
@@ -68,7 +69,7 @@ export default async function ConfiguracaoMesPage({
         }
       >
         {categoriesWithBudgets.length === 0 ? (
-          <EmptyState text="Nenhuma categoria cadastrada." />
+          <EmptyState title="Nenhuma categoria cadastrada." />
         ) : (
           <div className="space-y-3">
             {categoriesWithBudgets.map((group) => (
@@ -107,10 +108,7 @@ export default async function ConfiguracaoMesPage({
                             </span>
                           )}
                           {hasOverride && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs px-1.5 py-0 border-blue-300 text-blue-600 dark:text-blue-400"
-                            >
+                            <Badge variant="accent" size="sm">
                               override
                             </Badge>
                           )}
@@ -140,7 +138,7 @@ export default async function ConfiguracaoMesPage({
       {/* ─── Parcelas neste mês ─────────────────────────────────────────── */}
       <Section title="Parcelas neste mês">
         {installments.length === 0 ? (
-          <EmptyState text="Nenhuma parcela neste mês." />
+          <EmptyState title="Nenhuma parcela neste mês." />
         ) : (
           <div className="rounded-xl border bg-card divide-y">
             {installments.map((t) => (
@@ -152,10 +150,7 @@ export default async function ConfiguracaoMesPage({
                   <p className="text-sm font-medium truncate">{t.name}</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {t.category && (
-                      <Badge
-                        variant="secondary"
-                        className="text-xs px-1.5 py-0"
-                      >
+                      <Badge variant="muted" size="sm">
                         {t.category.name}
                       </Badge>
                     )}
@@ -209,14 +204,6 @@ function Section({
         {action}
       </div>
       {children}
-    </div>
-  );
-}
-
-function EmptyState({ text }: { text: string }) {
-  return (
-    <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-      {text}
     </div>
   );
 }

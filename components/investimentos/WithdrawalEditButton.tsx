@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -79,8 +79,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
             <DialogTitle>Editar resgate</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Tipo de investimento</Label>
+            <Field label="Tipo de investimento">
               <Select value={typeId} onValueChange={setTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
@@ -93,22 +92,19 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </Field>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm">Valor (R$)</Label>
+            <Field label="Valor (R$)">
               <CurrencyInput name="amount" defaultValue={withdrawal.amount} required />
-            </div>
+            </Field>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm">Data do resgate</Label>
+            <Field label="Data do resgate">
               <Input name="date" type="date" defaultValue={withdrawal.date} required />
-            </div>
+            </Field>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm">Observações</Label>
+            <Field label="Observações">
               <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
-            </div>
+            </Field>
 
             <p className="text-xs text-muted-foreground">
               O destino do resgate não pode ser alterado.

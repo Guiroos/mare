@@ -6,6 +6,7 @@ import {
 } from '@/lib/queries/parcelas';
 import { InstallmentTimelineChart } from '@/components/charts/InstallmentTimelineChart';
 import { InstallmentGroupCard } from '@/components/parcelas/InstallmentGroupCard';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export default async function ParcelasPage() {
   const session = await auth();
@@ -35,9 +36,7 @@ export default async function ParcelasPage() {
         </h2>
 
         {groups.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhuma parcela ativa.
-          </div>
+          <EmptyState title="Nenhuma parcela ativa." />
         ) : (
           <div className="space-y-3">
             {groups.map((group) => (

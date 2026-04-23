@@ -5,6 +5,7 @@ import { deleteGoal, deleteGoalContribution } from '@/lib/actions/goals';
 import { formatCurrency, formatMonth, referenceMonthToYearMonth } from '@/lib/format';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Separator } from '@/components/ui/separator';
 import { GoalDialog } from '@/components/metas/GoalDialog';
 import { ContributionDialog } from '@/components/metas/ContributionDialog';
@@ -43,9 +44,7 @@ export default async function MetasPage() {
         </div>
 
         {goalsData.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhuma meta cadastrada. Crie sua primeira meta para começar.
-          </div>
+          <EmptyState title="Nenhuma meta cadastrada. Crie sua primeira meta para começar." />
         ) : (
           <div className="space-y-3">
             {goalsData.map((goal) => {
@@ -58,12 +57,12 @@ export default async function MetasPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{goal.name}</span>
                         {isComplete && (
-                          <Badge className="bg-green-600 text-white text-xs">
+                          <Badge variant="positive">
                             Meta atingida!
                           </Badge>
                         )}
                         {goal.investmentTypeName && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="muted">
                             {goal.investmentTypeName}
                           </Badge>
                         )}

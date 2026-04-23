@@ -16,7 +16,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
 
   return (
     <div
-      className="rounded-[20px] p-6 relative overflow-hidden text-white"
+      className="rounded-xl p-6 relative overflow-hidden text-text-inverse"
       style={{
         background: 'linear-gradient(135deg, var(--accent) 0%, oklch(44% 0.13 218) 100%)',
       }}
@@ -33,44 +33,38 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       </svg>
 
       {/* Label */}
-      <p className="text-[12px] font-medium uppercase tracking-[0.04em] opacity-70">
+      <p className="text-label uppercase opacity-70">
         Saldo do Mês
       </p>
 
       {/* Balance amount */}
-      <p
-        className="text-[40px] font-semibold leading-[1.1] mt-1.5 mb-5 tabular-nums"
-        style={{ letterSpacing: '-0.04em' }}
-      >
+      <p className="text-hero mt-1.5 mb-5 tabular-nums">
         {formatCurrency(balance)}
       </p>
 
       {/* Incomes / Expenses / Invested */}
-      <div
-        className="flex gap-8 pt-4"
-        style={{ borderTop: '1px solid oklch(100% 0 0 / 0.15)' }}
-      >
+      <div className="flex gap-8 pt-4 border-t border-white/15">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-60">
+          <span className="text-label uppercase opacity-60">
             Entradas
           </span>
-          <span className="text-[16px] font-semibold tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+          <span className="text-body-lg font-semibold tabular-nums tracking-tight">
             + {formatCurrency(totalIncomes)}
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-60">
+          <span className="text-label uppercase opacity-60">
             Gastos
           </span>
-          <span className="text-[16px] font-semibold tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+          <span className="text-body-lg font-semibold tabular-nums tracking-tight">
             − {formatCurrency(totalExpenses)}
           </span>
         </div>
         <div className="flex flex-col gap-0.5 ml-auto items-end">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.08em] opacity-60">
+          <span className="text-label uppercase opacity-60">
             Investido
           </span>
-          <span className="text-[14px] font-semibold tabular-nums opacity-85" style={{ letterSpacing: '-0.02em' }}>
+          <span className="text-body font-semibold tabular-nums tracking-tight opacity-85">
             {formatCurrency(totalInvested)}
           </span>
         </div>
@@ -80,28 +74,20 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       {totalBudget > 0 && (
         <div className="mt-4">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-[0.04em] opacity-65">
+            <span className="text-label uppercase opacity-65">
               Orçamento utilizado
             </span>
-            <span className="text-[12px] font-semibold opacity-90 tabular-nums">
+            <span className="text-caption font-semibold opacity-90 tabular-nums">
               {Math.round(budgetPct)}%{' '}
               <span className="opacity-70 font-normal">
                 · {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
               </span>
             </span>
           </div>
-          <div
-            className="h-1 rounded-full overflow-hidden"
-            style={{ background: 'oklch(100% 0 0 / 0.2)' }}
-          >
+          <div className="h-1 rounded-full overflow-hidden bg-white/20">
             <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${budgetPct}%`,
-                background: budgetOver
-                  ? 'oklch(75% 0.15 30 / 0.9)'
-                  : 'oklch(100% 0 0 / 0.75)',
-              }}
+              className={`h-full rounded-full transition-all duration-500 ${budgetOver ? 'bg-negative/80' : 'bg-white/75'}`}
+              style={{ width: `${budgetPct}%` }}
             />
           </div>
         </div>

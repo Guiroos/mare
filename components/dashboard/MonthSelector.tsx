@@ -31,10 +31,8 @@ export function MonthSelector({ currentMonth }: { currentMonth: string }) {
         </button>
 
         {/* Pill */}
-        <div
-          className="flex items-center px-3.5 py-1.5 rounded-full cursor-default bg-bg-surface border-[1.5px] border-border shadow-mare-sm"
-        >
-          <span className="text-[14px] font-semibold text-text-primary" style={{ letterSpacing: '-0.01em' }}>
+        <div className="flex items-center px-3.5 py-1.5 rounded-full cursor-default bg-bg-surface border-2 border-border shadow-sm">
+          <span className="text-body font-semibold text-text-primary">
             {formatMonthYear(currentMonth)}
           </span>
         </div>
@@ -54,7 +52,7 @@ export function MonthSelector({ currentMonth }: { currentMonth: string }) {
       {!isCurrentMonth && (
         <button
           onClick={() => navigate(currentYearMonth())}
-          className="flex items-center gap-1 text-[12px] font-semibold px-3 py-1.5 rounded-full bg-accent text-white shadow-mare-sm transition-all hover:shadow-mare-md active:scale-95"
+          className="flex items-center gap-1 text-caption font-semibold px-3 py-1.5 rounded-full bg-accent text-text-inverse shadow-sm transition-all hover:shadow-md active:scale-95"
         >
           Mês atual
           <ChevronRight className="h-3.5 w-3.5" />

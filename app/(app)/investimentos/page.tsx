@@ -13,6 +13,7 @@ import {
 } from '@/lib/actions/investments';
 import { formatCurrency, referenceMonthToYearMonth, formatMonth } from '@/lib/format';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Separator } from '@/components/ui/separator';
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog';
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
@@ -68,9 +69,7 @@ export default async function InvestimentosPage() {
         </div>
 
         {balances.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhum tipo de investimento cadastrado.
-          </div>
+          <EmptyState title="Nenhum tipo de investimento cadastrado." />
         ) : (
           <div className="space-y-3">
             {balances.map((balance, idx) => {
@@ -84,7 +83,7 @@ export default async function InvestimentosPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{balance.name}</span>
                           {balance.pendingYield && (
-                            <Badge variant="outline" className="text-yellow-600 border-yellow-400 text-xs">
+                            <Badge variant="warning">
                               Rendimento pendente
                             </Badge>
                           )}
@@ -201,9 +200,7 @@ export default async function InvestimentosPage() {
         </div>
 
         {withdrawals.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhum resgate registrado.
-          </div>
+          <EmptyState title="Nenhum resgate registrado." />
         ) : (
           <div className="rounded-xl border bg-card overflow-x-auto">
             <table className="w-full text-sm min-w-[480px]">
@@ -229,9 +226,9 @@ export default async function InvestimentosPage() {
                     </td>
                     <td className="px-4 py-2">
                       {w.destination === 'income' ? (
-                        <Badge variant="outline" className="text-xs">Caixa</Badge>
+                        <Badge variant="muted">Caixa</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs">Transferência</Badge>
+                        <Badge variant="muted">Transferência</Badge>
                       )}
                     </td>
                     <td className="px-4 py-2 text-muted-foreground text-xs max-w-[120px] truncate">

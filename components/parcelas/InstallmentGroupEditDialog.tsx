@@ -15,8 +15,8 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -85,13 +85,11 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm">Nome</Label>
+      <Field label="Nome">
         <Input name="name" defaultValue={group.name} required />
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Categoria</Label>
+      <Field label="Categoria">
         <Select name="categoryId" defaultValue={group.categoryId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -109,10 +107,9 @@ function EditForm({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Conta / Cartão</Label>
+      <Field label="Conta / Cartão">
         <Select name="accountId" defaultValue={group.accountId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />
@@ -125,7 +122,7 @@ function EditForm({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
       <p className="text-xs text-muted-foreground">
         Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do grupo.

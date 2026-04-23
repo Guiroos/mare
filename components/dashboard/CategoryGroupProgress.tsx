@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { TxList } from '@/components/ui/tx-list';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ChevronDown } from 'lucide-react';
 
 type CategoryDetail = {
   id: string;
@@ -40,15 +43,11 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   if (groups.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border p-8 text-center text-[13px] font-medium text-text-secondary">
-        Nenhum grupo de categoria criado ainda.
-      </div>
-    );
+    return <EmptyState title="Nenhum grupo de categoria criado ainda." />;
   }
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-bg-surface shadow-mare-sm">
+    <TxList>
       {groups.map((group) => {
         const over = group.totalBudget > 0 && group.totalSpent > group.totalBudget;
         const isOpen = expanded.has(group.id);
@@ -69,10 +68,8 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[13px] font-semibold text-text-primary">{group.name}</span>
-                  <span
-                    className={cn('text-[12px] font-semibold tabular-nums', over ? 'text-negative-text' : 'text-text-secondary')}
-                  >
+                  <span className="text-small font-semibold text-text-primary">{group.name}</span>
+                  <span className={cn('text-caption font-semibold tabular-nums', over ? 'text-negative-text' : 'text-text-secondary')}>
                     {formatCurrency(group.totalSpent)}
                     {group.totalBudget > 0 && (
                       <span className="font-normal text-text-tertiary">
@@ -83,13 +80,10 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
                 </div>
                 <ProgressBar value={group.totalSpent} max={group.totalBudget || group.totalSpent || 1} over={over} />
               </div>
-              <svg
-                width="14" height="14" viewBox="0 0 24 24" fill="none"
-                className="text-text-tertiary" stroke="currentColor" strokeWidth={2} strokeLinecap="round"
-                style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 200ms', flexShrink: 0 }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
+              <ChevronDown
+                className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0 transition-transform duration-base"
+                style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+              />
             </button>
 
             {isOpen && (
@@ -106,7 +100,7 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
                       {cat.color && (
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
                       )}
-                      <span className="flex-1 text-[12px] text-text-secondary truncate">{cat.name}</span>
+                      <span className="flex-1 text-caption text-text-secondary truncate">{cat.name}</span>
                       <div className="w-20 h-1 rounded-full overflow-hidden flex-shrink-0 bg-bg-muted">
                         <div
                           className={cn(
@@ -117,11 +111,11 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
                         />
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <span className={cn('text-[12px] font-semibold tabular-nums', catOver ? 'text-negative-text' : 'text-text-secondary')}>
+                        <span className={cn('text-caption font-semibold tabular-nums', catOver ? 'text-negative-text' : 'text-text-secondary')}>
                           {formatCurrency(cat.spent)}
                         </span>
                         {cat.budget > 0 && (
-                          <span className="text-[11px] text-text-tertiary tabular-nums">
+                          <span className="text-caption text-text-tertiary tabular-nums">
                             {' '}/ {formatCurrency(cat.budget)}
                           </span>
                         )}
@@ -134,6 +128,6 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
           </div>
         );
       })}
-    </div>
+    </TxList>
   );
 }

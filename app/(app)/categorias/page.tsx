@@ -13,6 +13,7 @@ import {
   deletePaymentAccount,
 } from '@/lib/actions/categories';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Separator } from '@/components/ui/separator';
 
 export default async function CategoriasPage() {
@@ -53,9 +54,7 @@ export default async function CategoriasPage() {
         </div>
 
         {groups.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhum grupo criado. Comece criando um grupo.
-          </div>
+          <EmptyState title="Nenhum grupo criado. Comece criando um grupo." />
         ) : (
           <div className="space-y-3">
             {groups.map((group) => {
@@ -162,9 +161,7 @@ export default async function CategoriasPage() {
         </div>
 
         {accounts.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-            Nenhuma conta cadastrada.
-          </div>
+          <EmptyState title="Nenhuma conta cadastrada." />
         ) : (
           <div className="rounded-xl border bg-card divide-y">
             {accounts.map((account) => (
@@ -174,7 +171,7 @@ export default async function CategoriasPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">{account.name}</span>
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="muted">
                     {ACCOUNT_TYPE_LABELS[account.type] ?? account.type}
                   </Badge>
                   {account.closingDay && (

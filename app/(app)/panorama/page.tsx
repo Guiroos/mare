@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getAnnualOverview, getAnnualExpensesByGroup } from '@/lib/queries/panorama';
 import { formatCurrency } from '@/lib/format';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart';
 
 export default async function PanoramaPage() {
@@ -36,10 +36,9 @@ export default async function PanoramaPage() {
 
       {/* Section 1 — Monthly table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Tabela mensal</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+        <div className="px-5 py-4">
+          <h2 className="text-body font-semibold text-text-primary">Tabela mensal</h2>
+        </div>
           {/* Desktop table */}
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
@@ -181,17 +180,12 @@ export default async function PanoramaPage() {
               </div>
             </div>
           </div>
-        </CardContent>
       </Card>
 
       {/* Section 2 — Expenses by group chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Gastos por grupo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AnnualStackedChart data={expensesByGroup} allGroupNames={allGroupNames} />
-        </CardContent>
+      <Card padding="md">
+        <h2 className="text-body font-semibold text-text-primary mb-5">Gastos por grupo</h2>
+        <AnnualStackedChart data={expensesByGroup} allGroupNames={allGroupNames} />
       </Card>
     </div>
   );

@@ -4,9 +4,9 @@ import { useState, useTransition, type FormEvent } from 'react';
 import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -343,11 +343,3 @@ export function TransactionForm({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-sm">{label}</Label>
-      {children}
-    </div>
-  );
-}

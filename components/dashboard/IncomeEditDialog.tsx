@@ -15,9 +15,9 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { updateIncome } from '@/lib/actions/incomes';
 import { useMediaQuery } from '@/hooks/use-media-query';
@@ -58,15 +58,13 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm">Origem</Label>
+      <Field label="Origem">
         <Input name="source" defaultValue={income.source} required />
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Valor</Label>
+      <Field label="Valor">
         <CurrencyInput name="amount" defaultValue={income.amount} required />
-      </div>
+      </Field>
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}

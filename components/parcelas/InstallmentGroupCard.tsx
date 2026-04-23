@@ -28,7 +28,7 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
           <p className="text-xs text-muted-foreground">{group.accountName}</p>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="muted">
             {group.categoryName}
           </Badge>
           <InstallmentGroupEditButton

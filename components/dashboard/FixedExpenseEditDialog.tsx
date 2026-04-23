@@ -15,9 +15,9 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -90,18 +90,15 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-1.5">
-        <Label className="text-sm">Nome</Label>
+      <Field label="Nome">
         <Input name="name" defaultValue={expense.name} required />
-      </div>
+      </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-sm">Valor</Label>
+        <Field label="Valor">
           <CurrencyInput name="amount" defaultValue={expense.amount} required />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-sm">Dia de vencimento</Label>
+        </Field>
+        <Field label="Dia de vencimento">
           <Input
             name="dueDay"
             type="number"
@@ -110,11 +107,10 @@ function EditForm({
             defaultValue={expense.dueDay}
             required
           />
-        </div>
+        </Field>
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Categoria</Label>
+      <Field label="Categoria">
         <Select name="categoryId" defaultValue={expense.categoryId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -132,10 +128,9 @@ function EditForm({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
-      <div className="space-y-1.5">
-        <Label className="text-sm">Conta / Cartão</Label>
+      <Field label="Conta / Cartão">
         <Select name="accountId" defaultValue={expense.accountId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />
@@ -148,7 +143,7 @@ function EditForm({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </Field>
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}

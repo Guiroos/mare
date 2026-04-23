@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { updateGoalContribution } from '@/lib/actions/goals';
 import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format';
@@ -63,19 +63,17 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
             <DialogTitle>Editar aporte</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <div className="space-y-1.5">
-              <Label className="text-sm">Valor (R$)</Label>
+            <Field label="Valor (R$)">
               <CurrencyInput name="amount" defaultValue={contribution.amount} required autoFocus />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Mês de referência</Label>
+            </Field>
+            <Field label="Mês de referência">
               <Input
                 name="referenceMonth"
                 type="month"
                 defaultValue={referenceMonthToYearMonth(contribution.referenceMonth)}
                 required
               />
-            </div>
+            </Field>
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? 'Salvando...' : 'Salvar alterações'}
             </Button>

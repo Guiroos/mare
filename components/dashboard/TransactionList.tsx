@@ -5,6 +5,8 @@ import { formatCurrency } from '@/lib/format';
 import { deleteTransaction } from '@/lib/actions/transactions';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { TransactionEditButton } from './TransactionEditDialog';
+import { TxList } from '@/components/ui/tx-list';
+import { EmptyState } from '@/components/ui/empty-state';
 
 const INITIAL_LIMIT = 5;
 
@@ -38,7 +40,7 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
     <div className="group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-colors">
       {/* Avatar */}
       <div
-        className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[13px] font-semibold flex-shrink-0 bg-bg-subtle text-text-secondary"
+        className="w-9 h-9 rounded-md flex items-center justify-center text-small font-semibold flex-shrink-0 bg-bg-subtle text-text-secondary"
         style={col?.bgColor || col?.color ? {
           background: col.bgColor ?? undefined,
           color: col.color ?? undefined,
@@ -49,27 +51,27 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
 
       {/* Body */}
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-medium text-text-primary truncate">{t.name}</p>
+        <p className="text-body font-medium text-text-primary truncate">{t.name}</p>
         <div className="flex items-center gap-1.5 mt-0.5">
           {col && (
             <>
               <span
-                className="w-[5px] h-[5px] rounded-full flex-shrink-0"
+                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                 style={{ background: col.color ?? undefined }}
               />
-              <span className="text-[11px] font-medium text-text-secondary">
+              <span className="text-caption font-medium text-text-secondary">
                 {col.name}
               </span>
             </>
           )}
           {t.account && (
             <>
-              <span className="text-[11px] text-text-tertiary">·</span>
-              <span className="text-[11px] text-text-tertiary">{t.account.name}</span>
+              <span className="text-caption text-text-tertiary">·</span>
+              <span className="text-caption text-text-tertiary">{t.account.name}</span>
             </>
           )}
           {t.installmentNumber && t.totalInstallments && (
-            <span className="ml-1 text-[10px] font-semibold px-1.5 py-[1px] rounded bg-bg-subtle border border-border text-text-tertiary">
+            <span className="ml-1 text-label px-1.5 py-0.5 rounded bg-bg-subtle border border-border text-text-tertiary">
               {t.installmentNumber}/{t.totalInstallments}
             </span>
           )}
@@ -85,13 +87,10 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
 
       {/* Right */}
       <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-        <span
-          className="text-[14px] font-semibold tabular-nums text-negative-text"
-          style={{ letterSpacing: '-0.01em' }}
-        >
+        <span className="text-body font-semibold tabular-nums text-negative-text">
           − {formatCurrency(Number(t.amount))}
         </span>
-        <span className="text-[11px] text-text-tertiary tabular-nums">
+        <span className="text-caption text-text-tertiary tabular-nums">
           {formatDate(t.date)}
         </span>
       </div>
@@ -104,16 +103,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
 
   if (transactions.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-8 flex flex-col items-center gap-3 text-center">
-        <div className="w-11 h-11 rounded-[12px] bg-bg-subtle flex items-center justify-center">
-          <svg className="w-5 h-5 text-text-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <p className="text-[13px] font-medium text-text-secondary">
-          Nenhuma transação registrada neste mês.
-        </p>
-      </div>
+      <EmptyState title="Nenhuma transação registrada neste mês." />
     );
   }
 
@@ -124,7 +114,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
   const hiddenCount = standalone.length - visibleStandalone.length + installments.length;
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-bg-surface shadow-mare-sm">
+    <TxList>
       {visibleStandalone.map((t) => (
         <TransactionRow key={t.id} transaction={t} />
       ))}
@@ -132,7 +122,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
       {!showAll && hiddenCount > 0 && (
         <button
           onClick={() => setShowAll(true)}
-          className="w-full px-4 py-2.5 text-[13px] font-medium text-accent-text bg-accent-subtle hover:opacity-90 transition-opacity"
+          className="w-full px-4 py-2.5 text-small font-medium text-accent-text bg-accent-subtle hover:opacity-90 transition-opacity"
         >
           Ver mais {hiddenCount} {hiddenCount === 1 ? 'transação' : 'transações'}
         </button>
@@ -140,7 +130,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
 
       {showAll && installments.length > 0 && (
         <>
-          <div className="px-4 py-1.5 bg-bg-subtle border-y border-border text-[10px] font-semibold uppercase tracking-[0.1em] text-text-tertiary">
+          <div className="px-4 py-1.5 bg-bg-subtle border-y border-border text-label uppercase tracking-wider text-text-tertiary">
             Parcelas
           </div>
           {installments.map((t) => (
@@ -148,6 +138,6 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
           ))}
         </>
       )}
-    </div>
+    </TxList>
   );
 }

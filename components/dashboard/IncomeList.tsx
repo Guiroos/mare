@@ -4,6 +4,9 @@ import { formatCurrency } from '@/lib/format';
 import { deleteIncome } from '@/lib/actions/incomes';
 import { DeleteButton } from '@/components/ui/delete-button';
 import { IncomeEditButton } from './IncomeEditDialog';
+import { TxList } from '@/components/ui/tx-list';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ArrowUp } from 'lucide-react';
 
 type Income = {
   id: string;
@@ -14,28 +17,21 @@ type Income = {
 export function IncomeList({ incomes }: { incomes: Income[] }) {
   if (incomes.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border p-6 text-center text-[13px] font-medium text-text-secondary">
-        Nenhuma entrada registrada neste mês.
-      </div>
+      <EmptyState title="Nenhuma entrada registrada neste mês." />
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border overflow-hidden bg-bg-surface shadow-mare-sm">
+    <TxList>
       {incomes.map((income) => (
         <div key={income.id} className="group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-colors">
           {/* Icon */}
-          <div
-            className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-positive-subtle"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="text-positive">
-              <line x1="12" y1="19" x2="12" y2="5" />
-              <polyline points="5 12 12 5 19 12" />
-            </svg>
+          <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 bg-positive-subtle">
+            <ArrowUp className="w-[18px] h-[18px] text-positive" strokeWidth={2} />
           </div>
 
           {/* Source */}
-          <p className="flex-1 text-[14px] font-medium text-text-primary truncate">
+          <p className="flex-1 text-body font-medium text-text-primary truncate">
             {income.source}
           </p>
 
@@ -45,14 +41,11 @@ export function IncomeList({ incomes }: { incomes: Income[] }) {
           </div>
 
           {/* Amount */}
-          <span
-            className="text-[14px] font-semibold tabular-nums flex-shrink-0 text-positive-text"
-            style={{ letterSpacing: '-0.01em' }}
-          >
+          <span className="text-body font-semibold tabular-nums flex-shrink-0 text-positive-text">
             + {formatCurrency(Number(income.amount))}
           </span>
         </div>
       ))}
-    </div>
+    </TxList>
   );
 }
