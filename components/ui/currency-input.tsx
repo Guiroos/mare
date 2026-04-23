@@ -1,44 +1,54 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { useState } from 'react'
 
 interface CurrencyInputProps {
-  name: string;
-  defaultValue?: string | number;
-  required?: boolean;
-  autoFocus?: boolean;
-  className?: string;
-  placeholder?: string;
+  name:          string
+  defaultValue?: string | number
+  required?:     boolean
+  autoFocus?:    boolean
+  className?:    string
+  placeholder?:  string
+  error?:        boolean
 }
 
 function parseToCents(value: string | number | undefined): number {
-  if (!value && value !== 0) return 0;
-  const str = String(value).replace(',', '.').replace(/[^\d.]/g, '');
-  return Math.round(parseFloat(str || '0') * 100);
+  if (!value && value !== 0) return 0
+  const str = String(value).replace(',', '.').replace(/[^\d.]/g, '')
+  return Math.round(parseFloat(str || '0') * 100)
 }
 
 function formatCents(cents: number): string {
-  if (cents === 0) return '';
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(cents / 100);
+  if (cents === 0) return ''
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
 }
+
+const inputBase = [
+  'w-full font-sans text-body text-text-primary bg-bg-surface',
+  'border border-border rounded-md px-4 h-12',
+  'outline-none appearance-none',
+  'transition-[border-color,box-shadow] duration-fast',
+  'placeholder:text-text-tertiary',
+  'focus:border-accent focus:shadow-[0_0_0_3px_var(--ring-accent)]',
+  'disabled:opacity-50 disabled:cursor-not-allowed',
+].join(' ')
+
+const errorCls = 'border-negative focus:border-negative focus:shadow-[0_0_0_3px_var(--ring-negative)]'
 
 export function CurrencyInput({
   name,
   defaultValue,
   required,
   autoFocus,
-  className,
+  className = '',
   placeholder,
+  error = false,
 }: CurrencyInputProps) {
-  const [cents, setCents] = useState(() => parseToCents(defaultValue));
+  const [cents, setCents] = useState(() => parseToCents(defaultValue))
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const digits = e.target.value.replace(/\D/g, '');
-    setCents(parseInt(digits || '0', 10));
+    const digits = e.target.value.replace(/\D/g, '')
+    setCents(parseInt(digits || '0', 10))
   }
 
   return (
@@ -51,12 +61,9 @@ export function CurrencyInput({
         required={required}
         autoFocus={autoFocus}
         placeholder={placeholder ?? 'R$ 0,00'}
-        className={cn(
-          'flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-          className
-        )}
+        className={[inputBase, error ? errorCls : '', className].filter(Boolean).join(' ')}
       />
       <input type="hidden" name={name} value={cents > 0 ? (cents / 100).toFixed(2) : ''} />
     </>
-  );
+  )
 }

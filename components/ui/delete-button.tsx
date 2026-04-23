@@ -14,7 +14,7 @@ export function DeleteButton({ onDelete }: { onDelete: () => Promise<void> }) {
       <div className="flex items-center gap-1">
         <Button
           size="sm"
-          variant="destructive"
+          variant="danger"
           className="h-7 text-xs px-2"
           disabled={isPending}
           onClick={() =>
