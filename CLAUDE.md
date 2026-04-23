@@ -62,17 +62,75 @@ NEXTAUTH_URL=http://localhost:3000
 
 ### UI
 
-- shadcn/ui components in `components/ui/` (Radix-based)
-- Recharts for charts (`components/charts/`)
-- Tailwind CSS; `tailwind-merge` + `clsx` via `lib/utils.ts`
-- Responsive layout: sidebar on `lg`, bottom nav on mobile
+- Maré Design System em `components/ui/` — **não** é mais shadcn/ui genérico
+- Recharts para charts (`components/charts/`)
+- Tailwind CSS; tokens em `tailwind.config.ts` + CSS vars em `app/globals.css`
+- Responsive layout: sidebar em `lg`, bottom nav em mobile
 
-### Shared UI components
+### Design System — Regras obrigatórias
 
-Before creating a new UI component, check `components/ui/` for an existing one. Key shared components:
+**Antes de qualquer implementação de componente, leia estas regras.**
 
-- `components/ui/delete-button.tsx` — `<DeleteButton onDelete={fn} />` — lixeira com confirmação inline ("Excluir" / "Cancelar"). Use em todo lugar que precise de exclusão. Nunca crie botões de delete ad-hoc com `Trash2` direto.
-- Re-exports são proibidos: se um componente precisa ser compartilhado, mova-o para `components/ui/` e atualize todos os imports para apontar diretamente para lá.
+#### 1. Um componente por arquivo
+Cada primitivo vai no seu próprio arquivo. Nunca juntar dois componentes independentes no mesmo arquivo.
+- `badge.tsx` → só Badge
+- `chip.tsx` → só Chip
+- `input.tsx` → só Input
+- `textarea.tsx` → só Textarea
+
+#### 2. Componentes compostos usam os primitivos do DS
+Componentes avançados que combinam primitivos **devem importar e usar os componentes do DS**, não duplicar HTML/classes.
+- `field.tsx` usa `<Label>` — não `<label>` HTML direto
+- `currency-input.tsx` compartilha `inputBase`/`inputErrorCls` de `input.tsx` — não duplica strings
+- `delete-button.tsx` usa `<Button>` — não `<button>` HTML direto
+
+#### 3. Apenas tokens nomeados — zero valores arbitrários
+Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no sistema.
+
+**Tipografia** — usar apenas tokens do `tailwind.config.ts`:
+`text-display` `text-h1` `text-h2` `text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
+
+**Espaçamento** — grid de 4px do Tailwind: `p-1` (4px) `p-2` (8px) `p-3` (12px) etc.
+Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) `p-2.5` (10px)
+
+**Cores** — tokens semânticos do DS:
+`bg-base` `bg-surface` `bg-subtle` `bg-muted` / `text-primary` `text-secondary` `text-tertiary` `text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
+
+**Sombras** — `shadow-sm` `shadow-md` `shadow-lg` (mapeados para CSS vars)
+
+**Bordas** — `border` (1px) ou `border-2` (2px). Não usar `border-[1.5px]`.
+
+**Focus ring** — `focus:shadow-[0_0_0_3px_var(--ring-accent)]` ou `focus:shadow-[0_0_0_3px_var(--ring-negative)]` (CSS vars definidas em globals.css)
+
+**Transições** — `duration-fast` (120ms) ou `duration-base` (200ms)
+
+**Border radius** — `rounded-sm` (6px) `rounded-md` (10px) `rounded-lg` (16px) `rounded-xl` (20px) `rounded-full`
+
+**Alturas de controles interativos** — `h-7` (28px) `h-8` (32px) `h-9` (36px) `h-11` (44px) `h-12` (48px) `h-14` (56px)
+
+Se um valor não existir como token, **parar e discutir** antes de usar `[valor-arbitrário]`.
+
+#### 4. Componentes de formulário — padrão obrigatório
+- Sempre usar `<Field label="...">` em vez de `<div> + <Label>` manual
+- `<Field>` já inclui label, hint e error — não recriar essa estrutura
+- Nunca usar `<label>` HTML direto em componentes de formulário
+
+#### 5. Shared UI components — inventário atual
+
+| Arquivo | Componente(s) | Uso |
+|---|---|---|
+| `button.tsx` | `Button` | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` |
+| `badge.tsx` | `Badge` | Variantes: `positive` `negative` `accent` `warning` `muted` |
+| `chip.tsx` | `Chip` | Toggle com prop `active` |
+| `input.tsx` | `Input` | Prop `error` disponível |
+| `textarea.tsx` | `Textarea` | Prop `error` disponível |
+| `field.tsx` | `Field` | Props: `label` `hint` `error` `required` |
+| `label.tsx` | `Label` | Padrão: `text-caption font-medium text-text-secondary` |
+| `select.tsx` | `Select` + primitivos Radix | Mesmo height que Input (`h-12`) |
+| `currency-input.tsx` | `CurrencyInput` | Prop `error` disponível |
+| `delete-button.tsx` | `DeleteButton` | Confirmação inline. **Nunca** criar botão de delete ad-hoc |
+
+Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
 
 ## Context Engineering (Main Agent Discipline)
 
