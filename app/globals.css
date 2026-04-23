@@ -45,6 +45,10 @@
     --border:         oklch(90% 0.012 225);
     --border-strong:  oklch(82% 0.018 225);
 
+    /* Focus rings */
+    --ring-accent:    oklch(50% 0.14 230 / 0.12);
+    --ring-negative:  oklch(54% 0.13 20 / 0.12);
+
     /* Shadows */
     --shadow-sm: 0 1px 3px oklch(16% 0.022 230 / 0.06), 0 1px 2px oklch(16% 0.022 230 / 0.04);
     --shadow-md: 0 4px 12px oklch(16% 0.022 230 / 0.08), 0 2px 4px oklch(16% 0.022 230 / 0.04);
@@ -83,54 +87,3 @@
   }
 }
 
-@layer components {
-  /* ── Buttons ── */
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 font-medium cursor-pointer whitespace-nowrap transition-all active:scale-[0.97];
-  }
-  .btn-primary   { background: var(--accent); @apply text-white rounded-md; }
-  .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-sm); }
-  .btn-secondary { background: var(--bg-subtle); color: var(--text-primary); @apply rounded-md; }
-  .btn-secondary:hover { background: var(--bg-muted); }
-  .btn-ghost     { background: transparent; color: var(--text-secondary); @apply rounded-md; }
-  .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-primary); }
-  .btn-outline   { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); @apply rounded-md; }
-  .btn-outline:hover { background: var(--accent-subtle); }
-
-  .btn-lg { @apply h-[52px] px-6 rounded-[10px] text-[15px]; }
-  .btn-md { @apply h-[44px] px-5 rounded-[10px] text-[14px]; }
-  .btn-sm { @apply h-[34px] px-4 text-[13px]; }
-  .btn-xs { @apply h-[28px] px-3 text-[12px]; }
-
-  /* ── Input ── */
-  .input-mare {
-    background: var(--bg-surface);
-    border: 1.5px solid var(--border);
-    color: var(--text-primary);
-    @apply h-12 px-4 rounded-[10px] text-[15px] w-full outline-none transition-all;
-  }
-  .input-mare::placeholder { color: var(--text-tertiary); }
-  .input-mare:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px oklch(50% 0.14 230 / 0.12);
-  }
-
-  /* ── Card ── */
-  .card-mare {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    @apply rounded-2xl;
-  }
-
-  /* ── Badge ── */
-  .badge-mare {
-    @apply inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-0.5 rounded-full;
-  }
-}
-
-@layer utilities {
-  .tabular {
-    font-variant-numeric: tabular-nums;
-  }
-}
