@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import {
   Dialog,
   DialogContent,
@@ -54,19 +54,17 @@ export function ContributionDialog({ goalId }: { goalId: string }) {
           <DialogTitle>Registrar aporte manual</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Valor (R$)</Label>
+          <Field label="Valor (R$)" required>
             <CurrencyInput name="amount" required autoFocus />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Mês de referência</Label>
+          </Field>
+          <Field label="Mês de referência" required>
             <Input
               name="referenceMonth"
               type="month"
               defaultValue={currentYearMonth()}
               required
             />
-          </div>
+          </Field>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

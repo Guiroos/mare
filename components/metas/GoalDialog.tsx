@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -78,7 +78,7 @@ export function GoalDialog(props: Props) {
             Nova meta
           </Button>
         ) : (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground">
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-text-tertiary hover:text-text-primary">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -90,8 +90,7 @@ export function GoalDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
+          <Field label="Nome" required>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.goal.name : ''}
@@ -99,17 +98,15 @@ export function GoalDialog(props: Props) {
               required
               autoFocus
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Valor alvo (R$)</Label>
+          </Field>
+          <Field label="Valor alvo (R$)" required>
             <CurrencyInput
               name="targetAmount"
               defaultValue={props.mode === 'edit' ? props.goal.targetAmount : ''}
               required
             />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Prazo (opcional)</Label>
+          </Field>
+          <Field label="Prazo" hint="Opcional">
             <Input
               name="targetDate"
               type="date"
@@ -119,10 +116,12 @@ export function GoalDialog(props: Props) {
                   : ''
               }
             />
-          </div>
+          </Field>
           {props.investmentTypes.length > 0 && (
-            <div className="space-y-1.5">
-              <Label>Vínculo com investimento (opcional)</Label>
+            <Field
+              label="Vínculo com investimento"
+              hint="Opcional. Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos."
+            >
               <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sem vínculo (aporte manual)" />
@@ -136,10 +135,7 @@ export function GoalDialog(props: Props) {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos.
-              </p>
-            </div>
+            </Field>
           )}
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}

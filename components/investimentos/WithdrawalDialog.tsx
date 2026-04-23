@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -78,8 +78,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
           <DialogTitle>Registrar resgate</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Tipo de investimento</Label>
+          <Field label="Tipo de investimento">
             <Select value={typeId} onValueChange={setTypeId}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
@@ -92,17 +91,14 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Valor (R$)</Label>
+          </Field>
+          <Field label="Valor (R$)">
             <CurrencyInput name="amount" required />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Data do resgate</Label>
+          </Field>
+          <Field label="Data do resgate">
             <Input name="date" type="date" required />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Destino</Label>
+          </Field>
+          <Field label="Destino">
             <Select
               value={destination}
               onValueChange={(v) => setDestination(v as 'income' | 'transfer')}
@@ -115,11 +111,10 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
                 <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Input name="notes" placeholder="Opcional" />
-          </div>
+          </Field>
+          <Field label="Observações" hint="Opcional">
+            <Input name="notes" />
+          </Field>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Registrar'}
           </Button>

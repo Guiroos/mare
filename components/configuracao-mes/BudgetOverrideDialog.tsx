@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,12 @@ export function BudgetOverrideDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const defaultBudgetLabel = defaultBudget
+    ? Number(defaultBudget).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      })
+    : null;
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,7 +78,7 @@ export function BudgetOverrideDialog({
         <Button
           size="icon"
           variant="ghost"
-          className="h-6 w-6 text-muted-foreground"
+          className="h-6 w-6 text-text-tertiary hover:text-text-primary"
         >
           <Pencil className="h-3 w-3" />
         </Button>
@@ -82,20 +88,18 @@ export function BudgetOverrideDialog({
           <DialogTitle>Orçamento de {categoryName}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {defaultBudget && (
-            <p className="text-sm text-muted-foreground">
-              Padrão: <strong>{Number(defaultBudget).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
-            </p>
-          )}
-          <div className="space-y-1.5">
-            <Label>Orçamento deste mês</Label>
+          <Field
+            label="Orçamento deste mês"
+            hint={defaultBudgetLabel ? `Padrão: ${defaultBudgetLabel}` : undefined}
+            required
+          >
             <CurrencyInput
               name="amount"
               defaultValue={override?.amount ?? defaultBudget ?? ''}
               required
               autoFocus
             />
-          </div>
+          </Field>
           <div className="flex gap-2">
             <Button type="submit" className="flex-1" disabled={isPending}>
               {isPending ? 'Salvando...' : 'Definir'}

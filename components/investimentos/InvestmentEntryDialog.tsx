@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -69,11 +69,11 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {existing ? (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground">
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-text-tertiary hover:text-text-primary">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         ) : (
-          <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
+          <Button size="sm" variant="outline" className="h-7 gap-1.5 text-caption">
             <Plus className="h-3 w-3" />
             Registrar
           </Button>
@@ -86,36 +86,32 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Mês de referência</Label>
-            <input
-              name="referenceMonth"
-              type="month"
-              defaultValue={defaultMonth}
-              required
-              disabled={!!existing}
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            {!!existing && (
-              <input type="hidden" name="referenceMonth" value={defaultMonth} />
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Aporte (R$)</Label>
+          <Field
+            label="Mês de referência"
+            hint={existing ? `O registro ficará em ${formatMonth(existing.referenceMonth)}.` : undefined}
+          >
+            <>
+              <Input
+                name="referenceMonth"
+                type="month"
+                defaultValue={defaultMonth}
+                required
+                disabled={!!existing}
+              />
+              {!!existing && (
+                <input type="hidden" name="referenceMonth" value={defaultMonth} />
+              )}
+            </>
+          </Field>
+          <Field label="Aporte (R$)">
             <CurrencyInput name="amount" defaultValue={existing?.amount ?? ''} autoFocus />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Rendimento líquido (R$)</Label>
+          </Field>
+          <Field label="Rendimento líquido (R$)">
             <CurrencyInput name="yieldAmount" defaultValue={existing?.yieldAmount ?? ''} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Observações</Label>
-            <Input
-              name="notes"
-              placeholder="Opcional"
-              defaultValue={existing?.notes ?? ''}
-            />
-          </div>
+          </Field>
+          <Field label="Observações" hint="Opcional">
+            <Input name="notes" defaultValue={existing?.notes ?? ''} />
+          </Field>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

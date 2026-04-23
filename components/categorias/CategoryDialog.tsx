@@ -3,9 +3,9 @@
 import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { CurrencyInput } from '@/components/ui/currency-input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -77,7 +77,7 @@ export function CategoryDialog(props: Props) {
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 gap-1 text-xs text-muted-foreground"
+            className="h-7 gap-1 text-caption text-text-tertiary hover:text-text-primary"
           >
             <Plus className="h-3 w-3" />
             Categoria
@@ -86,7 +86,7 @@ export function CategoryDialog(props: Props) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 text-muted-foreground"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -99,8 +99,7 @@ export function CategoryDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
+          <Field label="Nome" required>
             <Input
               name="name"
               defaultValue={
@@ -110,10 +109,9 @@ export function CategoryDialog(props: Props) {
               required
               autoFocus
             />
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label>Grupo</Label>
+          <Field label="Grupo" required>
             <Select name="groupId" defaultValue={defaultGroupId} required>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o grupo" />
@@ -126,24 +124,19 @@ export function CategoryDialog(props: Props) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label>
-              Orçamento padrão{' '}
-              <span className="text-muted-foreground font-normal">(opcional)</span>
-            </Label>
+          <Field label="Orçamento padrão" hint="Opcional">
             <CurrencyInput
               name="defaultBudget"
               defaultValue={props.mode === 'edit' ? (props.category.defaultBudget ?? '') : ''}
             />
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label>
-              Cor{' '}
-              <span className="text-muted-foreground font-normal">(opcional)</span>
-            </Label>
+          <Field
+            label="Cor"
+            hint="Opcional. A cor de fundo é gerada automaticamente a partir desta cor."
+          >
             <div className="flex items-center gap-3">
               <input
                 type="color"
@@ -151,13 +144,10 @@ export function CategoryDialog(props: Props) {
                 defaultValue={
                   props.mode === 'edit' ? (props.category.color ?? '#6b7280') : '#6b7280'
                 }
-                className="h-9 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1"
+                className="h-12 w-14 cursor-pointer rounded-md border border-border bg-bg-surface p-1 outline-none transition-[border-color,box-shadow] duration-fast focus:border-accent focus:shadow-[0_0_0_3px_var(--ring-accent)]"
               />
-              <span className="text-xs text-muted-foreground">
-                A cor de fundo é gerada automaticamente a partir desta cor.
-              </span>
             </div>
-          </div>
+          </Field>
 
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}

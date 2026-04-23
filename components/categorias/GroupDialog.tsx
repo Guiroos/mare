@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -55,7 +55,7 @@ export function GroupDialog(props: Props) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 text-muted-foreground"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -68,8 +68,7 @@ export function GroupDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Nome do grupo</Label>
+          <Field label="Nome do grupo" required>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.group.name : ''}
@@ -77,7 +76,7 @@ export function GroupDialog(props: Props) {
               required
               autoFocus
             />
-          </div>
+          </Field>
           <Button type="submit" className="w-full" disabled={isPending}>
             {isPending ? 'Salvando...' : 'Salvar'}
           </Button>

@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Plus, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -87,7 +87,7 @@ export function AccountDialog(props: Props) {
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 text-muted-foreground"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
           >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -100,8 +100,7 @@ export function AccountDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="space-y-1.5">
-            <Label>Nome</Label>
+          <Field label="Nome" required>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.account.name : ''}
@@ -109,16 +108,16 @@ export function AccountDialog(props: Props) {
               required
               autoFocus
             />
-          </div>
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label>Tipo</Label>
+          <Field label="Tipo" required>
             <Select
               name="type"
               defaultValue={
                 props.mode === 'edit' ? props.account.type : 'credit'
               }
               onValueChange={setType}
+              required
             >
               <SelectTrigger>
                 <SelectValue />
@@ -131,16 +130,10 @@ export function AccountDialog(props: Props) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </Field>
 
           {type === 'credit' && (
-            <div className="space-y-1.5">
-              <Label>
-                Dia de fechamento{' '}
-                <span className="text-muted-foreground font-normal">
-                  (opcional)
-                </span>
-              </Label>
+            <Field label="Dia de fechamento" hint="Opcional">
               <Input
                 name="closingDay"
                 type="number"
@@ -153,7 +146,7 @@ export function AccountDialog(props: Props) {
                     : ''
                 }
               />
-            </div>
+            </Field>
           )}
 
           <Button type="submit" className="w-full" disabled={isPending}>
