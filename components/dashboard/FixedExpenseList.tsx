@@ -72,7 +72,7 @@ function FixedExpenseRow({ expense: e, isCurrentMonth, todayDay, isPastMonth }: 
   };
 
   return (
-    <div className={cn('group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-all', isPending && 'opacity-40')}>
+    <div className={cn('group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-all', isPending && 'opacity-40', e.paid && 'opacity-50')}>
       {/* Checkbox */}
       <button
         onClick={toggle}
@@ -123,7 +123,19 @@ function FixedExpenseRow({ expense: e, isCurrentMonth, todayDay, isPastMonth }: 
   );
 }
 
-export function FixedExpenseList({ expenses, yearMonth }: { expenses: FixedExpense[]; yearMonth: string }) {
+export function FixedExpenseList({
+  expenses,
+  yearMonth,
+  isCurrentMonth,
+  isPastMonth,
+  todayDay,
+}: {
+  expenses: FixedExpense[];
+  yearMonth: string;
+  isCurrentMonth: boolean;
+  isPastMonth: boolean;
+  todayDay: number;
+}) {
   const [showPaid, setShowPaid] = useState(false);
 
   if (expenses.length === 0) {
@@ -131,13 +143,6 @@ export function FixedExpenseList({ expenses, yearMonth }: { expenses: FixedExpen
       <EmptyState title="Nenhum gasto fixo neste mês." />
     );
   }
-
-  const today = new Date();
-  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1];
-  const [displayYear, displayMonth] = yearMonth.split('-').map(Number);
-  const isPastMonth = displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth);
-  const isCurrentMonth = displayYear === currentYear && displayMonth === currentMonth;
-  const todayDay = today.getDate();
 
   const pending = expenses.filter((e) => !e.paid);
   const paid = expenses.filter((e) => e.paid);

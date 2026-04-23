@@ -95,7 +95,7 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
                   return (
                     <div
                       key={cat.id}
-                      className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0 bg-bg-surface"
+                      className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0 bg-bg-subtle"
                     >
                       {cat.color && (
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />

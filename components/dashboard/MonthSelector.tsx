@@ -4,10 +4,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { prevMonth, nextMonth, currentYearMonth } from '@/lib/format';
 
-export function MonthSelector({ currentMonth }: { currentMonth: string }) {
+export function MonthSelector({ currentMonth, isCurrentMonth }: { currentMonth: string; isCurrentMonth: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isCurrentMonth = currentMonth === currentYearMonth();
 
   const formatMonthYear = (yearMonth: string) => {
     const [year, month] = yearMonth.split('-');

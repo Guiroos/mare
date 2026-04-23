@@ -26,7 +26,13 @@ export default async function DashboardPage({
 
   const data = await getDashboardData(userId, referenceMonth);
 
+  const today = new Date();
+  const todayDay = today.getDate();
+  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1];
+  const [displayYear, displayMonth] = month.split('-').map(Number);
   const isCurrentMonth = month === currentYearMonth();
+  const isPastMonth = displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth);
+
   const unpaidFixedCount = isCurrentMonth
     ? data.fixedExpenses.filter((e) => !e.paid).length
     : 0;
@@ -41,7 +47,7 @@ export default async function DashboardPage({
 
   return (
     <div className="flex flex-col gap-7">
-      <MonthSelector currentMonth={month} />
+      <MonthSelector currentMonth={month} isCurrentMonth={isCurrentMonth} />
 
       <PendencyBanner
         unpaidFixedCount={unpaidFixedCount}
@@ -60,7 +66,13 @@ export default async function DashboardPage({
           title="Gastos fixos"
           count={pendingFixed > 0 ? `${pendingFixed} pendente${pendingFixed > 1 ? 's' : ''}` : undefined}
         >
-          <FixedExpenseList expenses={data.fixedExpenses} yearMonth={month} />
+          <FixedExpenseList
+            expenses={data.fixedExpenses}
+            yearMonth={month}
+            isCurrentMonth={isCurrentMonth}
+            isPastMonth={isPastMonth}
+            todayDay={todayDay}
+          />
         </Section>
       </div>
 
@@ -109,18 +121,15 @@ function Section({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <h2
-          className="text-[11px] font-semibold uppercase text-text-tertiary"
-          style={{ letterSpacing: '0.08em' }}
-        >
+        <h2 className="text-label uppercase text-text-tertiary">
           {title}
         </h2>
         {count && (
           <span
             className={
               countVariant === 'positive'
-                ? 'text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-positive-subtle text-positive-text border-positive'
-                : 'text-[11px] font-semibold px-2 py-0.5 rounded-full border bg-bg-subtle text-text-tertiary border-border'
+                ? 'text-label px-2 py-0.5 rounded-full border bg-positive-subtle text-positive-text border-positive'
+                : 'text-label px-2 py-0.5 rounded-full border bg-bg-subtle text-text-tertiary border-border'
             }
           >
             {count}
