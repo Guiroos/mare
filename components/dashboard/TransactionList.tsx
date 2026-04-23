@@ -1,67 +1,76 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { formatCurrency } from '@/lib/format';
-import { deleteTransaction } from '@/lib/actions/transactions';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { TransactionEditButton } from './TransactionEditDialog';
-import { TxList } from '@/components/ui/tx-list';
-import { EmptyState } from '@/components/ui/empty-state';
+import { Fragment, useState } from 'react'
+import { formatCurrency } from '@/lib/format'
+import { deleteTransaction } from '@/lib/actions/transactions'
+import { DeleteButton } from '@/components/ui/delete-button'
+import { TransactionEditButton } from './TransactionEditDialog'
+import { TxList, TxGroupHeader } from '@/components/ui/tx-list'
+import { EmptyState } from '@/components/ui/empty-state'
 
-const INITIAL_LIMIT = 5;
+const INITIAL_LIMIT = 5
 
 type Transaction = {
-  id: string;
-  name: string;
-  amount: string;
-  date: string;
-  categoryId: string | null;
-  accountId: string | null;
-  installmentNumber: number | null;
-  totalInstallments: number | null;
-  category: { name: string; color: string | null; bgColor: string | null } | null;
-  account: { name: string } | null;
-  installmentGroup: { id: string } | null;
-};
-
-function getInitial(name: string) {
-  return name.slice(0, 2).toUpperCase();
+  id: string
+  name: string
+  amount: string
+  date: string
+  categoryId: string | null
+  accountId: string | null
+  installmentNumber: number | null
+  totalInstallments: number | null
+  category: { name: string; color: string | null; bgColor: string | null } | null
+  account: { name: string } | null
+  installmentGroup: { id: string } | null
 }
 
-function formatDate(dateStr: string) {
-  const [, month, day] = dateStr.split('-');
-  return `${day}/${month}`;
+function getInitial(name: string) {
+  return name.slice(0, 1).toUpperCase()
+}
+
+function formatGroupDate(dateStr: string): string {
+  const now = new Date()
+  const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const d = new Date(dateStr + 'T12:00:00')
+  const dateMs = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const diffDays = Math.round((todayMs - dateMs) / 86400000)
+  const dayMonth = d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
+  if (diffDays === 0) return `Hoje, ${dayMonth}`
+  if (diffDays === 1) return `Ontem, ${dayMonth}`
+  return d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function TransactionRow({ transaction: t }: { transaction: Transaction }) {
-  const col = t.category ?? null;
+  const col = t.category ?? null
 
   return (
-    <div className="group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-colors">
+    <div className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-bg-subtle">
       {/* Avatar */}
       <div
-        className="w-9 h-9 rounded-md flex items-center justify-center text-small font-semibold flex-shrink-0 bg-bg-subtle text-text-secondary"
-        style={col?.bgColor || col?.color ? {
-          background: col.bgColor ?? undefined,
-          color: col.color ?? undefined,
-        } : undefined}
+        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-bg-subtle text-small font-semibold text-text-secondary"
+        style={
+          col?.bgColor || col?.color
+            ? {
+                background: col.bgColor ?? undefined,
+                color: col.color ?? undefined,
+              }
+            : undefined
+        }
       >
         {getInitial(t.name)}
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-w-0">
-        <p className="text-body font-medium text-text-primary truncate">{t.name}</p>
-        <div className="flex items-center gap-1.5 mt-0.5">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-body font-medium text-text-primary">{t.name}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
           {col && (
             <>
               <span
-                className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                 style={{ background: col.color ?? undefined }}
               />
-              <span className="text-caption font-medium text-text-secondary">
-                {col.name}
-              </span>
+              <span className="text-caption font-medium text-text-secondary">{col.name}</span>
             </>
           )}
           {t.account && (
@@ -71,7 +80,7 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
             </>
           )}
           {t.installmentNumber && t.totalInstallments && (
-            <span className="ml-1 text-label px-1.5 py-0.5 rounded bg-bg-subtle border border-border text-text-tertiary">
+            <span className="ml-1 rounded border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
               {t.installmentNumber}/{t.totalInstallments}
             </span>
           )}
@@ -79,65 +88,61 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
       </div>
 
       {!t.installmentGroup && (
-        <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
           <TransactionEditButton transaction={t} />
           <DeleteButton onDelete={() => deleteTransaction(t.id)} />
         </div>
       )}
 
       {/* Right */}
-      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+      <div className="flex-shrink-0">
         <span className="text-body font-semibold tabular-nums text-negative-text">
           − {formatCurrency(Number(t.amount))}
         </span>
-        <span className="text-caption text-text-tertiary tabular-nums">
-          {formatDate(t.date)}
-        </span>
       </div>
     </div>
-  );
+  )
 }
 
 export function TransactionList({ transactions }: { transactions: Transaction[] }) {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(false)
 
   if (transactions.length === 0) {
-    return (
-      <EmptyState title="Nenhuma transação registrada neste mês." />
-    );
+    return <EmptyState title="Nenhuma transação registrada neste mês." />
   }
 
-  const standalone = transactions.filter((t) => !t.installmentGroup);
-  const installments = transactions.filter((t) => t.installmentGroup);
+  const visible = showAll ? transactions : transactions.slice(0, INITIAL_LIMIT)
+  const hiddenCount = transactions.length - visible.length
 
-  const visibleStandalone = showAll ? standalone : standalone.slice(0, INITIAL_LIMIT);
-  const hiddenCount = standalone.length - visibleStandalone.length + installments.length;
+  const groups = visible.reduce<{ date: string; items: Transaction[] }[]>((acc, t) => {
+    const last = acc.at(-1)
+    if (last?.date === t.date) last.items.push(t)
+    else acc.push({ date: t.date, items: [t] })
+    return acc
+  }, [])
 
   return (
     <TxList>
-      {visibleStandalone.map((t) => (
-        <TransactionRow key={t.id} transaction={t} />
+      {groups.map(({ date, items }) => (
+        <Fragment key={date}>
+          <TxGroupHeader
+            date={formatGroupDate(date)}
+            total={`− ${formatCurrency(items.reduce((s, t) => s + Number(t.amount), 0))}`}
+          />
+          {items.map((t) => (
+            <TransactionRow key={t.id} transaction={t} />
+          ))}
+        </Fragment>
       ))}
 
       {!showAll && hiddenCount > 0 && (
         <button
           onClick={() => setShowAll(true)}
-          className="w-full px-4 py-2.5 text-small font-medium text-accent-text bg-accent-subtle hover:opacity-90 transition-opacity"
+          className="w-full bg-accent-subtle px-4 py-2.5 text-small font-medium text-accent-text transition-opacity hover:opacity-90"
         >
           Ver mais {hiddenCount} {hiddenCount === 1 ? 'transação' : 'transações'}
         </button>
       )}
-
-      {showAll && installments.length > 0 && (
-        <>
-          <div className="px-4 py-1.5 bg-bg-subtle border-y border-border text-label uppercase tracking-wider text-text-tertiary">
-            Parcelas
-          </div>
-          {installments.map((t) => (
-            <TransactionRow key={t.id} transaction={t} />
-          ))}
-        </>
-      )}
     </TxList>
-  );
+  )
 }
