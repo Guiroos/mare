@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getDashboardData } from '@/lib/queries/dashboard'
-import { currentYearMonth, yearMonthToReferenceMonth, formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
+import { currentYearMonth, yearMonthToReferenceMonth, todayParts } from '@/lib/utils/date'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { SummaryCards } from '@/components/dashboard/SummaryCards'
 import { CategoryGroupProgress } from '@/components/dashboard/CategoryGroupProgress'
@@ -26,9 +27,7 @@ export default async function DashboardPage({
 
   const data = await getDashboardData(userId, referenceMonth)
 
-  const today = new Date()
-  const todayDay = today.getDate()
-  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1]
+  const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
   const isCurrentMonth = month === currentYearMonth()
   const isPastMonth =

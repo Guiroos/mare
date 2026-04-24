@@ -1,4 +1,4 @@
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 
 type Summary = {
   totalIncomes: number

@@ -1,6 +1,6 @@
 'use client'
 
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 import { deleteIncome } from '@/lib/actions/incomes'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { IncomeEditButton } from './IncomeEditDialog'

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { TransactionForm } from '@/components/forms/TransactionForm'
-import { currentYearMonth } from '@/lib/format'
+import { currentYearMonth } from '@/lib/utils/date'
 
 export default async function RegistroPage({ searchParams }: { searchParams: { month?: string } }) {
   const session = await auth()

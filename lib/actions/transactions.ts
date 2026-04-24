@@ -5,7 +5,8 @@ import { db } from '@/lib/db'
 import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema'
 import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
-import { addMonths, format } from 'date-fns'
+import { addMonths, format, startOfMonth } from 'date-fns'
+import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -13,11 +14,6 @@ function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
   const userId = (session?.user as { id?: string })?.id
   if (!userId) throw new Error('Não autorizado')
   return userId
-}
-
-function toReferenceMonth(dateStr: string) {
-  const d = new Date(dateStr + 'T12:00:00')
-  return format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd')
 }
 
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
@@ -39,7 +35,7 @@ export async function createTransaction(data: CreateTransactionInput) {
     name: data.name,
     amount: data.amount,
     date: data.date,
-    referenceMonth: toReferenceMonth(data.date),
+    referenceMonth: dateToReferenceMonth(data.date),
     categoryId: data.categoryId,
     accountId: data.accountId,
   })
@@ -158,17 +154,14 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
     .returning({ id: installmentGroups.id })
 
   const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
-    const installmentDate = addMonths(new Date(data.startDate + 'T12:00:00'), i)
+    const installmentDate = addMonths(parseDate(data.startDate), i)
     const dateStr = format(installmentDate, 'yyyy-MM-dd')
     return {
       userId,
       name: `${data.name} (${i + 1}/${data.totalInstallments})`,
       amount: installmentAmount,
       date: dateStr,
-      referenceMonth: format(
-        new Date(installmentDate.getFullYear(), installmentDate.getMonth(), 1),
-        'yyyy-MM-dd'
-      ),
+      referenceMonth: format(startOfMonth(installmentDate), 'yyyy-MM-dd'),
       categoryId: data.categoryId,
       accountId: data.accountId,
       installmentGroupId: group.id,
@@ -203,7 +196,7 @@ export async function updateTransaction(data: UpdateTransactionInput) {
       name: data.name,
       amount: data.amount,
       date: data.date,
-      referenceMonth: toReferenceMonth(data.date),
+      referenceMonth: dateToReferenceMonth(data.date),
       categoryId: data.categoryId,
       accountId: data.accountId,
     })

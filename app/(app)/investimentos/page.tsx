@@ -7,7 +7,8 @@ import {
   getPatrimonyTimeline,
 } from '@/lib/queries/investments'
 import { deleteInvestmentType, deleteInvestment, deleteWithdrawal } from '@/lib/actions/investments'
-import { formatCurrency, referenceMonthToYearMonth, formatMonth } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
+import { formatMonthName, referenceMonthToYearMonth, formatDate } from '@/lib/utils/date'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Separator } from '@/components/ui/separator'
@@ -125,7 +126,7 @@ export default async function InvestimentosPage() {
                             {history.map((entry) => (
                               <tr key={entry.id}>
                                 <td className="py-1.5 pr-4 text-muted-foreground">
-                                  {formatMonth(referenceMonthToYearMonth(entry.referenceMonth))}
+                                  {formatMonthName(referenceMonthToYearMonth(entry.referenceMonth))}
                                 </td>
                                 <td className="py-1.5 pr-4 text-right tabular-nums">
                                   {entry.amount !== null ? formatCurrency(entry.amount) : '—'}
@@ -213,9 +214,7 @@ export default async function InvestimentosPage() {
                 {withdrawals.map((w) => (
                   <tr key={w.id}>
                     <td className="px-4 py-2">{w.typeName}</td>
-                    <td className="px-4 py-2 text-muted-foreground">
-                      {new Date(w.date + 'T12:00:00').toLocaleDateString('pt-BR')}
-                    </td>
+                    <td className="px-4 py-2 text-muted-foreground">{formatDate(w.date)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">
                       {formatCurrency(w.amount)}
                     </td>

@@ -27,13 +27,7 @@ const COLORS = [
   '#84cc16',
 ]
 
-function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-')
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
-    month: 'short',
-    year: '2-digit',
-  })
-}
+import { formatMonthShort } from '@/lib/utils/date'
 
 function formatCurrencyShort(value: number) {
   if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
@@ -54,7 +48,7 @@ export function AnnualStackedChart({ data, allGroupNames }: Props) {
   }
 
   const chartData = data.map((d) => {
-    const row: Record<string, string | number> = { month: formatMonthLabel(d.month) }
+    const row: Record<string, string | number> = { month: formatMonthShort(d.month) }
     for (const groupName of allGroupNames) {
       const match = d.groups.find((g) => g.groupName === groupName)
       row[groupName] = match ? match.total : 0

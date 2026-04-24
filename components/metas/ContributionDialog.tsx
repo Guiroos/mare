@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { addGoalContribution } from '@/lib/actions/goals'
-import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/format'
+import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 
 export function ContributionDialog({ goalId }: { goalId: string }) {
   const [open, setOpen] = useState(false)

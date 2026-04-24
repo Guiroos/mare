@@ -1,7 +1,10 @@
 'use client'
 
 import { Fragment, useState } from 'react'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
+import { parseDate, daysAgo, formatDisplayDate } from '@/lib/utils/date'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import { deleteTransaction } from '@/lib/actions/transactions'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { TransactionEditButton } from './TransactionEditDialog'
@@ -29,15 +32,11 @@ function getInitial(name: string) {
 }
 
 function formatGroupDate(dateStr: string): string {
-  const now = new Date()
-  const todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const d = new Date(dateStr + 'T12:00:00')
-  const dateMs = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-  const diffDays = Math.round((todayMs - dateMs) / 86400000)
-  const dayMonth = d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })
-  if (diffDays === 0) return `Hoje, ${dayMonth}`
-  if (diffDays === 1) return `Ontem, ${dayMonth}`
-  return d.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })
+  const diff = daysAgo(dateStr)
+  const dayMonth = formatDisplayDate(dateStr)
+  if (diff === 0) return `Hoje, ${dayMonth}`
+  if (diff === 1) return `Ontem, ${dayMonth}`
+  return `${format(parseDate(dateStr), "EEE'.'", { locale: ptBR })}, ${dayMonth}`
 }
 
 function TransactionRow({ transaction: t }: { transaction: Transaction }) {

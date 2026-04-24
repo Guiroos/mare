@@ -1,6 +1,6 @@
 'use client'
 
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 import { deleteInvestment } from '@/lib/actions/investments'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'

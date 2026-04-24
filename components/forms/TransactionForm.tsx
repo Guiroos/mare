@@ -16,8 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-import { currentYearMonth } from '@/lib/format'
+import { cn } from '@/lib/utils/cn'
+import { currentYearMonth, todayISOString } from '@/lib/utils/date'
 import {
   createTransaction,
   createFixedExpense,
@@ -73,7 +73,7 @@ export function TransactionForm({
   showFullPageLink = false,
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayISOString()
 
   const [type, setType] = useState<FormType>('avulso')
   const [isPending, startTransition] = useTransition()

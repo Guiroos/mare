@@ -5,17 +5,12 @@ import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
 import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
-import { format } from 'date-fns'
+import { dateToReferenceMonth } from '@/lib/utils/date'
 
 function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
   const userId = (session?.user as { id?: string })?.id
   if (!userId) throw new Error('Não autorizado')
   return userId
-}
-
-function toReferenceMonth(dateStr: string) {
-  const d = new Date(dateStr + 'T12:00:00')
-  return format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd')
 }
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
@@ -116,7 +111,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
         userId,
         source: 'Resgate de investimento',
         amount: data.amount,
-        referenceMonth: toReferenceMonth(data.date),
+        referenceMonth: dateToReferenceMonth(data.date),
       })
       .returning({ id: incomes.id })
     incomeId = income.id
@@ -168,7 +163,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   if (withdrawal.incomeId) {
     await db
       .update(incomes)
-      .set({ amount: data.amount, referenceMonth: toReferenceMonth(data.date) })
+      .set({ amount: data.amount, referenceMonth: dateToReferenceMonth(data.date) })
       .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
   }
 

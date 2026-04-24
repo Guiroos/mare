@@ -10,17 +10,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { formatMonthShort } from '@/lib/utils/date'
 
 type Props = {
   data: { month: string; totalIncomes: number; totalExpenses: number; totalInvested: number }[]
-}
-
-function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-')
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
-    month: 'short',
-    year: '2-digit',
-  })
 }
 
 function formatCurrencyShort(value: number) {
@@ -42,7 +35,7 @@ export function MonthlyEvolutionChart({ data }: Props) {
   }
 
   const chartData = data.map((d) => ({
-    month: formatMonthLabel(d.month),
+    month: formatMonthShort(d.month),
     Entradas: d.totalIncomes,
     Gastos: d.totalExpenses,
     Investimentos: d.totalInvested,

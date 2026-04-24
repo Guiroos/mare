@@ -8,6 +8,7 @@ import {
   monthlyBudgetOverrides,
 } from '@/lib/db/schema'
 import { eq, and, sum, desc } from 'drizzle-orm'
+import { pastNMonths } from '@/lib/utils/date'
 
 // ─── Resumo do mês ────────────────────────────────────────────────────────────
 
@@ -201,16 +202,7 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
 // ─── Evolução mensal (últimos N meses) ────────────────────────────────────────
 
 export async function getMonthlyEvolution(userId: string, monthsBack: number = 6) {
-  const today = new Date()
-
-  // Build list of the last N months (oldest first) as YYYY-MM-01 strings
-  const months: string[] = []
-  for (let i = monthsBack - 1; i >= 0; i--) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-    const year = d.getFullYear()
-    const month = d.getMonth() + 1
-    months.push(`${year}-${String(month).padStart(2, '0')}-01`)
-  }
+  const months = pastNMonths(monthsBack)
 
   const results = await Promise.all(
     months.map(async (referenceMonth) => {

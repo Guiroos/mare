@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { toast } from 'sonner'
 import { updateGoalContribution } from '@/lib/actions/goals'
-import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format'
+import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 
 type Contribution = {
   id: string

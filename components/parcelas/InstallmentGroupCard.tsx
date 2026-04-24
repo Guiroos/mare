@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog'
 
 type Group = {

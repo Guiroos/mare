@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 import { GroupDialog } from '@/components/categorias/GroupDialog'
 import { CategoryDialog } from '@/components/categorias/CategoryDialog'
 import { AccountDialog } from '@/components/categorias/AccountDialog'

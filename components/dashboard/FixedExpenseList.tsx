@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
 import { toggleFixedExpensePaid, deleteFixedExpense } from '@/lib/actions/transactions'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { FixedExpenseEditButton } from './FixedExpenseEditDialog'
 import { TxList } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/cn'
 import { Check, ChevronDown } from 'lucide-react'
 
 type FixedExpense = {

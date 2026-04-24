@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { prevMonth, nextMonth, currentYearMonth } from '@/lib/format'
+import { prevMonth, nextMonth, currentYearMonth, formatMonthYear } from '@/lib/utils/date'
 
 export function MonthSelector({
   currentMonth,
@@ -13,13 +13,6 @@ export function MonthSelector({
 }) {
   const router = useRouter()
   const pathname = usePathname()
-
-  const formatMonthYear = (yearMonth: string) => {
-    const [year, month] = yearMonth.split('-')
-    const date = new Date(Number(year), Number(month) - 1, 1)
-    const monthName = date.toLocaleDateString('pt-BR', { month: 'long' })
-    return `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${year}`
-  }
 
   const navigate = (month: string) => router.push(`${pathname}?month=${month}`)
 

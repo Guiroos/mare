@@ -1,12 +1,12 @@
 import { db } from '@/lib/db'
 import { transactions, installmentGroups } from '@/lib/db/schema'
 import { eq, and, isNotNull } from 'drizzle-orm'
+import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
 
 // ─── Parcelas ativas (ainda com saldo futuro) ─────────────────────────────────
 
 export async function getActiveInstallmentGroups(userId: string) {
-  const today = new Date()
-  const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
+  const currentMonthStr = currentReferenceMonth()
 
   const groups = await db.query.installmentGroups.findMany({
     where: eq(installmentGroups.userId, userId),
@@ -52,19 +52,7 @@ export async function getActiveInstallmentGroups(userId: string) {
 // ─── Linha do tempo de parcelas (próximos 12 meses) ───────────────────────────
 
 export async function getInstallmentTimeline(userId: string) {
-  const today = new Date()
-  const currentYear = today.getFullYear()
-  const currentMonth = today.getMonth() + 1
-
-  // Build list of next 12 months as YYYY-MM-01 strings
-  const months: string[] = []
-  for (let i = 0; i < 12; i++) {
-    const m = currentMonth + i
-    const year = currentYear + Math.floor((m - 1) / 12)
-    const month = ((m - 1) % 12) + 1
-    months.push(`${year}-${String(month).padStart(2, '0')}-01`)
-  }
-
+  const months = futureNMonths(12)
   const currentMonthStr = months[0]
   const lastMonthStr = months[months.length - 1]
 

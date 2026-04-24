@@ -2,19 +2,20 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getCategoriesWithBudgets } from '@/lib/queries/categories'
 import { getMonthFixedExpenses, getMonthTransactions } from '@/lib/queries/dashboard'
+import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
   yearMonthToReferenceMonth,
   prevMonth,
-  formatCurrency,
-} from '@/lib/format'
+  todayParts,
+} from '@/lib/utils/date'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList'
 import { BudgetOverrideDialog } from '@/components/configuracao-mes/BudgetOverrideDialog'
 import { CopyPrevMonthButton } from '@/components/configuracao-mes/CopyPrevMonthButton'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/cn'
 
 export default async function ConfiguracaoMesPage({
   searchParams,
@@ -26,9 +27,7 @@ export default async function ConfiguracaoMesPage({
 
   const userId = (session.user as { id: string }).id
   const month = searchParams.month ?? currentYearMonth()
-  const today = new Date()
-  const todayDay = today.getDate()
-  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1]
+  const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
   const isCurrentMonth = month === currentYearMonth()
   const isPastMonth =

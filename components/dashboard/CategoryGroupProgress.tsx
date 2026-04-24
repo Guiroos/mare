@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/format'
-import { cn } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils/currency'
+import { cn } from '@/lib/utils/cn'
 import { TxList } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ChevronDown } from 'lucide-react'

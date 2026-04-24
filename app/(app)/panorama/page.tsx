@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getAnnualOverview, getAnnualExpensesByGroup } from '@/lib/queries/panorama'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
+import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
 import { Card } from '@/components/ui/card'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 
@@ -10,7 +11,7 @@ export default async function PanoramaPage() {
   if (!session) redirect('/login')
   const userId = (session.user as { id: string }).id
 
-  const year = new Date().getFullYear()
+  const year = currentYear()
 
   const [overview, expensesByGroup] = await Promise.all([
     getAnnualOverview(userId, year),
@@ -55,10 +56,7 @@ export default async function PanoramaPage() {
             </thead>
             <tbody>
               {overview.map((row) => {
-                const [y, m] = row.month.split('-').map(Number)
-                const monthLabel = new Date(y, m - 1, 1)
-                  .toLocaleDateString('pt-BR', { month: 'short' })
-                  .toUpperCase()
+                const monthLabel = formatMonthAbbr(row.month).toUpperCase()
                 return (
                   <tr key={row.month} className="hover:bg-muted/30 border-b last:border-0">
                     <td className="px-4 py-3 font-medium">{monthLabel}</td>
@@ -109,10 +107,7 @@ export default async function PanoramaPage() {
         {/* Mobile card list */}
         <div className="divide-y md:hidden">
           {overview.map((row) => {
-            const [y, m] = row.month.split('-').map(Number)
-            const monthLabel = new Date(y, m - 1, 1)
-              .toLocaleDateString('pt-BR', { month: 'short' })
-              .toUpperCase()
+            const monthLabel = formatMonthAbbr(row.month).toUpperCase()
             return (
               <div key={row.month} className="px-4 py-3">
                 <div className="mb-1 flex items-center justify-between">

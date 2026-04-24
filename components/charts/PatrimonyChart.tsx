@@ -9,16 +9,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { formatMonthShort } from '@/lib/utils/date'
 
 type DataPoint = { month: string; total: number }
-
-function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-')
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
-    month: 'short',
-    year: '2-digit',
-  })
-}
 
 function formatCurrencyShort(value: number) {
   if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
@@ -35,7 +28,7 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
   }
 
   const chartData = data.map((d) => ({
-    month: formatMonthLabel(d.month),
+    month: formatMonthShort(d.month),
     total: d.total,
   }))
 

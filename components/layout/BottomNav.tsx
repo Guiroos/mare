@@ -14,7 +14,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/cn'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
 

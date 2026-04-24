@@ -7,6 +7,7 @@ import {
   investmentWithdrawals,
 } from '@/lib/db/schema'
 import { eq, and, sum, asc } from 'drizzle-orm'
+import { addMonths, format } from 'date-fns'
 
 export type GoalWithProgress = {
   id: string
@@ -109,11 +110,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
           recentMonthlyAmounts.reduce((a, b) => a + b, 0) / recentMonthlyAmounts.length
         if (avgMonthly > 0) {
           const monthsNeeded = Math.ceil(remaining / avgMonthly)
-          const projDate = new Date()
-          projDate.setMonth(projDate.getMonth() + monthsNeeded)
-          projectedCompletionYearMonth = `${projDate.getFullYear()}-${String(
-            projDate.getMonth() + 1
-          ).padStart(2, '0')}`
+          projectedCompletionYearMonth = format(addMonths(new Date(), monthsNeeded), 'yyyy-MM')
         }
       }
 

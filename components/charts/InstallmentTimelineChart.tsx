@@ -1,17 +1,10 @@
 'use client'
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { formatMonthShort } from '@/lib/utils/date'
 
 type Props = {
   data: { month: string; total: number; groups: { name: string; amount: number }[] }[]
-}
-
-function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-')
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
-    month: 'short',
-    year: '2-digit',
-  })
 }
 
 function formatCurrencyShort(value: number) {
@@ -33,7 +26,7 @@ export function InstallmentTimelineChart({ data }: Props) {
   }
 
   const chartData = data.map((d) => ({
-    month: formatMonthLabel(d.month),
+    month: formatMonthShort(d.month),
     total: d.total,
     _groups: d.groups,
   }))

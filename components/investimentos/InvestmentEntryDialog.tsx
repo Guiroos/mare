@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments'
-import { formatMonth, referenceMonthToYearMonth, currentYearMonth } from '@/lib/format'
+import { formatMonthName, referenceMonthToYearMonth, currentYearMonth } from '@/lib/utils/date'
 
 type Existing = {
   id: string
@@ -91,7 +91,9 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
           <Field
             label="Mês de referência"
             hint={
-              existing ? `O registro ficará em ${formatMonth(existing.referenceMonth)}.` : undefined
+              existing
+                ? `O registro ficará em ${formatMonthName(referenceMonthToYearMonth(existing.referenceMonth))}.`
+                : undefined
             }
           >
             <>

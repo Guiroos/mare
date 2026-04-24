@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { formatCurrency as defaultFormat } from '@/lib/format'
+import { formatCurrency as defaultFormat } from '@/lib/utils/currency'
 
 type BudgetTone = 'ok' | 'warn' | 'over' | 'accent'
 

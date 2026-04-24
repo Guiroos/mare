@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getGoalsWithProgress, getInvestmentTypesForGoals } from '@/lib/queries/goals'
 import { deleteGoal, deleteGoalContribution } from '@/lib/actions/goals'
-import { formatCurrency, formatMonth, referenceMonthToYearMonth } from '@/lib/format'
+import { formatCurrency } from '@/lib/utils/currency'
+import { formatMonthName, referenceMonthToYearMonth } from '@/lib/utils/date'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -101,16 +102,10 @@ export default async function MetasPage() {
                     {/* Datas */}
                     <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
                       {goal.targetDate && (
-                        <span>
-                          Prazo:{' '}
-                          {new Date(goal.targetDate + 'T12:00:00').toLocaleDateString('pt-BR', {
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
+                        <span>Prazo: {formatMonthName(goal.targetDate.slice(0, 7))}</span>
                       )}
                       {!isComplete && goal.projectedCompletionYearMonth && (
-                        <span>Projeção: {formatMonth(goal.projectedCompletionYearMonth)}</span>
+                        <span>Projeção: {formatMonthName(goal.projectedCompletionYearMonth)}</span>
                       )}
                     </div>
                   </div>
@@ -140,7 +135,7 @@ export default async function MetasPage() {
                               {goal.contributions.map((c) => (
                                 <tr key={c.id}>
                                   <td className="py-1.5 text-muted-foreground">
-                                    {formatMonth(referenceMonthToYearMonth(c.referenceMonth))}
+                                    {formatMonthName(referenceMonthToYearMonth(c.referenceMonth))}
                                   </td>
                                   <td className="py-1.5 text-right tabular-nums">
                                     {formatCurrency(c.amount)}
