@@ -26,6 +26,13 @@ export default async function ConfiguracaoMesPage({
 
   const userId = (session.user as { id: string }).id
   const month = searchParams.month ?? currentYearMonth()
+  const today = new Date()
+  const todayDay = today.getDate()
+  const [currentYear, currentMonth] = [today.getFullYear(), today.getMonth() + 1]
+  const [displayYear, displayMonth] = month.split('-').map(Number)
+  const isCurrentMonth = month === currentYearMonth()
+  const isPastMonth =
+    displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
   const referenceMonth = yearMonthToReferenceMonth(month)
   const prevReferenceMonth = yearMonthToReferenceMonth(prevMonth(month))
 
@@ -49,7 +56,7 @@ export default async function ConfiguracaoMesPage({
         </p>
       </div>
 
-      <MonthSelector currentMonth={month} />
+      <MonthSelector currentMonth={month} isCurrentMonth={isCurrentMonth} />
 
       {/* ─── Orçamentos do mês ──────────────────────────────────────────── */}
       <Section
@@ -120,7 +127,13 @@ export default async function ConfiguracaoMesPage({
 
       {/* ─── Gastos fixos ───────────────────────────────────────────────── */}
       <Section title="Gastos fixos">
-        <FixedExpenseList expenses={fixedExpenses} yearMonth={month} />
+        <FixedExpenseList
+          expenses={fixedExpenses}
+          yearMonth={month}
+          isCurrentMonth={isCurrentMonth}
+          isPastMonth={isPastMonth}
+          todayDay={todayDay}
+        />
       </Section>
 
       {/* ─── Parcelas neste mês ─────────────────────────────────────────── */}
