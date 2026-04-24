@@ -16,6 +16,8 @@ import {
 import { toast } from 'sonner'
 import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments'
 import { formatMonthName, referenceMonthToYearMonth, currentYearMonth } from '@/lib/utils/date'
+import { investmentEntrySchema } from '@/lib/validations/investments'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Existing = {
   id: string
@@ -33,25 +35,38 @@ type Props = {
 export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const defaultMonth = existing
     ? referenceMonthToYearMonth(existing.referenceMonth)
     : currentYearMonth()
 
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    const amount = (fd.get('amount') as string).trim()
-    const yieldAmount = (fd.get('yieldAmount') as string).trim()
-    const notes = (fd.get('notes') as string).trim()
     const selectedMonth = (fd.get('referenceMonth') as string).trim()
 
+    const result = investmentEntrySchema.safeParse({
+      investmentTypeId,
+      referenceMonth: selectedMonth,
+    })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     const data: UpsertInvestmentInput = {
       investmentTypeId,
-      referenceMonth: selectedMonth + '-01',
-      amount: amount || null,
-      yieldAmount: yieldAmount || null,
-      notes: notes || null,
+      referenceMonth: result.data.referenceMonth + '-01',
+      amount: (fd.get('amount') as string).trim() || null,
+      yieldAmount: (fd.get('yieldAmount') as string).trim() || null,
+      notes: (fd.get('notes') as string).trim() || null,
       existingId: existing?.id,
     }
 
@@ -66,7 +81,7 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {existing ? (
           <Button
@@ -95,6 +110,7 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
                 ? `O registro ficará em ${formatMonthName(referenceMonthToYearMonth(existing.referenceMonth))}.`
                 : undefined
             }
+            error={errors.referenceMonth}
           >
             <>
               <Input
@@ -103,6 +119,7 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
                 defaultValue={defaultMonth}
                 required
                 disabled={!!existing}
+                error={!!errors.referenceMonth}
               />
               {!!existing && <input type="hidden" name="referenceMonth" value={defaultMonth} />}
             </>

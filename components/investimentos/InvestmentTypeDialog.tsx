@@ -14,22 +14,38 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { createInvestmentType, updateInvestmentType } from '@/lib/actions/investments'
+import { investmentTypeSchema } from '@/lib/validations/investments'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Props = { mode: 'create' } | { mode: 'edit'; type: { id: string; name: string } }
 
 export function InvestmentTypeDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const name = (new FormData(e.currentTarget).get('name') as string).trim()
+
+    const result = investmentTypeSchema.safeParse({ name })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
-          await createInvestmentType(name)
+          await createInvestmentType(result.data.name)
         } else {
-          await updateInvestmentType(props.type.id, name)
+          await updateInvestmentType(props.type.id, result.data.name)
         }
         setOpen(false)
       } catch {
@@ -39,7 +55,7 @@ export function InvestmentTypeDialog(props: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {props.mode === 'create' ? (
           <Button size="sm" variant="outline" className="gap-1.5">
@@ -63,12 +79,12 @@ export function InvestmentTypeDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome">
+          <Field label="Nome" error={errors.name}>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.type.name : ''}
               placeholder="Ex: Reserva de emergência, Renda fixa..."
-              required
+              error={!!errors.name}
               autoFocus
             />
           </Field>

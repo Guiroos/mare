@@ -14,6 +14,8 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { upsertBudgetOverride, deleteBudgetOverride } from '@/lib/actions/categories'
+import { budgetOverrideSchema } from '@/lib/validations/categories'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Props = {
   categoryId: string
@@ -32,6 +34,8 @@ export function BudgetOverrideDialog({
 }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
   const defaultBudgetLabel = defaultBudget
     ? Number(defaultBudget).toLocaleString('pt-BR', {
         style: 'currency',
@@ -39,15 +43,28 @@ export function BudgetOverrideDialog({
       })
     : null
 
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const amount = new FormData(e.currentTarget).get('amount') as string
+
+    const result = budgetOverrideSchema.safeParse({ amount })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await upsertBudgetOverride({
           categoryId,
           referenceMonth,
-          amount,
+          amount: result.data.amount,
           existingId: override?.id,
         })
         setOpen(false)
@@ -70,7 +87,7 @@ export function BudgetOverrideDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           size="icon"
@@ -89,11 +106,12 @@ export function BudgetOverrideDialog({
             label="Orçamento deste mês"
             hint={defaultBudgetLabel ? `Padrão: ${defaultBudgetLabel}` : undefined}
             required
+            error={errors.amount}
           >
             <CurrencyInput
               name="amount"
               defaultValue={override?.amount ?? defaultBudget ?? ''}
-              required
+              error={!!errors.amount}
               autoFocus
             />
           </Field>

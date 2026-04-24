@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { createPaymentAccount, updatePaymentAccount } from '@/lib/actions/categories'
+import { accountSchema } from '@/lib/validations/categories'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type BaseProps = Record<never, never>
 type CreateProps = BaseProps & { mode: 'create' }
@@ -46,17 +48,36 @@ export function AccountDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [type, setType] = useState(props.mode === 'edit' ? props.account.type : 'credit')
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+
+    const raw = {
+      name: (fd.get('name') as string).trim(),
+      type: fd.get('type') as string,
+      closingDay: fd.get('closingDay') as string,
+    }
+
+    const result = accountSchema.safeParse(raw)
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
-        const closingDayRaw = fd.get('closingDay') as string
         const data = {
-          name: (fd.get('name') as string).trim(),
-          type: fd.get('type') as string,
-          closingDay: closingDayRaw ? Number(closingDayRaw) : undefined,
+          name: result.data.name,
+          type: result.data.type,
+          closingDay: result.data.closingDay ? Number(result.data.closingDay) : undefined,
         }
         if (props.mode === 'create') {
           await createPaymentAccount(data)
@@ -71,7 +92,7 @@ export function AccountDialog(props: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {props.mode === 'create' ? (
           <Button size="sm" variant="outline" className="gap-1.5">
@@ -95,12 +116,12 @@ export function AccountDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome" required>
+          <Field label="Nome" required error={errors.name}>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.account.name : ''}
               placeholder="Ex: NuBank, Débito, Pix..."
-              required
+              error={!!errors.name}
               autoFocus
             />
           </Field>
@@ -126,7 +147,7 @@ export function AccountDialog(props: Props) {
           </Field>
 
           {type === 'credit' && (
-            <Field label="Dia de fechamento" hint="Opcional">
+            <Field label="Dia de fechamento" hint="Opcional" error={errors.closingDay}>
               <Input
                 name="closingDay"
                 type="number"
@@ -134,6 +155,7 @@ export function AccountDialog(props: Props) {
                 max="31"
                 placeholder="Ex: 10"
                 defaultValue={props.mode === 'edit' ? (props.account.closingDay ?? '') : ''}
+                error={!!errors.closingDay}
               />
             </Field>
           )}

@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { upsertGoal } from '@/lib/actions/goals'
+import { goalSchema } from '@/lib/validations/goals'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type InvestmentTypeOption = { id: string; name: string }
 
@@ -45,6 +47,12 @@ export function GoalDialog(props: Props) {
   const [investmentTypeId, setInvestmentTypeId] = useState(
     props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
   )
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -53,11 +61,18 @@ export function GoalDialog(props: Props) {
     const targetAmount = (fd.get('targetAmount') as string).trim()
     const targetDate = (fd.get('targetDate') as string).trim() || null
 
+    const result = goalSchema.safeParse({ name, targetAmount })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await upsertGoal({
-          name,
-          targetAmount,
+          name: result.data.name,
+          targetAmount: result.data.targetAmount,
           targetDate,
           investmentTypeId: investmentTypeId === 'none' ? null : investmentTypeId || null,
           existingId: props.mode === 'edit' ? props.goal.id : undefined,
@@ -70,7 +85,7 @@ export function GoalDialog(props: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {props.mode === 'create' ? (
           <Button size="sm" variant="outline" className="gap-1.5">
@@ -94,19 +109,20 @@ export function GoalDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome" required>
+          <Field label="Nome" required error={errors.name}>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.goal.name : ''}
               placeholder="Ex: Reserva de emergência, Viagem, Apartamento..."
-              required
+              error={!!errors.name}
               autoFocus
             />
           </Field>
-          <Field label="Valor alvo (R$)" required>
+          <Field label="Valor alvo (R$)" required error={errors.targetAmount}>
             <CurrencyInput
               name="targetAmount"
               defaultValue={props.mode === 'edit' ? props.goal.targetAmount : ''}
+              error={!!errors.targetAmount}
               required
             />
           </Field>

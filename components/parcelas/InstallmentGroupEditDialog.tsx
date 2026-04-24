@@ -20,6 +20,8 @@ import { toast } from 'sonner'
 import { updateInstallmentGroup } from '@/lib/actions/transactions'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { installmentGroupSchema } from '@/lib/validations/transactions'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type CategoryGroup = {
   id: string
@@ -52,20 +54,28 @@ function EditForm({
   onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
 
+    const result = installmentGroupSchema.safeParse({
+      name: str('name'),
+      categoryId: str('categoryId'),
+      accountId: str('accountId'),
+    })
+
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
-        await updateInstallmentGroup({
-          id: group.id,
-          name: str('name'),
-          categoryId: str('categoryId'),
-          accountId: str('accountId'),
-        })
+        await updateInstallmentGroup({ id: group.id, ...result.data })
         onSuccess()
       } catch {
         toast.error('Erro ao salvar. Tente novamente.')
@@ -75,11 +85,11 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Nome">
-        <Input name="name" defaultValue={group.name} required />
+      <Field label="Nome" error={errors.name}>
+        <Input name="name" defaultValue={group.name} error={!!errors.name} required />
       </Field>
 
-      <Field label="Categoria">
+      <Field label="Categoria" error={errors.categoryId}>
         <Select name="categoryId" defaultValue={group.categoryId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -99,7 +109,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <Field label="Conta / Cartão">
+      <Field label="Conta / Cartão" error={errors.accountId}>
         <Select name="accountId" defaultValue={group.accountId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />

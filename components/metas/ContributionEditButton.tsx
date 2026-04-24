@@ -10,6 +10,8 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 import { toast } from 'sonner'
 import { updateGoalContribution } from '@/lib/actions/goals'
 import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
+import { contributionSchema } from '@/lib/validations/goals'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Contribution = {
   id: string
@@ -20,18 +22,32 @@ type Contribution = {
 export function ContributionEditButton({ contribution }: { contribution: Contribution }) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    const str = (name: string) => (fd.get(name) as string) ?? ''
+    const amount = (fd.get('amount') as string) ?? ''
+    const referenceMonth = fd.get('referenceMonth') as string
 
+    const result = contributionSchema.safeParse({ amount, referenceMonth })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await updateGoalContribution({
           id: contribution.id,
-          amount: str('amount'),
-          referenceMonth: yearMonthToReferenceMonth(str('referenceMonth')),
+          amount: result.data.amount,
+          referenceMonth: yearMonthToReferenceMonth(result.data.referenceMonth),
         })
         setOpen(false)
       } catch {
@@ -52,20 +68,27 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
         <Pencil className="h-3 w-3" />
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar aporte</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <Field label="Valor (R$)">
-              <CurrencyInput name="amount" defaultValue={contribution.amount} required autoFocus />
+            <Field label="Valor (R$)" error={errors.amount}>
+              <CurrencyInput
+                name="amount"
+                defaultValue={contribution.amount}
+                error={!!errors.amount}
+                required
+                autoFocus
+              />
             </Field>
-            <Field label="Mês de referência">
+            <Field label="Mês de referência" error={errors.referenceMonth}>
               <Input
                 name="referenceMonth"
                 type="month"
                 defaultValue={referenceMonthToYearMonth(contribution.referenceMonth)}
+                error={!!errors.referenceMonth}
                 required
               />
             </Field>

@@ -26,6 +26,14 @@ import {
 import { toast } from 'sonner'
 import { createIncome } from '@/lib/actions/incomes'
 import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments'
+import {
+  transactionSchema,
+  fixedExpenseSchema,
+  installmentSchema,
+  incomeSchema,
+} from '@/lib/validations/transactions'
+import { investmentEntrySchema, withdrawalSchema } from '@/lib/validations/investments'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type CategoryGroup = {
   id: string
@@ -78,74 +86,177 @@ export function TransactionForm({
   const [type, setType] = useState<FormType>('avulso')
   const [isPending, startTransition] = useTransition()
   const [key, setKey] = useState(0)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const resetForm = () => {
     setKey((k) => k + 1)
+    setErrors({})
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-
     const str = (name: string) => (fd.get(name) as string) ?? ''
 
-    startTransition(async () => {
-      try {
-        if (type === 'avulso') {
-          await createTransaction({
-            name: str('name'),
-            amount: str('amount'),
-            date: str('date'),
-            categoryId: str('categoryId'),
-            accountId: str('accountId'),
-          })
-        } else if (type === 'fixo') {
+    if (type === 'avulso') {
+      const result = transactionSchema.safeParse({
+        name: str('name'),
+        amount: str('amount'),
+        date: str('date'),
+        categoryId: str('categoryId'),
+        accountId: str('accountId'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
+          await createTransaction(result.data)
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+    } else if (type === 'fixo') {
+      const result = fixedExpenseSchema.safeParse({
+        name: str('name'),
+        amount: str('amount'),
+        dueDay: str('dueDay'),
+        categoryId: str('categoryId'),
+        accountId: str('accountId'),
+        referenceMonth: str('referenceMonth'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
           await createFixedExpense({
-            name: str('name'),
-            amount: str('amount'),
-            dueDay: Number(str('dueDay')),
-            categoryId: str('categoryId'),
-            accountId: str('accountId'),
-            referenceMonth: str('referenceMonth') + '-01',
+            name: result.data.name,
+            amount: result.data.amount,
+            dueDay: Number(result.data.dueDay),
+            categoryId: result.data.categoryId,
+            accountId: result.data.accountId,
+            referenceMonth: result.data.referenceMonth + '-01',
           })
-        } else if (type === 'parcelado') {
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+    } else if (type === 'parcelado') {
+      const result = installmentSchema.safeParse({
+        name: str('name'),
+        totalAmount: str('totalAmount'),
+        totalInstallments: str('totalInstallments'),
+        startDate: str('startDate'),
+        categoryId: str('categoryId'),
+        accountId: str('accountId'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
           await createInstallmentPurchase({
-            name: str('name'),
-            totalAmount: str('totalAmount'),
-            totalInstallments: Number(str('totalInstallments')),
-            startDate: str('startDate'),
-            categoryId: str('categoryId'),
-            accountId: str('accountId'),
+            name: result.data.name,
+            totalAmount: result.data.totalAmount,
+            totalInstallments: Number(result.data.totalInstallments),
+            startDate: result.data.startDate,
+            categoryId: result.data.categoryId,
+            accountId: result.data.accountId,
           })
-        } else if (type === 'entrada') {
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+    } else if (type === 'entrada') {
+      const result = incomeSchema.safeParse({
+        source: str('source'),
+        amount: str('amount'),
+        referenceMonth: str('referenceMonth'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
           await createIncome({
-            source: str('source'),
-            amount: str('amount'),
-            referenceMonth: str('referenceMonth') + '-01',
+            source: result.data.source,
+            amount: result.data.amount,
+            referenceMonth: result.data.referenceMonth + '-01',
           })
-        } else if (type === 'investimento') {
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+    } else if (type === 'investimento') {
+      const result = investmentEntrySchema.safeParse({
+        investmentTypeId: str('investmentTypeId'),
+        referenceMonth: str('referenceMonth'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
           await upsertInvestment({
-            investmentTypeId: str('investmentTypeId'),
-            referenceMonth: str('referenceMonth') + '-01',
+            investmentTypeId: result.data.investmentTypeId,
+            referenceMonth: result.data.referenceMonth + '-01',
             amount: str('amount') || null,
             yieldAmount: str('yieldAmount') || null,
             notes: str('notes') || null,
           })
-        } else if (type === 'resgate') {
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+    } else if (type === 'resgate') {
+      const result = withdrawalSchema.safeParse({
+        investmentTypeId: str('investmentTypeId'),
+        amount: str('amount'),
+        date: str('date'),
+        destination: str('destination'),
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
           await createWithdrawal({
-            investmentTypeId: str('investmentTypeId'),
-            amount: str('amount'),
-            date: str('date'),
-            destination: str('destination') as 'income' | 'transfer',
+            investmentTypeId: result.data.investmentTypeId,
+            amount: result.data.amount,
+            date: result.data.date,
+            destination: result.data.destination,
             notes: str('notes') || null,
           })
+          resetForm()
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
         }
-        resetForm()
-        onSuccess?.()
-      } catch {
-        toast.error('Erro ao salvar. Tente novamente.')
-      }
-    })
+      })
+    }
   }
 
   const isExpense = type !== 'entrada' && type !== 'investimento' && type !== 'resgate'
@@ -175,21 +286,24 @@ export function TransactionForm({
       </div>
 
       <form key={key} onSubmit={handleSubmit} className="space-y-4">
-        {/* Nome / Origem — só para gastos e entradas */}
+        {/* Nome / Origem */}
         {(type === 'avulso' || type === 'fixo' || type === 'parcelado' || type === 'entrada') && (
-          <Field label={type === 'entrada' ? 'Origem' : 'Nome'}>
+          <Field
+            label={type === 'entrada' ? 'Origem' : 'Nome'}
+            error={errors.name ?? errors.source}
+          >
             <Input
               name={type === 'entrada' ? 'source' : 'name'}
               placeholder={type === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'}
-              required
+              error={!!(errors.name ?? errors.source)}
               autoFocus
             />
           </Field>
         )}
 
-        {/* Tipo de investimento — para investimento e resgate */}
+        {/* Tipo de investimento */}
         {(type === 'investimento' || type === 'resgate') && (
-          <Field label="Tipo de investimento">
+          <Field label="Tipo de investimento" error={errors.investmentTypeId}>
             <Select name="investmentTypeId" required>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione..." />
@@ -207,50 +321,84 @@ export function TransactionForm({
 
         {/* Valor */}
         {type !== 'investimento' && (
-          <Field label={type === 'parcelado' ? 'Valor total' : 'Valor'}>
-            <CurrencyInput name={type === 'parcelado' ? 'totalAmount' : 'amount'} required />
+          <Field
+            label={type === 'parcelado' ? 'Valor total' : 'Valor'}
+            error={errors.amount ?? errors.totalAmount}
+          >
+            <CurrencyInput
+              name={type === 'parcelado' ? 'totalAmount' : 'amount'}
+              error={!!(errors.amount ?? errors.totalAmount)}
+              required
+            />
           </Field>
         )}
 
         {/* Campos por tipo */}
         {type === 'avulso' && (
-          <Field label="Data">
-            <Input name="date" type="date" defaultValue={today} required />
+          <Field label="Data" error={errors.date}>
+            <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
           </Field>
         )}
 
         {type === 'fixo' && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Dia de vencimento">
-              <Input name="dueDay" type="number" min="1" max="31" placeholder="Ex: 10" required />
+            <Field label="Dia de vencimento" error={errors.dueDay}>
+              <Input
+                name="dueDay"
+                type="number"
+                min="1"
+                max="31"
+                placeholder="Ex: 10"
+                error={!!errors.dueDay}
+                required
+              />
             </Field>
-            <Field label="Mês de referência">
-              <Input name="referenceMonth" type="month" defaultValue={month} required />
+            <Field label="Mês de referência" error={errors.referenceMonth}>
+              <Input
+                name="referenceMonth"
+                type="month"
+                defaultValue={month}
+                error={!!errors.referenceMonth}
+                required
+              />
             </Field>
           </div>
         )}
 
         {type === 'parcelado' && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Nº de parcelas">
+            <Field label="Nº de parcelas" error={errors.totalInstallments}>
               <Input
                 name="totalInstallments"
                 type="number"
                 min="2"
                 max="60"
                 placeholder="Ex: 12"
+                error={!!errors.totalInstallments}
                 required
               />
             </Field>
-            <Field label="Data da 1ª parcela">
-              <Input name="startDate" type="date" defaultValue={today} required />
+            <Field label="Data da 1ª parcela" error={errors.startDate}>
+              <Input
+                name="startDate"
+                type="date"
+                defaultValue={today}
+                error={!!errors.startDate}
+                required
+              />
             </Field>
           </div>
         )}
 
         {type === 'entrada' && (
-          <Field label="Mês de referência">
-            <Input name="referenceMonth" type="month" defaultValue={month} required />
+          <Field label="Mês de referência" error={errors.referenceMonth}>
+            <Input
+              name="referenceMonth"
+              type="month"
+              defaultValue={month}
+              error={!!errors.referenceMonth}
+              required
+            />
           </Field>
         )}
 
@@ -264,8 +412,14 @@ export function TransactionForm({
                 <CurrencyInput name="yieldAmount" />
               </Field>
             </div>
-            <Field label="Mês de referência">
-              <Input name="referenceMonth" type="month" defaultValue={month} required />
+            <Field label="Mês de referência" error={errors.referenceMonth}>
+              <Input
+                name="referenceMonth"
+                type="month"
+                defaultValue={month}
+                error={!!errors.referenceMonth}
+                required
+              />
             </Field>
             <Field label="Observações">
               <Input name="notes" placeholder="Opcional" />
@@ -275,8 +429,8 @@ export function TransactionForm({
 
         {type === 'resgate' && (
           <>
-            <Field label="Data do resgate">
-              <Input name="date" type="date" defaultValue={today} required />
+            <Field label="Data do resgate" error={errors.date}>
+              <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
             </Field>
             <Field label="Destino">
               <Select name="destination" required>
@@ -295,10 +449,10 @@ export function TransactionForm({
           </>
         )}
 
-        {/* Categoria + Conta — só para gastos */}
+        {/* Categoria + Conta */}
         {isExpense && (
           <>
-            <Field label="Categoria">
+            <Field label="Categoria" error={errors.categoryId}>
               <Select name="categoryId" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a categoria" />
@@ -318,7 +472,7 @@ export function TransactionForm({
               </Select>
             </Field>
 
-            <Field label="Conta / Cartão">
+            <Field label="Conta / Cartão" error={errors.accountId}>
               <Select name="accountId" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a conta" />

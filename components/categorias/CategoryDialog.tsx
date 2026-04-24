@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { createCategory, updateCategory } from '@/lib/actions/categories'
+import { categorySchema } from '@/lib/validations/categories'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Group = { id: string; name: string }
 
@@ -43,24 +45,39 @@ type Props = CreateProps | EditProps
 export function CategoryDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const defaultGroupId = props.mode === 'create' ? props.defaultGroupId : props.category.groupId
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
+
+    const raw = {
+      name: (fd.get('name') as string).trim(),
+      groupId: fd.get('groupId') as string,
+      defaultBudget: (fd.get('defaultBudget') as string) || undefined,
+      color: (fd.get('color') as string) || undefined,
+    }
+
+    const result = categorySchema.safeParse(raw)
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
-        const data = {
-          name: (fd.get('name') as string).trim(),
-          groupId: fd.get('groupId') as string,
-          defaultBudget: (fd.get('defaultBudget') as string) || undefined,
-          color: (fd.get('color') as string) || undefined,
-        }
         if (props.mode === 'create') {
-          await createCategory(data)
+          await createCategory(result.data)
         } else {
-          await updateCategory(props.category.id, data)
+          await updateCategory(props.category.id, result.data)
         }
         setOpen(false)
       } catch {
@@ -70,7 +87,7 @@ export function CategoryDialog(props: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {props.mode === 'create' ? (
           <Button
@@ -98,17 +115,17 @@ export function CategoryDialog(props: Props) {
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome" required>
+          <Field label="Nome" required error={errors.name}>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.category.name : ''}
               placeholder="Ex: Mercado, Academia..."
-              required
+              error={!!errors.name}
               autoFocus
             />
           </Field>
 
-          <Field label="Grupo" required>
+          <Field label="Grupo" required error={errors.groupId}>
             <Select name="groupId" defaultValue={defaultGroupId} required>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o grupo" />

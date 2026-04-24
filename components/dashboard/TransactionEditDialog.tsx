@@ -21,6 +21,8 @@ import { toast } from 'sonner'
 import { updateTransaction } from '@/lib/actions/transactions'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { transactionSchema } from '@/lib/validations/transactions'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type CategoryGroup = {
   id: string
@@ -55,22 +57,30 @@ function EditForm({
   onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
 
+    const result = transactionSchema.safeParse({
+      name: str('name'),
+      amount: str('amount'),
+      date: str('date'),
+      categoryId: str('categoryId'),
+      accountId: str('accountId'),
+    })
+
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
-        await updateTransaction({
-          id: transaction.id,
-          name: str('name'),
-          amount: str('amount'),
-          date: str('date'),
-          categoryId: str('categoryId'),
-          accountId: str('accountId'),
-        })
+        await updateTransaction({ id: transaction.id, ...result.data })
         onSuccess()
       } catch {
         toast.error('Erro ao salvar. Tente novamente.')
@@ -80,19 +90,30 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Nome">
-        <Input name="name" defaultValue={transaction.name} required />
+      <Field label="Nome" error={errors.name}>
+        <Input name="name" defaultValue={transaction.name} error={!!errors.name} required />
       </Field>
 
-      <Field label="Valor">
-        <CurrencyInput name="amount" defaultValue={transaction.amount} required />
+      <Field label="Valor" error={errors.amount}>
+        <CurrencyInput
+          name="amount"
+          defaultValue={transaction.amount}
+          error={!!errors.amount}
+          required
+        />
       </Field>
 
-      <Field label="Data">
-        <Input name="date" type="date" defaultValue={transaction.date} required />
+      <Field label="Data" error={errors.date}>
+        <Input
+          name="date"
+          type="date"
+          defaultValue={transaction.date}
+          error={!!errors.date}
+          required
+        />
       </Field>
 
-      <Field label="Categoria">
+      <Field label="Categoria" error={errors.categoryId}>
         <Select name="categoryId" defaultValue={transaction.categoryId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -112,7 +133,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <Field label="Conta / Cartão">
+      <Field label="Conta / Cartão" error={errors.accountId}>
         <Select name="accountId" defaultValue={transaction.accountId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />

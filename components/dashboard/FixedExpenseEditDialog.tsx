@@ -21,6 +21,8 @@ import { toast } from 'sonner'
 import { updateFixedExpense } from '@/lib/actions/transactions'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { fixedExpenseEditSchema } from '@/lib/validations/transactions'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type CategoryGroup = {
   id: string
@@ -55,21 +57,36 @@ function EditForm({
   onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
 
+    const result = fixedExpenseEditSchema.safeParse({
+      name: str('name'),
+      amount: str('amount'),
+      dueDay: str('dueDay'),
+      categoryId: str('categoryId'),
+      accountId: str('accountId'),
+    })
+
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await updateFixedExpense({
           id: expense.id,
-          name: str('name'),
-          amount: str('amount'),
-          dueDay: Number(str('dueDay')),
-          categoryId: str('categoryId'),
-          accountId: str('accountId'),
+          name: result.data.name,
+          amount: result.data.amount,
+          dueDay: Number(result.data.dueDay),
+          categoryId: result.data.categoryId,
+          accountId: result.data.accountId,
         })
         onSuccess()
       } catch {
@@ -80,27 +97,33 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Nome">
-        <Input name="name" defaultValue={expense.name} required />
+      <Field label="Nome" error={errors.name}>
+        <Input name="name" defaultValue={expense.name} error={!!errors.name} required />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Valor">
-          <CurrencyInput name="amount" defaultValue={expense.amount} required />
+        <Field label="Valor" error={errors.amount}>
+          <CurrencyInput
+            name="amount"
+            defaultValue={expense.amount}
+            error={!!errors.amount}
+            required
+          />
         </Field>
-        <Field label="Dia de vencimento">
+        <Field label="Dia de vencimento" error={errors.dueDay}>
           <Input
             name="dueDay"
             type="number"
             min="1"
             max="31"
             defaultValue={expense.dueDay}
+            error={!!errors.dueDay}
             required
           />
         </Field>
       </div>
 
-      <Field label="Categoria">
+      <Field label="Categoria" error={errors.categoryId}>
         <Select name="categoryId" defaultValue={expense.categoryId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -120,7 +143,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <Field label="Conta / Cartão">
+      <Field label="Conta / Cartão" error={errors.accountId}>
         <Select name="accountId" defaultValue={expense.accountId ?? undefined} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />

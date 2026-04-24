@@ -11,6 +11,8 @@ import { CurrencyInput } from '@/components/ui/currency-input'
 import { toast } from 'sonner'
 import { updateIncome } from '@/lib/actions/incomes'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { incomeEditSchema } from '@/lib/validations/transactions'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Income = {
   id: string
@@ -20,18 +22,27 @@ type Income = {
 
 function EditForm({ income, onSuccess }: { income: Income; onSuccess: () => void }) {
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    const str = (name: string) => (fd.get(name) as string) ?? ''
+    const source = (fd.get('source') as string) ?? ''
+    const amount = (fd.get('amount') as string) ?? ''
 
+    const result = incomeEditSchema.safeParse({ source, amount })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await updateIncome({
           id: income.id,
-          source: str('source'),
-          amount: str('amount'),
+          source: result.data.source,
+          amount: result.data.amount,
         })
         onSuccess()
       } catch {
@@ -42,12 +53,17 @@ function EditForm({ income, onSuccess }: { income: Income; onSuccess: () => void
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Origem">
-        <Input name="source" defaultValue={income.source} required />
+      <Field label="Origem" error={errors.source}>
+        <Input name="source" defaultValue={income.source} error={!!errors.source} required />
       </Field>
 
-      <Field label="Valor">
-        <CurrencyInput name="amount" defaultValue={income.amount} required />
+      <Field label="Valor" error={errors.amount}>
+        <CurrencyInput
+          name="amount"
+          defaultValue={income.amount}
+          error={!!errors.amount}
+          required
+        />
       </Field>
 
       <Button type="submit" className="w-full" disabled={isPending}>

@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { updateWithdrawal } from '@/lib/actions/investments'
+import { withdrawalEditSchema } from '@/lib/validations/investments'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Withdrawal = {
   id: string
@@ -34,19 +36,37 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [typeId, setTypeId] = useState(withdrawal.investmentTypeId)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
 
+    const result = withdrawalEditSchema.safeParse({
+      investmentTypeId: typeId,
+      amount: str('amount'),
+      date: str('date'),
+    })
+
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         await updateWithdrawal({
           id: withdrawal.id,
-          investmentTypeId: typeId,
-          amount: str('amount'),
-          date: str('date'),
+          investmentTypeId: result.data.investmentTypeId,
+          amount: result.data.amount,
+          date: result.data.date,
           notes: str('notes') || null,
         })
         setOpen(false)
@@ -68,13 +88,13 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         <Pencil className="h-3.5 w-3.5" />
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Editar resgate</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <Field label="Tipo de investimento">
+            <Field label="Tipo de investimento" error={errors.investmentTypeId}>
               <Select value={typeId} onValueChange={setTypeId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione..." />
@@ -89,12 +109,23 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
               </Select>
             </Field>
 
-            <Field label="Valor (R$)">
-              <CurrencyInput name="amount" defaultValue={withdrawal.amount} required />
+            <Field label="Valor (R$)" error={errors.amount}>
+              <CurrencyInput
+                name="amount"
+                defaultValue={withdrawal.amount}
+                error={!!errors.amount}
+                required
+              />
             </Field>
 
-            <Field label="Data do resgate">
-              <Input name="date" type="date" defaultValue={withdrawal.date} required />
+            <Field label="Data do resgate" error={errors.date}>
+              <Input
+                name="date"
+                type="date"
+                defaultValue={withdrawal.date}
+                error={!!errors.date}
+                required
+              />
             </Field>
 
             <Field label="Observações">

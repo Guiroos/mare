@@ -14,22 +14,38 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { createCategoryGroup, updateCategoryGroup } from '@/lib/actions/categories'
+import { groupSchema } from '@/lib/validations/categories'
+import { formatZodErrors } from '@/lib/validations/utils'
 
 type Props = { mode: 'create' } | { mode: 'edit'; group: { id: string; name: string } }
 
 export function GroupDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v)
+    if (!v) setErrors({})
+  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const name = (new FormData(e.currentTarget).get('name') as string).trim()
+
+    const result = groupSchema.safeParse({ name })
+    if (!result.success) {
+      setErrors(formatZodErrors(result.error))
+      return
+    }
+
+    setErrors({})
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
-          await createCategoryGroup(name)
+          await createCategoryGroup(result.data.name)
         } else {
-          await updateCategoryGroup(props.group.id, name)
+          await updateCategoryGroup(props.group.id, result.data.name)
         }
         setOpen(false)
       } catch {
@@ -39,7 +55,7 @@ export function GroupDialog(props: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {props.mode === 'create' ? (
           <Button size="sm" variant="outline" className="gap-1.5">
@@ -61,12 +77,12 @@ export function GroupDialog(props: Props) {
           <DialogTitle>{props.mode === 'create' ? 'Novo grupo' : 'Editar grupo'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome do grupo" required>
+          <Field label="Nome do grupo" required error={errors.name}>
             <Input
               name="name"
               defaultValue={props.mode === 'edit' ? props.group.name : ''}
               placeholder="Ex: Essencial, Estilo de Vida..."
-              required
+              error={!!errors.name}
               autoFocus
             />
           </Field>
