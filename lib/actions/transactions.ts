@@ -1,38 +1,38 @@
-'use server';
+'use server'
 
-import { revalidatePath } from 'next/cache';
-import { db } from '@/lib/db';
-import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema';
-import { auth } from '@/lib/auth';
-import { eq, and } from 'drizzle-orm';
-import { addMonths, format } from 'date-fns';
+import { revalidatePath } from 'next/cache'
+import { db } from '@/lib/db'
+import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema'
+import { auth } from '@/lib/auth'
+import { eq, and } from 'drizzle-orm'
+import { addMonths, format } from 'date-fns'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as any)?.id as string | undefined;
-  if (!userId) throw new Error('Não autorizado');
-  return userId;
+  const userId = (session?.user as { id?: string })?.id
+  if (!userId) throw new Error('Não autorizado')
+  return userId
 }
 
 function toReferenceMonth(dateStr: string) {
-  const d = new Date(dateStr + 'T12:00:00');
-  return format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd');
+  const d = new Date(dateStr + 'T12:00:00')
+  return format(new Date(d.getFullYear(), d.getMonth(), 1), 'yyyy-MM-dd')
 }
 
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
 
 export type CreateTransactionInput = {
-  name: string;
-  amount: string;
-  date: string;
-  categoryId: string;
-  accountId: string;
-};
+  name: string
+  amount: string
+  date: string
+  categoryId: string
+  accountId: string
+}
 
 export async function createTransaction(data: CreateTransactionInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db.insert(transactions).values({
     userId,
@@ -42,25 +42,25 @@ export async function createTransaction(data: CreateTransactionInput) {
     referenceMonth: toReferenceMonth(data.date),
     categoryId: data.categoryId,
     accountId: data.accountId,
-  });
+  })
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 // ─── Gasto fixo ───────────────────────────────────────────────────────────────
 
 export type CreateFixedExpenseInput = {
-  name: string;
-  amount: string;
-  dueDay: number;
-  categoryId: string;
-  accountId: string;
-  referenceMonth: string;
-};
+  name: string
+  amount: string
+  dueDay: number
+  categoryId: string
+  accountId: string
+  referenceMonth: string
+}
 
 export async function createFixedExpense(data: CreateFixedExpenseInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db.insert(fixedExpenses).values({
     userId,
@@ -71,23 +71,23 @@ export async function createFixedExpense(data: CreateFixedExpenseInput) {
     accountId: data.accountId,
     referenceMonth: data.referenceMonth,
     paid: false,
-  });
+  })
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 export type UpdateFixedExpenseInput = {
-  id: string;
-  name: string;
-  amount: string;
-  dueDay: number;
-  categoryId: string;
-  accountId: string;
-};
+  id: string
+  name: string
+  amount: string
+  dueDay: number
+  categoryId: string
+  accountId: string
+}
 
 export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db
     .update(fixedExpenses)
@@ -98,53 +98,51 @@ export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
       categoryId: data.categoryId,
       accountId: data.accountId,
     })
-    .where(and(eq(fixedExpenses.id, data.id), eq(fixedExpenses.userId, userId)));
+    .where(and(eq(fixedExpenses.id, data.id), eq(fixedExpenses.userId, userId)))
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 export async function toggleFixedExpensePaid(id: string, paid: boolean) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db
     .update(fixedExpenses)
     .set({ paid })
-    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
+    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)))
 
-  revalidatePath('/dashboard');
-  revalidatePath('/configuracao-mes');
+  revalidatePath('/dashboard')
+  revalidatePath('/configuracao-mes')
 }
 
 export async function deleteFixedExpense(id: string) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db
     .delete(fixedExpenses)
-    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)));
+    .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)))
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 // ─── Compra parcelada ─────────────────────────────────────────────────────────
 
 export type CreateInstallmentInput = {
-  name: string;
-  totalAmount: string;
-  totalInstallments: number;
-  startDate: string;
-  categoryId: string;
-  accountId: string;
-};
+  name: string
+  totalAmount: string
+  totalInstallments: number
+  startDate: string
+  categoryId: string
+  accountId: string
+}
 
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
-  const installmentAmount = (
-    parseFloat(data.totalAmount) / data.totalInstallments
-  ).toFixed(2);
+  const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
   const [group] = await db
     .insert(installmentGroups)
@@ -157,11 +155,11 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
       categoryId: data.categoryId,
       accountId: data.accountId,
     })
-    .returning({ id: installmentGroups.id });
+    .returning({ id: installmentGroups.id })
 
   const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
-    const installmentDate = addMonths(new Date(data.startDate + 'T12:00:00'), i);
-    const dateStr = format(installmentDate, 'yyyy-MM-dd');
+    const installmentDate = addMonths(new Date(data.startDate + 'T12:00:00'), i)
+    const dateStr = format(installmentDate, 'yyyy-MM-dd')
     return {
       userId,
       name: `${data.name} (${i + 1}/${data.totalInstallments})`,
@@ -176,28 +174,28 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
       installmentGroupId: group.id,
       installmentNumber: i + 1,
       totalInstallments: data.totalInstallments,
-    };
-  });
+    }
+  })
 
-  await db.insert(transactions).values(installmentRows);
+  await db.insert(transactions).values(installmentRows)
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 // ─── Edição de transação avulsa ───────────────────────────────────────────────
 
 export type UpdateTransactionInput = {
-  id: string;
-  name: string;
-  amount: string;
-  date: string;
-  categoryId: string;
-  accountId: string;
-};
+  id: string
+  name: string
+  amount: string
+  date: string
+  categoryId: string
+  accountId: string
+}
 
 export async function updateTransaction(data: UpdateTransactionInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   await db
     .update(transactions)
@@ -209,42 +207,42 @@ export async function updateTransaction(data: UpdateTransactionInput) {
       categoryId: data.categoryId,
       accountId: data.accountId,
     })
-    .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)));
+    .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)))
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
 
 // ─── Edição de compra parcelada ───────────────────────────────────────────────
 
 export type UpdateInstallmentGroupInput = {
-  id: string;
-  name: string;
-  categoryId: string;
-  accountId: string;
-};
+  id: string
+  name: string
+  categoryId: string
+  accountId: string
+}
 
 export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
   // Fetch group to get totalInstallments for renaming transactions
   const [group] = await db
     .select({ totalInstallments: installmentGroups.totalInstallments })
     .from(installmentGroups)
-    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)));
+    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
 
-  if (!group) throw new Error('Grupo não encontrado');
+  if (!group) throw new Error('Grupo não encontrado')
 
   await db
     .update(installmentGroups)
     .set({ name: data.name, categoryId: data.categoryId, accountId: data.accountId })
-    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)));
+    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
 
   // Update all child transactions: rename and sync category/account
   const childTransactions = await db
     .select({ id: transactions.id, installmentNumber: transactions.installmentNumber })
     .from(transactions)
-    .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)));
+    .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)))
 
   await Promise.all(
     childTransactions.map((t) =>
@@ -255,23 +253,21 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
           categoryId: data.categoryId,
           accountId: data.accountId,
         })
-        .where(eq(transactions.id, t.id))
+        .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
     )
-  );
+  )
 
-  revalidatePath('/dashboard');
-  revalidatePath('/parcelas');
+  revalidatePath('/dashboard')
+  revalidatePath('/parcelas')
 }
 
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────
 
 export async function deleteTransaction(id: string) {
-  const session = await auth();
-  const userId = requireUserId(session);
+  const session = await auth()
+  const userId = requireUserId(session)
 
-  await db
-    .delete(transactions)
-    .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+  await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
 
-  revalidatePath('/dashboard');
+  revalidatePath('/dashboard')
 }
