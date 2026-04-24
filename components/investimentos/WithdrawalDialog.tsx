@@ -1,48 +1,48 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition } from 'react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { createWithdrawal, type CreateWithdrawalInput } from '@/lib/actions/investments';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { createWithdrawal, type CreateWithdrawalInput } from '@/lib/actions/investments'
 
 type Props = {
-  investmentTypes: { id: string; name: string }[];
-};
+  investmentTypes: { id: string; name: string }[]
+}
 
 export function WithdrawalDialog({ investmentTypes }: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [destination, setDestination] = useState<'income' | 'transfer'>('income');
-  const [typeId, setTypeId] = useState('');
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [destination, setDestination] = useState<'income' | 'transfer'>('income')
+  const [typeId, setTypeId] = useState('')
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const amount = (fd.get('amount') as string).trim();
-    const date = (fd.get('date') as string).trim();
-    const notes = (fd.get('notes') as string).trim();
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const amount = (fd.get('amount') as string).trim()
+    const date = (fd.get('date') as string).trim()
+    const notes = (fd.get('notes') as string).trim()
 
     if (!typeId) {
-      toast.error('Selecione o tipo de investimento.');
-      return;
+      toast.error('Selecione o tipo de investimento.')
+      return
     }
 
     const data: CreateWithdrawalInput = {
@@ -51,19 +51,19 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
       date,
       destination,
       notes: notes || null,
-    };
+    }
 
     startTransition(async () => {
       try {
-        await createWithdrawal(data);
-        setOpen(false);
-        setTypeId('');
-        setDestination('income');
+        await createWithdrawal(data)
+        setOpen(false)
+        setTypeId('')
+        setDestination('income')
       } catch {
-        toast.error('Erro ao registrar resgate.');
+        toast.error('Erro ao registrar resgate.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -121,5 +121,5 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -1,49 +1,44 @@
-'use client';
+'use client'
 
-import { useState, useTransition, type FormEvent } from 'react';
-import { Pencil } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { updateWithdrawal } from '@/lib/actions/investments';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { updateWithdrawal } from '@/lib/actions/investments'
 
 type Withdrawal = {
-  id: string;
-  investmentTypeId: string;
-  amount: number | string;
-  date: string;
-  notes: string | null;
-};
+  id: string
+  investmentTypeId: string
+  amount: number | string
+  date: string
+  notes: string | null
+}
 
 type Props = {
-  withdrawal: Withdrawal;
-  investmentTypes: { id: string; name: string }[];
-};
+  withdrawal: Withdrawal
+  investmentTypes: { id: string; name: string }[]
+}
 
 export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const [typeId, setTypeId] = useState(withdrawal.investmentTypeId);
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const [typeId, setTypeId] = useState(withdrawal.investmentTypeId)
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -53,13 +48,13 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
           amount: str('amount'),
           date: str('date'),
           notes: str('notes') || null,
-        });
-        setOpen(false);
+        })
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -117,5 +112,5 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

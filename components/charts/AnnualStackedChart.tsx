@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import {
   BarChart,
@@ -9,12 +9,12 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
+} from 'recharts'
 
 type Props = {
-  data: { month: string; groups: { groupId: string; groupName: string; total: number }[] }[];
-  allGroupNames: string[];
-};
+  data: { month: string; groups: { groupId: string; groupName: string; total: number }[] }[]
+  allGroupNames: string[]
+}
 
 const COLORS = [
   '#3b82f6',
@@ -25,42 +25,42 @@ const COLORS = [
   '#ec4899',
   '#06b6d4',
   '#84cc16',
-];
+]
 
 function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-');
+  const [year, month] = yyyyMM.split('-')
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
     month: 'short',
     year: '2-digit',
-  });
+  })
 }
 
 function formatCurrencyShort(value: number) {
-  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`;
-  return `R$${value.toFixed(0)}`;
+  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
+  return `R$${value.toFixed(0)}`
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
 export function AnnualStackedChart({ data, allGroupNames }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[240px] text-sm text-muted-foreground">
+      <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
         Nenhum dado ainda.
       </div>
-    );
+    )
   }
 
   const chartData = data.map((d) => {
-    const row: Record<string, string | number> = { month: formatMonthLabel(d.month) };
+    const row: Record<string, string | number> = { month: formatMonthLabel(d.month) }
     for (const groupName of allGroupNames) {
-      const match = d.groups.find((g) => g.groupName === groupName);
-      row[groupName] = match ? match.total : 0;
+      const match = d.groups.find((g) => g.groupName === groupName)
+      row[groupName] = match ? match.total : 0
     }
-    return row;
-  });
+    return row
+  })
 
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -89,5 +89,5 @@ export function AnnualStackedChart({ data, allGroupNames }: Props) {
         ))}
       </BarChart>
     </ResponsiveContainer>
-  );
+  )
 }

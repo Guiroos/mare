@@ -1,45 +1,41 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories';
-import { formatCurrency } from '@/lib/format';
-import { GroupDialog } from '@/components/categorias/GroupDialog';
-import { CategoryDialog } from '@/components/categorias/CategoryDialog';
-import { AccountDialog } from '@/components/categorias/AccountDialog';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { ReorderButtons } from '@/components/categorias/ReorderButtons';
-import {
-  deleteCategoryGroup,
-  deleteCategory,
-  deletePaymentAccount,
-} from '@/lib/actions/categories';
-import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Separator } from '@/components/ui/separator';
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
+import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
+import { formatCurrency } from '@/lib/format'
+import { GroupDialog } from '@/components/categorias/GroupDialog'
+import { CategoryDialog } from '@/components/categorias/CategoryDialog'
+import { AccountDialog } from '@/components/categorias/AccountDialog'
+import { DeleteButton } from '@/components/ui/delete-button'
+import { ReorderButtons } from '@/components/categorias/ReorderButtons'
+import { deleteCategoryGroup, deleteCategory, deletePaymentAccount } from '@/lib/actions/categories'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Separator } from '@/components/ui/separator'
 
 export default async function CategoriasPage() {
-  const session = await auth();
-  if (!session) redirect('/login');
+  const session = await auth()
+  if (!session) redirect('/login')
 
-  const userId = (session.user as any).id as string;
+  const userId = (session.user as { id: string }).id
   const [groups, accounts] = await Promise.all([
     getCategoriesWithGroups(userId),
     getPaymentAccounts(userId),
-  ]);
+  ])
 
-  const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }));
-  const groupIds = groups.map((g) => g.id);
+  const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
+  const groupIds = groups.map((g) => g.id)
 
   const ACCOUNT_TYPE_LABELS: Record<string, string> = {
     credit: 'Crédito',
     debit: 'Débito',
     pix: 'Pix',
-  };
+  }
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Categorias e grupos</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Gerencie grupos, categorias e contas de pagamento.
         </p>
       </div>
@@ -47,7 +43,7 @@ export default async function CategoriasPage() {
       {/* ─── Grupos e Categorias ─────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Grupos e categorias
           </h2>
           <GroupDialog mode="create" />
@@ -61,14 +57,14 @@ export default async function CategoriasPage() {
               const totalBudget = group.categories.reduce(
                 (sum, cat) => sum + Number(cat.defaultBudget ?? 0),
                 0
-              );
+              )
 
               return (
                 <div key={group.id} className="rounded-xl border bg-card">
                   {/* Header do grupo */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     <ReorderButtons groupId={group.id} allGroupIds={groupIds} />
-                    <div className="flex-1 min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{group.name}</span>
                         <div className="flex items-center gap-2">
@@ -77,14 +73,11 @@ export default async function CategoriasPage() {
                               {formatCurrency(totalBudget)}/mês
                             </span>
                           )}
-                          <GroupDialog
-                            mode="edit"
-                            group={{ id: group.id, name: group.name }}
-                          />
+                          <GroupDialog mode="edit" group={{ id: group.id, name: group.name }} />
                           <DeleteButton
                             onDelete={async () => {
-                              'use server';
-                              await deleteCategoryGroup(group.id);
+                              'use server'
+                              await deleteCategoryGroup(group.id)
                             }}
                           />
                         </div>
@@ -94,12 +87,9 @@ export default async function CategoriasPage() {
 
                   {/* Categorias */}
                   {group.categories.length > 0 && (
-                    <div className="border-t divide-y">
+                    <div className="divide-y border-t">
                       {group.categories.map((cat) => (
-                        <div
-                          key={cat.id}
-                          className="flex items-center justify-between px-4 py-2.5"
-                        >
+                        <div key={cat.id} className="flex items-center justify-between px-4 py-2.5">
                           <span className="text-sm">{cat.name}</span>
                           <div className="flex items-center gap-2">
                             {cat.defaultBudget ? (
@@ -107,7 +97,7 @@ export default async function CategoriasPage() {
                                 {formatCurrency(Number(cat.defaultBudget))}
                               </span>
                             ) : (
-                              <span className="text-xs text-muted-foreground/50">
+                              <span className="text-muted-foreground/50 text-xs">
                                 sem orçamento
                               </span>
                             )}
@@ -124,8 +114,8 @@ export default async function CategoriasPage() {
                             />
                             <DeleteButton
                               onDelete={async () => {
-                                'use server';
-                                await deleteCategory(cat.id);
+                                'use server'
+                                await deleteCategory(cat.id)
                               }}
                             />
                           </div>
@@ -135,15 +125,11 @@ export default async function CategoriasPage() {
                   )}
 
                   {/* Botão adicionar categoria */}
-                  <div className="px-4 py-2 border-t">
-                    <CategoryDialog
-                      mode="create"
-                      groups={groupOptions}
-                      defaultGroupId={group.id}
-                    />
+                  <div className="border-t px-4 py-2">
+                    <CategoryDialog mode="create" groups={groupOptions} defaultGroupId={group.id} />
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         )}
@@ -154,7 +140,7 @@ export default async function CategoriasPage() {
       {/* ─── Contas e Cartões ────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Contas e cartões
           </h2>
           <AccountDialog mode="create" />
@@ -163,17 +149,12 @@ export default async function CategoriasPage() {
         {accounts.length === 0 ? (
           <EmptyState title="Nenhuma conta cadastrada." />
         ) : (
-          <div className="rounded-xl border bg-card divide-y">
+          <div className="divide-y rounded-xl border bg-card">
             {accounts.map((account) => (
-              <div
-                key={account.id}
-                className="flex items-center justify-between px-4 py-3"
-              >
+              <div key={account.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">{account.name}</span>
-                  <Badge variant="muted">
-                    {ACCOUNT_TYPE_LABELS[account.type] ?? account.type}
-                  </Badge>
+                  <Badge variant="muted">{ACCOUNT_TYPE_LABELS[account.type] ?? account.type}</Badge>
                   {account.closingDay && (
                     <span className="text-xs text-muted-foreground">
                       Fecha dia {account.closingDay}
@@ -192,8 +173,8 @@ export default async function CategoriasPage() {
                   />
                   <DeleteButton
                     onDelete={async () => {
-                      'use server';
-                      await deletePaymentAccount(account.id);
+                      'use server'
+                      await deletePaymentAccount(account.id)
                     }}
                   />
                 </div>
@@ -203,5 +184,5 @@ export default async function CategoriasPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

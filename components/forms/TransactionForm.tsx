@@ -1,12 +1,12 @@
-'use client';
+'use client'
 
-import { useState, useTransition, type FormEvent } from 'react';
-import { ExternalLink } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition, type FormEvent } from 'react'
+import { ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -15,31 +15,31 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { currentYearMonth } from '@/lib/format';
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
+import { currentYearMonth } from '@/lib/format'
 import {
   createTransaction,
   createFixedExpense,
   createInstallmentPurchase,
-} from '@/lib/actions/transactions';
-import { toast } from 'sonner';
-import { createIncome } from '@/lib/actions/incomes';
-import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments';
+} from '@/lib/actions/transactions'
+import { toast } from 'sonner'
+import { createIncome } from '@/lib/actions/incomes'
+import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments'
 
 type CategoryGroup = {
-  id: string;
-  name: string;
-  categories: { id: string; name: string }[];
-};
+  id: string
+  name: string
+  categories: { id: string; name: string }[]
+}
 
 type Account = {
-  id: string;
-  name: string;
-  type: string;
-};
+  id: string
+  name: string
+  type: string
+}
 
-type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate';
+type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate'
 
 const TABS: { value: FormType; label: string }[] = [
   { value: 'avulso', label: 'Gasto avulso' },
@@ -48,21 +48,21 @@ const TABS: { value: FormType; label: string }[] = [
   { value: 'entrada', label: 'Entrada' },
   { value: 'investimento', label: 'Investimento' },
   { value: 'resgate', label: 'Resgate' },
-];
+]
 
 type InvestmentType = {
-  id: string;
-  name: string;
-};
+  id: string
+  name: string
+}
 
 type Props = {
-  categoryGroups: CategoryGroup[];
-  accounts: Account[];
-  investmentTypes?: InvestmentType[];
-  defaultMonth?: string;
-  onSuccess?: () => void;
-  showFullPageLink?: boolean;
-};
+  categoryGroups: CategoryGroup[]
+  accounts: Account[]
+  investmentTypes?: InvestmentType[]
+  defaultMonth?: string
+  onSuccess?: () => void
+  showFullPageLink?: boolean
+}
 
 export function TransactionForm({
   categoryGroups,
@@ -72,22 +72,22 @@ export function TransactionForm({
   onSuccess,
   showFullPageLink = false,
 }: Props) {
-  const month = defaultMonth ?? currentYearMonth();
-  const today = new Date().toISOString().split('T')[0];
+  const month = defaultMonth ?? currentYearMonth()
+  const today = new Date().toISOString().split('T')[0]
 
-  const [type, setType] = useState<FormType>('avulso');
-  const [isPending, startTransition] = useTransition();
-  const [key, setKey] = useState(0);
+  const [type, setType] = useState<FormType>('avulso')
+  const [isPending, startTransition] = useTransition()
+  const [key, setKey] = useState(0)
 
   const resetForm = () => {
-    setKey((k) => k + 1);
-  };
+    setKey((k) => k + 1)
+  }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
 
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -98,7 +98,7 @@ export function TransactionForm({
             date: str('date'),
             categoryId: str('categoryId'),
             accountId: str('accountId'),
-          });
+          })
         } else if (type === 'fixo') {
           await createFixedExpense({
             name: str('name'),
@@ -107,7 +107,7 @@ export function TransactionForm({
             categoryId: str('categoryId'),
             accountId: str('accountId'),
             referenceMonth: str('referenceMonth') + '-01',
-          });
+          })
         } else if (type === 'parcelado') {
           await createInstallmentPurchase({
             name: str('name'),
@@ -116,13 +116,13 @@ export function TransactionForm({
             startDate: str('startDate'),
             categoryId: str('categoryId'),
             accountId: str('accountId'),
-          });
+          })
         } else if (type === 'entrada') {
           await createIncome({
             source: str('source'),
             amount: str('amount'),
             referenceMonth: str('referenceMonth') + '-01',
-          });
+          })
         } else if (type === 'investimento') {
           await upsertInvestment({
             investmentTypeId: str('investmentTypeId'),
@@ -130,7 +130,7 @@ export function TransactionForm({
             amount: str('amount') || null,
             yieldAmount: str('yieldAmount') || null,
             notes: str('notes') || null,
-          });
+          })
         } else if (type === 'resgate') {
           await createWithdrawal({
             investmentTypeId: str('investmentTypeId'),
@@ -138,29 +138,32 @@ export function TransactionForm({
             date: str('date'),
             destination: str('destination') as 'income' | 'transfer',
             notes: str('notes') || null,
-          });
+          })
         }
-        resetForm();
-        onSuccess?.();
+        resetForm()
+        onSuccess?.()
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
-  const isExpense = type !== 'entrada' && type !== 'investimento' && type !== 'resgate';
+  const isExpense = type !== 'entrada' && type !== 'investimento' && type !== 'resgate'
 
   return (
     <div className="space-y-5">
       {/* Tipo */}
-      <div className="grid grid-cols-3 rounded-lg border p-1 gap-1">
+      <div className="grid grid-cols-3 gap-1 rounded-lg border p-1">
         {TABS.map((tab) => (
           <button
             key={tab.value}
             type="button"
-            onClick={() => { setType(tab.value); resetForm(); }}
+            onClick={() => {
+              setType(tab.value)
+              resetForm()
+            }}
             className={cn(
-              'rounded-md px-2 py-1.5 text-xs font-medium transition-colors text-center',
+              'rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors',
               type === tab.value
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground'
@@ -193,7 +196,9 @@ export function TransactionForm({
               </SelectTrigger>
               <SelectContent>
                 {investmentTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -203,10 +208,7 @@ export function TransactionForm({
         {/* Valor */}
         {type !== 'investimento' && (
           <Field label={type === 'parcelado' ? 'Valor total' : 'Valor'}>
-            <CurrencyInput
-              name={type === 'parcelado' ? 'totalAmount' : 'amount'}
-              required
-            />
+            <CurrencyInput name={type === 'parcelado' ? 'totalAmount' : 'amount'} required />
           </Field>
         )}
 
@@ -231,7 +233,14 @@ export function TransactionForm({
         {type === 'parcelado' && (
           <div className="grid grid-cols-2 gap-3">
             <Field label="Nº de parcelas">
-              <Input name="totalInstallments" type="number" min="2" max="60" placeholder="Ex: 12" required />
+              <Input
+                name="totalInstallments"
+                type="number"
+                min="2"
+                max="60"
+                placeholder="Ex: 12"
+                required
+              />
             </Field>
             <Field label="Data da 1ª parcela">
               <Input name="startDate" type="date" defaultValue={today} required />
@@ -340,6 +349,5 @@ export function TransactionForm({
         </div>
       </form>
     </div>
-  );
+  )
 }
-

@@ -1,4 +1,5 @@
-import type { Config } from 'tailwindcss';
+import type { Config } from 'tailwindcss'
+import tailwindcssAnimate from 'tailwindcss-animate'
 
 const config: Config = {
   darkMode: ['class'],
@@ -14,82 +15,82 @@ const config: Config = {
       },
       colors: {
         /* shadcn/ui tokens */
-        input:       'var(--input)',
-        ring:        'var(--ring)',
-        background:  'var(--background)',
-        foreground:  'var(--foreground)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
         primary: {
-          DEFAULT:    'var(--primary)',
+          DEFAULT: 'var(--primary)',
           foreground: 'var(--primary-foreground)',
         },
         secondary: {
-          DEFAULT:    'var(--secondary)',
+          DEFAULT: 'var(--secondary)',
           foreground: 'var(--secondary-foreground)',
         },
         destructive: {
-          DEFAULT:    'var(--destructive)',
+          DEFAULT: 'var(--destructive)',
           foreground: 'var(--destructive-foreground)',
         },
         muted: {
-          DEFAULT:    'var(--muted)',
+          DEFAULT: 'var(--muted)',
           foreground: 'var(--muted-foreground)',
         },
         accent: {
-          DEFAULT:    'var(--accent)',
-          hover:      'var(--accent-hover)',
-          subtle:     'var(--accent-subtle)',
-          text:       'var(--accent-text)',
+          DEFAULT: 'var(--accent)',
+          hover: 'var(--accent-hover)',
+          subtle: 'var(--accent-subtle)',
+          text: 'var(--accent-text)',
           foreground: 'var(--text-inverse)',
         },
         card: {
-          DEFAULT:    'var(--card)',
+          DEFAULT: 'var(--card)',
           foreground: 'var(--card-foreground)',
         },
         popover: {
-          DEFAULT:    'var(--popover)',
+          DEFAULT: 'var(--popover)',
           foreground: 'var(--popover-foreground)',
         },
 
         /* Maré Design System tokens */
         bg: {
-          base:    'var(--bg-base)',
+          base: 'var(--bg-base)',
           surface: 'var(--bg-surface)',
-          subtle:  'var(--bg-subtle)',
-          muted:   'var(--bg-muted)',
+          subtle: 'var(--bg-subtle)',
+          muted: 'var(--bg-muted)',
         },
         text: {
-          primary:   'var(--text-primary)',
+          primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
-          tertiary:  'var(--text-tertiary)',
-          inverse:   'var(--text-inverse)',
+          tertiary: 'var(--text-tertiary)',
+          inverse: 'var(--text-inverse)',
         },
         positive: {
           DEFAULT: 'var(--positive)',
-          hover:   'var(--positive-hover)',
-          subtle:  'var(--positive-subtle)',
-          text:    'var(--positive-text)',
+          hover: 'var(--positive-hover)',
+          subtle: 'var(--positive-subtle)',
+          text: 'var(--positive-text)',
         },
         negative: {
           DEFAULT: 'var(--negative)',
-          hover:   'var(--negative-hover)',
-          subtle:  'var(--negative-subtle)',
-          text:    'var(--negative-text)',
+          hover: 'var(--negative-hover)',
+          subtle: 'var(--negative-subtle)',
+          text: 'var(--negative-text)',
         },
         warning: {
           DEFAULT: 'var(--warning)',
-          subtle:  'var(--warning-subtle)',
-          text:    'var(--warning-text)',
+          subtle: 'var(--warning-subtle)',
+          text: 'var(--warning-text)',
         },
         border: {
           DEFAULT: 'var(--border)',
-          strong:  'var(--border-strong)',
+          strong: 'var(--border-strong)',
         },
       },
       borderRadius: {
-        sm:   '6px',
-        md:   '10px',
-        lg:   '16px',
-        xl:   '20px',
+        sm: '6px',
+        md: '10px',
+        lg: '16px',
+        xl: '20px',
         '2xl': '24px',
         full: '9999px',
       },
@@ -99,25 +100,25 @@ const config: Config = {
         lg: 'var(--shadow-lg)',
       },
       fontSize: {
-        display:   ['36px', { lineHeight: '1.1',  letterSpacing: '-0.03em',  fontWeight: '600' }],
-        h1:        ['28px', { lineHeight: '1.2',  letterSpacing: '-0.025em', fontWeight: '600' }],
-        h2:        ['22px', { lineHeight: '1.25', letterSpacing: '-0.02em',  fontWeight: '600' }],
-        h3:        ['17px', { lineHeight: '1.3',  letterSpacing: '-0.01em',  fontWeight: '600' }],
+        display: ['36px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '600' }],
+        h1: ['28px', { lineHeight: '1.2', letterSpacing: '-0.025em', fontWeight: '600' }],
+        h2: ['22px', { lineHeight: '1.25', letterSpacing: '-0.02em', fontWeight: '600' }],
+        h3: ['17px', { lineHeight: '1.3', letterSpacing: '-0.01em', fontWeight: '600' }],
         'body-lg': ['16px', { lineHeight: '1.55' }],
-        body:      ['14px', { lineHeight: '1.55' }],
-        small:     ['13px', { lineHeight: '1.4' }],
-        caption:   ['12px', { lineHeight: '1.4' }],
-        label:     ['11px', { lineHeight: '1.2', letterSpacing: '0.06em', fontWeight: '600' }],
-        amount:    ['28px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '600' }],
-        hero:      ['40px', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '600' }],
+        body: ['14px', { lineHeight: '1.55' }],
+        small: ['13px', { lineHeight: '1.4' }],
+        caption: ['12px', { lineHeight: '1.4' }],
+        label: ['11px', { lineHeight: '1.2', letterSpacing: '0.06em', fontWeight: '600' }],
+        amount: ['28px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '600' }],
+        hero: ['40px', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '600' }],
       },
       transitionDuration: {
         fast: '120ms',
         base: '200ms',
       },
       letterSpacing: {
-        tight:    '-0.02em',
-        tighter:  '-0.03em',
+        tight: '-0.02em',
+        tighter: '-0.03em',
         tightest: '-0.04em',
       },
       keyframes: {
@@ -136,7 +137,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
-};
+  plugins: [tailwindcssAnimate],
+}
 
-export default config;
+export default config

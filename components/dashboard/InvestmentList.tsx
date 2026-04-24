@@ -1,50 +1,51 @@
-'use client';
+'use client'
 
-import { formatCurrency } from '@/lib/format';
-import { deleteInvestment } from '@/lib/actions/investments';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
-import { TxList } from '@/components/ui/tx-list';
-import { EmptyState } from '@/components/ui/empty-state';
-import { TrendingUp } from 'lucide-react';
+import { formatCurrency } from '@/lib/format'
+import { deleteInvestment } from '@/lib/actions/investments'
+import { DeleteButton } from '@/components/ui/delete-button'
+import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
+import { TxList } from '@/components/ui/tx-list'
+import { EmptyState } from '@/components/ui/empty-state'
+import { TrendingUp } from 'lucide-react'
 
 type Investment = {
-  id: string;
-  amount: string | null;
-  yieldAmount: string | null;
-  notes: string | null;
-  referenceMonth: string;
-  investmentTypeId: string;
-  investmentType: { name: string };
-};
+  id: string
+  amount: string | null
+  yieldAmount: string | null
+  notes: string | null
+  referenceMonth: string
+  investmentTypeId: string
+  investmentType: { name: string }
+}
 
 export function InvestmentList({ investments }: { investments: Investment[] }) {
   if (investments.length === 0) {
-    return (
-      <EmptyState title="Nenhum registro de investimento neste mês." />
-    );
+    return <EmptyState title="Nenhum registro de investimento neste mês." />
   }
 
   return (
     <TxList>
       {investments.map((inv) => (
-        <div key={inv.id} className="group flex items-center gap-3 px-4 py-3 border-b border-border last:border-0 hover:bg-bg-subtle transition-colors">
+        <div
+          key={inv.id}
+          className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-bg-subtle"
+        >
           {/* Icon */}
-          <div className="w-9 h-9 rounded-md flex items-center justify-center flex-shrink-0 bg-accent-subtle">
-            <TrendingUp className="w-[18px] h-[18px] text-accent" strokeWidth={2} />
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-accent-subtle">
+            <TrendingUp className="h-[18px] w-[18px] text-accent" strokeWidth={2} />
           </div>
 
           {/* Name + notes */}
-          <div className="flex-1 min-w-0">
-            <p className="text-body font-medium text-text-primary truncate">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body font-medium text-text-primary">
               {inv.investmentType.name}
             </p>
             {inv.notes && (
-              <p className="text-caption text-text-tertiary truncate mt-0.5">{inv.notes}</p>
+              <p className="mt-0.5 truncate text-caption text-text-tertiary">{inv.notes}</p>
             )}
           </div>
 
-          <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
             <InvestmentEntryDialog
               investmentTypeId={inv.investmentTypeId}
               existing={{
@@ -59,7 +60,7 @@ export function InvestmentList({ investments }: { investments: Investment[] }) {
           </div>
 
           {/* Aporte + Rendimento */}
-          <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
+          <div className="flex flex-shrink-0 flex-col items-end gap-0.5 text-right">
             {inv.amount !== null && (
               <span className="text-small font-semibold tabular-nums text-text-primary">
                 + {formatCurrency(Number(inv.amount))}
@@ -78,5 +79,5 @@ export function InvestmentList({ investments }: { investments: Investment[] }) {
         </div>
       ))}
     </TxList>
-  );
+  )
 }

@@ -1,50 +1,50 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments';
-import { formatMonth, referenceMonthToYearMonth, currentYearMonth } from '@/lib/format';
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments'
+import { formatMonth, referenceMonthToYearMonth, currentYearMonth } from '@/lib/format'
 
 type Existing = {
-  id: string;
-  amount: number | null;
-  yieldAmount: number | null;
-  notes: string | null;
-  referenceMonth: string;
-};
+  id: string
+  amount: number | null
+  yieldAmount: number | null
+  notes: string | null
+  referenceMonth: string
+}
 
 type Props = {
-  investmentTypeId: string;
-  existing?: Existing;
-};
+  investmentTypeId: string
+  existing?: Existing
+}
 
 export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const defaultMonth = existing
     ? referenceMonthToYearMonth(existing.referenceMonth)
-    : currentYearMonth();
+    : currentYearMonth()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const amount = (fd.get('amount') as string).trim();
-    const yieldAmount = (fd.get('yieldAmount') as string).trim();
-    const notes = (fd.get('notes') as string).trim();
-    const selectedMonth = (fd.get('referenceMonth') as string).trim();
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const amount = (fd.get('amount') as string).trim()
+    const yieldAmount = (fd.get('yieldAmount') as string).trim()
+    const notes = (fd.get('notes') as string).trim()
+    const selectedMonth = (fd.get('referenceMonth') as string).trim()
 
     const data: UpsertInvestmentInput = {
       investmentTypeId,
@@ -53,23 +53,27 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
       yieldAmount: yieldAmount || null,
       notes: notes || null,
       existingId: existing?.id,
-    };
+    }
 
     startTransition(async () => {
       try {
-        await upsertInvestment(data);
-        setOpen(false);
+        await upsertInvestment(data)
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {existing ? (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-text-tertiary hover:text-text-primary">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         ) : (
@@ -81,14 +85,14 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {existing ? 'Editar registro' : 'Novo registro'}
-          </DialogTitle>
+          <DialogTitle>{existing ? 'Editar registro' : 'Novo registro'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <Field
             label="Mês de referência"
-            hint={existing ? `O registro ficará em ${formatMonth(existing.referenceMonth)}.` : undefined}
+            hint={
+              existing ? `O registro ficará em ${formatMonth(existing.referenceMonth)}.` : undefined
+            }
           >
             <>
               <Input
@@ -98,9 +102,7 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
                 required
                 disabled={!!existing}
               />
-              {!!existing && (
-                <input type="hidden" name="referenceMonth" value={defaultMonth} />
-              )}
+              {!!existing && <input type="hidden" name="referenceMonth" value={defaultMonth} />}
             </>
           </Field>
           <Field label="Aporte (R$)">
@@ -118,5 +120,5 @@ export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

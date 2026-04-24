@@ -56,13 +56,14 @@ ALLOWED_EMAILS=email1@exemplo.com,email2@exemplo.com
 
 ### Como obter cada variável
 
-**DATABASE_URL** — Crie um projeto no [Neon](https://neon.tech/), vá em *Connection Details* e copie a connection string.
+**DATABASE_URL** — Crie um projeto no [Neon](https://neon.tech/), vá em _Connection Details_ e copie a connection string.
 
-**GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET** — No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, habilite a *Google+ API*, vá em *Credenciais > Criar credencial > ID do cliente OAuth* e adicione `http://localhost:3000/api/auth/callback/google` como URI de redirecionamento autorizado.
+**GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET** — No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, habilite a _Google+ API_, vá em _Credenciais > Criar credencial > ID do cliente OAuth_ e adicione `http://localhost:3000/api/auth/callback/google` como URI de redirecionamento autorizado.
 
 **ALLOWED_EMAILS** — Lista de emails separados por vírgula que têm acesso ao app. Qualquer conta Google que não esteja na lista será bloqueada no login.
 
 **NEXTAUTH_SECRET** — Gere com:
+
 ```bash
 openssl rand -base64 32
 ```
@@ -83,14 +84,14 @@ npm run db:studio     # abre o Drizzle Studio (browser do banco)
 
 ## Estrutura de páginas
 
-| Rota | Descrição |
-|------|-----------|
-| `/login` | Autenticação via Google |
-| `/dashboard` | Visão geral do mês |
-| `/registro` | Lançamento de transações |
-| `/categorias` | Gerenciamento de categorias e contas |
-| `/parcelas` | Controle de parcelamentos |
-| `/investimentos` | Acompanhamento de investimentos |
-| `/metas` | Metas financeiras |
-| `/panorama` | Visão anual |
-| `/configuracao-mes` | Configurações do mês de referência |
+| Rota                | Descrição                            |
+| ------------------- | ------------------------------------ |
+| `/login`            | Autenticação via Google              |
+| `/dashboard`        | Visão geral do mês                   |
+| `/registro`         | Lançamento de transações             |
+| `/categorias`       | Gerenciamento de categorias e contas |
+| `/parcelas`         | Controle de parcelamentos            |
+| `/investimentos`    | Acompanhamento de investimentos      |
+| `/metas`            | Metas financeiras                    |
+| `/panorama`         | Visão anual                          |
+| `/configuracao-mes` | Configurações do mês de referência   |

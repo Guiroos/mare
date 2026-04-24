@@ -1,57 +1,57 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { upsertGoal } from '@/lib/actions/goals';
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { upsertGoal } from '@/lib/actions/goals'
 
-type InvestmentTypeOption = { id: string; name: string };
+type InvestmentTypeOption = { id: string; name: string }
 
 type Props =
   | { mode: 'create'; investmentTypes: InvestmentTypeOption[] }
   | {
-      mode: 'edit';
-      investmentTypes: InvestmentTypeOption[];
+      mode: 'edit'
+      investmentTypes: InvestmentTypeOption[]
       goal: {
-        id: string;
-        name: string;
-        targetAmount: number;
-        targetDate: string | null;
-        investmentTypeId: string | null;
-      };
-    };
+        id: string
+        name: string
+        targetAmount: number
+        targetDate: string | null
+        investmentTypeId: string | null
+      }
+    }
 
 export function GoalDialog(props: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const [investmentTypeId, setInvestmentTypeId] = useState(
     props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
-  );
+  )
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const name = (fd.get('name') as string).trim();
-    const targetAmount = (fd.get('targetAmount') as string).trim();
-    const targetDate = (fd.get('targetDate') as string).trim() || null;
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const name = (fd.get('name') as string).trim()
+    const targetAmount = (fd.get('targetAmount') as string).trim()
+    const targetDate = (fd.get('targetDate') as string).trim() || null
 
     startTransition(async () => {
       try {
@@ -61,13 +61,13 @@ export function GoalDialog(props: Props) {
           targetDate,
           investmentTypeId: investmentTypeId === 'none' ? null : investmentTypeId || null,
           existingId: props.mode === 'edit' ? props.goal.id : undefined,
-        });
-        setOpen(false);
+        })
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -78,7 +78,11 @@ export function GoalDialog(props: Props) {
             Nova meta
           </Button>
         ) : (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-text-tertiary hover:text-text-primary">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -111,9 +115,7 @@ export function GoalDialog(props: Props) {
               name="targetDate"
               type="date"
               defaultValue={
-                props.mode === 'edit' && props.goal.targetDate
-                  ? props.goal.targetDate
-                  : ''
+                props.mode === 'edit' && props.goal.targetDate ? props.goal.targetDate : ''
               }
             />
           </Field>
@@ -143,5 +145,5 @@ export function GoalDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

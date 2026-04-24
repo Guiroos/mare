@@ -2,11 +2,11 @@ import { ReactNode } from 'react'
 import { Label } from './label'
 
 interface FieldProps {
-  label?:    string
-  hint?:     string
-  error?:    string
+  label?: string
+  hint?: string
+  error?: string
   required?: boolean
-  children:  ReactNode
+  children: ReactNode
   className?: string
 }
 
@@ -16,11 +16,11 @@ export function Field({ label, hint, error, required, children, className = '' }
       {label && (
         <Label>
           {label}
-          {required && <span className="text-negative ml-1">*</span>}
+          {required && <span className="ml-1 text-negative">*</span>}
         </Label>
       )}
       {children}
-      {error      && <span className="text-caption font-medium text-negative-text">{error}</span>}
+      {error && <span className="text-caption font-medium text-negative-text">{error}</span>}
       {!error && hint && <span className="text-caption text-text-tertiary">{hint}</span>}
     </div>
   )

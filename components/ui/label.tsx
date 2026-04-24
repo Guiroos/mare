@@ -7,6 +7,6 @@ export const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelE
       className={`text-caption font-medium text-text-secondary ${className}`}
       {...props}
     />
-  ),
+  )
 )
 Label.displayName = 'Label'

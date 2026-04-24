@@ -1,55 +1,54 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { createCategory, updateCategory } from '@/lib/actions/categories';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { createCategory, updateCategory } from '@/lib/actions/categories'
 
-type Group = { id: string; name: string };
+type Group = { id: string; name: string }
 
-type BaseProps = { groups: Group[] };
-type CreateProps = BaseProps & { mode: 'create'; defaultGroupId: string };
+type BaseProps = { groups: Group[] }
+type CreateProps = BaseProps & { mode: 'create'; defaultGroupId: string }
 type EditProps = BaseProps & {
-  mode: 'edit';
+  mode: 'edit'
   category: {
-    id: string;
-    name: string;
-    groupId: string;
-    defaultBudget: string | null;
-    color: string | null;
-  };
-};
+    id: string
+    name: string
+    groupId: string
+    defaultBudget: string | null
+    color: string | null
+  }
+}
 
-type Props = CreateProps | EditProps;
+type Props = CreateProps | EditProps
 
 export function CategoryDialog(props: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
-  const defaultGroupId =
-    props.mode === 'create' ? props.defaultGroupId : props.category.groupId;
+  const defaultGroupId = props.mode === 'create' ? props.defaultGroupId : props.category.groupId
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
     startTransition(async () => {
       try {
         const data = {
@@ -57,18 +56,18 @@ export function CategoryDialog(props: Props) {
           groupId: fd.get('groupId') as string,
           defaultBudget: (fd.get('defaultBudget') as string) || undefined,
           color: (fd.get('color') as string) || undefined,
-        };
-        if (props.mode === 'create') {
-          await createCategory(data);
-        } else {
-          await updateCategory(props.category.id, data);
         }
-        setOpen(false);
+        if (props.mode === 'create') {
+          await createCategory(data)
+        } else {
+          await updateCategory(props.category.id, data)
+        }
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -102,9 +101,7 @@ export function CategoryDialog(props: Props) {
           <Field label="Nome" required>
             <Input
               name="name"
-              defaultValue={
-                props.mode === 'edit' ? props.category.name : ''
-              }
+              defaultValue={props.mode === 'edit' ? props.category.name : ''}
               placeholder="Ex: Mercado, Academia..."
               required
               autoFocus
@@ -155,5 +152,5 @@ export function CategoryDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -1,79 +1,74 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import {
-  createPaymentAccount,
-  updatePaymentAccount,
-} from '@/lib/actions/categories';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { createPaymentAccount, updatePaymentAccount } from '@/lib/actions/categories'
 
-type BaseProps = Record<never, never>;
-type CreateProps = BaseProps & { mode: 'create' };
+type BaseProps = Record<never, never>
+type CreateProps = BaseProps & { mode: 'create' }
 type EditProps = BaseProps & {
-  mode: 'edit';
+  mode: 'edit'
   account: {
-    id: string;
-    name: string;
-    type: string;
-    closingDay: number | null;
-  };
-};
+    id: string
+    name: string
+    type: string
+    closingDay: number | null
+  }
+}
 
-type Props = CreateProps | EditProps;
+type Props = CreateProps | EditProps
 
 const ACCOUNT_TYPES = [
   { value: 'credit', label: 'Crédito' },
   { value: 'debit', label: 'Débito' },
   { value: 'pix', label: 'Pix / Transferência' },
-];
+]
 
 export function AccountDialog(props: Props) {
-  const [open, setOpen] = useState(false);
-  const [type, setType] = useState(
-    props.mode === 'edit' ? props.account.type : 'credit'
-  );
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [type, setType] = useState(props.mode === 'edit' ? props.account.type : 'credit')
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
     startTransition(async () => {
       try {
-        const closingDayRaw = fd.get('closingDay') as string;
+        const closingDayRaw = fd.get('closingDay') as string
         const data = {
           name: (fd.get('name') as string).trim(),
           type: fd.get('type') as string,
           closingDay: closingDayRaw ? Number(closingDayRaw) : undefined,
-        };
-        if (props.mode === 'create') {
-          await createPaymentAccount(data);
-        } else {
-          await updatePaymentAccount(props.account.id, data);
         }
-        setOpen(false);
+        if (props.mode === 'create') {
+          await createPaymentAccount(data)
+        } else {
+          await updatePaymentAccount(props.account.id, data)
+        }
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -113,9 +108,7 @@ export function AccountDialog(props: Props) {
           <Field label="Tipo" required>
             <Select
               name="type"
-              defaultValue={
-                props.mode === 'edit' ? props.account.type : 'credit'
-              }
+              defaultValue={props.mode === 'edit' ? props.account.type : 'credit'}
               onValueChange={setType}
               required
             >
@@ -140,11 +133,7 @@ export function AccountDialog(props: Props) {
                 min="1"
                 max="31"
                 placeholder="Ex: 10"
-                defaultValue={
-                  props.mode === 'edit'
-                    ? (props.account.closingDay ?? '')
-                    : ''
-                }
+                defaultValue={props.mode === 'edit' ? (props.account.closingDay ?? '') : ''}
               />
             </Field>
           )}
@@ -155,5 +144,5 @@ export function AccountDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

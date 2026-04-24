@@ -17,6 +17,7 @@ No test runner is configured.
 ## Environment
 
 Required in `.env.local`:
+
 ```
 DATABASE_URL=          # Neon connection string
 GOOGLE_CLIENT_ID=
@@ -72,19 +73,24 @@ NEXTAUTH_URL=http://localhost:3000
 **Antes de qualquer implementação de componente, leia estas regras.**
 
 #### 1. Um componente por arquivo
+
 Cada primitivo vai no seu próprio arquivo. Nunca juntar dois componentes independentes no mesmo arquivo.
+
 - `badge.tsx` → só Badge
 - `chip.tsx` → só Chip
 - `input.tsx` → só Input
 - `textarea.tsx` → só Textarea
 
 #### 2. Componentes compostos usam os primitivos do DS
+
 Componentes avançados que combinam primitivos **devem importar e usar os componentes do DS**, não duplicar HTML/classes.
+
 - `field.tsx` usa `<Label>` — não `<label>` HTML direto
 - `currency-input.tsx` compartilha `inputBase`/`inputErrorCls` de `input.tsx` — não duplica strings
 - `delete-button.tsx` usa `<Button>` — não `<button>` HTML direto
 
 #### 3. Apenas tokens nomeados — zero valores arbitrários
+
 Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no sistema.
 
 **Tipografia** — usar apenas tokens do `tailwind.config.ts`:
@@ -111,24 +117,25 @@ Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) 
 Se um valor não existir como token, **parar e discutir** antes de usar `[valor-arbitrário]`.
 
 #### 4. Componentes de formulário — padrão obrigatório
+
 - Sempre usar `<Field label="...">` em vez de `<div> + <Label>` manual
 - `<Field>` já inclui label, hint e error — não recriar essa estrutura
 - Nunca usar `<label>` HTML direto em componentes de formulário
 
 #### 5. Shared UI components — inventário atual
 
-| Arquivo | Componente(s) | Uso |
-|---|---|---|
-| `button.tsx` | `Button` | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` |
-| `badge.tsx` | `Badge` | Variantes: `positive` `negative` `accent` `warning` `muted` |
-| `chip.tsx` | `Chip` | Toggle com prop `active` |
-| `input.tsx` | `Input` | Prop `error` disponível |
-| `textarea.tsx` | `Textarea` | Prop `error` disponível |
-| `field.tsx` | `Field` | Props: `label` `hint` `error` `required` |
-| `label.tsx` | `Label` | Padrão: `text-caption font-medium text-text-secondary` |
-| `select.tsx` | `Select` + primitivos Radix | Mesmo height que Input (`h-12`) |
-| `currency-input.tsx` | `CurrencyInput` | Prop `error` disponível |
-| `delete-button.tsx` | `DeleteButton` | Confirmação inline. **Nunca** criar botão de delete ad-hoc |
+| Arquivo              | Componente(s)               | Uso                                                                    |
+| -------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| `button.tsx`         | `Button`                    | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` |
+| `badge.tsx`          | `Badge`                     | Variantes: `positive` `negative` `accent` `warning` `muted`            |
+| `chip.tsx`           | `Chip`                      | Toggle com prop `active`                                               |
+| `input.tsx`          | `Input`                     | Prop `error` disponível                                                |
+| `textarea.tsx`       | `Textarea`                  | Prop `error` disponível                                                |
+| `field.tsx`          | `Field`                     | Props: `label` `hint` `error` `required`                               |
+| `label.tsx`          | `Label`                     | Padrão: `text-caption font-medium text-text-secondary`                 |
+| `select.tsx`         | `Select` + primitivos Radix | Mesmo height que Input (`h-12`)                                        |
+| `currency-input.tsx` | `CurrencyInput`             | Prop `error` disponível                                                |
+| `delete-button.tsx`  | `DeleteButton`              | Confirmação inline. **Nunca** criar botão de delete ad-hoc             |
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
 

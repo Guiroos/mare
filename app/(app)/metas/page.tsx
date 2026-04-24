@@ -1,35 +1,35 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
-import { getGoalsWithProgress, getInvestmentTypesForGoals } from '@/lib/queries/goals';
-import { deleteGoal, deleteGoalContribution } from '@/lib/actions/goals';
-import { formatCurrency, formatMonth, referenceMonthToYearMonth } from '@/lib/format';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Separator } from '@/components/ui/separator';
-import { GoalDialog } from '@/components/metas/GoalDialog';
-import { ContributionDialog } from '@/components/metas/ContributionDialog';
-import { ContributionEditButton } from '@/components/metas/ContributionEditButton';
-import { DeleteButton } from '@/components/ui/delete-button';
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
+import { getGoalsWithProgress, getInvestmentTypesForGoals } from '@/lib/queries/goals'
+import { deleteGoal, deleteGoalContribution } from '@/lib/actions/goals'
+import { formatCurrency, formatMonth, referenceMonthToYearMonth } from '@/lib/format'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Separator } from '@/components/ui/separator'
+import { GoalDialog } from '@/components/metas/GoalDialog'
+import { ContributionDialog } from '@/components/metas/ContributionDialog'
+import { ContributionEditButton } from '@/components/metas/ContributionEditButton'
+import { DeleteButton } from '@/components/ui/delete-button'
 
 export default async function MetasPage() {
-  const session = await auth();
-  if (!session) redirect('/login');
+  const session = await auth()
+  if (!session) redirect('/login')
 
-  const userId = (session.user as any).id as string;
+  const userId = (session.user as { id: string }).id
 
   const [goalsData, investmentTypes] = await Promise.all([
     getGoalsWithProgress(userId),
     getInvestmentTypesForGoals(userId),
-  ]);
+  ])
 
-  const investmentTypeOptions = investmentTypes.map((t) => ({ id: t.id, name: t.name }));
+  const investmentTypeOptions = investmentTypes.map((t) => ({ id: t.id, name: t.name }))
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Metas</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Acompanhe o progresso das suas metas financeiras.
         </p>
       </div>
@@ -37,7 +37,7 @@ export default async function MetasPage() {
       {/* ─── Lista de metas ───────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Suas metas
           </h2>
           <GoalDialog mode="create" investmentTypes={investmentTypeOptions} />
@@ -48,23 +48,17 @@ export default async function MetasPage() {
         ) : (
           <div className="space-y-3">
             {goalsData.map((goal) => {
-              const isComplete = goal.progress >= 100;
+              const isComplete = goal.progress >= 100
               return (
                 <div key={goal.id} className="rounded-xl border bg-card">
                   {/* Header */}
-                  <div className="px-4 pt-4 pb-3">
-                    <div className="flex items-start justify-between gap-2 flex-wrap">
-                      <div className="flex items-center gap-2 flex-wrap">
+                  <div className="px-4 pb-3 pt-4">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium">{goal.name}</span>
-                        {isComplete && (
-                          <Badge variant="positive">
-                            Meta atingida!
-                          </Badge>
-                        )}
+                        {isComplete && <Badge variant="positive">Meta atingida!</Badge>}
                         {goal.investmentTypeName && (
-                          <Badge variant="muted">
-                            {goal.investmentTypeName}
-                          </Badge>
+                          <Badge variant="muted">{goal.investmentTypeName}</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-1">
@@ -81,8 +75,8 @@ export default async function MetasPage() {
                         />
                         <DeleteButton
                           onDelete={async () => {
-                            'use server';
-                            await deleteGoal(goal.id);
+                            'use server'
+                            await deleteGoal(goal.id)
                           }}
                         />
                       </div>
@@ -100,27 +94,23 @@ export default async function MetasPage() {
                           {formatCurrency(goal.currentBalance)} de{' '}
                           {formatCurrency(goal.targetAmount)}
                         </span>
-                        <span className="font-medium">
-                          {goal.progress.toFixed(1)}%
-                        </span>
+                        <span className="font-medium">{goal.progress.toFixed(1)}%</span>
                       </div>
                     </div>
 
                     {/* Datas */}
-                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
                       {goal.targetDate && (
                         <span>
                           Prazo:{' '}
-                          {new Date(goal.targetDate + 'T12:00:00').toLocaleDateString(
-                            'pt-BR',
-                            { month: 'long', year: 'numeric' }
-                          )}
+                          {new Date(goal.targetDate + 'T12:00:00').toLocaleDateString('pt-BR', {
+                            month: 'long',
+                            year: 'numeric',
+                          })}
                         </span>
                       )}
                       {!isComplete && goal.projectedCompletionYearMonth && (
-                        <span>
-                          Projeção: {formatMonth(goal.projectedCompletionYearMonth)}
-                        </span>
+                        <span>Projeção: {formatMonth(goal.projectedCompletionYearMonth)}</span>
                       )}
                     </div>
                   </div>
@@ -129,9 +119,9 @@ export default async function MetasPage() {
                   {!goal.investmentTypeId && (
                     <>
                       <Separator />
-                      <div className="px-4 py-3 space-y-3">
+                      <div className="space-y-3 px-4 py-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Aportes
                           </span>
                           <ContributionDialog goalId={goal.id} />
@@ -141,8 +131,8 @@ export default async function MetasPage() {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="text-xs text-muted-foreground">
-                                <th className="text-left font-medium pb-1.5">Mês</th>
-                                <th className="text-right font-medium pb-1.5">Valor</th>
+                                <th className="pb-1.5 text-left font-medium">Mês</th>
+                                <th className="pb-1.5 text-right font-medium">Valor</th>
                                 <th className="pb-1.5" />
                               </tr>
                             </thead>
@@ -150,9 +140,7 @@ export default async function MetasPage() {
                               {goal.contributions.map((c) => (
                                 <tr key={c.id}>
                                   <td className="py-1.5 text-muted-foreground">
-                                    {formatMonth(
-                                      referenceMonthToYearMonth(c.referenceMonth)
-                                    )}
+                                    {formatMonth(referenceMonthToYearMonth(c.referenceMonth))}
                                   </td>
                                   <td className="py-1.5 text-right tabular-nums">
                                     {formatCurrency(c.amount)}
@@ -162,8 +150,8 @@ export default async function MetasPage() {
                                       <ContributionEditButton contribution={c} />
                                       <DeleteButton
                                         onDelete={async () => {
-                                          'use server';
-                                          await deleteGoalContribution(c.id);
+                                          'use server'
+                                          await deleteGoalContribution(c.id)
                                         }}
                                       />
                                     </div>
@@ -177,11 +165,11 @@ export default async function MetasPage() {
                     </>
                   )}
                 </div>
-              );
+              )
             })}
           </div>
         )}
       </div>
     </div>
-  );
+  )
 }

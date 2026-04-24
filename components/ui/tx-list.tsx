@@ -2,11 +2,13 @@ import { ReactNode, HTMLAttributes } from 'react'
 import { Check } from 'lucide-react'
 
 /* TxList — container */
-interface TxListProps extends HTMLAttributes<HTMLDivElement> { children: ReactNode }
+interface TxListProps extends HTMLAttributes<HTMLDivElement> {
+  children: ReactNode
+}
 export function TxList({ className = '', children, ...props }: TxListProps) {
   return (
     <div
-      className={`bg-bg-surface border border-border rounded-lg overflow-hidden shadow-sm ${className}`}
+      className={`overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm ${className}`}
       {...props}
     >
       {children}
@@ -15,13 +17,19 @@ export function TxList({ className = '', children, ...props }: TxListProps) {
 }
 
 /* TxGroupHeader — date row separating groups */
-interface TxGroupHeaderProps { date: ReactNode; total?: ReactNode; className?: string }
+interface TxGroupHeaderProps {
+  date: ReactNode
+  total?: ReactNode
+  className?: string
+}
 export function TxGroupHeader({ date, total, className = '' }: TxGroupHeaderProps) {
   return (
-    <div className={`py-3 px-5 bg-bg-subtle flex items-center justify-between border-b border-border ${className}`}>
+    <div
+      className={`flex items-center justify-between border-b border-border bg-bg-subtle px-5 py-3 ${className}`}
+    >
       <span className="text-caption font-semibold text-text-secondary">{date}</span>
       {total != null && (
-        <span className="text-caption font-semibold text-text-secondary tabular-nums">{total}</span>
+        <span className="text-caption font-semibold tabular-nums text-text-secondary">{total}</span>
       )}
     </div>
   )
@@ -47,38 +55,50 @@ const rowBase =
   'transition-colors duration-fast cursor-pointer hover:bg-bg-subtle'
 
 export function TxItem({
-  dot, dotBg, dotColor, name, meta, amount, amountTone,
-  installment, onClick, strike = false, className = '',
+  dot,
+  dotBg,
+  dotColor,
+  name,
+  meta,
+  amount,
+  amountTone,
+  installment,
+  onClick,
+  strike = false,
+  className = '',
 }: TxItemProps) {
   const amountCls =
-    (amountTone === 'pos' ? 'text-positive-text' : amountTone === 'neg' ? 'text-negative-text' : 'text-text-primary') +
-    (strike ? ' line-through !text-text-tertiary' : '')
+    (amountTone === 'pos'
+      ? 'text-positive-text'
+      : amountTone === 'neg'
+        ? 'text-negative-text'
+        : 'text-text-primary') + (strike ? ' line-through !text-text-tertiary' : '')
   const nameCls = strike ? 'line-through text-text-tertiary' : 'text-text-primary'
 
   return (
     <div className={`${rowBase} ${className}`} onClick={onClick}>
       {dot !== undefined && (
         <div
-          className="w-9 h-9 rounded-sm shrink-0 flex items-center justify-center text-body font-semibold"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-body font-semibold"
           style={{ background: dotBg, color: dotColor }}
         >
           {dot}
         </div>
       )}
-      <div className="flex-1 min-w-0">
-        <div className={`text-body font-medium truncate ${nameCls}`}>{name}</div>
+      <div className="min-w-0 flex-1">
+        <div className={`truncate text-body font-medium ${nameCls}`}>{name}</div>
         {meta && (
-          <div className="text-caption text-text-tertiary flex items-center gap-2 mt-0.5">
+          <div className="mt-0.5 flex items-center gap-2 text-caption text-text-tertiary">
             {meta}
             {installment && (
-              <span className="bg-bg-subtle text-text-tertiary text-label py-0.5 px-1 rounded border border-border">
+              <span className="rounded border border-border bg-bg-subtle px-1 py-0.5 text-label text-text-tertiary">
                 {installment}
               </span>
             )}
           </div>
         )}
       </div>
-      <span className={`text-body font-semibold tabular-nums shrink-0 ${amountCls}`}>{amount}</span>
+      <span className={`shrink-0 text-body font-semibold tabular-nums ${amountCls}`}>{amount}</span>
     </div>
   )
 }
@@ -90,11 +110,21 @@ interface FixedExpenseItemProps extends Omit<TxItemProps, 'dot' | 'dotBg' | 'dot
 }
 
 export function FixedExpenseItem({
-  done, onToggle, name, meta, amount, amountTone, installment, className = '',
+  done,
+  onToggle,
+  name,
+  meta,
+  amount,
+  amountTone,
+  installment,
+  className = '',
 }: FixedExpenseItemProps) {
   const amountCls =
-    (amountTone === 'pos' ? 'text-positive-text' : amountTone === 'neg' ? 'text-negative-text' : 'text-text-primary') +
-    (done ? ' line-through !text-text-tertiary' : '')
+    (amountTone === 'pos'
+      ? 'text-positive-text'
+      : amountTone === 'neg'
+        ? 'text-negative-text'
+        : 'text-text-primary') + (done ? ' line-through !text-text-tertiary' : '')
 
   return (
     <div className={`${rowBase} ${className}`}>
@@ -103,40 +133,48 @@ export function FixedExpenseItem({
         onClick={() => onToggle?.(!done)}
         aria-pressed={done}
         className={
-          'w-5 h-5 rounded-md shrink-0 flex items-center justify-center cursor-pointer ' +
-          'transition-[background,border-color] duration-fast border-2 ' +
-          (done ? 'bg-positive border-positive' : 'border-border-strong bg-transparent')
+          'flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-md ' +
+          'border-2 transition-[background,border-color] duration-fast ' +
+          (done ? 'border-positive bg-positive' : 'border-border-strong bg-transparent')
         }
       >
-        {done && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+        {done && <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />}
       </button>
-      <div className="flex-1 min-w-0">
-        <div className={`text-body font-medium truncate ${done ? 'line-through text-text-tertiary' : 'text-text-primary'}`}>
+      <div className="min-w-0 flex-1">
+        <div
+          className={`truncate text-body font-medium ${done ? 'text-text-tertiary line-through' : 'text-text-primary'}`}
+        >
           {name}
         </div>
         {meta && (
-          <div className="text-caption text-text-tertiary flex items-center gap-2 mt-0.5">
+          <div className="mt-0.5 flex items-center gap-2 text-caption text-text-tertiary">
             {meta}
             {installment && (
-              <span className="bg-bg-subtle text-text-tertiary text-label py-0.5 px-1 rounded border border-border">
+              <span className="rounded border border-border bg-bg-subtle px-1 py-0.5 text-label text-text-tertiary">
                 {installment}
               </span>
             )}
           </div>
         )}
       </div>
-      <span className={`text-body font-semibold tabular-nums shrink-0 ${amountCls}`}>{amount}</span>
+      <span className={`shrink-0 text-body font-semibold tabular-nums ${amountCls}`}>{amount}</span>
     </div>
   )
 }
 
 /* ListFooter — totals row at the bottom */
-interface ListFooterProps { label: ReactNode; value: ReactNode; className?: string }
+interface ListFooterProps {
+  label: ReactNode
+  value: ReactNode
+  className?: string
+}
 export function ListFooter({ label, value, className = '' }: ListFooterProps) {
   return (
-    <div className={`py-3 px-5 bg-bg-subtle border-t border-border flex justify-between items-center ${className}`}>
+    <div
+      className={`flex items-center justify-between border-t border-border bg-bg-subtle px-5 py-3 ${className}`}
+    >
       <span className="text-caption font-semibold text-text-secondary">{label}</span>
-      <span className="text-caption font-semibold text-text-primary tabular-nums">{value}</span>
+      <span className="text-caption font-semibold tabular-nums text-text-primary">{value}</span>
     </div>
   )
 }

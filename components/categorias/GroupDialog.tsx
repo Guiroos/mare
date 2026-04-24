@@ -1,47 +1,42 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import {
-  createCategoryGroup,
-  updateCategoryGroup,
-} from '@/lib/actions/categories';
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { createCategoryGroup, updateCategoryGroup } from '@/lib/actions/categories'
 
-type Props =
-  | { mode: 'create' }
-  | { mode: 'edit'; group: { id: string; name: string } };
+type Props = { mode: 'create' } | { mode: 'edit'; group: { id: string; name: string } }
 
 export function GroupDialog(props: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const name = (new FormData(e.currentTarget).get('name') as string).trim();
+    e.preventDefault()
+    const name = (new FormData(e.currentTarget).get('name') as string).trim()
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
-          await createCategoryGroup(name);
+          await createCategoryGroup(name)
         } else {
-          await updateCategoryGroup(props.group.id, name);
+          await updateCategoryGroup(props.group.id, name)
         }
-        setOpen(false);
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -63,9 +58,7 @@ export function GroupDialog(props: Props) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {props.mode === 'create' ? 'Novo grupo' : 'Editar grupo'}
-          </DialogTitle>
+          <DialogTitle>{props.mode === 'create' ? 'Novo grupo' : 'Editar grupo'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <Field label="Nome do grupo" required>
@@ -83,5 +76,5 @@ export function GroupDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

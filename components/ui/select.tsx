@@ -5,9 +5,9 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const Select        = SelectPrimitive.Root
-const SelectGroup   = SelectPrimitive.Group
-const SelectValue   = SelectPrimitive.Value
+const Select = SelectPrimitive.Root
+const SelectGroup = SelectPrimitive.Group
+const SelectValue = SelectPrimitive.Value
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -17,19 +17,19 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       'flex h-12 w-full items-center justify-between',
-      'bg-bg-surface border border-border rounded-md px-4',
+      'rounded-md border border-border bg-bg-surface px-4',
       'text-body text-text-primary placeholder:text-text-tertiary',
       'outline-none transition-[border-color,box-shadow] duration-fast',
       'focus:border-accent focus:shadow-[0_0_0_3px_var(--ring-accent)]',
-      'disabled:opacity-50 disabled:cursor-not-allowed',
+      'disabled:cursor-not-allowed disabled:opacity-50',
       '[&>span]:line-clamp-1',
-      className,
+      className
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 text-text-tertiary shrink-0" />
+      <ChevronDown className="h-4 w-4 shrink-0 text-text-tertiary" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -72,13 +72,13 @@ const SelectContent = React.forwardRef<
       ref={ref}
       className={cn(
         'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
-        'bg-bg-surface border border-border rounded-md shadow-md text-text-primary',
+        'rounded-md border border-border bg-bg-surface text-text-primary shadow-md',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         'data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2',
         position === 'popper' && 'data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1',
-        className,
+        className
       )}
       position={position}
       {...props}
@@ -87,7 +87,8 @@ const SelectContent = React.forwardRef<
       <SelectPrimitive.Viewport
         className={cn(
           'p-1',
-          position === 'popper' && 'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]',
+          position === 'popper' &&
+            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
         )}
       >
         {children}
@@ -121,7 +122,7 @@ const SelectItem = React.forwardRef<
       'rounded-sm py-2 pl-3 pr-8 text-body outline-none',
       'focus:bg-bg-subtle focus:text-text-primary',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-      className,
+      className
     )}
     {...props}
   >

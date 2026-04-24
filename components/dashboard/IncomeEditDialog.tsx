@@ -1,46 +1,30 @@
-'use client';
+'use client'
 
-import { useState, useTransition, type FormEvent } from 'react';
-import { Pencil } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { toast } from 'sonner';
-import { updateIncome } from '@/lib/actions/incomes';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useState, useTransition, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { toast } from 'sonner'
+import { updateIncome } from '@/lib/actions/incomes'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Income = {
-  id: string;
-  source: string;
-  amount: string;
-};
+  id: string
+  source: string
+  amount: string
+}
 
-function EditForm({
-  income,
-  onSuccess,
-}: {
-  income: Income;
-  onSuccess: () => void;
-}) {
-  const [isPending, startTransition] = useTransition();
+function EditForm({ income, onSuccess }: { income: Income; onSuccess: () => void }) {
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -48,13 +32,13 @@ function EditForm({
           id: income.id,
           source: str('source'),
           amount: str('amount'),
-        });
-        onSuccess();
+        })
+        onSuccess()
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,14 +54,14 @@ function EditForm({
         {isPending ? 'Salvando...' : 'Salvar alterações'}
       </Button>
     </form>
-  );
+  )
 }
 
 export function IncomeEditButton({ income }: { income: Income }) {
-  const [open, setOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [open, setOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  const content = <EditForm income={income} onSuccess={() => setOpen(false)} />;
+  const content = <EditForm income={income} onSuccess={() => setOpen(false)} />
 
   if (isDesktop) {
     return (
@@ -100,7 +84,7 @@ export function IncomeEditButton({ income }: { income: Income }) {
           </DialogContent>
         </Dialog>
       </>
-    );
+    )
   }
 
   return (
@@ -123,5 +107,5 @@ export function IncomeEditButton({ income }: { income: Income }) {
         </DrawerContent>
       </Drawer>
     </>
-  );
+  )
 }

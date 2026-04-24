@@ -13,7 +13,7 @@
     "dev": "next dev",
     "build": "drizzle-kit migrate && next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",

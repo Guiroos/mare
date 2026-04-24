@@ -1,36 +1,34 @@
-'use client';
+'use client'
 
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { formatCurrency } from '@/lib/format';
-import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog';
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { formatCurrency } from '@/lib/format'
+import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog'
 
 type Group = {
-  id: string;
-  name: string;
-  categoryId: string;
-  accountId: string;
-  accountName: string;
-  categoryName: string;
-  totalAmount: number;
-  totalInstallments: number;
-  paidInstallments: number;
-  installmentAmount: number;
-  remainingAmount: number;
-};
+  id: string
+  name: string
+  categoryId: string
+  accountId: string
+  accountName: string
+  categoryName: string
+  totalAmount: number
+  totalInstallments: number
+  paidInstallments: number
+  installmentAmount: number
+  remainingAmount: number
+}
 
 export function InstallmentGroupCard({ group }: { group: Group }) {
   return (
-    <div className="rounded-xl border bg-card px-4 py-4 space-y-3">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="space-y-0.5 flex-1 min-w-0">
+    <div className="space-y-3 rounded-xl border bg-card px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <p className="font-semibold leading-tight">{group.name}</p>
           <p className="text-xs text-muted-foreground">{group.accountName}</p>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Badge variant="muted">
-            {group.categoryName}
-          </Badge>
+        <div className="flex shrink-0 items-center gap-1">
+          <Badge variant="muted">{group.categoryName}</Badge>
           <InstallmentGroupEditButton
             group={{
               id: group.id,
@@ -43,11 +41,7 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
       </div>
 
       <div className="space-y-1">
-        <Progress
-          value={group.paidInstallments}
-          max={group.totalInstallments}
-          className="h-1.5"
-        />
+        <Progress value={group.paidInstallments} max={group.totalInstallments} className="h-1.5" />
         <p className="text-xs text-muted-foreground">
           Parcela {group.paidInstallments} de {group.totalInstallments}
         </p>
@@ -74,5 +68,5 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
         </div>
       </div>
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import withPWA from '@ducanh2912/next-pwa';
+import withPWA from '@ducanh2912/next-pwa'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -7,7 +7,7 @@ const nextConfig = {
       allowedOrigins: ['localhost:3000'],
     },
   },
-};
+}
 
 export default withPWA({
   dest: 'public',
@@ -15,4 +15,4 @@ export default withPWA({
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: true,
   disable: process.env.NODE_ENV === 'development',
-})(nextConfig);
+})(nextConfig)

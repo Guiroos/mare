@@ -1,9 +1,9 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { useState, useTransition } from 'react'
+import { Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -11,19 +11,14 @@ import {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { useMediaQuery } from '@/hooks/use-media-query';
+} from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface DeleteButtonProps {
-  onDelete: () => Promise<void>;
-  title?: string;
-  description?: string;
+  onDelete: () => Promise<void>
+  title?: string
+  description?: string
 }
 
 export function DeleteButton({
@@ -31,20 +26,20 @@ export function DeleteButton({
   title = 'Excluir item',
   description = 'Essa ação não pode ser desfeita.',
 }: DeleteButtonProps) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   function handleDelete() {
     startTransition(async () => {
       try {
-        await onDelete();
-        setOpen(false);
+        await onDelete()
+        setOpen(false)
       } catch {
-        toast.error('Não é possível excluir — item em uso.');
-        setOpen(false);
+        toast.error('Não é possível excluir — item em uso.')
+        setOpen(false)
       }
-    });
+    })
   }
 
   const trigger = (
@@ -56,7 +51,7 @@ export function DeleteButton({
     >
       <Trash2 className="h-3.5 w-3.5" />
     </Button>
-  );
+  )
 
   if (isDesktop) {
     return (
@@ -79,7 +74,7 @@ export function DeleteButton({
           </DialogContent>
         </Dialog>
       </>
-    );
+    )
   }
 
   return (
@@ -102,5 +97,5 @@ export function DeleteButton({
         </DrawerContent>
       </Drawer>
     </>
-  );
+  )
 }

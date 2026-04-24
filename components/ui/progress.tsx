@@ -1,17 +1,17 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from 'react'
+import { cn } from '@/lib/utils'
 
 interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
-  value?: number;
-  max?: number;
-  indicatorClassName?: string;
+  value?: number
+  max?: number
+  indicatorClassName?: string
 }
 
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
   ({ className, value = 0, max = 100, indicatorClassName, ...props }, ref) => {
-    const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+    const percentage = Math.min(Math.max((value / max) * 100, 0), 100)
 
     return (
       <div
@@ -28,9 +28,9 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
           style={{ width: `${percentage}%` }}
         />
       </div>
-    );
+    )
   }
-);
-Progress.displayName = 'Progress';
+)
+Progress.displayName = 'Progress'
 
-export { Progress };
+export { Progress }

@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import {
   BarChart,
@@ -9,36 +9,36 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-} from 'recharts';
+} from 'recharts'
 
 type Props = {
-  data: { month: string; totalIncomes: number; totalExpenses: number; totalInvested: number }[];
-};
+  data: { month: string; totalIncomes: number; totalExpenses: number; totalInvested: number }[]
+}
 
 function formatMonthLabel(yyyyMM: string) {
-  const [year, month] = yyyyMM.split('-');
+  const [year, month] = yyyyMM.split('-')
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString('pt-BR', {
     month: 'short',
     year: '2-digit',
-  });
+  })
 }
 
 function formatCurrencyShort(value: number) {
-  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`;
-  return `R$${value.toFixed(0)}`;
+  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
+  return `R$${value.toFixed(0)}`
 }
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
 export function MonthlyEvolutionChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[220px] text-sm text-muted-foreground">
+      <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
         Nenhum dado ainda.
       </div>
-    );
+    )
   }
 
   const chartData = data.map((d) => ({
@@ -46,7 +46,7 @@ export function MonthlyEvolutionChart({ data }: Props) {
     Entradas: d.totalIncomes,
     Gastos: d.totalExpenses,
     Investimentos: d.totalInvested,
-  }));
+  }))
 
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -70,5 +70,5 @@ export function MonthlyEvolutionChart({ data }: Props) {
         <Bar dataKey="Investimentos" fill="#3b82f6" radius={[2, 2, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
-  );
+  )
 }

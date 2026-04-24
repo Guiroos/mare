@@ -1,30 +1,27 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Pencil, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { Field } from '@/components/ui/field';
+import { useState, useTransition } from 'react'
+import { Pencil, RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { Field } from '@/components/ui/field'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import {
-  upsertBudgetOverride,
-  deleteBudgetOverride,
-} from '@/lib/actions/categories';
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { upsertBudgetOverride, deleteBudgetOverride } from '@/lib/actions/categories'
 
 type Props = {
-  categoryId: string;
-  categoryName: string;
-  referenceMonth: string;
-  defaultBudget: string | null;
-  override: { id: string; amount: string } | null;
-};
+  categoryId: string
+  categoryName: string
+  referenceMonth: string
+  defaultBudget: string | null
+  override: { id: string; amount: string } | null
+}
 
 export function BudgetOverrideDialog({
   categoryId,
@@ -33,18 +30,18 @@ export function BudgetOverrideDialog({
   defaultBudget,
   override,
 }: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const defaultBudgetLabel = defaultBudget
     ? Number(defaultBudget).toLocaleString('pt-BR', {
         style: 'currency',
         currency: 'BRL',
       })
-    : null;
+    : null
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const amount = new FormData(e.currentTarget).get('amount') as string;
+    e.preventDefault()
+    const amount = new FormData(e.currentTarget).get('amount') as string
     startTransition(async () => {
       try {
         await upsertBudgetOverride({
@@ -52,25 +49,25 @@ export function BudgetOverrideDialog({
           referenceMonth,
           amount,
           existingId: override?.id,
-        });
-        setOpen(false);
+        })
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   const handleReset = () => {
-    if (!override) return;
+    if (!override) return
     startTransition(async () => {
       try {
-        await deleteBudgetOverride(override.id);
-        setOpen(false);
+        await deleteBudgetOverride(override.id)
+        setOpen(false)
       } catch {
-        toast.error('Erro ao remover.');
+        toast.error('Erro ao remover.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -120,5 +117,5 @@ export function BudgetOverrideDialog({
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

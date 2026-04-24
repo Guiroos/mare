@@ -1,35 +1,30 @@
-'use client';
+'use client'
 
-import { useState, useTransition, type FormEvent } from 'react';
-import { Pencil } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
-import { toast } from 'sonner';
-import { updateGoalContribution } from '@/lib/actions/goals';
-import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format';
+import { useState, useTransition, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { toast } from 'sonner'
+import { updateGoalContribution } from '@/lib/actions/goals'
+import { referenceMonthToYearMonth, yearMonthToReferenceMonth } from '@/lib/format'
 
 type Contribution = {
-  id: string;
-  amount: number | string;
-  referenceMonth: string;
-};
+  id: string
+  amount: number | string
+  referenceMonth: string
+}
 
 export function ContributionEditButton({ contribution }: { contribution: Contribution }) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -37,13 +32,13 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
           id: contribution.id,
           amount: str('amount'),
           referenceMonth: yearMonthToReferenceMonth(str('referenceMonth')),
-        });
-        setOpen(false);
+        })
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <>
@@ -81,5 +76,5 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }

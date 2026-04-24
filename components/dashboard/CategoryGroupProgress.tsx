@@ -1,33 +1,33 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { formatCurrency } from '@/lib/format';
-import { cn } from '@/lib/utils';
-import { TxList } from '@/components/ui/tx-list';
-import { EmptyState } from '@/components/ui/empty-state';
-import { ChevronDown } from 'lucide-react';
+import { useState } from 'react'
+import { formatCurrency } from '@/lib/format'
+import { cn } from '@/lib/utils'
+import { TxList } from '@/components/ui/tx-list'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ChevronDown } from 'lucide-react'
 
 type CategoryDetail = {
-  id: string;
-  name: string;
-  budget: number;
-  spent: number;
-  color?: string;
-  bgColor?: string;
-};
+  id: string
+  name: string
+  budget: number
+  spent: number
+  color?: string
+  bgColor?: string
+}
 
 type Group = {
-  id: string;
-  name: string;
-  totalBudget: number;
-  totalSpent: number;
-  categories: CategoryDetail[];
-};
+  id: string
+  name: string
+  totalBudget: number
+  totalSpent: number
+  categories: CategoryDetail[]
+}
 
 function ProgressBar({ value, max, over }: { value: number; max: number; over: boolean }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
-    <div className="h-1.5 rounded-full overflow-hidden bg-bg-muted">
+    <div className="h-1.5 overflow-hidden rounded-full bg-bg-muted">
       <div
         className={cn(
           'h-full rounded-full transition-all duration-500',
@@ -36,52 +36,63 @@ function ProgressBar({ value, max, over }: { value: number; max: number; over: b
         style={{ width: `${pct}%` }}
       />
     </div>
-  );
+  )
 }
 
 export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   if (groups.length === 0) {
-    return <EmptyState title="Nenhum grupo de categoria criado ainda." />;
+    return <EmptyState title="Nenhum grupo de categoria criado ainda." />
   }
 
   return (
     <TxList>
       {groups.map((group) => {
-        const over = group.totalBudget > 0 && group.totalSpent > group.totalBudget;
-        const isOpen = expanded.has(group.id);
+        const over = group.totalBudget > 0 && group.totalSpent > group.totalBudget
+        const isOpen = expanded.has(group.id)
 
         const toggle = () => {
           setExpanded((prev) => {
-            const next = new Set(prev);
-            isOpen ? next.delete(group.id) : next.add(group.id);
-            return next;
-          });
-        };
+            const next = new Set(prev)
+            if (isOpen) next.delete(group.id)
+            else next.add(group.id)
+            return next
+          })
+        }
 
         return (
           <div key={group.id} className="border-b border-border last:border-0">
             <button
               onClick={toggle}
-              className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-bg-subtle transition-colors text-left"
+              className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-bg-subtle"
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-center mb-2">
+              <div className="min-w-0 flex-1">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-small font-semibold text-text-primary">{group.name}</span>
-                  <span className={cn('text-caption font-semibold tabular-nums', over ? 'text-negative-text' : 'text-text-secondary')}>
+                  <span
+                    className={cn(
+                      'text-caption font-semibold tabular-nums',
+                      over ? 'text-negative-text' : 'text-text-secondary'
+                    )}
+                  >
                     {formatCurrency(group.totalSpent)}
                     {group.totalBudget > 0 && (
                       <span className="font-normal text-text-tertiary">
-                        {' '}/ {formatCurrency(group.totalBudget)}
+                        {' '}
+                        / {formatCurrency(group.totalBudget)}
                       </span>
                     )}
                   </span>
                 </div>
-                <ProgressBar value={group.totalSpent} max={group.totalBudget || group.totalSpent || 1} over={over} />
+                <ProgressBar
+                  value={group.totalSpent}
+                  max={group.totalBudget || group.totalSpent || 1}
+                  over={over}
+                />
               </div>
               <ChevronDown
-                className="w-3.5 h-3.5 text-text-tertiary flex-shrink-0 transition-transform duration-base"
+                className="h-3.5 w-3.5 flex-shrink-0 text-text-tertiary transition-transform duration-base"
                 style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
               />
             </button>
@@ -89,19 +100,24 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
             {isOpen && (
               <div className="border-t border-border">
                 {group.categories.map((cat) => {
-                  const catOver = cat.budget > 0 && cat.spent > cat.budget;
-                  const catPct = cat.budget > 0 ? (cat.spent / cat.budget) * 100 : 0;
+                  const catOver = cat.budget > 0 && cat.spent > cat.budget
+                  const catPct = cat.budget > 0 ? (cat.spent / cat.budget) * 100 : 0
 
                   return (
                     <div
                       key={cat.id}
-                      className="flex items-center gap-3 px-4 py-2.5 border-b border-border last:border-0 bg-bg-subtle"
+                      className="flex items-center gap-3 border-b border-border bg-bg-subtle px-4 py-2.5 last:border-0"
                     >
                       {cat.color && (
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cat.color }} />
+                        <span
+                          className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                          style={{ background: cat.color }}
+                        />
                       )}
-                      <span className="flex-1 text-caption text-text-secondary truncate">{cat.name}</span>
-                      <div className="w-20 h-1 rounded-full overflow-hidden flex-shrink-0 bg-bg-muted">
+                      <span className="flex-1 truncate text-caption text-text-secondary">
+                        {cat.name}
+                      </span>
+                      <div className="h-1 w-20 flex-shrink-0 overflow-hidden rounded-full bg-bg-muted">
                         <div
                           className={cn(
                             'h-full rounded-full',
@@ -110,24 +126,30 @@ export function CategoryGroupProgress({ groups }: { groups: Group[] }) {
                           style={{ width: `${Math.min(catPct, 100)}%` }}
                         />
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className={cn('text-caption font-semibold tabular-nums', catOver ? 'text-negative-text' : 'text-text-secondary')}>
+                      <div className="flex-shrink-0 text-right">
+                        <span
+                          className={cn(
+                            'text-caption font-semibold tabular-nums',
+                            catOver ? 'text-negative-text' : 'text-text-secondary'
+                          )}
+                        >
                           {formatCurrency(cat.spent)}
                         </span>
                         {cat.budget > 0 && (
-                          <span className="text-caption text-text-tertiary tabular-nums">
-                            {' '}/ {formatCurrency(cat.budget)}
+                          <span className="text-caption tabular-nums text-text-tertiary">
+                            {' '}
+                            / {formatCurrency(cat.budget)}
                           </span>
                         )}
                       </div>
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
           </div>
-        );
+        )
       })}
     </TxList>
-  );
+  )
 }

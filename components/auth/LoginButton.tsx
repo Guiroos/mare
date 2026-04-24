@@ -1,12 +1,12 @@
-'use client';
+'use client'
 
-import { signIn } from 'next-auth/react';
+import { signIn } from 'next-auth/react'
 
 export function LoginButton() {
   return (
     <button
       onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-      className="w-full h-[54px] rounded-[14px] font-medium text-[15px] flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:-translate-y-[1px]"
+      className="flex h-[54px] w-full items-center justify-center gap-3 rounded-[14px] text-[15px] font-medium transition-all hover:-translate-y-[1px] active:scale-[0.98]"
       style={{
         background: 'var(--bg-surface)',
         color: 'var(--text-primary)',
@@ -14,15 +14,15 @@ export function LoginButton() {
         boxShadow: 'var(--shadow-sm)',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-strong)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+        e.currentTarget.style.borderColor = 'var(--border-strong)'
+        e.currentTarget.style.boxShadow = 'var(--shadow-md)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border)';
-        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+        e.currentTarget.style.borderColor = 'var(--border)'
+        e.currentTarget.style.boxShadow = 'var(--shadow-sm)'
       }}
     >
-      <svg className="w-[22px] h-[22px]" viewBox="0 0 24 24" aria-hidden>
+      <svg className="h-[22px] w-[22px]" viewBox="0 0 24 24" aria-hidden>
         <path
           fill="#4285F4"
           d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -42,5 +42,5 @@ export function LoginButton() {
       </svg>
       Entrar com Google
     </button>
-  );
+  )
 }

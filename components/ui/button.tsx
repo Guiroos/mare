@@ -3,16 +3,16 @@ import { Slot } from '@radix-ui/react-slot'
 import { Loader2 } from 'lucide-react'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'positive'
-export type ButtonSize    = 'lg' | 'md' | 'sm' | 'xs' | 'icon'
+export type ButtonSize = 'lg' | 'md' | 'sm' | 'xs' | 'icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?:   ButtonVariant
-  size?:      ButtonSize
-  asChild?:   boolean
-  loading?:   boolean
-  leftIcon?:  ReactNode
+  variant?: ButtonVariant
+  size?: ButtonSize
+  asChild?: boolean
+  loading?: boolean
+  leftIcon?: ReactNode
   rightIcon?: ReactNode
-  children?:  ReactNode
+  children?: ReactNode
 }
 
 const base =
@@ -22,19 +22,19 @@ const base =
   'disabled:opacity-45 disabled:pointer-events-none'
 
 const variants: Record<ButtonVariant, string> = {
-  primary:   'bg-accent text-white hover:bg-accent-hover hover:shadow-sm',
+  primary: 'bg-accent text-white hover:bg-accent-hover hover:shadow-sm',
   secondary: 'bg-bg-subtle text-text-primary hover:bg-bg-muted',
-  outline:   'bg-transparent text-accent border-2 border-accent hover:bg-accent-subtle',
-  ghost:     'bg-transparent text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
-  danger:    'bg-negative-subtle text-negative-text hover:bg-negative hover:text-white',
-  positive:  'bg-positive text-white hover:bg-positive-hover',
+  outline: 'bg-transparent text-accent border-2 border-accent hover:bg-accent-subtle',
+  ghost: 'bg-transparent text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
+  danger: 'bg-negative-subtle text-negative-text hover:bg-negative hover:text-white',
+  positive: 'bg-positive text-white hover:bg-positive-hover',
 }
 
 const sizes: Record<ButtonSize, string> = {
-  lg:   'h-14 px-6 rounded-md text-body-lg',
-  md:   'h-11 px-5 rounded-md text-body',
-  sm:   'h-8 px-4 rounded-sm text-small',
-  xs:   'h-7 px-3 rounded-sm text-caption',
+  lg: 'h-14 px-6 rounded-md text-body-lg',
+  md: 'h-11 px-5 rounded-md text-body',
+  sm: 'h-8 px-4 rounded-sm text-small',
+  xs: 'h-7 px-3 rounded-sm text-caption',
   icon: 'h-9 w-9 p-0 rounded-md',
 }
 
@@ -52,7 +52,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref,
+    ref
   ) => {
     const Comp = asChild ? Slot : 'button'
     const cls = [base, variants[variant], sizes[size], className].filter(Boolean).join(' ')
@@ -60,7 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <Comp ref={ref} className={cls} disabled={disabled || loading} {...props}>
         {loading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <>
             {leftIcon}
@@ -70,6 +70,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )}
       </Comp>
     )
-  },
+  }
 )
 Button.displayName = 'Button'

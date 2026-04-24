@@ -7,73 +7,73 @@
     /* ── Maré Design Tokens ── */
 
     /* Background */
-    --bg-base:        oklch(97.2% 0.008 222);
-    --bg-surface:     oklch(99.5% 0.004 222);
-    --bg-subtle:      oklch(94.5% 0.012 222);
-    --bg-muted:       oklch(91.5% 0.014 222);
+    --bg-base: oklch(97.2% 0.008 222);
+    --bg-surface: oklch(99.5% 0.004 222);
+    --bg-subtle: oklch(94.5% 0.012 222);
+    --bg-muted: oklch(91.5% 0.014 222);
 
     /* Text */
-    --text-primary:   oklch(16% 0.022 230);
+    --text-primary: oklch(16% 0.022 230);
     --text-secondary: oklch(48% 0.018 228);
-    --text-tertiary:  oklch(66% 0.014 226);
-    --text-inverse:   oklch(98% 0.004 222);
+    --text-tertiary: oklch(66% 0.014 226);
+    --text-inverse: oklch(98% 0.004 222);
 
     /* Accent — Ocean Blue */
-    --accent:         oklch(50% 0.14 230);
-    --accent-hover:   oklch(44% 0.14 230);
-    --accent-subtle:  oklch(94% 0.04 225);
-    --accent-text:    oklch(38% 0.12 230);
+    --accent: oklch(50% 0.14 230);
+    --accent-hover: oklch(44% 0.14 230);
+    --accent-subtle: oklch(94% 0.04 225);
+    --accent-text: oklch(38% 0.12 230);
 
     /* Positive — Income / Maré Alta */
-    --positive:        oklch(54% 0.13 172);
-    --positive-hover:  oklch(48% 0.13 172);
+    --positive: oklch(54% 0.13 172);
+    --positive-hover: oklch(48% 0.13 172);
     --positive-subtle: oklch(94% 0.04 170);
-    --positive-text:   oklch(36% 0.11 170);
+    --positive-text: oklch(36% 0.11 170);
 
     /* Negative — Expense / Maré Baixa */
-    --negative:        oklch(54% 0.13 20);
-    --negative-hover:  oklch(48% 0.13 20);
+    --negative: oklch(54% 0.13 20);
+    --negative-hover: oklch(48% 0.13 20);
     --negative-subtle: oklch(95% 0.04 20);
-    --negative-text:   oklch(38% 0.12 22);
+    --negative-text: oklch(38% 0.12 22);
 
     /* Warning */
-    --warning:        oklch(72% 0.14 75);
+    --warning: oklch(72% 0.14 75);
     --warning-subtle: oklch(96% 0.04 75);
-    --warning-text:   oklch(42% 0.12 70);
+    --warning-text: oklch(42% 0.12 70);
 
     /* Border */
-    --border:         oklch(90% 0.012 225);
-    --border-strong:  oklch(82% 0.018 225);
+    --border: oklch(90% 0.012 225);
+    --border-strong: oklch(82% 0.018 225);
 
     /* Focus rings */
-    --ring-accent:    oklch(50% 0.14 230 / 0.12);
-    --ring-negative:  oklch(54% 0.13 20 / 0.12);
+    --ring-accent: oklch(50% 0.14 230 / 0.12);
+    --ring-negative: oklch(54% 0.13 20 / 0.12);
 
     /* Shadows */
     --shadow-sm: 0 1px 3px oklch(16% 0.022 230 / 0.06), 0 1px 2px oklch(16% 0.022 230 / 0.04);
     --shadow-md: 0 4px 12px oklch(16% 0.022 230 / 0.08), 0 2px 4px oklch(16% 0.022 230 / 0.04);
-    --shadow-lg: 0 12px 32px oklch(16% 0.022 230 / 0.10), 0 4px 8px oklch(16% 0.022 230 / 0.05);
+    --shadow-lg: 0 12px 32px oklch(16% 0.022 230 / 0.1), 0 4px 8px oklch(16% 0.022 230 / 0.05);
 
     /* ── shadcn/ui compatibility (mapped to Maré tokens) ── */
-    --background:           var(--bg-base);
-    --foreground:           var(--text-primary);
-    --card:                 var(--bg-surface);
-    --card-foreground:      var(--text-primary);
-    --popover:              var(--bg-surface);
-    --popover-foreground:   var(--text-primary);
-    --primary:              var(--accent);
-    --primary-foreground:   var(--text-inverse);
-    --secondary:            var(--bg-subtle);
+    --background: var(--bg-base);
+    --foreground: var(--text-primary);
+    --card: var(--bg-surface);
+    --card-foreground: var(--text-primary);
+    --popover: var(--bg-surface);
+    --popover-foreground: var(--text-primary);
+    --primary: var(--accent);
+    --primary-foreground: var(--text-inverse);
+    --secondary: var(--bg-subtle);
     --secondary-foreground: var(--text-primary);
-    --muted:                var(--bg-subtle);
-    --muted-foreground:     var(--text-secondary);
-    --accent-ui:            var(--accent-subtle);
+    --muted: var(--bg-subtle);
+    --muted-foreground: var(--text-secondary);
+    --accent-ui: var(--accent-subtle);
     --accent-ui-foreground: var(--text-primary);
-    --destructive:          var(--negative);
+    --destructive: var(--negative);
     --destructive-foreground: var(--text-inverse);
-    --input:                var(--border);
-    --ring:                 var(--accent);
-    --radius:               10px;
+    --input: var(--border);
+    --ring: var(--accent);
+    --radius: 10px;
   }
 
   * {
@@ -86,4 +86,3 @@
     -webkit-font-smoothing: antialiased;
   }
 }
-

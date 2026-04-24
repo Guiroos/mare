@@ -1,52 +1,46 @@
-import { redirect } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth'
 import {
   getInvestmentBalances,
   getInvestmentHistory,
   getInvestmentWithdrawals,
   getPatrimonyTimeline,
-} from '@/lib/queries/investments';
-import {
-  deleteInvestmentType,
-  deleteInvestment,
-  deleteWithdrawal,
-} from '@/lib/actions/investments';
-import { formatCurrency, referenceMonthToYearMonth, formatMonth } from '@/lib/format';
-import { Badge } from '@/components/ui/badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { Separator } from '@/components/ui/separator';
-import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog';
-import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog';
-import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog';
-import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton';
-import { DeleteButton } from '@/components/ui/delete-button';
-import { PatrimonyChart } from '@/components/charts/PatrimonyChart';
+} from '@/lib/queries/investments'
+import { deleteInvestmentType, deleteInvestment, deleteWithdrawal } from '@/lib/actions/investments'
+import { formatCurrency, referenceMonthToYearMonth, formatMonth } from '@/lib/format'
+import { Badge } from '@/components/ui/badge'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Separator } from '@/components/ui/separator'
+import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog'
+import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
+import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
+import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton'
+import { DeleteButton } from '@/components/ui/delete-button'
+import { PatrimonyChart } from '@/components/charts/PatrimonyChart'
 
 export default async function InvestimentosPage() {
-  const session = await auth();
-  if (!session) redirect('/login');
+  const session = await auth()
+  if (!session) redirect('/login')
 
-  const userId = (session.user as any).id as string;
+  const userId = (session.user as { id: string }).id
 
   const [balances, withdrawals, timeline] = await Promise.all([
     getInvestmentBalances(userId),
     getInvestmentWithdrawals(userId),
     getPatrimonyTimeline(userId),
-  ]);
+  ])
 
-  const histories = await Promise.all(
-    balances.map((b) => getInvestmentHistory(userId, b.id))
-  );
+  const histories = await Promise.all(balances.map((b) => getInvestmentHistory(userId, b.id)))
 
-  const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }));
+  const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
 
-  const totalPatrimony = balances.reduce((sum, b) => sum + b.currentBalance, 0);
+  const totalPatrimony = balances.reduce((sum, b) => sum + b.currentBalance, 0)
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Investimentos</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-muted-foreground">
           Acompanhe seus aportes, rendimentos e patrimônio acumulado.
         </p>
       </div>
@@ -55,14 +49,14 @@ export default async function InvestimentosPage() {
       {balances.length > 0 && (
         <div className="rounded-xl border bg-card px-5 py-4">
           <p className="text-sm text-muted-foreground">Patrimônio total</p>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(totalPatrimony)}</p>
+          <p className="mt-1 text-2xl font-bold">{formatCurrency(totalPatrimony)}</p>
         </div>
       )}
 
       {/* ─── Por tipo ─────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Patrimônio por tipo
           </h2>
           <InvestmentTypeDialog mode="create" />
@@ -73,35 +67,36 @@ export default async function InvestimentosPage() {
         ) : (
           <div className="space-y-3">
             {balances.map((balance, idx) => {
-              const history = histories[idx];
+              const history = histories[idx]
               return (
                 <div key={balance.id} className="rounded-xl border bg-card">
                   {/* Header do tipo */}
                   <div className="flex items-center gap-2 px-4 py-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between flex-wrap gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{balance.name}</span>
                           {balance.pendingYield && (
-                            <Badge variant="warning">
-                              Rendimento pendente
-                            </Badge>
+                            <Badge variant="warning">Rendimento pendente</Badge>
                           )}
                         </div>
                         <div className="flex items-center gap-1">
                           <span className="text-sm font-semibold">
                             {formatCurrency(balance.currentBalance)}
                           </span>
-                          <InvestmentTypeDialog mode="edit" type={{ id: balance.id, name: balance.name }} />
+                          <InvestmentTypeDialog
+                            mode="edit"
+                            type={{ id: balance.id, name: balance.name }}
+                          />
                           <DeleteButton
                             onDelete={async () => {
-                              'use server';
-                              await deleteInvestmentType(balance.id);
+                              'use server'
+                              await deleteInvestmentType(balance.id)
                             }}
                           />
                         </div>
                       </div>
-                      <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
                         <span>Aportes: {formatCurrency(balance.totalAmount)}</span>
                         <span>Rendimentos: {formatCurrency(balance.totalYield)}</span>
                         {balance.totalWithdrawn > 0 && (
@@ -115,14 +110,14 @@ export default async function InvestimentosPage() {
                   {history.length > 0 && (
                     <>
                       <Separator />
-                      <div className="px-4 py-3 overflow-x-auto">
-                        <table className="w-full text-sm min-w-[400px]">
+                      <div className="overflow-x-auto px-4 py-3">
+                        <table className="w-full min-w-[400px] text-sm">
                           <thead>
                             <tr className="text-xs text-muted-foreground">
-                              <th className="text-left font-medium pb-2">Mês</th>
-                              <th className="text-right font-medium pb-2">Aporte</th>
-                              <th className="text-right font-medium pb-2">Rendimento</th>
-                              <th className="text-right font-medium pb-2">Notas</th>
+                              <th className="pb-2 text-left font-medium">Mês</th>
+                              <th className="pb-2 text-right font-medium">Aporte</th>
+                              <th className="pb-2 text-right font-medium">Rendimento</th>
+                              <th className="pb-2 text-right font-medium">Notas</th>
                               <th className="pb-2" />
                             </tr>
                           </thead>
@@ -142,7 +137,7 @@ export default async function InvestimentosPage() {
                                     <span className="text-yellow-600">pendente</span>
                                   )}
                                 </td>
-                                <td className="py-1.5 pr-2 text-right text-muted-foreground text-xs max-w-[120px] truncate">
+                                <td className="max-w-[120px] truncate py-1.5 pr-2 text-right text-xs text-muted-foreground">
                                   {entry.notes ?? ''}
                                 </td>
                                 <td className="py-1.5">
@@ -153,8 +148,8 @@ export default async function InvestimentosPage() {
                                     />
                                     <DeleteButton
                                       onDelete={async () => {
-                                        'use server';
-                                        await deleteInvestment(entry.id);
+                                        'use server'
+                                        await deleteInvestment(entry.id)
                                       }}
                                     />
                                   </div>
@@ -172,7 +167,7 @@ export default async function InvestimentosPage() {
                     <InvestmentEntryDialog investmentTypeId={balance.id} />
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
         )}
@@ -181,7 +176,7 @@ export default async function InvestimentosPage() {
       {/* ─── Evolução do patrimônio ───────────────────────────────────────── */}
       {timeline.length > 1 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Evolução do patrimônio
           </h2>
           <div className="rounded-xl border bg-card px-4 py-4">
@@ -193,7 +188,7 @@ export default async function InvestimentosPage() {
       {/* ─── Resgates ─────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Resgates
           </h2>
           <WithdrawalDialog investmentTypes={investmentTypeOptions} />
@@ -202,15 +197,15 @@ export default async function InvestimentosPage() {
         {withdrawals.length === 0 ? (
           <EmptyState title="Nenhum resgate registrado." />
         ) : (
-          <div className="rounded-xl border bg-card overflow-x-auto">
-            <table className="w-full text-sm min-w-[480px]">
+          <div className="overflow-x-auto rounded-xl border bg-card">
+            <table className="w-full min-w-[480px] text-sm">
               <thead>
-                <tr className="text-xs text-muted-foreground border-b">
-                  <th className="text-left font-medium px-4 py-3">Tipo</th>
-                  <th className="text-left font-medium px-4 py-3">Data</th>
-                  <th className="text-right font-medium px-4 py-3">Valor</th>
-                  <th className="text-left font-medium px-4 py-3">Destino</th>
-                  <th className="text-left font-medium px-4 py-3">Notas</th>
+                <tr className="border-b text-xs text-muted-foreground">
+                  <th className="px-4 py-3 text-left font-medium">Tipo</th>
+                  <th className="px-4 py-3 text-left font-medium">Data</th>
+                  <th className="px-4 py-3 text-right font-medium">Valor</th>
+                  <th className="px-4 py-3 text-left font-medium">Destino</th>
+                  <th className="px-4 py-3 text-left font-medium">Notas</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -231,7 +226,7 @@ export default async function InvestimentosPage() {
                         <Badge variant="muted">Transferência</Badge>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground text-xs max-w-[120px] truncate">
+                    <td className="max-w-[120px] truncate px-4 py-2 text-xs text-muted-foreground">
                       {w.notes ?? ''}
                     </td>
                     <td className="px-4 py-2">
@@ -242,8 +237,8 @@ export default async function InvestimentosPage() {
                         />
                         <DeleteButton
                           onDelete={async () => {
-                            'use server';
-                            await deleteWithdrawal(w.id);
+                            'use server'
+                            await deleteWithdrawal(w.id)
                           }}
                         />
                       </div>
@@ -256,5 +251,5 @@ export default async function InvestimentosPage() {
         )}
       </div>
     </div>
-  );
+  )
 }

@@ -9,26 +9,33 @@ interface EmptyStateProps {
   className?: string
 }
 
-export function EmptyState({ icon, title, description, action, boxed = false, className = '' }: EmptyStateProps) {
+export function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  boxed = false,
+  className = '',
+}: EmptyStateProps) {
   const body = (
-    <div className={`flex flex-col items-center justify-center gap-4 py-12 px-8 text-center ${className}`}>
+    <div
+      className={`flex flex-col items-center justify-center gap-4 px-8 py-12 text-center ${className}`}
+    >
       {icon && (
-        <div className="w-14 h-14 bg-bg-subtle rounded-lg flex items-center justify-center [&>svg]:w-7 [&>svg]:h-7 [&>svg]:text-text-tertiary">
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-bg-subtle [&>svg]:h-7 [&>svg]:w-7 [&>svg]:text-text-tertiary">
           {icon}
         </div>
       )}
       <span className="text-body-lg font-semibold text-text-primary">{title}</span>
       {description && (
-        <span className="text-small text-text-tertiary max-w-56 text-pretty">{description}</span>
+        <span className="max-w-56 text-pretty text-small text-text-tertiary">{description}</span>
       )}
       {action}
     </div>
   )
 
   if (boxed) {
-    return (
-      <div className="bg-bg-surface border border-border rounded-lg shadow-sm">{body}</div>
-    )
+    return <div className="rounded-lg border border-border bg-bg-surface shadow-sm">{body}</div>
   }
 
   return body

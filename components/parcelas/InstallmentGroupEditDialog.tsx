@@ -1,22 +1,12 @@
-'use client';
+'use client'
 
-import { useState, useTransition, useEffect, type FormEvent } from 'react';
-import { Pencil } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition, useEffect, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -25,30 +15,30 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { updateInstallmentGroup } from '@/lib/actions/transactions';
-import { getRegistrationFormData } from '@/lib/actions/form-data';
-import { useMediaQuery } from '@/hooks/use-media-query';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { updateInstallmentGroup } from '@/lib/actions/transactions'
+import { getRegistrationFormData } from '@/lib/actions/form-data'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type CategoryGroup = {
-  id: string;
-  name: string;
-  categories: { id: string; name: string }[];
-};
+  id: string
+  name: string
+  categories: { id: string; name: string }[]
+}
 
 type Account = {
-  id: string;
-  name: string;
-  type: string;
-};
+  id: string
+  name: string
+  type: string
+}
 
 type InstallmentGroup = {
-  id: string;
-  name: string;
-  categoryId: string;
-  accountId: string;
-};
+  id: string
+  name: string
+  categoryId: string
+  accountId: string
+}
 
 function EditForm({
   group,
@@ -56,17 +46,17 @@ function EditForm({
   accounts,
   onSuccess,
 }: {
-  group: InstallmentGroup;
-  categoryGroups: CategoryGroup[];
-  accounts: Account[];
-  onSuccess: () => void;
+  group: InstallmentGroup
+  categoryGroups: CategoryGroup[]
+  accounts: Account[]
+  onSuccess: () => void
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -75,13 +65,13 @@ function EditForm({
           name: str('name'),
           categoryId: str('categoryId'),
           accountId: str('accountId'),
-        });
-        onSuccess();
+        })
+        onSuccess()
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -125,38 +115,33 @@ function EditForm({
       </Field>
 
       <p className="text-xs text-muted-foreground">
-        Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do grupo.
+        Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do
+        grupo.
       </p>
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}
       </Button>
     </form>
-  );
+  )
 }
 
-function FormLoader({
-  group,
-  onSuccess,
-}: {
-  group: InstallmentGroup;
-  onSuccess: () => void;
-}) {
+function FormLoader({ group, onSuccess }: { group: InstallmentGroup; onSuccess: () => void }) {
   const [formData, setFormData] = useState<{
-    categoryGroups: CategoryGroup[];
-    accounts: Account[];
-  } | null>(null);
+    categoryGroups: CategoryGroup[]
+    accounts: Account[]
+  } | null>(null)
 
   useEffect(() => {
-    getRegistrationFormData().then(setFormData);
-  }, []);
+    getRegistrationFormData().then(setFormData)
+  }, [])
 
   if (!formData) {
     return (
       <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
         Carregando...
       </div>
-    );
+    )
   }
 
   return (
@@ -166,14 +151,14 @@ function FormLoader({
       accounts={formData.accounts}
       onSuccess={onSuccess}
     />
-  );
+  )
 }
 
 export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup }) {
-  const [open, setOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [open, setOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  const content = <FormLoader group={group} onSuccess={() => setOpen(false)} />;
+  const content = <FormLoader group={group} onSuccess={() => setOpen(false)} />
 
   if (isDesktop) {
     return (
@@ -196,7 +181,7 @@ export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup 
           </DialogContent>
         </Dialog>
       </>
-    );
+    )
   }
 
   return (
@@ -219,5 +204,5 @@ export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup 
         </DrawerContent>
       </Drawer>
     </>
-  );
+  )
 }

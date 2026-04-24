@@ -10,7 +10,8 @@ export const inputBase = [
   'disabled:opacity-50 disabled:cursor-not-allowed',
 ].join(' ')
 
-export const inputErrorCls = 'border-negative focus:border-negative focus:shadow-[0_0_0_3px_var(--ring-negative)]'
+export const inputErrorCls =
+  'border-negative focus:border-negative focus:shadow-[0_0_0_3px_var(--ring-negative)]'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: boolean
@@ -23,6 +24,6 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       className={[inputBase, error ? inputErrorCls : '', className].filter(Boolean).join(' ')}
       {...props}
     />
-  ),
+  )
 )
 Input.displayName = 'Input'

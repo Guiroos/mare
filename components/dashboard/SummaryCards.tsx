@@ -1,29 +1,29 @@
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency } from '@/lib/format'
 
 type Summary = {
-  totalIncomes: number;
-  totalExpenses: number;
-  totalInvested: number;
-  balance: number;
-  totalBudget: number;
-  totalSpent: number;
-};
+  totalIncomes: number
+  totalExpenses: number
+  totalInvested: number
+  balance: number
+  totalBudget: number
+  totalSpent: number
+}
 
 export function SummaryCards({ summary }: { summary: Summary }) {
-  const { totalIncomes, totalExpenses, totalInvested, balance, totalBudget, totalSpent } = summary;
-  const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
-  const budgetOver = totalSpent > totalBudget && totalBudget > 0;
+  const { totalIncomes, totalExpenses, totalInvested, balance, totalBudget, totalSpent } = summary
+  const budgetPct = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0
+  const budgetOver = totalSpent > totalBudget && totalBudget > 0
 
   return (
     <div
-      className="rounded-xl p-6 relative overflow-hidden text-text-inverse"
+      className="relative overflow-hidden rounded-xl p-6 text-text-inverse"
       style={{
         background: 'linear-gradient(135deg, var(--accent) 0%, oklch(44% 0.13 218) 100%)',
       }}
     >
       {/* Watermark waves */}
       <svg
-        className="absolute right-[-24px] bottom-[-24px] w-40 h-24 opacity-10 pointer-events-none"
+        className="pointer-events-none absolute bottom-[-24px] right-[-24px] h-24 w-40 opacity-10"
         viewBox="0 0 160 100"
         fill="none"
         aria-hidden
@@ -33,37 +33,27 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       </svg>
 
       {/* Label */}
-      <p className="text-label uppercase opacity-70">
-        Saldo do Mês
-      </p>
+      <p className="text-label uppercase opacity-70">Saldo do Mês</p>
 
       {/* Balance amount */}
-      <p className="text-hero mt-1.5 mb-5 tabular-nums">
-        {formatCurrency(balance)}
-      </p>
+      <p className="mb-5 mt-1.5 text-hero tabular-nums">{formatCurrency(balance)}</p>
 
       {/* Incomes / Expenses / Invested */}
-      <div className="flex gap-8 pt-4 border-t border-white/15">
+      <div className="flex gap-8 border-t border-white/15 pt-4">
         <div className="flex flex-col gap-0.5">
-          <span className="text-label uppercase opacity-60">
-            Entradas
-          </span>
+          <span className="text-label uppercase opacity-60">Entradas</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
             + {formatCurrency(totalIncomes)}
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-label uppercase opacity-60">
-            Gastos
-          </span>
+          <span className="text-label uppercase opacity-60">Gastos</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
             − {formatCurrency(totalExpenses)}
           </span>
         </div>
-        <div className="flex flex-col gap-0.5 ml-auto items-end">
-          <span className="text-label uppercase opacity-60">
-            Investido
-          </span>
+        <div className="ml-auto flex flex-col items-end gap-0.5">
+          <span className="text-label uppercase opacity-60">Investido</span>
           <span className="text-body font-semibold tabular-nums tracking-tight opacity-85">
             {formatCurrency(totalInvested)}
           </span>
@@ -73,18 +63,16 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       {/* Budget progress bar */}
       {totalBudget > 0 && (
         <div className="mt-4">
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-label uppercase opacity-65">
-              Orçamento utilizado
-            </span>
-            <span className="text-caption font-semibold opacity-90 tabular-nums">
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-label uppercase opacity-65">Orçamento utilizado</span>
+            <span className="text-caption font-semibold tabular-nums opacity-90">
               {Math.round(budgetPct)}%{' '}
-              <span className="opacity-70 font-normal">
+              <span className="font-normal opacity-70">
                 · {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
               </span>
             </span>
           </div>
-          <div className="h-1 rounded-full overflow-hidden bg-white/20">
+          <div className="h-1 overflow-hidden rounded-full bg-white/20">
             <div
               className={`h-full rounded-full transition-all duration-500 ${budgetOver ? 'bg-negative/80' : 'bg-white/75'}`}
               style={{ width: `${budgetPct}%` }}
@@ -93,5 +81,5 @@ export function SummaryCards({ summary }: { summary: Summary }) {
         </div>
       )}
     </div>
-  );
+  )
 }

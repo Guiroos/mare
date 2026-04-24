@@ -13,22 +13,32 @@ interface SegmentProps<T extends string = string> {
   className?: string
 }
 
-export function Segment<T extends string>({ options, value, onChange, className = '' }: SegmentProps<T>) {
+export function Segment<T extends string>({
+  options,
+  value,
+  onChange,
+  className = '',
+}: SegmentProps<T>) {
   const [internal, setInternal] = useState<T>(options[0]?.value)
   const active = value ?? internal
 
   return (
-    <div className={`inline-flex bg-bg-subtle border border-border rounded-md p-1 gap-0.5 ${className}`}>
+    <div
+      className={`inline-flex gap-0.5 rounded-md border border-border bg-bg-subtle p-1 ${className}`}
+    >
       {options.map((opt) => {
         const isActive = active === opt.value
         return (
           <button
             key={opt.value}
             type="button"
-            onClick={() => { setInternal(opt.value); onChange?.(opt.value) }}
+            onClick={() => {
+              setInternal(opt.value)
+              onChange?.(opt.value)
+            }}
             className={
-              'flex-1 py-2 px-4 rounded-sm text-small font-medium whitespace-nowrap text-center cursor-pointer ' +
-              'transition duration-fast border-0 ' +
+              'flex-1 cursor-pointer whitespace-nowrap rounded-sm px-4 py-2 text-center text-small font-medium ' +
+              'border-0 transition duration-fast ' +
               (isActive
                 ? 'bg-bg-surface text-text-primary shadow-sm'
                 : 'bg-transparent text-text-secondary')

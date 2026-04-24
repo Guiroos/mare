@@ -1,44 +1,42 @@
-'use client';
+'use client'
 
-import { useState, useTransition } from 'react';
-import { Plus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
+import { useState, useTransition } from 'react'
+import { Plus, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { createInvestmentType, updateInvestmentType } from '@/lib/actions/investments';
+} from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { createInvestmentType, updateInvestmentType } from '@/lib/actions/investments'
 
-type Props =
-  | { mode: 'create' }
-  | { mode: 'edit'; type: { id: string; name: string } };
+type Props = { mode: 'create' } | { mode: 'edit'; type: { id: string; name: string } }
 
 export function InvestmentTypeDialog(props: Props) {
-  const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const name = (new FormData(e.currentTarget).get('name') as string).trim();
+    e.preventDefault()
+    const name = (new FormData(e.currentTarget).get('name') as string).trim()
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
-          await createInvestmentType(name);
+          await createInvestmentType(name)
         } else {
-          await updateInvestmentType(props.type.id, name);
+          await updateInvestmentType(props.type.id, name)
         }
-        setOpen(false);
+        setOpen(false)
       } catch {
-        toast.error('Erro ao salvar.');
+        toast.error('Erro ao salvar.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -49,7 +47,11 @@ export function InvestmentTypeDialog(props: Props) {
             Novo tipo
           </Button>
         ) : (
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-text-tertiary hover:text-text-primary">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
+          >
             <Pencil className="h-3.5 w-3.5" />
           </Button>
         )}
@@ -76,5 +78,5 @@ export function InvestmentTypeDialog(props: Props) {
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -1,23 +1,13 @@
-'use client';
+'use client'
 
-import { useState, useTransition, useEffect, type FormEvent } from 'react';
-import { Pencil } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer';
-import { Button } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { CurrencyInput } from '@/components/ui/currency-input';
+import { useState, useTransition, useEffect, type FormEvent } from 'react'
+import { Pencil } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
+import { Field } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -26,32 +16,32 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { toast } from 'sonner';
-import { updateTransaction } from '@/lib/actions/transactions';
-import { getRegistrationFormData } from '@/lib/actions/form-data';
-import { useMediaQuery } from '@/hooks/use-media-query';
+} from '@/components/ui/select'
+import { toast } from 'sonner'
+import { updateTransaction } from '@/lib/actions/transactions'
+import { getRegistrationFormData } from '@/lib/actions/form-data'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type CategoryGroup = {
-  id: string;
-  name: string;
-  categories: { id: string; name: string }[];
-};
+  id: string
+  name: string
+  categories: { id: string; name: string }[]
+}
 
 type Account = {
-  id: string;
-  name: string;
-  type: string;
-};
+  id: string
+  name: string
+  type: string
+}
 
 type Transaction = {
-  id: string;
-  name: string;
-  amount: string;
-  date: string;
-  categoryId: string | null;
-  accountId: string | null;
-};
+  id: string
+  name: string
+  amount: string
+  date: string
+  categoryId: string | null
+  accountId: string | null
+}
 
 function EditForm({
   transaction,
@@ -59,17 +49,17 @@ function EditForm({
   accounts,
   onSuccess,
 }: {
-  transaction: Transaction;
-  categoryGroups: CategoryGroup[];
-  accounts: Account[];
-  onSuccess: () => void;
+  transaction: Transaction
+  categoryGroups: CategoryGroup[]
+  accounts: Account[]
+  onSuccess: () => void
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition()
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const str = (name: string) => (fd.get(name) as string) ?? '';
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const str = (name: string) => (fd.get(name) as string) ?? ''
 
     startTransition(async () => {
       try {
@@ -80,13 +70,13 @@ function EditForm({
           date: str('date'),
           categoryId: str('categoryId'),
           accountId: str('accountId'),
-        });
-        onSuccess();
+        })
+        onSuccess()
       } catch {
-        toast.error('Erro ao salvar. Tente novamente.');
+        toast.error('Erro ao salvar. Tente novamente.')
       }
-    });
-  };
+    })
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -141,31 +131,31 @@ function EditForm({
         {isPending ? 'Salvando...' : 'Salvar alterações'}
       </Button>
     </form>
-  );
+  )
 }
 
 function FormLoader({
   transaction,
   onSuccess,
 }: {
-  transaction: Transaction;
-  onSuccess: () => void;
+  transaction: Transaction
+  onSuccess: () => void
 }) {
   const [formData, setFormData] = useState<{
-    categoryGroups: CategoryGroup[];
-    accounts: Account[];
-  } | null>(null);
+    categoryGroups: CategoryGroup[]
+    accounts: Account[]
+  } | null>(null)
 
   useEffect(() => {
-    getRegistrationFormData().then(setFormData);
-  }, []);
+    getRegistrationFormData().then(setFormData)
+  }, [])
 
   if (!formData) {
     return (
       <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
         Carregando...
       </div>
-    );
+    )
   }
 
   return (
@@ -175,16 +165,14 @@ function FormLoader({
       accounts={formData.accounts}
       onSuccess={onSuccess}
     />
-  );
+  )
 }
 
 export function TransactionEditButton({ transaction }: { transaction: Transaction }) {
-  const [open, setOpen] = useState(false);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const [open, setOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  const content = (
-    <FormLoader transaction={transaction} onSuccess={() => setOpen(false)} />
-  );
+  const content = <FormLoader transaction={transaction} onSuccess={() => setOpen(false)} />
 
   if (isDesktop) {
     return (
@@ -207,7 +195,7 @@ export function TransactionEditButton({ transaction }: { transaction: Transactio
           </DialogContent>
         </Dialog>
       </>
-    );
+    )
   }
 
   return (
@@ -230,5 +218,5 @@ export function TransactionEditButton({ transaction }: { transaction: Transactio
         </DrawerContent>
       </Drawer>
     </>
-  );
+  )
 }

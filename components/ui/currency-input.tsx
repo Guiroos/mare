@@ -4,18 +4,20 @@ import { useState } from 'react'
 import { inputBase, inputErrorCls } from './input'
 
 interface CurrencyInputProps {
-  name:          string
+  name: string
   defaultValue?: string | number
-  required?:     boolean
-  autoFocus?:    boolean
-  className?:    string
-  placeholder?:  string
-  error?:        boolean
+  required?: boolean
+  autoFocus?: boolean
+  className?: string
+  placeholder?: string
+  error?: boolean
 }
 
 function parseToCents(value: string | number | undefined): number {
   if (!value && value !== 0) return 0
-  const str = String(value).replace(',', '.').replace(/[^\d.]/g, '')
+  const str = String(value)
+    .replace(',', '.')
+    .replace(/[^\d.]/g, '')
   return Math.round(parseFloat(str || '0') * 100)
 }
 
