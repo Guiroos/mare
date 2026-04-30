@@ -54,7 +54,11 @@ export default async function DashboardPage({
       {/* Row 1: Orçamento + Gastos Fixos */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section title="Orçamento por categoria">
-          <CategoryGroupProgress groups={data.groupProgress} />
+          <CategoryGroupProgress
+            groups={data.groupProgress}
+            transactions={data.transactions}
+            fixedExpenses={data.fixedExpenses}
+          />
         </Section>
 
         <Section
