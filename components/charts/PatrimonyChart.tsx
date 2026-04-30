@@ -21,7 +21,7 @@ function formatCurrencyShort(value: number) {
 export function PatrimonyChart({ data }: { data: DataPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-40 items-center justify-center text-sm text-text-secondary">
         Nenhum dado ainda.
       </div>
     )

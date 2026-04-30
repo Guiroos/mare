@@ -41,15 +41,15 @@ export default async function InvestimentosPage() {
     <div className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Investimentos</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-text-secondary">
           Acompanhe seus aportes, rendimentos e patrimônio acumulado.
         </p>
       </div>
 
       {/* ─── Patrimônio total ─────────────────────────────────────────────── */}
       {balances.length > 0 && (
-        <div className="rounded-xl border bg-card px-5 py-4">
-          <p className="text-sm text-muted-foreground">Patrimônio total</p>
+        <div className="rounded-xl border bg-bg-surface px-5 py-4">
+          <p className="text-sm text-text-secondary">Patrimônio total</p>
           <p className="mt-1 text-2xl font-bold">{formatCurrency(totalPatrimony)}</p>
         </div>
       )}
@@ -57,7 +57,7 @@ export default async function InvestimentosPage() {
       {/* ─── Por tipo ─────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Patrimônio por tipo
           </h2>
           <InvestmentTypeDialog mode="create" />
@@ -70,7 +70,7 @@ export default async function InvestimentosPage() {
             {balances.map((balance, idx) => {
               const history = histories[idx]
               return (
-                <div key={balance.id} className="rounded-xl border bg-card">
+                <div key={balance.id} className="rounded-xl border bg-bg-surface">
                   {/* Header do tipo */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     <div className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ export default async function InvestimentosPage() {
                           />
                         </div>
                       </div>
-                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                      <div className="mt-1 flex gap-4 text-xs text-text-secondary">
                         <span>Aportes: {formatCurrency(balance.totalAmount)}</span>
                         <span>Rendimentos: {formatCurrency(balance.totalYield)}</span>
                         {balance.totalWithdrawn > 0 && (
@@ -114,7 +114,7 @@ export default async function InvestimentosPage() {
                       <div className="overflow-x-auto px-4 py-3">
                         <table className="w-full min-w-[400px] text-sm">
                           <thead>
-                            <tr className="text-xs text-muted-foreground">
+                            <tr className="text-xs text-text-secondary">
                               <th className="pb-2 text-left font-medium">Mês</th>
                               <th className="pb-2 text-right font-medium">Aporte</th>
                               <th className="pb-2 text-right font-medium">Rendimento</th>
@@ -125,7 +125,7 @@ export default async function InvestimentosPage() {
                           <tbody className="divide-y divide-border">
                             {history.map((entry) => (
                               <tr key={entry.id}>
-                                <td className="py-1.5 pr-4 text-muted-foreground">
+                                <td className="py-1.5 pr-4 text-text-secondary">
                                   {formatMonthName(referenceMonthToYearMonth(entry.referenceMonth))}
                                 </td>
                                 <td className="py-1.5 pr-4 text-right tabular-nums">
@@ -138,7 +138,7 @@ export default async function InvestimentosPage() {
                                     <span className="text-yellow-600">pendente</span>
                                   )}
                                 </td>
-                                <td className="max-w-[120px] truncate py-1.5 pr-2 text-right text-xs text-muted-foreground">
+                                <td className="max-w-[120px] truncate py-1.5 pr-2 text-right text-xs text-text-secondary">
                                   {entry.notes ?? ''}
                                 </td>
                                 <td className="py-1.5">
@@ -177,10 +177,10 @@ export default async function InvestimentosPage() {
       {/* ─── Evolução do patrimônio ───────────────────────────────────────── */}
       {timeline.length > 1 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Evolução do patrimônio
           </h2>
-          <div className="rounded-xl border bg-card px-4 py-4">
+          <div className="rounded-xl border bg-bg-surface px-4 py-4">
             <PatrimonyChart data={timeline} />
           </div>
         </div>
@@ -189,7 +189,7 @@ export default async function InvestimentosPage() {
       {/* ─── Resgates ─────────────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Resgates
           </h2>
           <WithdrawalDialog investmentTypes={investmentTypeOptions} />
@@ -198,10 +198,10 @@ export default async function InvestimentosPage() {
         {withdrawals.length === 0 ? (
           <EmptyState title="Nenhum resgate registrado." />
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <div className="overflow-x-auto rounded-xl border bg-bg-surface">
             <table className="w-full min-w-[480px] text-sm">
               <thead>
-                <tr className="border-b text-xs text-muted-foreground">
+                <tr className="border-b text-xs text-text-secondary">
                   <th className="px-4 py-3 text-left font-medium">Tipo</th>
                   <th className="px-4 py-3 text-left font-medium">Data</th>
                   <th className="px-4 py-3 text-right font-medium">Valor</th>
@@ -214,7 +214,7 @@ export default async function InvestimentosPage() {
                 {withdrawals.map((w) => (
                   <tr key={w.id}>
                     <td className="px-4 py-2">{w.typeName}</td>
-                    <td className="px-4 py-2 text-muted-foreground">{formatDate(w.date)}</td>
+                    <td className="px-4 py-2 text-text-secondary">{formatDate(w.date)}</td>
                     <td className="px-4 py-2 text-right tabular-nums">
                       {formatCurrency(w.amount)}
                     </td>
@@ -225,7 +225,7 @@ export default async function InvestimentosPage() {
                         <Badge variant="muted">Transferência</Badge>
                       )}
                     </td>
-                    <td className="max-w-[120px] truncate px-4 py-2 text-xs text-muted-foreground">
+                    <td className="max-w-[120px] truncate px-4 py-2 text-xs text-text-secondary">
                       {w.notes ?? ''}
                     </td>
                     <td className="px-4 py-2">

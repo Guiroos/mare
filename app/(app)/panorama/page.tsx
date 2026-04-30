@@ -32,7 +32,7 @@ export default async function PanoramaPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Panorama Anual</h1>
-        <p className="text-sm text-muted-foreground">{year}</p>
+        <p className="text-sm text-text-secondary">{year}</p>
       </div>
 
       {/* Section 1 — Monthly table */}
@@ -44,21 +44,21 @@ export default async function PanoramaPage() {
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-muted/50 border-b">
-                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Mês</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Entradas</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Gastos</th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
+              <tr className="bg-bg-subtle/50 border-b">
+                <th className="px-4 py-3 text-left font-medium text-text-secondary">Mês</th>
+                <th className="px-4 py-3 text-right font-medium text-text-secondary">Entradas</th>
+                <th className="px-4 py-3 text-right font-medium text-text-secondary">Gastos</th>
+                <th className="px-4 py-3 text-right font-medium text-text-secondary">
                   Investimentos
                 </th>
-                <th className="px-4 py-3 text-right font-medium text-muted-foreground">Saldo</th>
+                <th className="px-4 py-3 text-right font-medium text-text-secondary">Saldo</th>
               </tr>
             </thead>
             <tbody>
               {overview.map((row) => {
                 const monthLabel = formatMonthAbbr(row.month).toUpperCase()
                 return (
-                  <tr key={row.month} className="hover:bg-muted/30 border-b last:border-0">
+                  <tr key={row.month} className="hover:bg-bg-subtle/30 border-b last:border-0">
                     <td className="px-4 py-3 font-medium">{monthLabel}</td>
                     <td className="px-4 py-3 text-right text-green-600">
                       {formatCurrency(row.totalIncomes)}
@@ -81,7 +81,7 @@ export default async function PanoramaPage() {
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-muted/50 border-t font-semibold">
+              <tr className="bg-bg-subtle/50 border-t font-semibold">
                 <td className="px-4 py-3">Total</td>
                 <td className="px-4 py-3 text-right text-green-600">
                   {formatCurrency(totalIncomes)}
@@ -120,7 +120,7 @@ export default async function PanoramaPage() {
                     {formatCurrency(row.balance)}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-1 text-xs text-muted-foreground">
+                <div className="grid grid-cols-3 gap-1 text-xs text-text-secondary">
                   <div>
                     <span className="block">Entradas</span>
                     <span className="font-medium text-green-600">
@@ -144,7 +144,7 @@ export default async function PanoramaPage() {
             )
           })}
           {/* Summary row on mobile */}
-          <div className="bg-muted/50 px-4 py-3">
+          <div className="bg-bg-subtle/50 px-4 py-3">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-bold">Total</span>
               <span
@@ -155,7 +155,7 @@ export default async function PanoramaPage() {
                 {formatCurrency(finalBalance)}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1 text-xs text-muted-foreground">
+            <div className="grid grid-cols-3 gap-1 text-xs text-text-secondary">
               <div>
                 <span className="block">Entradas</span>
                 <span className="font-semibold text-green-600">{formatCurrency(totalIncomes)}</span>

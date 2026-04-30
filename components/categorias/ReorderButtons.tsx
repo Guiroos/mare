@@ -28,7 +28,7 @@ export function ReorderButtons({ groupId, allGroupIds }: Props) {
       <Button
         size="icon"
         variant="ghost"
-        className="h-4 w-7 rounded-b-none text-muted-foreground"
+        className="h-4 w-7 rounded-b-none text-text-secondary"
         disabled={isFirst || isPending}
         onClick={() => move('up')}
         aria-label="Mover para cima"
@@ -38,7 +38,7 @@ export function ReorderButtons({ groupId, allGroupIds }: Props) {
       <Button
         size="icon"
         variant="ghost"
-        className="h-4 w-7 rounded-t-none text-muted-foreground"
+        className="h-4 w-7 rounded-t-none text-text-secondary"
         disabled={isLast || isPending}
         onClick={() => move('down')}
         aria-label="Mover para baixo"

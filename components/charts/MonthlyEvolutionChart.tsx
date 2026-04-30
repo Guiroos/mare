@@ -28,7 +28,7 @@ function formatCurrency(value: number) {
 export function MonthlyEvolutionChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[220px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[220px] items-center justify-center text-sm text-text-secondary">
         Nenhum dado ainda.
       </div>
     )

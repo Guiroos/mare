@@ -46,7 +46,7 @@ export function DeleteButton({
     <Button
       size="icon"
       variant="ghost"
-      className="h-7 w-7 text-secondary hover:text-negative"
+      className="h-7 w-7 text-text-secondary hover:text-negative"
       onClick={() => setOpen(true)}
     >
       <Trash2 className="h-3.5 w-3.5" />
@@ -84,7 +84,7 @@ export function DeleteButton({
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>{title}</DrawerTitle>
-            <p className="text-body text-secondary">{description}</p>
+            <p className="text-body text-text-secondary">{description}</p>
           </DrawerHeader>
           <div className="flex flex-col gap-2 p-4">
             <Button variant="danger" disabled={isPending} onClick={handleDelete}>

@@ -30,7 +30,7 @@ export default async function MetasPage() {
     <div className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Metas</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-text-secondary">
           Acompanhe o progresso das suas metas financeiras.
         </p>
       </div>
@@ -38,7 +38,7 @@ export default async function MetasPage() {
       {/* ─── Lista de metas ───────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Suas metas
           </h2>
           <GoalDialog mode="create" investmentTypes={investmentTypeOptions} />
@@ -51,7 +51,7 @@ export default async function MetasPage() {
             {goalsData.map((goal) => {
               const isComplete = goal.progress >= 100
               return (
-                <div key={goal.id} className="rounded-xl border bg-card">
+                <div key={goal.id} className="rounded-xl border bg-bg-surface">
                   {/* Header */}
                   <div className="px-4 pb-3 pt-4">
                     <div className="flex flex-wrap items-start justify-between gap-2">
@@ -90,7 +90,7 @@ export default async function MetasPage() {
                         max={goal.targetAmount}
                         indicatorClassName={isComplete ? 'bg-green-600' : undefined}
                       />
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between text-xs text-text-secondary">
                         <span>
                           {formatCurrency(goal.currentBalance)} de{' '}
                           {formatCurrency(goal.targetAmount)}
@@ -100,7 +100,7 @@ export default async function MetasPage() {
                     </div>
 
                     {/* Datas */}
-                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-text-secondary">
                       {goal.targetDate && (
                         <span>Prazo: {formatMonthName(goal.targetDate.slice(0, 7))}</span>
                       )}
@@ -116,7 +116,7 @@ export default async function MetasPage() {
                       <Separator />
                       <div className="space-y-3 px-4 py-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          <span className="text-xs font-medium uppercase tracking-wide text-text-secondary">
                             Aportes
                           </span>
                           <ContributionDialog goalId={goal.id} />
@@ -125,7 +125,7 @@ export default async function MetasPage() {
                         {goal.contributions.length > 0 && (
                           <table className="w-full text-sm">
                             <thead>
-                              <tr className="text-xs text-muted-foreground">
+                              <tr className="text-xs text-text-secondary">
                                 <th className="pb-1.5 text-left font-medium">Mês</th>
                                 <th className="pb-1.5 text-right font-medium">Valor</th>
                                 <th className="pb-1.5" />
@@ -134,7 +134,7 @@ export default async function MetasPage() {
                             <tbody className="divide-y divide-border">
                               {goal.contributions.map((c) => (
                                 <tr key={c.id}>
-                                  <td className="py-1.5 text-muted-foreground">
+                                  <td className="py-1.5 text-text-secondary">
                                     {formatMonthName(referenceMonthToYearMonth(c.referenceMonth))}
                                   </td>
                                   <td className="py-1.5 text-right tabular-nums">

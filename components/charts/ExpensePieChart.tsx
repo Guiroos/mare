@@ -26,7 +26,7 @@ export function ExpensePieChart({ data }: Props) {
 
   if (filtered.length === 0) {
     return (
-      <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[260px] items-center justify-center text-sm text-text-secondary">
         Nenhum gasto registrado.
       </div>
     )

@@ -61,7 +61,7 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
       <Button
         variant="ghost"
         size="icon"
-        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+        className="h-6 w-6 text-text-secondary hover:text-text-primary"
         onClick={() => setOpen(true)}
         aria-label="Editar aporte"
       >

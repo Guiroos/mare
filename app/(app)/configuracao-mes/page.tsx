@@ -50,7 +50,7 @@ export default async function ConfiguracaoMesPage({
     <div className="max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Configuração do mês</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-text-secondary">
           Ajuste orçamentos, marque fixos e veja compromissos.
         </p>
       </div>
@@ -72,7 +72,7 @@ export default async function ConfiguracaoMesPage({
         ) : (
           <div className="space-y-3">
             {categoriesWithBudgets.map((group) => (
-              <div key={group.id} className="rounded-xl border bg-card">
+              <div key={group.id} className="rounded-xl border bg-bg-surface">
                 <div className="border-b px-4 py-2.5">
                   <span className="text-sm font-semibold">{group.name}</span>
                 </div>
@@ -93,13 +93,13 @@ export default async function ConfiguracaoMesPage({
                                 'text-sm font-medium',
                                 hasOverride
                                   ? 'text-blue-600 dark:text-blue-400'
-                                  : 'text-muted-foreground'
+                                  : 'text-text-secondary'
                               )}
                             >
                               {formatCurrency(effective)}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground/50 text-xs">sem orçamento</span>
+                            <span className="text-text-secondary/50 text-xs">sem orçamento</span>
                           )}
                           {hasOverride && (
                             <Badge variant="accent" size="sm">
@@ -140,7 +140,7 @@ export default async function ConfiguracaoMesPage({
         {installments.length === 0 ? (
           <EmptyState title="Nenhuma parcela neste mês." />
         ) : (
-          <div className="divide-y rounded-xl border bg-card">
+          <div className="divide-y rounded-xl border bg-bg-surface">
             {installments.map((t) => (
               <div key={t.id} className="flex items-center justify-between px-4 py-3">
                 <div className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ export default async function ConfiguracaoMesPage({
                       </Badge>
                     )}
                     {t.account && (
-                      <span className="text-xs text-muted-foreground">{t.account.name}</span>
+                      <span className="text-xs text-text-secondary">{t.account.name}</span>
                     )}
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export default async function ConfiguracaoMesPage({
 
       {/* ─── Resumo comprometido ────────────────────────────────────────── */}
       <Section title="Comprometido neste mês">
-        <div className="divide-y rounded-xl border bg-card">
+        <div className="divide-y rounded-xl border bg-bg-surface">
           <SummaryRow label="Gastos fixos" value={totalFixed} />
           <SummaryRow label="Parcelas" value={totalInstallments} />
           <SummaryRow label="Total comprometido" value={totalFixed + totalInstallments} bold />
@@ -189,7 +189,7 @@ function Section({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
           {title}
         </h2>
         {action}
@@ -203,7 +203,7 @@ function SummaryRow({ label, value, bold }: { label: string; value: number; bold
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className={cn('text-sm', bold && 'font-semibold')}>{label}</span>
-      <span className={cn('text-sm', bold ? 'font-bold text-red-600' : 'text-muted-foreground')}>
+      <span className={cn('text-sm', bold ? 'font-bold text-red-600' : 'text-text-secondary')}>
         {formatCurrency(value)}
       </span>
     </div>

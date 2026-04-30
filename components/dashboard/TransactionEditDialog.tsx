@@ -173,7 +173,7 @@ function FormLoader({
 
   if (!formData) {
     return (
-      <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+      <div className="flex items-center justify-center py-10 text-sm text-text-secondary">
         Carregando...
       </div>
     )
@@ -201,7 +201,7 @@ export function TransactionEditButton({ transaction }: { transaction: Transactio
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
           onClick={() => setOpen(true)}
           aria-label="Editar"
         >
@@ -224,7 +224,7 @@ export function TransactionEditButton({ transaction }: { transaction: Transactio
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+        className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
         onClick={() => setOpen(true)}
         aria-label="Editar"
       >

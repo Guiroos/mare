@@ -85,7 +85,7 @@ export function IncomeEditButton({ income }: { income: Income }) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
           onClick={() => setOpen(true)}
           aria-label="Editar"
         >
@@ -108,7 +108,7 @@ export function IncomeEditButton({ income }: { income: Income }) {
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+        className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
         onClick={() => setOpen(true)}
         aria-label="Editar"
       >

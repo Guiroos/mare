@@ -41,7 +41,7 @@ function formatCurrency(value: number) {
 export function AnnualStackedChart({ data, allGroupNames }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[240px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[240px] items-center justify-center text-sm text-text-secondary">
         Nenhum dado ainda.
       </div>
     )

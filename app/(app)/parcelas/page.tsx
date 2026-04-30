@@ -21,14 +21,14 @@ export default async function ParcelasPage() {
       {/* ─── Header ──────────────────────────────────────────────────────────── */}
       <div>
         <h1 className="text-xl font-bold">Parcelas Futuras</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-text-secondary">
           Acompanhe suas compras parceladas e os compromissos por mês.
         </p>
       </div>
 
       {/* ─── Parcelas ativas ─────────────────────────────────────────────────── */}
       <div className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
           Parcelas ativas
         </h2>
 
@@ -45,10 +45,10 @@ export default async function ParcelasPage() {
 
       {/* ─── Compromissos por mês ─────────────────────────────────────────────── */}
       <div className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
           Compromissos por mês
         </h2>
-        <div className="rounded-xl border bg-card px-4 py-4">
+        <div className="rounded-xl border bg-bg-surface px-4 py-4">
           <InstallmentTimelineChart data={timeline} />
         </div>
       </div>

@@ -19,7 +19,7 @@ function formatCurrency(value: number) {
 export function InstallmentTimelineChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[200px] items-center justify-center text-sm text-text-secondary">
         Nenhum compromisso futuro.
       </div>
     )
@@ -53,7 +53,7 @@ export function InstallmentTimelineChart({ data }: Props) {
               <div className="rounded-lg border bg-popover px-3 py-2 text-sm shadow-md">
                 <p className="mb-1 font-medium">Mês: {label}</p>
                 {entry._groups.map((g) => (
-                  <p key={g.name} className="text-muted-foreground">
+                  <p key={g.name} className="text-text-secondary">
                     {g.name}: {formatCurrency(g.amount)}
                   </p>
                 ))}

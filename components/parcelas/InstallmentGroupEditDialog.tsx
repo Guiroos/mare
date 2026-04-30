@@ -124,7 +124,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-text-secondary">
         Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do
         grupo.
       </p>
@@ -148,7 +148,7 @@ function FormLoader({ group, onSuccess }: { group: InstallmentGroup; onSuccess: 
 
   if (!formData) {
     return (
-      <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+      <div className="flex items-center justify-center py-10 text-sm text-text-secondary">
         Carregando...
       </div>
     )
@@ -176,7 +176,7 @@ export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup 
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 shrink-0 text-text-secondary hover:text-text-primary"
           onClick={() => setOpen(true)}
           aria-label="Editar"
         >
@@ -199,7 +199,7 @@ export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup 
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+        className="h-8 w-8 shrink-0 text-text-secondary hover:text-text-primary"
         onClick={() => setOpen(true)}
         aria-label="Editar"
       >

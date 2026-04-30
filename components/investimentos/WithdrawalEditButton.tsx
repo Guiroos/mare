@@ -81,7 +81,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+        className="h-7 w-7 text-text-secondary hover:text-text-primary"
         onClick={() => setOpen(true)}
         aria-label="Editar resgate"
       >
@@ -132,7 +132,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
               <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
             </Field>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-text-secondary">
               O destino do resgate não pode ser alterado.
             </p>
 

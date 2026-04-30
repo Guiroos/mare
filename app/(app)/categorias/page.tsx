@@ -35,7 +35,7 @@ export default async function CategoriasPage() {
     <div className="max-w-2xl space-y-8">
       <div>
         <h1 className="text-xl font-bold">Categorias e grupos</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-text-secondary">
           Gerencie grupos, categorias e contas de pagamento.
         </p>
       </div>
@@ -43,7 +43,7 @@ export default async function CategoriasPage() {
       {/* ─── Grupos e Categorias ─────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Grupos e categorias
           </h2>
           <GroupDialog mode="create" />
@@ -60,7 +60,7 @@ export default async function CategoriasPage() {
               )
 
               return (
-                <div key={group.id} className="rounded-xl border bg-card">
+                <div key={group.id} className="rounded-xl border bg-bg-surface">
                   {/* Header do grupo */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     <ReorderButtons groupId={group.id} allGroupIds={groupIds} />
@@ -69,7 +69,7 @@ export default async function CategoriasPage() {
                         <span className="font-medium">{group.name}</span>
                         <div className="flex items-center gap-2">
                           {totalBudget > 0 && (
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-text-secondary">
                               {formatCurrency(totalBudget)}/mês
                             </span>
                           )}
@@ -93,13 +93,11 @@ export default async function CategoriasPage() {
                           <span className="text-sm">{cat.name}</span>
                           <div className="flex items-center gap-2">
                             {cat.defaultBudget ? (
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-text-secondary">
                                 {formatCurrency(Number(cat.defaultBudget))}
                               </span>
                             ) : (
-                              <span className="text-muted-foreground/50 text-xs">
-                                sem orçamento
-                              </span>
+                              <span className="text-text-secondary/50 text-xs">sem orçamento</span>
                             )}
                             <CategoryDialog
                               mode="edit"
@@ -140,7 +138,7 @@ export default async function CategoriasPage() {
       {/* ─── Contas e Cartões ────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
             Contas e cartões
           </h2>
           <AccountDialog mode="create" />
@@ -149,14 +147,14 @@ export default async function CategoriasPage() {
         {accounts.length === 0 ? (
           <EmptyState title="Nenhuma conta cadastrada." />
         ) : (
-          <div className="divide-y rounded-xl border bg-card">
+          <div className="divide-y rounded-xl border bg-bg-surface">
             {accounts.map((account) => (
               <div key={account.id} className="flex items-center justify-between px-4 py-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium">{account.name}</span>
                   <Badge variant="muted">{ACCOUNT_TYPE_LABELS[account.type] ?? account.type}</Badge>
                   {account.closingDay && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-text-secondary">
                       Fecha dia {account.closingDay}
                     </span>
                   )}

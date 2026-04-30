@@ -4,6 +4,7 @@ import { useState, useTransition, type FormEvent } from 'react'
 import { ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils/cn'
 import { currentYearMonth, todayISOString } from '@/lib/utils/date'
 import {
   createTransaction,
@@ -264,24 +264,18 @@ export function TransactionForm({
   return (
     <div className="space-y-5">
       {/* Tipo */}
-      <div className="grid grid-cols-3 gap-1 rounded-lg border p-1">
+      <div className="flex flex-wrap gap-1.5">
         {TABS.map((tab) => (
-          <button
+          <Chip
             key={tab.value}
-            type="button"
+            active={type === tab.value}
             onClick={() => {
               setType(tab.value)
               resetForm()
             }}
-            className={cn(
-              'rounded-md px-2 py-1.5 text-center text-xs font-medium transition-colors',
-              type === tab.value
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
           >
             {tab.label}
-          </button>
+          </Chip>
         ))}
       </div>
 
@@ -305,7 +299,7 @@ export function TransactionForm({
         {(type === 'investimento' || type === 'resgate') && (
           <Field label="Tipo de investimento" error={errors.investmentTypeId}>
             <Select name="investmentTypeId" required>
-              <SelectTrigger>
+              <SelectTrigger error={!!errors.investmentTypeId}>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -432,9 +426,9 @@ export function TransactionForm({
             <Field label="Data do resgate" error={errors.date}>
               <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
             </Field>
-            <Field label="Destino">
+            <Field label="Destino" error={errors.destination}>
               <Select name="destination" required>
-                <SelectTrigger>
+                <SelectTrigger error={!!errors.destination}>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,7 +448,7 @@ export function TransactionForm({
           <>
             <Field label="Categoria" error={errors.categoryId}>
               <Select name="categoryId" required>
-                <SelectTrigger>
+                <SelectTrigger error={!!errors.categoryId}>
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -474,7 +468,7 @@ export function TransactionForm({
 
             <Field label="Conta / Cartão" error={errors.accountId}>
               <Select name="accountId" required>
-                <SelectTrigger>
+                <SelectTrigger error={!!errors.accountId}>
                   <SelectValue placeholder="Selecione a conta" />
                 </SelectTrigger>
                 <SelectContent>
@@ -490,8 +484,8 @@ export function TransactionForm({
         )}
 
         <div className="flex items-center gap-3 pt-1">
-          <Button type="submit" className="flex-1" disabled={isPending}>
-            {isPending ? 'Salvando...' : 'Salvar'}
+          <Button type="submit" className="flex-1" loading={isPending}>
+            Salvar
           </Button>
           {showFullPageLink && (
             <Button variant="ghost" size="icon" asChild>
