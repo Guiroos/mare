@@ -45,7 +45,7 @@ export function InvestmentList({ investments }: { investments: Investment[] }) {
             )}
           </div>
 
-          <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+          <div className="hidden items-center gap-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100">
             <InvestmentEntryDialog
               investmentTypeId={inv.investmentTypeId}
               existing={{

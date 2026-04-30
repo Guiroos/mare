@@ -39,7 +39,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       <p className="mb-5 mt-1.5 text-hero tabular-nums">{formatCurrency(balance)}</p>
 
       {/* Incomes / Expenses / Invested */}
-      <div className="flex gap-8 border-t border-white/15 pt-4">
+      <div className="flex flex-wrap gap-x-8 gap-y-0 border-t border-white/15 pt-4 lg:flex-nowrap">
         <div className="flex flex-col gap-0.5">
           <span className="text-label uppercase opacity-60">Entradas</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
@@ -52,7 +52,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
             − {formatCurrency(totalExpenses)}
           </span>
         </div>
-        <div className="ml-auto flex flex-col items-end gap-0.5">
+        <div className="mt-3 flex w-full items-center justify-between border-t border-white/10 pt-3 lg:ml-auto lg:mt-0 lg:w-auto lg:flex-col lg:items-end lg:justify-start lg:border-0 lg:pt-0">
           <span className="text-label uppercase opacity-60">Investido</span>
           <span className="text-body font-semibold tabular-nums tracking-tight opacity-85">
             {formatCurrency(totalInvested)}
@@ -63,14 +63,17 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       {/* Budget progress bar */}
       {totalBudget > 0 && (
         <div className="mt-4">
-          <div className="mb-1.5 flex items-center justify-between">
+          <div className="mb-1.5 flex items-start justify-between gap-2">
             <span className="text-label uppercase opacity-65">Orçamento utilizado</span>
-            <span className="text-caption font-semibold tabular-nums opacity-90">
-              {Math.round(budgetPct)}%{' '}
-              <span className="font-normal opacity-70">
+            <div className="flex-shrink-0 text-right">
+              <span className="text-caption font-semibold tabular-nums opacity-90">
+                {Math.round(budgetPct)}%
+              </span>
+              <span className="block text-caption tabular-nums opacity-70 lg:inline">
+                {' '}
                 · {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
               </span>
-            </span>
+            </div>
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-white/20">
             <div

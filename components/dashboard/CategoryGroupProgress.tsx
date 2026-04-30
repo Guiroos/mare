@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils/cn'
 import { TxList, TxItem } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import { BudgetBar } from '@/components/ui/budget-bar'
 import { ChevronDown } from 'lucide-react'
 
@@ -126,6 +128,7 @@ export function CategoryGroupProgress({
     budget: number
     spent: number
   } | null>(null)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   if (groups.length === 0) {
     return <EmptyState title="Nenhum grupo de categoria criado ainda." />
@@ -158,7 +161,7 @@ export function CategoryGroupProgress({
                     <span className="text-small font-semibold text-text-primary">{group.name}</span>
                     <span
                       className={cn(
-                        'text-caption font-semibold tabular-nums',
+                        'text-small font-semibold tabular-nums',
                         over ? 'text-negative-text' : 'text-text-secondary'
                       )}
                     >
@@ -211,7 +214,7 @@ export function CategoryGroupProgress({
                         <span className="flex-1 truncate text-caption text-text-secondary">
                           {cat.name}
                         </span>
-                        <div className="h-1 w-20 flex-shrink-0 overflow-hidden rounded-full bg-bg-muted">
+                        <div className="h-1 w-12 flex-shrink-0 overflow-hidden rounded-full bg-bg-muted lg:w-20">
                           <div
                             className={cn(
                               'h-full rounded-full',
@@ -246,36 +249,77 @@ export function CategoryGroupProgress({
         })}
       </TxList>
 
-      <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedCategory?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedCategory && (
-            <>
-              {selectedCategory.budget > 0 ? (
-                <BudgetBar
-                  current={selectedCategory.spent}
-                  target={selectedCategory.budget}
-                  className="px-1"
+      {isDesktop ? (
+        <Dialog
+          open={!!selectedCategory}
+          onOpenChange={(open) => !open && setSelectedCategory(null)}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{selectedCategory?.name}</DialogTitle>
+            </DialogHeader>
+            {selectedCategory && (
+              <>
+                {selectedCategory.budget > 0 ? (
+                  <BudgetBar
+                    current={selectedCategory.spent}
+                    target={selectedCategory.budget}
+                    className="px-1"
+                  />
+                ) : (
+                  <p className="px-1 text-caption text-text-secondary">
+                    Gasto:{' '}
+                    <span className="font-semibold tabular-nums text-text-primary">
+                      {formatCurrency(selectedCategory.spent)}
+                    </span>
+                  </p>
+                )}
+                <CategoryTransactionsList
+                  categoryId={selectedCategory.id}
+                  transactions={transactions}
+                  fixedExpenses={fixedExpenses}
                 />
-              ) : (
-                <p className="px-1 text-caption text-text-secondary">
-                  Gasto:{' '}
-                  <span className="font-semibold tabular-nums text-text-primary">
-                    {formatCurrency(selectedCategory.spent)}
-                  </span>
-                </p>
-              )}
-              <CategoryTransactionsList
-                categoryId={selectedCategory.id}
-                transactions={transactions}
-                fixedExpenses={fixedExpenses}
-              />
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer
+          open={!!selectedCategory}
+          onOpenChange={(open) => !open && setSelectedCategory(null)}
+        >
+          <DrawerContent className="max-h-[92dvh]">
+            <DrawerHeader>
+              <DrawerTitle>{selectedCategory?.name}</DrawerTitle>
+            </DrawerHeader>
+            {selectedCategory && (
+              <div className="overflow-y-auto px-4 pb-6">
+                {selectedCategory.budget > 0 ? (
+                  <BudgetBar
+                    current={selectedCategory.spent}
+                    target={selectedCategory.budget}
+                    className="px-1"
+                  />
+                ) : (
+                  <p className="px-1 text-caption text-text-secondary">
+                    Gasto:{' '}
+                    <span className="font-semibold tabular-nums text-text-primary">
+                      {formatCurrency(selectedCategory.spent)}
+                    </span>
+                  </p>
+                )}
+                <div className="mt-4">
+                  <CategoryTransactionsList
+                    categoryId={selectedCategory.id}
+                    transactions={transactions}
+                    fixedExpenses={fixedExpenses}
+                  />
+                </div>
+              </div>
+            )}
+          </DrawerContent>
+        </Drawer>
+      )}
     </>
   )
 }

@@ -87,7 +87,7 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
       </div>
 
       {!t.installmentGroup && (
-        <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+        <div className="hidden items-center gap-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100">
           <TransactionEditButton transaction={t} />
           <DeleteButton onDelete={() => deleteTransaction(t.id)} />
         </div>

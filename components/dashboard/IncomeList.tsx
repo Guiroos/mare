@@ -34,7 +34,7 @@ export function IncomeList({ incomes }: { incomes: Income[] }) {
           {/* Source */}
           <p className="flex-1 truncate text-body font-medium text-text-primary">{income.source}</p>
 
-          <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
+          <div className="hidden items-center gap-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100">
             <IncomeEditButton income={income} />
             <DeleteButton onDelete={() => deleteIncome(income.id)} />
           </div>

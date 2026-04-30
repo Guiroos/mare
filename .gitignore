@@ -46,5 +46,9 @@ next-env.d.ts
 # design system
 .ds
 
-# ignore folder 
+# ignore folder
 .ignore
+
+# playwright mcp
+.playwright-mcp/
+*.png
