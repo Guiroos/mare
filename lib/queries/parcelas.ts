@@ -37,13 +37,13 @@ export async function getActiveInstallmentGroups(userId: string) {
         accountId: group.accountId,
         accountName: group.account.name,
         categoryName: group.category.name,
+        categoryColor: group.category.color ?? undefined,
         totalAmount,
         totalInstallments,
         paidInstallments,
         remainingInstallments,
         installmentAmount,
         remainingAmount,
-        startDate: group.startDate,
       }
     })
     .filter((g) => g.remainingInstallments > 0)

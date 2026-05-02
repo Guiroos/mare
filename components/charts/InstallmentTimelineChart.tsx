@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { formatMonthShort } from '@/lib/utils/date'
+import { formatCurrency } from '@/lib/utils/currency'
 
 type Props = {
   data: { month: string; total: number; groups: { name: string; amount: number }[] }[]
@@ -12,14 +13,10 @@ function formatCurrencyShort(value: number) {
   return `R$${value.toFixed(0)}`
 }
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
-
 export function InstallmentTimelineChart({ data }: Props) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-text-secondary">
+      <div className="flex h-40 items-center justify-center text-sm text-text-secondary">
         Nenhum compromisso futuro.
       </div>
     )
@@ -32,7 +29,7 @@ export function InstallmentTimelineChart({ data }: Props) {
   }))
 
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />

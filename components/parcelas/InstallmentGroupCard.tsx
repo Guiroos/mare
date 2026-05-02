@@ -12,11 +12,13 @@ type Group = {
   accountId: string
   accountName: string
   categoryName: string
+  categoryColor?: string
   totalAmount: number
   totalInstallments: number
   paidInstallments: number
   installmentAmount: number
   remainingAmount: number
+  endLabel?: string
 }
 
 export function InstallmentGroupCard({ group }: { group: Group }) {
@@ -28,7 +30,9 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
           <p className="text-xs text-text-secondary">{group.accountName}</p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Badge variant="muted">{group.categoryName}</Badge>
+          <Badge variant="muted" dot={group.categoryColor}>
+            {group.categoryName}
+          </Badge>
           <InstallmentGroupEditButton
             group={{
               id: group.id,
@@ -66,6 +70,12 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
             {formatCurrency(group.totalAmount)}
           </p>
         </div>
+        {group.endLabel && (
+          <div>
+            <p className="text-xs text-text-secondary">termina em</p>
+            <p className="text-sm tabular-nums text-text-secondary">{group.endLabel}</p>
+          </div>
+        )}
       </div>
     </div>
   )
