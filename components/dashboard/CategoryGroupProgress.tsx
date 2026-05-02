@@ -32,7 +32,7 @@ type Group = {
 type Transaction = {
   id: string
   name: string
-  amount: number
+  amount: string
   date: string
   categoryId: string | null
   category: { name: string; color?: string | null; bgColor?: string | null } | null
@@ -44,7 +44,7 @@ type Transaction = {
 type FixedExpense = {
   id: string
   name: string
-  amount: number
+  amount: string
   dueDay: number
   paid: boolean
   categoryId: string | null
@@ -89,7 +89,7 @@ function CategoryTransactionsList({
           key={`fe-${fe.id}`}
           name={fe.name}
           meta={[fe.account?.name, 'Gasto fixo'].filter(Boolean).join(' · ')}
-          amount={formatCurrency(fe.amount)}
+          amount={formatCurrency(Number(fe.amount))}
           amountTone="neg"
           strike={fe.paid}
         />
@@ -99,7 +99,7 @@ function CategoryTransactionsList({
           key={`tx-${tx.id}`}
           name={tx.name}
           meta={[tx.account?.name, formatDisplayDate(tx.date)].filter(Boolean).join(' · ')}
-          amount={formatCurrency(tx.amount)}
+          amount={formatCurrency(Number(tx.amount))}
           amountTone="neg"
           installment={
             tx.installmentNumber && tx.totalInstallments
