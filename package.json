@@ -13,12 +13,14 @@
     "dev": "next dev",
     "build": "drizzle-kit migrate && next build",
     "start": "next start",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "build:check": "next build",
+    "prepare": "husky"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.2",
@@ -54,6 +56,7 @@
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.4",
+    "husky": "9.1.7",
     "postcss": "8.5.10",
     "prettier": "3.8.3",
     "prettier-plugin-tailwindcss": "0.7.2",

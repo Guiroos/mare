@@ -17,7 +17,7 @@ cd "$PROJECT_DIR"
 npx prettier --write "$f" 2>/dev/null
 
 # ESLint: reporta erros
-out=$(npx eslint "$f" 2>&1)
+out=$(npx eslint --max-warnings 0 "$f" 2>&1)
 eslint_exit=$?
 
 [ $eslint_exit -eq 0 ] && exit 0
