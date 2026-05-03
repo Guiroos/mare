@@ -61,7 +61,6 @@ function FormContent({
       investmentTypes={formData.investmentTypes}
       defaultMonth={month}
       onSuccess={onSuccess}
-      showFullPageLink
     />
   )
 }

@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
-  PlusCircle,
   CalendarDays,
   TrendingUp,
   Target,
@@ -17,7 +16,6 @@ import { cn } from '@/lib/utils/cn'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/registro', label: 'Registro', icon: PlusCircle },
   { href: '/parcelas', label: 'Parcelas Futuras', icon: CalendarDays },
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/metas', label: 'Metas', icon: Target },

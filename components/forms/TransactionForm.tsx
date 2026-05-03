@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useTransition, type FormEvent } from 'react'
-import { ExternalLink } from 'lucide-react'
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Chip } from '@/components/ui/chip'
 import { Field } from '@/components/ui/field'
@@ -69,7 +67,6 @@ type Props = {
   investmentTypes?: InvestmentType[]
   defaultMonth?: string
   onSuccess?: () => void
-  showFullPageLink?: boolean
 }
 
 export function TransactionForm({
@@ -78,7 +75,6 @@ export function TransactionForm({
   investmentTypes = [],
   defaultMonth,
   onSuccess,
-  showFullPageLink = false,
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
   const today = todayISOString()
@@ -487,13 +483,6 @@ export function TransactionForm({
           <Button type="submit" className="flex-1" loading={isPending}>
             Salvar
           </Button>
-          {showFullPageLink && (
-            <Button variant="ghost" size="icon" asChild>
-              <Link href={`/registro?month=${month}`} aria-label="Abrir formulário completo">
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
         </div>
       </form>
     </div>
