@@ -109,8 +109,8 @@ export default async function ParcelasPage() {
           </div>
         </Section>
 
-        <Section title="Compromissos por mês">
-          <div className="flex flex-col rounded-xl border bg-bg-surface px-4 py-4">
+        <Section title="Compromissos por mês" className="flex h-full flex-col">
+          <div className="flex flex-1 flex-col rounded-xl border bg-bg-surface px-4 py-4">
             <div className="min-h-0 flex-1">
               <InstallmentTimelineChart data={timeline} />
             </div>
