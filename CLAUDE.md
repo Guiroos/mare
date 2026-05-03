@@ -61,6 +61,9 @@ NEXTAUTH_URL=http://localhost:3000
 
 - Dates are parsed with `T12:00:00` suffix (e.g. `new Date(dateStr + 'T12:00:00')`) to avoid UTC offset shifting the day when converting to `referenceMonth`
 - `session.user.id` is not part of NextAuth's `Session` type; access it with `(session.user as any).id` — this pattern appears in every page and action
+- Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
+- A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
+- Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
 
 ### UI
 
@@ -119,6 +122,8 @@ Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) 
 
 Se um valor não existir como token, **parar e discutir** antes de usar `[valor-arbitrário]`.
 
+`style={{}}` com gradientes `oklch(...)` complexos é aceitável em painéis de brand/decorativos quando não existe token equivalente — não é violação da Regra 3.
+
 #### 4. Componentes de formulário — padrão obrigatório
 
 - Sempre usar `<Field label="...">` em vez de `<div> + <Label>` manual
@@ -129,7 +134,7 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 
 | Arquivo              | Componente(s)               | Uso                                                                    |
 | -------------------- | --------------------------- | ---------------------------------------------------------------------- |
-| `button.tsx`         | `Button`                    | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` |
+| `button.tsx`         | `Button`                    | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` `surface` |
 | `badge.tsx`          | `Badge`                     | Variantes: `positive` `negative` `accent` `warning` `muted`            |
 | `chip.tsx`           | `Chip`                      | Toggle com prop `active`                                               |
 | `input.tsx`          | `Input`                     | Prop `error` disponível                                                |
