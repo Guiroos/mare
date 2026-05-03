@@ -5,6 +5,8 @@ import { formatCurrency } from '@/lib/utils/currency'
 import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
 import { Card } from '@/components/ui/card'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
+import { PageLayout } from '@/components/ui/page-layout'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function PanoramaPage() {
   const session = await auth()
@@ -28,12 +30,8 @@ export default async function PanoramaPage() {
   )
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Panorama Anual</h1>
-        <p className="text-sm text-text-secondary">{year}</p>
-      </div>
+    <PageLayout>
+      <PageHeader title="Panorama Anual" description={String(year)} />
 
       {/* Section 1 — Monthly table */}
       <Card>
@@ -178,6 +176,6 @@ export default async function PanoramaPage() {
         <h2 className="mb-5 text-body font-semibold text-text-primary">Gastos por grupo</h2>
         <AnnualStackedChart data={expensesByGroup} allGroupNames={allGroupNames} />
       </Card>
-    </div>
+    </PageLayout>
   )
 }

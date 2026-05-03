@@ -18,6 +18,8 @@ import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
 import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { PatrimonyChart } from '@/components/charts/PatrimonyChart'
+import { PageLayout } from '@/components/ui/page-layout'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function InvestimentosPage() {
   const session = await auth()
@@ -38,13 +40,11 @@ export default async function InvestimentosPage() {
   const totalPatrimony = balances.reduce((sum, b) => sum + b.currentBalance, 0)
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold">Investimentos</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Acompanhe seus aportes, rendimentos e patrimônio acumulado.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Investimentos"
+        description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
+      />
 
       {/* ─── Patrimônio total ─────────────────────────────────────────────── */}
       {balances.length > 0 && (
@@ -249,6 +249,6 @@ export default async function InvestimentosPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageLayout>
   )
 }

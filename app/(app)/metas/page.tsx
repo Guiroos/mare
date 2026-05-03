@@ -12,6 +12,8 @@ import { GoalDialog } from '@/components/metas/GoalDialog'
 import { ContributionDialog } from '@/components/metas/ContributionDialog'
 import { ContributionEditButton } from '@/components/metas/ContributionEditButton'
 import { DeleteButton } from '@/components/ui/delete-button'
+import { PageLayout } from '@/components/ui/page-layout'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function MetasPage() {
   const session = await auth()
@@ -27,13 +29,8 @@ export default async function MetasPage() {
   const investmentTypeOptions = investmentTypes.map((t) => ({ id: t.id, name: t.name }))
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold">Metas</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Acompanhe o progresso das suas metas financeiras.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader title="Metas" description="Acompanhe o progresso das suas metas financeiras." />
 
       {/* ─── Lista de metas ───────────────────────────────────────────────── */}
       <div className="space-y-4">
@@ -165,6 +162,6 @@ export default async function MetasPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageLayout>
   )
 }

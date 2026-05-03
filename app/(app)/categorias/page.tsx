@@ -11,6 +11,8 @@ import { deleteCategoryGroup, deleteCategory, deletePaymentAccount } from '@/lib
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Separator } from '@/components/ui/separator'
+import { PageLayout } from '@/components/ui/page-layout'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default async function CategoriasPage() {
   const session = await auth()
@@ -32,13 +34,11 @@ export default async function CategoriasPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold">Categorias e grupos</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Gerencie grupos, categorias e contas de pagamento.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Categorias e grupos"
+        description="Gerencie grupos, categorias e contas de pagamento."
+      />
 
       {/* ─── Grupos e Categorias ─────────────────────────────────────────── */}
       <div className="space-y-4">
@@ -181,6 +181,6 @@ export default async function CategoriasPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageLayout>
   )
 }
