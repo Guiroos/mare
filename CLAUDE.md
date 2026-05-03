@@ -141,4 +141,3 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 | `delete-button.tsx`  | `DeleteButton`              | Confirmação inline. **Nunca** criar botão de delete ad-hoc             |
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
-
