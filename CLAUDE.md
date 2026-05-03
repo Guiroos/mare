@@ -10,9 +10,10 @@ npm run build        # production build
 npm run db:generate  # generate Drizzle migration from schema changes
 npm run db:migrate   # apply pending migrations to the database
 npm run db:studio    # open Drizzle Studio (DB browser)
+npm run lint         # run ESLint (next lint)
 ```
 
-No test runner is configured.
+Não há testes automatizados. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
 
 ## Environment
 
@@ -65,6 +66,8 @@ NEXTAUTH_URL=http://localhost:3000
 
 - Maré Design System em `components/ui/` — **não** é mais shadcn/ui genérico
 - Recharts para charts (`components/charts/`)
+- Custom React hooks em `hooks/`
+- `.ds/` — pasta local (não versionada) com arquivos de referência visuais usados ao criar novas telas
 - Tailwind CSS; tokens em `tailwind.config.ts` + CSS vars em `app/globals.css`
 - Responsive layout: sidebar em `lg`, bottom nav em mobile
 
@@ -139,17 +142,3 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
 
-## Context Engineering (Main Agent Discipline)
-
-The main agent is an **orchestrator**, not an executor.
-
-**Main agent role:** Coordinate files, spawn sub-agents, process summaries, communicate with the user.
-
-**The main agent NEVER:** Broadly explores the codebase, implements code changes, runs builds/tests, or processes large command outputs. All of that is delegated to sub-agents.
-
-### Sub-agent Communication Protocol
-
-- Every prompt ends with: "Return a structured summary: [exact fields]"
-- Never ask a sub-agent to "return everything"
-- Target: 10–20 lines of actionable information per result
-- Chain sub-agents: pass only the relevant fields between them
