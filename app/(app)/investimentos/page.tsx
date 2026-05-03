@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import {
   getInvestmentBalances,
-  getInvestmentHistory,
   getInvestmentWithdrawals,
   getPatrimonyTimeline,
 } from '@/lib/queries/investments'
@@ -32,8 +31,6 @@ export default async function InvestimentosPage() {
     getInvestmentWithdrawals(userId),
     getPatrimonyTimeline(userId),
   ])
-
-  const histories = await Promise.all(balances.map((b) => getInvestmentHistory(userId, b.id)))
 
   const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
 
@@ -67,8 +64,8 @@ export default async function InvestimentosPage() {
           <EmptyState title="Nenhum tipo de investimento cadastrado." />
         ) : (
           <div className="space-y-3">
-            {balances.map((balance, idx) => {
-              const history = histories[idx]
+            {balances.map((balance) => {
+              const history = balance.entries
               return (
                 <div key={balance.id} className="rounded-xl border bg-bg-surface">
                   {/* Header do tipo */}

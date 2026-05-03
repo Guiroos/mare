@@ -54,6 +54,15 @@ export async function getInvestmentBalances(userId: string) {
         totalWithdrawn,
         currentBalance,
         pendingYield,
+        entries: allEntries
+          .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))
+          .map((e) => ({
+            id: e.id,
+            referenceMonth: e.referenceMonth,
+            amount: e.amount !== null ? Number(e.amount) : null,
+            yieldAmount: e.yieldAmount !== null ? Number(e.yieldAmount) : null,
+            notes: e.notes,
+          })),
       }
     })
   )
