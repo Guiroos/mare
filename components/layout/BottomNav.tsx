@@ -36,14 +36,20 @@ function NavItem({
   label,
   icon: Icon,
   active,
+  onClick,
 }: {
   href: string
   label: string
   icon: React.ElementType
   active: boolean
+  onClick?: () => void
 }) {
   return (
-    <Link href={href} className="flex flex-1 flex-col items-center gap-[3px] px-1 py-2">
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex flex-1 flex-col items-center gap-[3px] px-1 py-2"
+    >
       <div
         className={cn(
           'duration-[160ms] flex h-7 w-11 items-center justify-center rounded-[14px] transition-all',
@@ -72,9 +78,14 @@ function NavItem({
 export function BottomNav() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const { open } = useRegistrationDialog()
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  // If pathname already matches pendingHref, navigation settled — ignore pending
+  const isActive = (href: string) => {
+    if (pendingHref !== null && pendingHref !== pathname) return pendingHref === href
+    return pathname === href || pathname.startsWith(href + '/')
+  }
   const isMenuActive = menuItems.some(({ href }) => isActive(href))
 
   return (
@@ -86,7 +97,14 @@ export function BottomNav() {
         <div className="flex h-full items-center justify-around px-1">
           {/* Left items */}
           {primaryNav.slice(0, 2).map(({ href, label, icon }) => (
-            <NavItem key={href} href={href} label={label} icon={icon} active={isActive(href)} />
+            <NavItem
+              key={href}
+              href={href}
+              label={label}
+              icon={icon}
+              active={isActive(href)}
+              onClick={() => setPendingHref(href)}
+            />
           ))}
 
           {/* FAB */}
@@ -111,6 +129,7 @@ export function BottomNav() {
             label="Investir"
             icon={TrendingUp}
             active={isActive('/investimentos')}
+            onClick={() => setPendingHref('/investimentos')}
           />
 
           {/* Menu */}
@@ -153,7 +172,10 @@ export function BottomNav() {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  setPendingHref(href)
+                  setMenuOpen(false)
+                }}
                 className={cn(
                   'flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
                   isActive(href)

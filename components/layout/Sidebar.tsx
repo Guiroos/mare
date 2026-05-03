@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -36,15 +37,18 @@ function NavItem({
   label,
   icon: Icon,
   active,
+  onClick,
 }: {
   href: string
   label: string
   icon: React.ElementType
   active: boolean
+  onClick: () => void
 }) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       className={cn(
         'duration-[120ms] relative flex items-center gap-[11px] rounded-md px-3 py-[9px] text-[13.5px] font-medium transition-all',
         active
@@ -63,7 +67,13 @@ function NavItem({
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/')
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+
+  // If pathname already matches pendingHref, navigation settled — ignore pending
+  const isActive = (href: string) => {
+    if (pendingHref !== null && pendingHref !== pathname) return pendingHref === href
+    return pathname === href || pathname.startsWith(href + '/')
+  }
 
   const initials = user?.name
     ? user.name
@@ -112,7 +122,14 @@ export function Sidebar({ user }: SidebarProps) {
       </p>
       <nav className="flex flex-col gap-[2px] overflow-visible px-[10px]">
         {mainNav.map(({ href, label, icon }) => (
-          <NavItem key={href} href={href} label={label} icon={icon} active={isActive(href)} />
+          <NavItem
+            key={href}
+            href={href}
+            label={label}
+            icon={icon}
+            active={isActive(href)}
+            onClick={() => setPendingHref(href)}
+          />
         ))}
       </nav>
 
@@ -124,7 +141,14 @@ export function Sidebar({ user }: SidebarProps) {
       </p>
       <nav className="flex flex-col gap-[2px] overflow-visible px-[10px]">
         {configNav.map(({ href, label, icon }) => (
-          <NavItem key={href} href={href} label={label} icon={icon} active={isActive(href)} />
+          <NavItem
+            key={href}
+            href={href}
+            label={label}
+            icon={icon}
+            active={isActive(href)}
+            onClick={() => setPendingHref(href)}
+          />
         ))}
       </nav>
 
