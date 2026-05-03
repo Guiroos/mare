@@ -123,6 +123,44 @@ export async function deleteFixedExpense(id: string) {
   revalidatePath('/dashboard')
 }
 
+export async function copyFixedExpensesFromPrevMonth(
+  referenceMonth: string,
+  prevReferenceMonth: string
+) {
+  const session = await auth()
+  const userId = requireUserId(session)
+
+  const prevExpenses = await db.query.fixedExpenses.findMany({
+    where: and(
+      eq(fixedExpenses.userId, userId),
+      eq(fixedExpenses.referenceMonth, prevReferenceMonth)
+    ),
+  })
+
+  if (prevExpenses.length === 0) return { copied: 0 }
+
+  await db
+    .delete(fixedExpenses)
+    .where(and(eq(fixedExpenses.userId, userId), eq(fixedExpenses.referenceMonth, referenceMonth)))
+
+  await db.insert(fixedExpenses).values(
+    prevExpenses.map((e) => ({
+      userId,
+      name: e.name,
+      amount: e.amount,
+      dueDay: e.dueDay,
+      categoryId: e.categoryId,
+      accountId: e.accountId,
+      referenceMonth,
+      paid: false,
+    }))
+  )
+
+  revalidatePath('/configuracao-mes')
+  revalidatePath('/dashboard')
+  return { copied: prevExpenses.length }
+}
+
 // ─── Compra parcelada ─────────────────────────────────────────────────────────
 
 export type CreateInstallmentInput = {

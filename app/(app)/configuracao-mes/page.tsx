@@ -13,6 +13,10 @@ import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList'
 import { BudgetOverrideDialog } from '@/components/configuracao-mes/BudgetOverrideDialog'
 import { CopyPrevMonthButton } from '@/components/configuracao-mes/CopyPrevMonthButton'
+import { CopyFixedExpensesButton } from '@/components/configuracao-mes/CopyFixedExpensesButton'
+import { PageHeader } from '@/components/ui/page-header'
+import { PageLayout } from '@/components/ui/page-layout'
+import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils/cn'
@@ -47,15 +51,16 @@ export default async function ConfiguracaoMesPage({
   const totalInstallments = installments.reduce((sum, t) => sum + Number(t.amount), 0)
 
   return (
-    <div className="max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-xl font-bold">Configuração do mês</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Ajuste orçamentos, marque fixos e veja compromissos.
-        </p>
-      </div>
+    <PageLayout>
+      <PageHeader
+        title="Configuração do mês"
+        description="Ajuste orçamentos, marque fixos e veja compromissos."
+      />
 
       <MonthSelector currentMonth={month} isCurrentMonth={isCurrentMonth} />
+
+      {/* ─── Resumo comprometido ─────────────────────────────────────────── */}
+      <CommittedSummary totalFixed={totalFixed} totalInstallments={totalInstallments} />
 
       {/* ─── Orçamentos do mês ──────────────────────────────────────────── */}
       <Section
@@ -91,9 +96,7 @@ export default async function ConfiguracaoMesPage({
                             <span
                               className={cn(
                                 'text-sm font-medium',
-                                hasOverride
-                                  ? 'text-blue-600 dark:text-blue-400'
-                                  : 'text-text-secondary'
+                                hasOverride ? 'text-accent' : 'text-text-secondary'
                               )}
                             >
                               {formatCurrency(effective)}
@@ -125,7 +128,15 @@ export default async function ConfiguracaoMesPage({
       </Section>
 
       {/* ─── Gastos fixos ───────────────────────────────────────────────── */}
-      <Section title="Gastos fixos">
+      <Section
+        title="Gastos fixos"
+        action={
+          <CopyFixedExpensesButton
+            referenceMonth={referenceMonth}
+            prevReferenceMonth={prevReferenceMonth}
+          />
+        }
+      >
         <FixedExpenseList
           expenses={fixedExpenses}
           yearMonth={month}
@@ -156,7 +167,7 @@ export default async function ConfiguracaoMesPage({
                     )}
                   </div>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-red-600">
+                <span className="shrink-0 text-sm font-semibold text-negative">
                   {formatCurrency(Number(t.amount))}
                 </span>
               </div>
@@ -164,48 +175,35 @@ export default async function ConfiguracaoMesPage({
           </div>
         )}
       </Section>
-
-      {/* ─── Resumo comprometido ────────────────────────────────────────── */}
-      <Section title="Comprometido neste mês">
-        <div className="divide-y rounded-xl border bg-bg-surface">
-          <SummaryRow label="Gastos fixos" value={totalFixed} />
-          <SummaryRow label="Parcelas" value={totalInstallments} />
-          <SummaryRow label="Total comprometido" value={totalFixed + totalInstallments} bold />
-        </div>
-      </Section>
-    </div>
+    </PageLayout>
   )
 }
 
-function Section({
-  title,
-  children,
-  action,
+function CommittedSummary({
+  totalFixed,
+  totalInstallments,
 }: {
-  title: string
-  children: React.ReactNode
-  action?: React.ReactNode
+  totalFixed: number
+  totalInstallments: number
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-          {title}
-        </h2>
-        {action}
+    <div className="rounded-xl border bg-bg-surface px-5 py-4">
+      <div className="flex flex-wrap gap-x-8 gap-y-3">
+        <div>
+          <p className="text-caption text-text-secondary">Gastos fixos</p>
+          <p className="text-h3 font-semibold tabular-nums">{formatCurrency(totalFixed)}</p>
+        </div>
+        <div>
+          <p className="text-caption text-text-secondary">Parcelas</p>
+          <p className="text-h3 font-semibold tabular-nums">{formatCurrency(totalInstallments)}</p>
+        </div>
+        <div>
+          <p className="text-caption text-text-secondary">Total comprometido</p>
+          <p className="text-h2 font-bold tabular-nums text-negative">
+            {formatCurrency(totalFixed + totalInstallments)}
+          </p>
+        </div>
       </div>
-      {children}
-    </div>
-  )
-}
-
-function SummaryRow({ label, value, bold }: { label: string; value: number; bold?: boolean }) {
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
-      <span className={cn('text-sm', bold && 'font-semibold')}>{label}</span>
-      <span className={cn('text-sm', bold ? 'font-bold text-red-600' : 'text-text-secondary')}>
-        {formatCurrency(value)}
-      </span>
     </div>
   )
 }

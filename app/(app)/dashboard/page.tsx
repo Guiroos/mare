@@ -12,6 +12,7 @@ import { IncomeList } from '@/components/dashboard/IncomeList'
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
 import { InvestmentList } from '@/components/dashboard/InvestmentList'
 import { PendencyBanner } from '@/components/dashboard/PendencyBanner'
+import { PageLayout } from '@/components/ui/page-layout'
 
 export default async function DashboardPage({
   searchParams,
@@ -44,7 +45,7 @@ export default async function DashboardPage({
   const totalInvested = data.summary.totalInvested
 
   return (
-    <div className="flex flex-col gap-7">
+    <PageLayout>
       <MonthSelector currentMonth={month} isCurrentMonth={isCurrentMonth} />
 
       <PendencyBanner unpaidFixedCount={unpaidFixedCount} pendingYieldCount={pendingYieldCount} />
@@ -104,7 +105,7 @@ export default async function DashboardPage({
       </div>
 
       <DashboardFAB month={month} />
-    </div>
+    </PageLayout>
   )
 }
 
@@ -122,13 +123,15 @@ function Section({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex items-center justify-between">
-        <h2 className="text-label uppercase text-text-tertiary">{title}</h2>
+        <h2 className="text-label font-semibold uppercase tracking-wide text-text-secondary">
+          {title}
+        </h2>
         {count && (
           <span
             className={
               countVariant === 'positive'
                 ? 'rounded-full border border-positive bg-positive-subtle px-2 py-0.5 text-label text-positive-text'
-                : 'rounded-full border border-border bg-bg-subtle px-2 py-0.5 text-label text-text-tertiary'
+                : 'rounded-full border border-border bg-bg-subtle px-2 py-0.5 text-label text-text-secondary'
             }
           >
             {count}

@@ -5,6 +5,9 @@ import { InstallmentTimelineChart } from '@/components/charts/InstallmentTimelin
 import { InstallmentCategoryChart } from '@/components/charts/InstallmentCategoryChart'
 import { InstallmentGroupCard } from '@/components/parcelas/InstallmentGroupCard'
 import { EmptyState } from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
+import { PageLayout } from '@/components/ui/page-layout'
+import { Section } from '@/components/ui/section'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYearMonth, formatMonthShort } from '@/lib/utils/date'
 
@@ -54,14 +57,12 @@ export default async function ParcelasPage() {
   )
 
   return (
-    <div className="space-y-8">
+    <PageLayout>
       {/* ─── Header ──────────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-xl font-bold">Parcelas Futuras</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Acompanhe suas compras parceladas e os compromissos por mês.
-        </p>
-      </div>
+      <PageHeader
+        title="Parcelas Futuras"
+        description="Acompanhe suas compras parceladas e os compromissos por mês."
+      />
 
       {/* ─── Resumo ──────────────────────────────────────────────────────────── */}
       {groupsWithEnd.length > 0 && (
@@ -88,11 +89,7 @@ export default async function ParcelasPage() {
       )}
 
       {/* ─── Parcelas ativas ─────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-          Parcelas ativas
-        </h2>
-
+      <Section title="Parcelas ativas">
         {groupsWithEnd.length === 0 ? (
           <EmptyState title="Nenhuma parcela ativa." />
         ) : (
@@ -102,30 +99,24 @@ export default async function ParcelasPage() {
             ))}
           </div>
         )}
-      </div>
+      </Section>
 
       {/* ─── Gráficos ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Distribuição por categoria
-          </h2>
-          <div className="flex-1 rounded-xl border bg-bg-surface px-4 py-4">
+        <Section title="Distribuição por categoria">
+          <div className="rounded-xl border bg-bg-surface px-4 py-4">
             <InstallmentCategoryChart data={categoryData} />
           </div>
-        </div>
+        </Section>
 
-        <div className="flex flex-col gap-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Compromissos por mês
-          </h2>
-          <div className="flex flex-1 flex-col rounded-xl border bg-bg-surface px-4 py-4">
+        <Section title="Compromissos por mês">
+          <div className="flex flex-col rounded-xl border bg-bg-surface px-4 py-4">
             <div className="min-h-0 flex-1">
               <InstallmentTimelineChart data={timeline} />
             </div>
           </div>
-        </div>
+        </Section>
       </div>
-    </div>
+    </PageLayout>
   )
 }
