@@ -2,7 +2,14 @@ import { forwardRef, ReactNode, ButtonHTMLAttributes } from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { Loader2 } from 'lucide-react'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'positive'
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'outline'
+  | 'ghost'
+  | 'danger'
+  | 'positive'
+  | 'surface'
 export type ButtonSize = 'lg' | 'md' | 'sm' | 'xs' | 'icon'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -18,7 +25,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const base =
   'inline-flex items-center justify-center gap-2 font-sans font-medium whitespace-nowrap ' +
   'transition-[background,color,transform,box-shadow] duration-fast ease-out ' +
-  'outline-none border-none cursor-pointer active:scale-[0.97] antialiased ' +
+  'outline-none cursor-pointer active:scale-[0.97] antialiased ' +
   'disabled:opacity-45 disabled:pointer-events-none'
 
 const variants: Record<ButtonVariant, string> = {
@@ -28,6 +35,8 @@ const variants: Record<ButtonVariant, string> = {
   ghost: 'bg-transparent text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
   danger: 'bg-negative-subtle text-negative-text hover:bg-negative hover:text-white',
   positive: 'bg-positive text-white hover:bg-positive-hover',
+  surface:
+    'bg-bg-surface text-text-primary border border-border shadow-sm hover:-translate-y-px hover:border-border-strong hover:shadow-md',
 }
 
 const sizes: Record<ButtonSize, string> = {

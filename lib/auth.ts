@@ -1,6 +1,8 @@
 import { type NextAuthOptions, getServerSession } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
+import CredentialsProvider from 'next-auth/providers/credentials'
 import { DrizzleAdapter } from '@auth/drizzle-adapter'
+import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { accounts, sessions, users, verificationTokens } from '@/lib/db/schema'
 import { seedDefaultCategories } from '@/lib/db/seed-user'
@@ -21,12 +23,27 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    CredentialsProvider({
+      id: 'dev',
+      name: 'Dev Login',
+      credentials: {},
+      async authorize() {
+        if (process.env.NODE_ENV !== 'development') return null
+        const DEV_EMAIL = 'dev@local.dev'
+        await db.insert(users).values({ email: DEV_EMAIL, name: 'Dev User' }).onConflictDoNothing()
+        const [user] = await db.select().from(users).where(eq(users.email, DEV_EMAIL))
+        if (!user) return null
+        await seedDefaultCategories(user.id)
+        return { id: user.id, email: user.email, name: user.name }
+      },
+    }),
   ],
   session: {
     strategy: 'jwt',
   },
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account }) {
+      if (account?.provider === 'dev') return true
       const allowed = (process.env.ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim())
       return allowed.includes(user.email ?? '')
     },
