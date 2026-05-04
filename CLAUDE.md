@@ -43,6 +43,7 @@ NEXTAUTH_URL=http://localhost:3000
 - **ORM**: Drizzle ORM — schema in `lib/db/schema.ts`, migrations in `lib/db/migrations/`
 - **Queries** (`lib/queries/`): server-side read functions, called directly from async Server Components
 - **Actions** (`lib/actions/`): `"use server"` functions for mutations; each calls `auth()` to get `userId`, performs the DB operation, then calls `revalidatePath`
+- **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas
 
 ### Auth
 
@@ -51,10 +52,10 @@ NEXTAUTH_URL=http://localhost:3000
 ### Key domain concepts
 
 - All financial data is scoped per `userId` and per `referenceMonth` (always stored as `YYYY-MM-01`)
-- Month params in URLs are `YYYY-MM`; use `lib/format.ts` helpers (`currentYearMonth`, `yearMonthToReferenceMonth`, `referenceMonthToYearMonth`, `prevMonth`, `nextMonth`) — never construct month strings manually
+- Month params in URLs are `YYYY-MM`; use `lib/utils/date.ts` helpers (`currentYearMonth`, `yearMonthToReferenceMonth`, `referenceMonthToYearMonth`, `prevMonth`, `nextMonth`, `billingCycleDateRange`) — never construct month strings manually
 - Budget for a category is `category.defaultBudget` unless overridden by a `monthlyBudgetOverride` for that month
 - An installment purchase creates one `installmentGroup` row and N `transaction` rows (one per month), named `"<name> (i/N)"`
-- `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`
+- `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a "Ciclo fatura" toggle (`?view=cycle&closingDay=N`) that groups transactions by billing cycle instead of calendar month
 - Payment accounts are managed under `/categorias`, not a separate route
 
 ### Gotchas
