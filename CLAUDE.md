@@ -66,6 +66,8 @@ NEXTAUTH_URL=http://localhost:3000
 - Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
 - A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
+- Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
+- Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
 
 ### UI
 
@@ -108,7 +110,7 @@ Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no s
 Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) `p-2.5` (10px)
 
 **Cores** — tokens semânticos do DS:
-`bg-base` `bg-surface` `bg-subtle` `bg-muted` / `text-primary` `text-secondary` `text-tertiary` `text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
+`bg-bg-base` `bg-bg-surface` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` `text-text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
 
 **Sombras** — `shadow-sm` `shadow-md` `shadow-lg` (mapeados para CSS vars)
 
