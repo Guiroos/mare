@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { categoryGroups, monthlyBudgetOverrides, paymentAccounts } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and, gt } from 'drizzle-orm'
 
 export async function getCategoriesWithGroups(userId: string) {
   return db.query.categoryGroups.findMany({
@@ -15,6 +15,22 @@ export async function getPaymentAccounts(userId: string) {
     where: eq(paymentAccounts.userId, userId),
     orderBy: [paymentAccounts.name],
   })
+}
+
+/** Returns only the closing days of credit accounts with closingDay > 1.
+ *  Lightweight alternative to getPaymentAccounts for the dashboard billing cycle toggle. */
+export async function getCreditClosingDays(userId: string): Promise<number[]> {
+  const rows = await db
+    .select({ closingDay: paymentAccounts.closingDay })
+    .from(paymentAccounts)
+    .where(
+      and(
+        eq(paymentAccounts.userId, userId),
+        eq(paymentAccounts.type, 'credit'),
+        gt(paymentAccounts.closingDay, 1)
+      )
+    )
+  return rows.map((r) => r.closingDay as number)
 }
 
 export async function getCategoriesWithBudgets(userId: string, referenceMonth: string) {

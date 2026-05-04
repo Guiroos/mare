@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { transactions, fixedExpenses, incomes, investments, categoryGroups } from '@/lib/db/schema'
-import { eq, and, sum, gte, lte } from 'drizzle-orm'
+import { eq, and, sum, gte, lte, inArray } from 'drizzle-orm'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -16,54 +16,45 @@ function yearMonths(year: number): string[] {
 export async function getAnnualOverview(userId: string, year: number) {
   const months = yearMonths(year)
 
-  const results = await Promise.all(
-    months.map(async (referenceMonth) => {
-      const [incomesResult, transactionsResult, fixedExpensesResult, investmentsResult] =
-        await Promise.all([
-          db
-            .select({ total: sum(incomes.amount) })
-            .from(incomes)
-            .where(and(eq(incomes.userId, userId), eq(incomes.referenceMonth, referenceMonth))),
-          db
-            .select({ total: sum(transactions.amount) })
-            .from(transactions)
-            .where(
-              and(eq(transactions.userId, userId), eq(transactions.referenceMonth, referenceMonth))
-            ),
-          db
-            .select({ total: sum(fixedExpenses.amount) })
-            .from(fixedExpenses)
-            .where(
-              and(
-                eq(fixedExpenses.userId, userId),
-                eq(fixedExpenses.referenceMonth, referenceMonth)
-              )
-            ),
-          db
-            .select({ total: sum(investments.amount) })
-            .from(investments)
-            .where(
-              and(eq(investments.userId, userId), eq(investments.referenceMonth, referenceMonth))
-            ),
-        ])
+  const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows] = await Promise.all([
+    db
+      .select({ referenceMonth: incomes.referenceMonth, total: sum(incomes.amount) })
+      .from(incomes)
+      .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months)))
+      .groupBy(incomes.referenceMonth),
+    db
+      .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months)))
+      .groupBy(transactions.referenceMonth),
+    db
+      .select({ referenceMonth: fixedExpenses.referenceMonth, total: sum(fixedExpenses.amount) })
+      .from(fixedExpenses)
+      .where(and(eq(fixedExpenses.userId, userId), inArray(fixedExpenses.referenceMonth, months)))
+      .groupBy(fixedExpenses.referenceMonth),
+    db
+      .select({ referenceMonth: investments.referenceMonth, total: sum(investments.amount) })
+      .from(investments)
+      .where(and(eq(investments.userId, userId), inArray(investments.referenceMonth, months)))
+      .groupBy(investments.referenceMonth),
+  ])
 
-      const totalIncomes = Number(incomesResult[0]?.total ?? 0)
-      const totalExpenses =
-        Number(transactionsResult[0]?.total ?? 0) + Number(fixedExpensesResult[0]?.total ?? 0)
-      const totalInvested = Number(investmentsResult[0]?.total ?? 0)
-      const balance = totalIncomes - totalExpenses - totalInvested
+  const toMap = (rows: { referenceMonth: string; total: string | null }[]) =>
+    new Map(rows.map((r) => [r.referenceMonth, Number(r.total ?? 0)]))
 
-      return {
-        month: referenceMonth.slice(0, 7), // YYYY-MM
-        totalIncomes,
-        totalExpenses,
-        totalInvested,
-        balance,
-      }
-    })
-  )
+  const incomesMap = toMap(incomesRows)
+  const transactionsMap = toMap(transactionsRows)
+  const fixedExpensesMap = toMap(fixedExpensesRows)
+  const investmentsMap = toMap(investmentsRows)
 
-  return results
+  return months.map((refMonth) => {
+    const totalIncomes = incomesMap.get(refMonth) ?? 0
+    const totalExpenses =
+      (transactionsMap.get(refMonth) ?? 0) + (fixedExpensesMap.get(refMonth) ?? 0)
+    const totalInvested = investmentsMap.get(refMonth) ?? 0
+    const balance = totalIncomes - totalExpenses - totalInvested
+    return { month: refMonth.slice(0, 7), totalIncomes, totalExpenses, totalInvested, balance }
+  })
 }
 
 // ─── Gastos anuais por grupo de categoria ─────────────────────────────────────

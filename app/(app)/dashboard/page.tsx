@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getDashboardData, getDashboardDataBillingCycle } from '@/lib/queries/dashboard'
-import { getPaymentAccounts } from '@/lib/queries/categories'
+import { getCreditClosingDays } from '@/lib/queries/categories'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
@@ -32,11 +32,7 @@ export default async function DashboardPage({
   const month = searchParams.month ?? currentYearMonth()
   const referenceMonth = yearMonthToReferenceMonth(month)
 
-  // Detect available closing days from credit card accounts
-  const accounts = await getPaymentAccounts(userId)
-  const creditClosingDays = accounts
-    .filter((a) => a.type === 'credit' && a.closingDay != null && a.closingDay > 1)
-    .map((a) => a.closingDay as number)
+  const creditClosingDays = await getCreditClosingDays(userId)
   const hasBillingCycle = creditClosingDays.length > 0
 
   // Resolve active closing day (from URL param or first available)

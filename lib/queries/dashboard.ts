@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/schema'
 import { eq, and, or, sum, desc, between, gte, lt, inArray } from 'drizzle-orm'
 import { pastNMonths, yearMonthToReferenceMonth, prevMonth } from '@/lib/utils/date'
+import { toAmount } from '@/lib/utils/currency'
 
 // ─── Gastos por grupo de categoria ───────────────────────────────────────────
 
@@ -43,16 +44,16 @@ export async function getCategoryGroupProgress(userId: string, referenceMonth: s
 
   const spentMap = new Map<string, number>()
   for (const r of spentByCategory) {
-    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + Number(r.total ?? 0))
+    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + toAmount(r.total))
   }
   for (const r of fixedByCategory) {
-    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + Number(r.total ?? 0))
+    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + toAmount(r.total))
   }
 
   return groups.map((group) => {
     const categoryDetails = group.categories.map((cat) => {
       const override = cat.budgetOverrides[0]
-      const budget = Number(override?.amount ?? cat.defaultBudget ?? 0)
+      const budget = toAmount(override?.amount ?? cat.defaultBudget)
       const spent = spentMap.get(cat.id) ?? 0
       return {
         id: cat.id,
@@ -129,11 +130,11 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
     getMonthlyEvolution(userId),
   ])
 
-  const totalIncomes = incomeList.reduce((s, i) => s + Number(i.amount), 0)
+  const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
   const totalExpenses =
-    monthTransactions.reduce((s, t) => s + Number(t.amount), 0) +
-    fixedExpenseList.reduce((s, e) => s + Number(e.amount), 0)
-  const totalInvested = investmentList.reduce((s, i) => s + Number(i.amount), 0)
+    monthTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
+    fixedExpenseList.reduce((s, e) => s + toAmount(e.amount), 0)
+  const totalInvested = investmentList.reduce((s, i) => s + toAmount(i.amount), 0)
   const balance = totalIncomes - totalExpenses - totalInvested
   const totalBudget = groupProgress.reduce((s, g) => s + g.totalBudget, 0)
   const totalSpent = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
@@ -209,10 +210,10 @@ export async function getDashboardDataBillingCycle(
   ])
 
   const totalExpenses =
-    cycleTransactions.reduce((s, t) => s + Number(t.amount), 0) +
-    cycleFixedExpenses.reduce((s, e) => s + Number(e.amount), 0)
-  const totalIncomes = incomeList.reduce((s, i) => s + Number(i.amount), 0)
-  const totalInvested = investmentList.reduce((s, i) => s + Number(i.amount), 0)
+    cycleTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
+    cycleFixedExpenses.reduce((s, e) => s + toAmount(e.amount), 0)
+  const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
+  const totalInvested = investmentList.reduce((s, i) => s + toAmount(i.amount), 0)
   const balance = totalIncomes - totalExpenses - totalInvested
   const totalBudget = groupProgress.reduce((s, g) => s + g.totalBudget, 0)
   const totalSpent = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
@@ -258,7 +259,7 @@ export async function getMonthlyEvolution(userId: string, monthsBack: number = 6
   ])
 
   const toMap = (rows: { referenceMonth: string; total: string | null }[]) =>
-    new Map(rows.map((r) => [r.referenceMonth, Number(r.total ?? 0)]))
+    new Map(rows.map((r) => [r.referenceMonth, toAmount(r.total)]))
 
   const incomesMap = toMap(incomesRows)
   const transactionsMap = toMap(transactionsRows)

@@ -43,7 +43,8 @@ NEXTAUTH_URL=http://localhost:3000
 - **ORM**: Drizzle ORM — schema in `lib/db/schema.ts`, migrations in `lib/db/migrations/`
 - **Queries** (`lib/queries/`): server-side read functions, called directly from async Server Components
 - **Actions** (`lib/actions/`): `"use server"` functions for mutations; each calls `auth()` to get `userId`, performs the DB operation, then calls `revalidatePath`
-- **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas
+- **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas; mesmo padrão aplicado em `panorama.ts` (`getAnnualOverview`)
+- **`toAmount(val)`** em `lib/utils/currency.ts` — use em vez de `Number(x.amount)` em queries; centraliza a conversão de campos `decimal` do Drizzle (retornados como string)
 
 ### Auth
 
