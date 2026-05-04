@@ -68,6 +68,9 @@ NEXTAUTH_URL=http://localhost:3000
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
 - Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
+- `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog` aceitam `open`/`onOpenChange` opcionais para controle externo — quando fornecidos, não renderizam o botão trigger
+- Subtítulo de linha de lista (categoria + conta): usar `flex min-w-0 items-center gap-1.5 overflow-hidden` na div e `truncate` no último span para evitar quebra em múltiplas linhas
+- Layout padrão de linha de lista: `icon/avatar | body (flex-1 min-w-0) | value (flex-shrink-0) | RowActions` — ações sempre na última coluna
 
 ### UI
 
@@ -148,5 +151,6 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 | `select.tsx`         | `Select` + primitivos Radix | Mesmo height que Input (`h-12`)                                                  |
 | `currency-input.tsx` | `CurrencyInput`             | Prop `error` disponível                                                          |
 | `delete-button.tsx`  | `DeleteButton`              | Confirmação inline. **Nunca** criar botão de delete ad-hoc                       |
+| `row-actions.tsx`    | `RowActions`                | Kebab menu (⋮) com Editar + Excluir. Usar em listas — última coluna após o valor |
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
