@@ -61,7 +61,7 @@ export function AccountDialog(props: Props) {
 
     const raw = {
       name: (fd.get('name') as string).trim(),
-      type: fd.get('type') as string,
+      type,
       closingDay: (fd.get('closingDay') ?? '') as string,
     }
 
