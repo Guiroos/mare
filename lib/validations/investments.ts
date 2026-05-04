@@ -4,10 +4,17 @@ export const investmentTypeSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
 })
 
-export const investmentEntrySchema = z.object({
-  investmentTypeId: z.string().min(1, 'Selecione o tipo de investimento'),
-  referenceMonth: z.string().min(1, 'Mês é obrigatório'),
-})
+export const investmentEntrySchema = z
+  .object({
+    investmentTypeId: z.string().min(1, 'Selecione o tipo de investimento'),
+    referenceMonth: z.string().min(1, 'Mês é obrigatório'),
+    amount: z.string().optional(),
+    yieldAmount: z.string().optional(),
+  })
+  .refine((data) => !!data.amount || !!data.yieldAmount, {
+    message: 'Informe ao menos o aporte ou o rendimento',
+    path: ['amount'],
+  })
 
 const withdrawalBase = z.object({
   investmentTypeId: z.string().min(1, 'Selecione o tipo de investimento'),

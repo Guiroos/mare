@@ -61,7 +61,7 @@ export function AccountDialog(props: Props) {
 
     const raw = {
       name: (fd.get('name') as string).trim(),
-      type: fd.get('type') as string,
+      type,
       closingDay: (fd.get('closingDay') ?? '') as string,
     }
 
@@ -126,7 +126,7 @@ export function AccountDialog(props: Props) {
             />
           </Field>
 
-          <Field label="Tipo" required>
+          <Field label="Tipo" required error={errors.type}>
             <Select
               name="type"
               defaultValue={props.mode === 'edit' ? props.account.type : 'credit'}

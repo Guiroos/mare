@@ -83,10 +83,18 @@ export function TransactionForm({
   const [isPending, startTransition] = useTransition()
   const [key, setKey] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [categoryId, setCategoryId] = useState('')
+  const [accountId, setAccountId] = useState('')
+  const [investmentTypeId, setInvestmentTypeId] = useState('')
+  const [destination, setDestination] = useState('')
 
   const resetForm = () => {
     setKey((k) => k + 1)
     setErrors({})
+    setCategoryId('')
+    setAccountId('')
+    setInvestmentTypeId('')
+    setDestination('')
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -99,8 +107,8 @@ export function TransactionForm({
         name: str('name'),
         amount: str('amount'),
         date: str('date'),
-        categoryId: str('categoryId'),
-        accountId: str('accountId'),
+        categoryId,
+        accountId,
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
@@ -121,8 +129,8 @@ export function TransactionForm({
         name: str('name'),
         amount: str('amount'),
         dueDay: str('dueDay'),
-        categoryId: str('categoryId'),
-        accountId: str('accountId'),
+        categoryId,
+        accountId,
         referenceMonth: str('referenceMonth'),
       })
       if (!result.success) {
@@ -152,8 +160,8 @@ export function TransactionForm({
         totalAmount: str('totalAmount'),
         totalInstallments: str('totalInstallments'),
         startDate: str('startDate'),
-        categoryId: str('categoryId'),
-        accountId: str('accountId'),
+        categoryId,
+        accountId,
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
@@ -202,8 +210,10 @@ export function TransactionForm({
       })
     } else if (type === 'investimento') {
       const result = investmentEntrySchema.safeParse({
-        investmentTypeId: str('investmentTypeId'),
+        investmentTypeId,
         referenceMonth: str('referenceMonth'),
+        amount: str('amount') || undefined,
+        yieldAmount: str('yieldAmount') || undefined,
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
@@ -227,10 +237,10 @@ export function TransactionForm({
       })
     } else if (type === 'resgate') {
       const result = withdrawalSchema.safeParse({
-        investmentTypeId: str('investmentTypeId'),
+        investmentTypeId,
         amount: str('amount'),
         date: str('date'),
-        destination: str('destination'),
+        destination,
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
@@ -294,7 +304,7 @@ export function TransactionForm({
         {/* Tipo de investimento */}
         {(type === 'investimento' || type === 'resgate') && (
           <Field label="Tipo de investimento" error={errors.investmentTypeId}>
-            <Select name="investmentTypeId" required>
+            <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
               <SelectTrigger error={!!errors.investmentTypeId}>
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
@@ -395,11 +405,11 @@ export function TransactionForm({
         {type === 'investimento' && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Aporte (R$)">
-                <CurrencyInput name="amount" autoFocus />
+              <Field label="Aporte (R$)" error={errors.amount}>
+                <CurrencyInput name="amount" autoFocus error={!!errors.amount} />
               </Field>
-              <Field label="Rendimento (R$)">
-                <CurrencyInput name="yieldAmount" />
+              <Field label="Rendimento (R$)" error={errors.yieldAmount}>
+                <CurrencyInput name="yieldAmount" error={!!errors.yieldAmount} />
               </Field>
             </div>
             <Field label="Mês de referência" error={errors.referenceMonth}>
@@ -423,7 +433,7 @@ export function TransactionForm({
               <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
             </Field>
             <Field label="Destino" error={errors.destination}>
-              <Select name="destination" required>
+              <Select value={destination} onValueChange={setDestination}>
                 <SelectTrigger error={!!errors.destination}>
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
@@ -443,7 +453,7 @@ export function TransactionForm({
         {isExpense && (
           <>
             <Field label="Categoria" error={errors.categoryId}>
-              <Select name="categoryId" required>
+              <Select value={categoryId} onValueChange={setCategoryId}>
                 <SelectTrigger error={!!errors.categoryId}>
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
@@ -463,7 +473,7 @@ export function TransactionForm({
             </Field>
 
             <Field label="Conta / Cartão" error={errors.accountId}>
-              <Select name="accountId" required>
+              <Select value={accountId} onValueChange={setAccountId}>
                 <SelectTrigger error={!!errors.accountId}>
                   <SelectValue placeholder="Selecione a conta" />
                 </SelectTrigger>
