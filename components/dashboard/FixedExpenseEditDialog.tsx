@@ -193,24 +193,38 @@ function FormLoader({ expense, onSuccess }: { expense: FixedExpense; onSuccess: 
   )
 }
 
-export function FixedExpenseEditButton({ expense }: { expense: FixedExpense }) {
-  const [open, setOpen] = useState(false)
+export function FixedExpenseEditButton({
+  expense,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: {
+  expense: FixedExpense
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen! : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
   const content = <FormLoader expense={expense} onSuccess={() => setOpen(false)} />
 
   if (isDesktop) {
     return (
       <>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-          onClick={() => setOpen(true)}
-          aria-label="Editar"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+        {!isControlled && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
+            onClick={() => setOpen(true)}
+            aria-label="Editar"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -225,15 +239,17 @@ export function FixedExpenseEditButton({ expense }: { expense: FixedExpense }) {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-        onClick={() => setOpen(true)}
-        aria-label="Editar"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
+      {!isControlled && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
+          onClick={() => setOpen(true)}
+          aria-label="Editar"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      )}
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="max-h-[92dvh]">
           <DrawerHeader>

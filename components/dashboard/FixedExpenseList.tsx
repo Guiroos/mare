@@ -3,10 +3,10 @@
 import { useState, useTransition } from 'react'
 import { formatCurrency } from '@/lib/utils/currency'
 import { toggleFixedExpensePaid, deleteFixedExpense } from '@/lib/actions/transactions'
-import { DeleteButton } from '@/components/ui/delete-button'
 import { FixedExpenseEditButton } from './FixedExpenseEditDialog'
 import { TxList } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
+import { RowActions } from '@/components/ui/row-actions'
 import { cn } from '@/lib/utils/cn'
 import { Check, ChevronDown } from 'lucide-react'
 
@@ -74,6 +74,7 @@ function FixedExpenseRow({
   isPastMonth: boolean
 }) {
   const [isPending, startTransition] = useTransition()
+  const [editOpen, setEditOpen] = useState(false)
   const col = e.category
 
   const toggle = () => {
@@ -113,28 +114,25 @@ function FixedExpenseRow({
         >
           {e.name}
         </p>
-        <div className="mt-0.5 flex items-center gap-1.5">
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
           {col && (
             <>
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                 style={{ background: col.color ?? undefined }}
               />
-              <span className="text-caption font-medium text-text-secondary">{col.name}</span>
+              <span className="flex-shrink-0 text-caption font-medium text-text-secondary">
+                {col.name}
+              </span>
             </>
           )}
           {e.account && (
             <>
-              <span className="text-caption text-text-tertiary">·</span>
-              <span className="text-caption text-text-tertiary">{e.account.name}</span>
+              <span className="flex-shrink-0 text-caption text-text-tertiary">·</span>
+              <span className="truncate text-caption text-text-tertiary">{e.account.name}</span>
             </>
           )}
         </div>
-      </div>
-
-      <div className="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100">
-        <FixedExpenseEditButton expense={e} />
-        <DeleteButton onDelete={() => deleteFixedExpense(e.id)} />
       </div>
 
       {/* Right */}
@@ -155,6 +153,9 @@ function FixedExpenseRow({
           isPastMonth={isPastMonth}
         />
       </div>
+
+      <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteFixedExpense(e.id)} />
+      <FixedExpenseEditButton expense={e} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   )
 }

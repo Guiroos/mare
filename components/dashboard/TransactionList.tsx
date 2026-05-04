@@ -6,10 +6,10 @@ import { parseDate, daysAgo, formatDisplayDate } from '@/lib/utils/date'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { deleteTransaction } from '@/lib/actions/transactions'
-import { DeleteButton } from '@/components/ui/delete-button'
 import { TransactionEditButton } from './TransactionEditDialog'
 import { TxList, TxGroupHeader } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
+import { RowActions } from '@/components/ui/row-actions'
 
 const INITIAL_LIMIT = 5
 
@@ -40,6 +40,7 @@ function formatGroupDate(dateStr: string): string {
 }
 
 function TransactionRow({ transaction: t }: { transaction: Transaction }) {
+  const [editOpen, setEditOpen] = useState(false)
   const col = t.category ?? null
 
   return (
@@ -62,36 +63,31 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
       {/* Body */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-body font-medium text-text-primary">{t.name}</p>
-        <div className="mt-0.5 flex items-center gap-1.5">
+        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
           {col && (
             <>
               <span
                 className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
                 style={{ background: col.color ?? undefined }}
               />
-              <span className="text-caption font-medium text-text-secondary">{col.name}</span>
+              <span className="flex-shrink-0 text-caption font-medium text-text-secondary">
+                {col.name}
+              </span>
             </>
           )}
           {t.account && (
             <>
-              <span className="text-caption text-text-tertiary">·</span>
-              <span className="text-caption text-text-tertiary">{t.account.name}</span>
+              <span className="flex-shrink-0 text-caption text-text-tertiary">·</span>
+              <span className="truncate text-caption text-text-tertiary">{t.account.name}</span>
             </>
           )}
           {t.installmentNumber && t.totalInstallments && (
-            <span className="ml-1 rounded border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
+            <span className="ml-1 flex-shrink-0 rounded border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
               {t.installmentNumber}/{t.totalInstallments}
             </span>
           )}
         </div>
       </div>
-
-      {!t.installmentGroup && (
-        <div className="hidden items-center gap-1 lg:flex lg:opacity-0 lg:transition-opacity lg:group-hover:opacity-100">
-          <TransactionEditButton transaction={t} />
-          <DeleteButton onDelete={() => deleteTransaction(t.id)} />
-        </div>
-      )}
 
       {/* Right */}
       <div className="flex-shrink-0">
@@ -99,6 +95,13 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
           − {formatCurrency(Number(t.amount))}
         </span>
       </div>
+
+      {!t.installmentGroup && (
+        <>
+          <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteTransaction(t.id)} />
+          <TransactionEditButton transaction={t} open={editOpen} onOpenChange={setEditOpen} />
+        </>
+      )}
     </div>
   )
 }

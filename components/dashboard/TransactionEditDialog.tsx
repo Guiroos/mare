@@ -189,24 +189,38 @@ function FormLoader({
   )
 }
 
-export function TransactionEditButton({ transaction }: { transaction: Transaction }) {
-  const [open, setOpen] = useState(false)
+export function TransactionEditButton({
+  transaction,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: {
+  transaction: Transaction
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
+}) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen! : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
   const content = <FormLoader transaction={transaction} onSuccess={() => setOpen(false)} />
 
   if (isDesktop) {
     return (
       <>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-          onClick={() => setOpen(true)}
-          aria-label="Editar"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+        {!isControlled && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
+            onClick={() => setOpen(true)}
+            aria-label="Editar"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        )}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -221,15 +235,17 @@ export function TransactionEditButton({ transaction }: { transaction: Transactio
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-        onClick={() => setOpen(true)}
-        aria-label="Editar"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
+      {!isControlled && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
+          onClick={() => setOpen(true)}
+          aria-label="Editar"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      )}
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="max-h-[92dvh]">
           <DrawerHeader>

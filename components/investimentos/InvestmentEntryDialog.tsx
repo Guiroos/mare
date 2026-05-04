@@ -26,6 +26,8 @@ type Existing = {
 type Props = {
   investmentTypeId: string
   existing?: Existing
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
 }
 
 function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSuccess: () => void }) {
@@ -120,31 +122,42 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
   )
 }
 
-export function InvestmentEntryDialog({ investmentTypeId, existing }: Props) {
-  const [open, setOpen] = useState(false)
+export function InvestmentEntryDialog({
+  investmentTypeId,
+  existing,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: Props) {
+  const [internalOpen, setInternalOpen] = useState(false)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen! : internalOpen
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
+
   const title = existing ? 'Editar registro' : 'Novo registro'
-  const trigger = existing ? (
-    <Button
-      size="icon"
-      variant="ghost"
-      className="h-7 w-7 text-text-tertiary hover:text-text-primary"
-      onClick={() => setOpen(true)}
-    >
-      <Pencil className="h-3.5 w-3.5" />
-    </Button>
-  ) : (
-    <Button
-      size="sm"
-      variant="outline"
-      className="h-7 gap-1.5 text-caption"
-      onClick={() => setOpen(true)}
-    >
-      <Plus className="h-3 w-3" />
-      Registrar
-    </Button>
-  )
+  const trigger =
+    !isControlled &&
+    (existing ? (
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-7 w-7 text-text-tertiary hover:text-text-primary"
+        onClick={() => setOpen(true)}
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </Button>
+    ) : (
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 gap-1.5 text-caption"
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="h-3 w-3" />
+        Registrar
+      </Button>
+    ))
 
   const form = (
     <EntryForm
