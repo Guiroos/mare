@@ -73,9 +73,8 @@ export function MonthSelector({
           {/* Next */}
           <button
             onClick={() => navigate(nextMonth(currentMonth))}
-            disabled={isCurrentMonth}
             aria-label="Próximo mês"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-text-primary"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
