@@ -12,10 +12,12 @@ import {
   Tags,
   Settings,
   LogOut,
+  MessageSquare,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -70,6 +72,7 @@ function NavItem({
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   // If pathname already matches pendingHref, navigation settled — ignore pending
   const isActive = (href: string) => {
@@ -184,6 +187,17 @@ export function Sidebar({ user }: SidebarProps) {
             >
               <DropdownMenu.Item
                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setFeedbackOpen(true)
+                }}
+              >
+                <MessageSquare className="h-4 w-4 shrink-0" />
+                Enviar feedback
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator className="my-1 h-px bg-border" />
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
                 onSelect={() => signOut({ callbackUrl: '/login' })}
               >
                 <LogOut className="h-4 w-4 shrink-0" />
@@ -193,6 +207,8 @@ export function Sidebar({ user }: SidebarProps) {
           </DropdownMenu.Portal>
         </DropdownMenu.Root>
       </div>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </aside>
   )
 }

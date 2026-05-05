@@ -29,6 +29,13 @@
       "when": 1777942160359,
       "tag": "0003_long_cammi",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777946411064,
+      "tag": "0004_remarkable_centennial",
+      "breakpoints": true
     }
   ]
 }

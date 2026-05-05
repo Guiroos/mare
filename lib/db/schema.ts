@@ -386,3 +386,15 @@ export const goalContributionsRelations = relations(goalContributions, ({ one })
     references: [users.id],
   }),
 }))
+
+export const feedback = pgTable('feedback', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  category: varchar('category', { length: 20 }).notNull(), // melhoria | implementacao | outros
+  message: text('message').notNull(),
+  page: varchar('page', { length: 200 }),
+  status: varchar('status', { length: 20 }).notNull().default('new'), // new | read | done | dismissed
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

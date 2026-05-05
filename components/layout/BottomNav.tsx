@@ -13,6 +13,7 @@ import {
   Tags,
   Settings,
   LogOut,
+  MessageSquare,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -20,6 +21,7 @@ import { cn } from '@/lib/utils/cn'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
+import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 
 const primaryNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -81,6 +83,7 @@ function NavItem({
 export function BottomNav() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const { open } = useRegistrationDialog()
 
@@ -193,6 +196,17 @@ export function BottomNav() {
           </nav>
           <Button
             variant="ghost"
+            onClick={() => {
+              setMenuOpen(false)
+              setFeedbackOpen(true)
+            }}
+            className="w-full justify-start gap-3 border border-border"
+          >
+            <MessageSquare className="h-4 w-4 shrink-0" />
+            Enviar feedback
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="w-full justify-start gap-3 border border-border"
           >
@@ -201,6 +215,8 @@ export function BottomNav() {
           </Button>
         </DialogContent>
       </Dialog>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </>
   )
 }
