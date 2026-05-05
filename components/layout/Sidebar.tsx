@@ -11,8 +11,10 @@ import {
   BarChart3,
   Tags,
   Settings,
-  ChevronRight,
+  LogOut,
 } from 'lucide-react'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 
 const mainNav = [
@@ -154,23 +156,42 @@ export function Sidebar({ user }: SidebarProps) {
 
       {/* User footer */}
       <div className="mt-auto border-t border-border p-[14px]">
-        <div className="flex cursor-pointer items-center gap-[10px] rounded-[10px] p-2 transition-colors hover:bg-bg-subtle">
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-            style={{
-              background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
-            }}
-          >
-            {initials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold text-text-primary">
-              {user?.name ?? '—'}
-            </div>
-            <div className="truncate text-[11px] text-text-tertiary">{user?.email ?? ''}</div>
-          </div>
-          <ChevronRight className="h-[14px] w-[14px] shrink-0 text-text-tertiary" />
-        </div>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button className="flex w-full cursor-pointer items-center gap-[10px] rounded-[10px] p-2 transition-colors hover:bg-bg-subtle">
+              <div
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                style={{
+                  background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
+                }}
+              >
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <div className="truncate text-[13px] font-semibold text-text-primary">
+                  {user?.name ?? '—'}
+                </div>
+                <div className="truncate text-[11px] text-text-tertiary">{user?.email ?? ''}</div>
+              </div>
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              side="top"
+              align="start"
+              sideOffset={4}
+              className="z-50 min-w-[200px] overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
+            >
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                onSelect={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                Sair
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
     </aside>
   )

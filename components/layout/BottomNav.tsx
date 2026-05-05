@@ -12,10 +12,13 @@ import {
   BarChart3,
   Tags,
   Settings,
+  LogOut,
 } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils/cn'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
 
 const primaryNav = [
@@ -188,6 +191,14 @@ export function BottomNav() {
               </Link>
             ))}
           </nav>
+          <Button
+            variant="ghost"
+            onClick={() => signOut({ callbackUrl: '/login' })}
+            className="w-full justify-start gap-3 border border-border"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            Sair
+          </Button>
         </DialogContent>
       </Dialog>
     </>
