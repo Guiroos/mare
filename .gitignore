@@ -51,4 +51,5 @@ next-env.d.ts
 
 # playwright mcp
 .playwright-mcp/
+.playwright-screenshots/
 *.png

@@ -1,0 +1,87 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(npm info:*)",
+      "Bash(npm run:*)",
+      "Bash(lsof:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(fuser -k 3000/tcp)",
+      "Bash(fuser -k 3000/tcp 3001/tcp)",
+      "Bash(xargs kill:*)",
+      "Bash(chmod +x:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s http://localhost:3000 -o /dev/null -w \"%{http_code}\")",
+      "Bash(bash .claude/hooks/pre-edit-guard.sh)",
+      "Bash(bash .claude/hooks/post-edit-format.sh)",
+      "Bash(bash .claude/hooks/post-edit-ds-review.sh)",
+      "Bash(bash .husky/pre-push)",
+      "mcp__ide__getDiagnostics",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_press_key",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_network_requests",
+      "mcp__plugin_playwright_playwright__browser_network_request",
+      "mcp__plugin_playwright_playwright__browser_tabs",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_type",
+      "Skill(update-config)",
+      "Skill(claude-md-management:revise-claude-md)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-edit-guard.sh",
+            "statusMessage": "Verificando arquivo..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-edit-format.sh",
+            "statusMessage": "Prettier + ESLint...",
+            "asyncRewake": true
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/post-edit-ds-review.sh",
+            "statusMessage": "Checando DS...",
+            "asyncRewake": true
+          }
+        ]
+      }
+    ]
+  },
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless=false",
+        "--output-dir=.playwright-screenshots"
+      ]
+    }
+  }
+}
