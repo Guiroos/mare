@@ -49,6 +49,7 @@ export type UpsertInvestmentInput = {
   amount?: string | null
   yieldAmount?: string | null
   notes?: string | null
+  excludeFromCashFlow?: boolean
   existingId?: string
 }
 
@@ -63,6 +64,7 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
         amount: data.amount || null,
         yieldAmount: data.yieldAmount || null,
         notes: data.notes || null,
+        excludeFromCashFlow: data.excludeFromCashFlow ?? false,
       })
       .where(and(eq(investments.id, data.existingId), eq(investments.userId, userId)))
   } else {
@@ -73,6 +75,7 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
       amount: data.amount || null,
       yieldAmount: data.yieldAmount || null,
       notes: data.notes || null,
+      excludeFromCashFlow: data.excludeFromCashFlow ?? false,
     })
   }
 

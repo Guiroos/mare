@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
+import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments'
 import { formatMonthName, referenceMonthToYearMonth, currentYearMonth } from '@/lib/utils/date'
@@ -21,6 +22,7 @@ type Existing = {
   yieldAmount: number | null
   notes: string | null
   referenceMonth: string
+  excludeFromCashFlow: boolean | null
 }
 
 type Props = {
@@ -33,6 +35,9 @@ type Props = {
 function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSuccess: () => void }) {
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [excludeFromCashFlow, setExcludeFromCashFlow] = useState(
+    existing?.excludeFromCashFlow ?? false
+  )
 
   const defaultMonth = existing
     ? referenceMonthToYearMonth(existing.referenceMonth)
@@ -61,6 +66,7 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
       amount: (fd.get('amount') as string).trim() || null,
       yieldAmount: (fd.get('yieldAmount') as string).trim() || null,
       notes: (fd.get('notes') as string).trim() || null,
+      excludeFromCashFlow,
       existingId: existing?.id,
     }
 
@@ -115,6 +121,11 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
       <Field label="Observações" hint="Opcional">
         <Input name="notes" defaultValue={existing?.notes ?? ''} />
       </Field>
+      <Switch
+        label="Já tinha esse valor (não contar como saída do mês)"
+        checked={excludeFromCashFlow}
+        onChange={setExcludeFromCashFlow}
+      />
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar'}
       </Button>

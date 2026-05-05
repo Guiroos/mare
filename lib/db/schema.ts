@@ -197,6 +197,7 @@ export const investments = pgTable('investments', {
   yieldAmount: decimal('yield_amount', { precision: 10, scale: 2 }),
   referenceMonth: date('reference_month').notNull(),
   notes: text('notes'),
+  excludeFromCashFlow: boolean('exclude_from_cash_flow').notNull().default(false),
 })
 
 export const investmentWithdrawals = pgTable('investment_withdrawals', {

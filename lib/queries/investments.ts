@@ -62,6 +62,7 @@ export async function getInvestmentBalances(userId: string) {
             amount: e.amount !== null ? Number(e.amount) : null,
             yieldAmount: e.yieldAmount !== null ? Number(e.yieldAmount) : null,
             notes: e.notes,
+            excludeFromCashFlow: e.excludeFromCashFlow,
           })),
       }
     })

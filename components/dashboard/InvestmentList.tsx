@@ -17,6 +17,7 @@ type Investment = {
   referenceMonth: string
   investmentTypeId: string
   investmentType: { name: string }
+  excludeFromCashFlow: boolean
 }
 
 function InvestmentRow({ inv }: { inv: Investment }) {
@@ -64,6 +65,7 @@ function InvestmentRow({ inv }: { inv: Investment }) {
           yieldAmount: inv.yieldAmount !== null ? Number(inv.yieldAmount) : null,
           notes: inv.notes,
           referenceMonth: inv.referenceMonth,
+          excludeFromCashFlow: inv.excludeFromCashFlow,
         }}
         open={editOpen}
         onOpenChange={setEditOpen}

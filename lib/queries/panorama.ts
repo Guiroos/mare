@@ -35,7 +35,13 @@ export async function getAnnualOverview(userId: string, year: number) {
     db
       .select({ referenceMonth: investments.referenceMonth, total: sum(investments.amount) })
       .from(investments)
-      .where(and(eq(investments.userId, userId), inArray(investments.referenceMonth, months)))
+      .where(
+        and(
+          eq(investments.userId, userId),
+          inArray(investments.referenceMonth, months),
+          eq(investments.excludeFromCashFlow, false)
+        )
+      )
       .groupBy(investments.referenceMonth),
   ])
 

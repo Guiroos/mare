@@ -1,0 +1,1 @@
+ALTER TABLE "investments" ADD COLUMN "exclude_from_cash_flow" boolean DEFAULT false NOT NULL;

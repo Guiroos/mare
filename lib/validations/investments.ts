@@ -10,6 +10,7 @@ export const investmentEntrySchema = z
     referenceMonth: z.string().min(1, 'Mês é obrigatório'),
     amount: z.string().optional(),
     yieldAmount: z.string().optional(),
+    excludeFromCashFlow: z.boolean().optional().default(false),
   })
   .refine((data) => !!data.amount || !!data.yieldAmount, {
     message: 'Informe ao menos o aporte ou o rendimento',

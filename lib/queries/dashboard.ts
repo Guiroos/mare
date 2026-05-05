@@ -134,7 +134,9 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
   const totalExpenses =
     monthTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
     fixedExpenseList.reduce((s, e) => s + toAmount(e.amount), 0)
-  const totalInvested = investmentList.reduce((s, i) => s + toAmount(i.amount), 0)
+  const totalInvested = investmentList
+    .filter((i) => !i.excludeFromCashFlow)
+    .reduce((s, i) => s + toAmount(i.amount), 0)
   const balance = totalIncomes - totalExpenses - totalInvested
   const totalBudget = groupProgress.reduce((s, g) => s + g.totalBudget, 0)
   const totalSpent = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
@@ -213,7 +215,9 @@ export async function getDashboardDataBillingCycle(
     cycleTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
     cycleFixedExpenses.reduce((s, e) => s + toAmount(e.amount), 0)
   const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
-  const totalInvested = investmentList.reduce((s, i) => s + toAmount(i.amount), 0)
+  const totalInvested = investmentList
+    .filter((i) => !i.excludeFromCashFlow)
+    .reduce((s, i) => s + toAmount(i.amount), 0)
   const balance = totalIncomes - totalExpenses - totalInvested
   const totalBudget = groupProgress.reduce((s, g) => s + g.totalBudget, 0)
   const totalSpent = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
@@ -254,7 +258,13 @@ export async function getMonthlyEvolution(userId: string, monthsBack: number = 6
     db
       .select({ referenceMonth: investments.referenceMonth, total: sum(investments.amount) })
       .from(investments)
-      .where(and(eq(investments.userId, userId), inArray(investments.referenceMonth, months)))
+      .where(
+        and(
+          eq(investments.userId, userId),
+          inArray(investments.referenceMonth, months),
+          eq(investments.excludeFromCashFlow, false)
+        )
+      )
       .groupBy(investments.referenceMonth),
   ])
 
