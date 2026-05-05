@@ -139,18 +139,8 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 
 #### 5. Shared UI components — inventário atual
 
-| Arquivo              | Componente(s)               | Uso                                                                              |
-| -------------------- | --------------------------- | -------------------------------------------------------------------------------- |
-| `button.tsx`         | `Button`                    | Variantes: `primary` `secondary` `outline` `ghost` `danger` `positive` `surface` |
-| `badge.tsx`          | `Badge`                     | Variantes: `positive` `negative` `accent` `warning` `muted`                      |
-| `chip.tsx`           | `Chip`                      | Toggle com prop `active`                                                         |
-| `input.tsx`          | `Input`                     | Prop `error` disponível                                                          |
-| `textarea.tsx`       | `Textarea`                  | Prop `error` disponível                                                          |
-| `field.tsx`          | `Field`                     | Props: `label` `hint` `error` `required`                                         |
-| `label.tsx`          | `Label`                     | Padrão: `text-caption font-medium text-text-secondary`                           |
-| `select.tsx`         | `Select` + primitivos Radix | Mesmo height que Input (`h-12`)                                                  |
-| `currency-input.tsx` | `CurrencyInput`             | Prop `error` disponível                                                          |
-| `delete-button.tsx`  | `DeleteButton`              | Confirmação inline. **Nunca** criar botão de delete ad-hoc                       |
-| `row-actions.tsx`    | `RowActions`                | Kebab menu (⋮) com Editar + Excluir. Usar em listas — última coluna após o valor |
+@.claude/ds-components.md
+
+**Ao adicionar um componente a `components/ui/`, atualize `.claude/ds-components.md`** — não edite o inventário aqui.
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.

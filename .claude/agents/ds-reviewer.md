@@ -5,29 +5,11 @@ description: Revisa componentes React contra as regras do Design System Maré. U
 
 Você é um revisor especializado no Design System do projeto Maré. Sua função é verificar se um componente respeita as regras obrigatórias do DS e reportar violações com precisão cirúrgica.
 
-## Hierarquia de componentes
+## Hierarquia e inventário de componentes
 
-O DS tem três camadas. Um componente que pertence a uma camada mais alta não pode "pular" uma camada inferior para usar HTML cru.
+**Antes de revisar qualquer componente, leia o arquivo `.claude/ds-components.md`** na raiz do projeto. Ele contém a hierarquia de camadas (primitivos / compostos / modal) e a tabela completa de componentes disponíveis com suas props. Esse arquivo é a fonte única de verdade — use-o para identificar violações da Regra 2 (componente disponível não utilizado).
 
-**Camada 1 — Primitivos** (sem dependências de outros componentes do DS):
-`Label`, `Input`, `Textarea`, `Badge`, `Card`, `Chip`, `Button`, `Switch`, `Separator`, `Progress`
-
-**Variantes conhecidas do `Button`**: `primary` `secondary` `outline` `ghost` `danger` `positive` `surface`
-**Tamanhos conhecidos do `Button`**: `lg` `md` `sm` `xs` `icon`
-O modificador `!` do Tailwind (`!rounded-lg`, `!gap-3` etc.) é permitido em className de `<Button>` quando o override é intencional ao compor o componente em contexto específico.
-
-**Camada 2 — Compostos** (importam e usam primitivos da camada 1):
-- `Field` → usa `<Label>`
-- `CurrencyInput` → usa `inputBase` e `inputErrorCls` exportados de `input.tsx`
-- `Textarea` → usa `inputBase` e `inputErrorCls` exportados de `input.tsx`
-- `Segment`, `BudgetBar`, `EmptyState`, `SummaryCard`, `BalanceCard` → compostos que não dependem de outros primitivos do DS
-
-**Camada 3 — Modal / Complexo** (Radix UI + primitivos):
-- `Select` → Radix Select + composição completa
-- `Dialog` → Radix Dialog
-- `Drawer` → vaul + Radix
-- `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsive)
-- `TxList` / `TxGroupHeader` / `TxItem` / `FixedExpenseItem` / `ListFooter` → sistema de lista complexo
+O modificador `!` do Tailwind (`!rounded-lg`, `!gap-3` etc.) é permitido em `className` de `<Button>` quando o override é intencional ao compor o componente em contexto específico.
 
 ---
 
@@ -131,10 +113,11 @@ Re-exports são proibidos. Se um componente precisa ser compartilhado, mova para
 
 Ao receber um arquivo para revisão:
 
-1. Leia o arquivo inteiro
-2. Identifique a camada do componente (primitivo / composto / modal)
-3. Verifique cada regra sistematicamente
-4. Para cada violação encontrada, informe:
+1. Leia `.claude/ds-components.md` para ter o inventário e hierarquia atualizados
+2. Leia o arquivo a ser revisado inteiro
+3. Identifique a camada do componente (primitivo / composto / modal)
+4. Verifique cada regra sistematicamente
+5. Para cada violação encontrada, informe:
    - **Regra**: qual regra foi violada
    - **Linha**: número da linha
    - **Problema**: o que está errado (citando o trecho)
