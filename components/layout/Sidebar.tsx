@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
@@ -31,6 +32,7 @@ const mainNav = [
 
 const configNav = [
   { href: '/categorias', label: 'Categorias e Grupos', icon: Tags },
+  { href: '/contas', label: 'Contas e Cartões', icon: CreditCard },
   { href: '/configuracao-mes', label: 'Configuração do Mês', icon: Settings },
 ]
 

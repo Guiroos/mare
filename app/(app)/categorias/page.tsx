@@ -1,16 +1,15 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
+import { getCategoriesWithGroups } from '@/lib/queries/categories'
 import { formatCurrency } from '@/lib/utils/currency'
 import { GroupDialog } from '@/components/categorias/GroupDialog'
 import { CategoryDialog } from '@/components/categorias/CategoryDialog'
-import { AccountDialog } from '@/components/categorias/AccountDialog'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { ReorderButtons } from '@/components/categorias/ReorderButtons'
-import { deleteCategoryGroup, deleteCategory, deletePaymentAccount } from '@/lib/actions/categories'
-import { Badge } from '@/components/ui/badge'
+import { deleteCategoryGroup, deleteCategory } from '@/lib/actions/categories'
+import { Card } from '@/components/ui/card'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Separator } from '@/components/ui/separator'
+import { Section } from '@/components/ui/section'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -19,36 +18,19 @@ export default async function CategoriasPage() {
   if (!session) redirect('/login')
 
   const userId = (session.user as { id: string }).id
-  const [groups, accounts] = await Promise.all([
-    getCategoriesWithGroups(userId),
-    getPaymentAccounts(userId),
-  ])
+  const groups = await getCategoriesWithGroups(userId)
 
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))
   const groupIds = groups.map((g) => g.id)
-
-  const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-    credit: 'Crédito',
-    debit: 'Débito',
-    pix: 'Pix',
-  }
 
   return (
     <PageLayout>
       <PageHeader
         title="Categorias e grupos"
-        description="Gerencie grupos, categorias e contas de pagamento."
+        description="Gerencie grupos e categorias de gastos."
       />
 
-      {/* ─── Grupos e Categorias ─────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Grupos e categorias
-          </h2>
-          <GroupDialog mode="create" />
-        </div>
-
+      <Section title="Grupos e categorias" action={<GroupDialog mode="create" />}>
         {groups.length === 0 ? (
           <EmptyState title="Nenhum grupo criado. Comece criando um grupo." />
         ) : (
@@ -60,16 +42,16 @@ export default async function CategoriasPage() {
               )
 
               return (
-                <div key={group.id} className="rounded-xl border bg-bg-surface">
+                <Card key={group.id} padding="none">
                   {/* Header do grupo */}
                   <div className="flex items-center gap-2 px-4 py-3">
                     <ReorderButtons groupId={group.id} allGroupIds={groupIds} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{group.name}</span>
+                        <span className="text-body font-medium">{group.name}</span>
                         <div className="flex items-center gap-2">
                           {totalBudget > 0 && (
-                            <span className="text-xs text-text-secondary">
+                            <span className="text-caption tabular-nums text-text-secondary">
                               {formatCurrency(totalBudget)}/mês
                             </span>
                           )}
@@ -90,14 +72,16 @@ export default async function CategoriasPage() {
                     <div className="divide-y border-t">
                       {group.categories.map((cat) => (
                         <div key={cat.id} className="flex items-center justify-between px-4 py-2.5">
-                          <span className="text-sm">{cat.name}</span>
+                          <span className="text-small">{cat.name}</span>
                           <div className="flex items-center gap-2">
                             {cat.defaultBudget ? (
-                              <span className="text-xs text-text-secondary">
+                              <span className="text-caption tabular-nums text-text-secondary">
                                 {formatCurrency(Number(cat.defaultBudget))}
                               </span>
                             ) : (
-                              <span className="text-text-secondary/50 text-xs">sem orçamento</span>
+                              <span className="text-caption text-text-secondary opacity-50">
+                                sem orçamento
+                              </span>
                             )}
                             <CategoryDialog
                               mode="edit"
@@ -126,61 +110,12 @@ export default async function CategoriasPage() {
                   <div className="border-t px-4 py-2">
                     <CategoryDialog mode="create" groups={groupOptions} defaultGroupId={group.id} />
                   </div>
-                </div>
+                </Card>
               )
             })}
           </div>
         )}
-      </div>
-
-      <Separator />
-
-      {/* ─── Contas e Cartões ────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Contas e cartões
-          </h2>
-          <AccountDialog mode="create" />
-        </div>
-
-        {accounts.length === 0 ? (
-          <EmptyState title="Nenhuma conta cadastrada." />
-        ) : (
-          <div className="divide-y rounded-xl border bg-bg-surface">
-            {accounts.map((account) => (
-              <div key={account.id} className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">{account.name}</span>
-                  <Badge variant="muted">{ACCOUNT_TYPE_LABELS[account.type] ?? account.type}</Badge>
-                  {account.closingDay && (
-                    <span className="text-xs text-text-secondary">
-                      Fecha dia {account.closingDay}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-0.5">
-                  <AccountDialog
-                    mode="edit"
-                    account={{
-                      id: account.id,
-                      name: account.name,
-                      type: account.type,
-                      closingDay: account.closingDay,
-                    }}
-                  />
-                  <DeleteButton
-                    onDelete={async () => {
-                      'use server'
-                      await deletePaymentAccount(account.id)
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      </Section>
     </PageLayout>
   )
 }

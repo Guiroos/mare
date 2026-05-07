@@ -215,7 +215,7 @@ export async function createPaymentAccount(data: AccountInput) {
     type: data.type,
     closingDay: data.closingDay || null,
   })
-  revalidatePath('/categorias')
+  revalidatePath('/contas')
 }
 
 export async function updatePaymentAccount(id: string, data: AccountInput) {
@@ -229,7 +229,7 @@ export async function updatePaymentAccount(id: string, data: AccountInput) {
       closingDay: data.closingDay || null,
     })
     .where(and(eq(paymentAccounts.id, id), eq(paymentAccounts.userId, userId)))
-  revalidatePath('/categorias')
+  revalidatePath('/contas')
 }
 
 export async function deletePaymentAccount(id: string) {
@@ -238,5 +238,5 @@ export async function deletePaymentAccount(id: string) {
   await db
     .delete(paymentAccounts)
     .where(and(eq(paymentAccounts.id, id), eq(paymentAccounts.userId, userId)))
-  revalidatePath('/categorias')
+  revalidatePath('/contas')
 }

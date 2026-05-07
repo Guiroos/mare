@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   MessageSquare,
+  CreditCard,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -33,6 +34,7 @@ const menuItems = [
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
   { href: '/categorias', label: 'Categorias e Grupos', icon: Tags },
+  { href: '/contas', label: 'Contas e Cartões', icon: CreditCard },
   { href: '/configuracao-mes', label: 'Configuração do Mês', icon: Settings },
 ]
 
