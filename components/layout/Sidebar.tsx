@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
   LayoutDashboard,
+  ReceiptText,
   CalendarDays,
   TrendingUp,
   Target,
@@ -21,6 +22,7 @@ import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/registro', label: 'Lançamento', icon: ReceiptText },
   { href: '/parcelas', label: 'Parcelas Futuras', icon: CalendarDays },
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/metas', label: 'Metas', icon: Target },
@@ -54,16 +56,14 @@ function NavItem({
       href={href}
       onClick={onClick}
       className={cn(
-        'duration-[120ms] relative flex items-center gap-[11px] rounded-md px-3 py-[9px] text-[13.5px] font-medium transition-all',
+        'relative flex items-center gap-3 rounded-md px-3 py-2 text-small font-medium transition-all duration-fast',
         active
           ? 'bg-accent-subtle font-semibold text-accent-text'
           : 'text-text-secondary hover:bg-bg-subtle hover:text-text-primary'
       )}
     >
-      {active && (
-        <span className="absolute -left-[10px] bottom-2 top-2 w-[3px] rounded-r-sm bg-accent" />
-      )}
-      <Icon className={cn('h-[17px] w-[17px] shrink-0', active ? 'stroke-2' : 'stroke-[1.75]')} />
+      {active && <span className="absolute -left-2.5 bottom-2 top-2 w-1 rounded-r-sm bg-accent" />}
+      <Icon className={cn('h-4 w-4 shrink-0', active ? 'stroke-2' : 'stroke-1')} />
       {label}
     </Link>
   )
@@ -92,9 +92,9 @@ export function Sidebar({ user }: SidebarProps) {
   return (
     <aside className="hidden lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:flex lg:min-h-screen lg:w-60 lg:flex-col lg:border-r lg:border-border lg:bg-bg-surface">
       {/* Logo */}
-      <div className="flex items-center gap-[10px] border-b border-border px-5 py-[22px]">
+      <div className="flex items-center gap-2.5 border-b border-border px-5 py-5">
         <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
           style={{
             background: 'linear-gradient(135deg, var(--accent) 0%, oklch(45% 0.12 210) 100%)',
             boxShadow: '0 2px 8px oklch(50% 0.14 230 / 0.28), inset 0 1px 0 oklch(100% 0 0 / 0.2)',
@@ -116,16 +116,16 @@ export function Sidebar({ user }: SidebarProps) {
             />
           </svg>
         </div>
-        <span className="text-[18px] font-semibold tracking-tight text-text-primary">
+        <span className="text-h3 text-text-primary">
           Mar<em className="font-[500] text-accent">é</em>
         </span>
       </div>
 
       {/* Principal */}
-      <p className="px-[22px] pb-2 pt-4 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+      <p className="px-5 pb-2 pt-4 text-label uppercase tracking-widest text-text-tertiary">
         Principal
       </p>
-      <nav className="flex flex-col gap-[2px] overflow-visible px-[10px]">
+      <nav className="flex flex-col gap-0.5 overflow-visible px-2.5">
         {mainNav.map(({ href, label, icon }) => (
           <NavItem
             key={href}
@@ -138,13 +138,13 @@ export function Sidebar({ user }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mx-[14px] my-[10px] h-px bg-border" />
+      <div className="mx-3.5 my-2.5 h-px bg-border" />
 
       {/* Configuração */}
-      <p className="px-[22px] pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-text-tertiary">
+      <p className="px-5 pb-2 text-label uppercase tracking-widest text-text-tertiary">
         Configuração
       </p>
-      <nav className="flex flex-col gap-[2px] overflow-visible px-[10px]">
+      <nav className="flex flex-col gap-0.5 overflow-visible px-2.5">
         {configNav.map(({ href, label, icon }) => (
           <NavItem
             key={href}
@@ -158,12 +158,12 @@ export function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* User footer */}
-      <div className="mt-auto border-t border-border p-[14px]">
+      <div className="mt-auto border-t border-border p-3.5">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
-            <button className="flex w-full cursor-pointer items-center gap-[10px] rounded-[10px] p-2 transition-colors hover:bg-bg-subtle">
+            <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-bg-subtle">
               <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
                 style={{
                   background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
                 }}
@@ -171,10 +171,10 @@ export function Sidebar({ user }: SidebarProps) {
                 {initials}
               </div>
               <div className="min-w-0 flex-1 text-left">
-                <div className="truncate text-[13px] font-semibold text-text-primary">
+                <div className="truncate text-small font-semibold text-text-primary">
                   {user?.name ?? '—'}
                 </div>
-                <div className="truncate text-[11px] text-text-tertiary">{user?.email ?? ''}</div>
+                <div className="truncate text-caption text-text-tertiary">{user?.email ?? ''}</div>
               </div>
             </button>
           </DropdownMenu.Trigger>
@@ -183,7 +183,7 @@ export function Sidebar({ user }: SidebarProps) {
               side="top"
               align="start"
               sideOffset={4}
-              className="z-50 min-w-[200px] overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
+              className="z-50 min-w-48 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
             >
               <DropdownMenu.Item
                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
