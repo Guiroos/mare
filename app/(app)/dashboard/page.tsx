@@ -15,7 +15,6 @@ import { CategoryGroupProgress } from '@/components/dashboard/CategoryGroupProgr
 import { TransactionList } from '@/components/dashboard/TransactionList'
 import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList'
 import { IncomeList } from '@/components/dashboard/IncomeList'
-import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
 import { InvestmentList } from '@/components/dashboard/InvestmentList'
 import { PendencyBanner } from '@/components/dashboard/PendencyBanner'
 import { PageLayout } from '@/components/ui/page-layout'
