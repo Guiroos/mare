@@ -18,6 +18,8 @@ import { IncomeList } from '@/components/dashboard/IncomeList'
 import { InvestmentList } from '@/components/dashboard/InvestmentList'
 import { PendencyBanner } from '@/components/dashboard/PendencyBanner'
 import { PageLayout } from '@/components/ui/page-layout'
+import { Section } from '@/components/ui/section'
+import { Badge } from '@/components/ui/badge'
 
 export default async function DashboardPage({
   searchParams,
@@ -91,8 +93,12 @@ export default async function DashboardPage({
 
         <Section
           title="Gastos fixos"
-          count={
-            pendingFixed > 0 ? `${pendingFixed} pendente${pendingFixed > 1 ? 's' : ''}` : undefined
+          action={
+            pendingFixed > 0 ? (
+              <Badge variant="muted" size="sm">
+                {pendingFixed} pendente{pendingFixed > 1 ? 's' : ''}
+              </Badge>
+            ) : undefined
           }
         >
           <FixedExpenseList
@@ -108,7 +114,13 @@ export default async function DashboardPage({
       {/* Transações — full width */}
       <Section
         title="Transações"
-        count={totalTransactions > 0 ? `${totalTransactions} este mês` : undefined}
+        action={
+          totalTransactions > 0 ? (
+            <Badge variant="muted" size="sm">
+              {totalTransactions} este mês
+            </Badge>
+          ) : undefined
+        }
       >
         <TransactionList transactions={data.transactions} />
       </Section>
@@ -117,55 +129,30 @@ export default async function DashboardPage({
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
           title="Entradas"
-          count={totalIncomes > 0 ? formatCurrency(totalIncomes) : undefined}
-          countVariant="positive"
+          action={
+            totalIncomes > 0 ? (
+              <Badge variant="positive" size="sm">
+                {formatCurrency(totalIncomes)}
+              </Badge>
+            ) : undefined
+          }
         >
           <IncomeList incomes={data.incomes} />
         </Section>
 
         <Section
           title="Investimentos"
-          count={totalInvested > 0 ? formatCurrency(totalInvested) : undefined}
+          action={
+            totalInvested > 0 ? (
+              <Badge variant="muted" size="sm">
+                {formatCurrency(totalInvested)}
+              </Badge>
+            ) : undefined
+          }
         >
           <InvestmentList investments={data.investments} />
         </Section>
       </div>
-
-      {/* {<DashboardFAB month={month} />} */}
     </PageLayout>
-  )
-}
-
-function Section({
-  title,
-  children,
-  count,
-  countVariant = 'default',
-}: {
-  title: string
-  children: React.ReactNode
-  count?: string
-  countVariant?: 'default' | 'positive'
-}) {
-  return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <h2 className="text-label font-semibold uppercase tracking-wide text-text-secondary">
-          {title}
-        </h2>
-        {count && (
-          <span
-            className={
-              countVariant === 'positive'
-                ? 'rounded-full border border-positive bg-positive-subtle px-2 py-0.5 text-label text-positive-text'
-                : 'rounded-full border border-border bg-bg-subtle px-2 py-0.5 text-label text-text-secondary'
-            }
-          >
-            {count}
-          </span>
-        )}
-      </div>
-      {children}
-    </div>
   )
 }
