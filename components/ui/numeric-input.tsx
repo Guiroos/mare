@@ -4,13 +4,12 @@ import { useState } from 'react'
 import { inputBase, inputErrorCls } from './input'
 import { cn } from '@/lib/utils/cn'
 
-interface CurrencyInputProps {
+interface NumericInputProps {
   name: string
   defaultValue?: string | number
   required?: boolean
   autoFocus?: boolean
   className?: string
-  placeholder?: string
   error?: boolean
   onValueChange?: (cents: number) => void
 }
@@ -23,21 +22,23 @@ function parseToCents(value: string | number | undefined): number {
   return Math.round(parseFloat(str || '0') * 100)
 }
 
-function formatCents(cents: number): string {
+function formatNumber(cents: number): string {
   if (cents === 0) return ''
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100)
 }
 
-export function CurrencyInput({
+export function NumericInput({
   name,
   defaultValue,
   required,
   autoFocus,
   className = '',
-  placeholder,
   error = false,
   onValueChange,
-}: CurrencyInputProps) {
+}: NumericInputProps) {
   const [cents, setCents] = useState(() => parseToCents(defaultValue))
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -52,11 +53,11 @@ export function CurrencyInput({
       <input
         type="text"
         inputMode="numeric"
-        value={formatCents(cents)}
+        value={formatNumber(cents)}
         onChange={handleChange}
         required={required}
         autoFocus={autoFocus}
-        placeholder={placeholder ?? 'R$ 0,00'}
+        placeholder="0,00"
         className={cn(inputBase, error && inputErrorCls, className)}
       />
       <input type="hidden" name={name} value={cents > 0 ? (cents / 100).toFixed(2) : ''} />

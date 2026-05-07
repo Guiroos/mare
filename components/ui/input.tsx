@@ -1,7 +1,7 @@
 import { forwardRef, InputHTMLAttributes } from 'react'
 
 export const inputBase = [
-  'w-full font-sans text-body text-text-primary bg-bg-surface',
+  'w-full font-sans text-body text-text-primary bg-bg-input',
   'border border-border rounded-md px-4 h-12',
   'outline-none appearance-none',
   'transition-[border-color,box-shadow] duration-fast',
