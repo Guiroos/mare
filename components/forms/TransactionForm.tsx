@@ -1,20 +1,20 @@
 'use client'
 
-import { useState, useTransition, type FormEvent } from 'react'
+import { useState, useEffect, useTransition, type FormEvent } from 'react'
+import { ArrowDown, ArrowUp, TrendingUp } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Chip } from '@/components/ui/chip'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { CurrencyInput } from '@/components/ui/currency-input'
+import { Segment } from '@/components/ui/segment'
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils/cn'
 import { currentYearMonth, todayISOString } from '@/lib/utils/date'
 import {
   createTransaction,
@@ -32,34 +32,21 @@ import {
 } from '@/lib/validations/transactions'
 import { investmentEntrySchema, withdrawalSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
-
-type CategoryGroup = {
-  id: string
-  name: string
-  categories: { id: string; name: string }[]
-}
-
-type Account = {
-  id: string
-  name: string
-  type: string
-}
+import { HeroAmountCard } from './transaction/HeroAmountCard'
+import { SaidaConditionalFields } from './transaction/SaidaConditionalFields'
+import { EntradaFields } from './transaction/EntradaFields'
+import { InvestimentoFields } from './transaction/InvestimentoFields'
+import { ResgateFields } from './transaction/ResgateFields'
+import { CategoryPicker } from './transaction/CategoryPicker'
+import type {
+  Account,
+  CategoryGroup,
+  InvestmentType,
+  PrimaryType,
+  SaidaSubType,
+} from './transaction/types'
 
 type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate'
-
-const TABS: { value: FormType; label: string }[] = [
-  { value: 'avulso', label: 'Gasto avulso' },
-  { value: 'fixo', label: 'Gasto fixo' },
-  { value: 'parcelado', label: 'Parcelado' },
-  { value: 'entrada', label: 'Entrada' },
-  { value: 'investimento', label: 'Investimento' },
-  { value: 'resgate', label: 'Resgate' },
-]
-
-type InvestmentType = {
-  id: string
-  name: string
-}
 
 type Props = {
   categoryGroups: CategoryGroup[]
@@ -67,6 +54,29 @@ type Props = {
   investmentTypes?: InvestmentType[]
   defaultMonth?: string
   onSuccess?: () => void
+  onFormChange?: (state: import('./transaction/types').PreviewState) => void
+  categoryVariant?: 'grid' | 'select'
+}
+
+const PRIMARY_TYPES: { value: PrimaryType; label: string; icon?: LucideIcon }[] = [
+  { value: 'saida', label: 'Saída', icon: ArrowDown },
+  { value: 'entrada', label: 'Entrada', icon: ArrowUp },
+  { value: 'investimento', label: 'Investimento', icon: TrendingUp },
+  { value: 'resgate', label: 'Resgate' },
+]
+
+const typeSegActiveText: Record<PrimaryType, string> = {
+  saida: 'text-negative-text',
+  entrada: 'text-positive-text',
+  investimento: 'text-accent-text',
+  resgate: 'text-positive-text',
+}
+
+const submitLabel: Record<PrimaryType, string> = {
+  saida: 'Salvar saída',
+  entrada: 'Registrar entrada',
+  investimento: 'Registrar investimento',
+  resgate: 'Registrar resgate',
 }
 
 export function TransactionForm({
@@ -75,11 +85,14 @@ export function TransactionForm({
   investmentTypes = [],
   defaultMonth,
   onSuccess,
+  onFormChange,
+  categoryVariant = 'grid',
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
   const today = todayISOString()
 
-  const [type, setType] = useState<FormType>('avulso')
+  const [primaryType, setPrimaryType] = useState<PrimaryType>('saida')
+  const [subType, setSubType] = useState<SaidaSubType>('avulsa')
   const [isPending, startTransition] = useTransition()
   const [key, setKey] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -87,6 +100,11 @@ export function TransactionForm({
   const [accountId, setAccountId] = useState('')
   const [investmentTypeId, setInvestmentTypeId] = useState('')
   const [destination, setDestination] = useState('')
+  const [previewName, setPreviewName] = useState('')
+  const [previewAmount, setPreviewAmount] = useState('')
+  const [installments, setInstallments] = useState(2)
+  const [isPaid, setIsPaid] = useState(false)
+  const [excludeFromCashFlow, setExcludeFromCashFlow] = useState(false)
 
   const resetForm = () => {
     setKey((k) => k + 1)
@@ -95,12 +113,55 @@ export function TransactionForm({
     setAccountId('')
     setInvestmentTypeId('')
     setDestination('')
+    setPreviewName('')
+    setPreviewAmount('')
+    setInstallments(2)
+    setIsPaid(false)
+    setExcludeFromCashFlow(false)
+  }
+
+  useEffect(() => {
+    if (!onFormChange) return
+    const cat = categoryGroups.flatMap((g) => g.categories).find((c) => c.id === categoryId)
+    const acc = accounts.find((a) => a.id === accountId)
+    onFormChange({
+      primaryType,
+      subType,
+      name: previewName,
+      amount: previewAmount,
+      categoryId,
+      categoryName: cat?.name ?? '',
+      accountId,
+      accountName: acc?.name ?? '',
+      excludeFromCashFlow,
+    })
+  }, [
+    primaryType,
+    subType,
+    categoryId,
+    accountId,
+    previewName,
+    previewAmount,
+    excludeFromCashFlow,
+    onFormChange,
+    categoryGroups,
+    accounts,
+  ])
+
+  function resolvedFormType(): FormType {
+    if (primaryType === 'entrada') return 'entrada'
+    if (primaryType === 'investimento') return 'investimento'
+    if (primaryType === 'resgate') return 'resgate'
+    if (subType === 'fixa') return 'fixo'
+    if (subType === 'parcelada') return 'parcelado'
+    return 'avulso'
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
+    const type = resolvedFormType()
 
     if (type === 'avulso') {
       const result = transactionSchema.safeParse({
@@ -158,7 +219,7 @@ export function TransactionForm({
       const result = installmentSchema.safeParse({
         name: str('name'),
         totalAmount: str('totalAmount'),
-        totalInstallments: str('totalInstallments'),
+        totalInstallments: String(installments),
         startDate: str('startDate'),
         categoryId,
         accountId,
@@ -228,6 +289,7 @@ export function TransactionForm({
             amount: str('amount') || null,
             yieldAmount: str('yieldAmount') || null,
             notes: str('notes') || null,
+            excludeFromCashFlow,
           })
           resetForm()
           onSuccess?.()
@@ -265,44 +327,60 @@ export function TransactionForm({
     }
   }
 
-  const isExpense = type !== 'entrada' && type !== 'investimento' && type !== 'resgate'
+  const resolvedType = resolvedFormType()
 
   return (
     <div className="space-y-5">
-      {/* Tipo */}
-      <div className="flex flex-wrap gap-1.5">
-        {TABS.map((tab) => (
-          <Chip
-            key={tab.value}
-            active={type === tab.value}
-            onClick={() => {
-              setType(tab.value)
-              resetForm()
-            }}
-          >
-            {tab.label}
-          </Chip>
-        ))}
+      <div className="overflow-x-auto">
+        <Segment
+          options={PRIMARY_TYPES.map((pt) => ({
+            value: pt.value,
+            label: (
+              <span className="inline-flex items-center gap-1.5">
+                {pt.icon && <pt.icon className="h-3.5 w-3.5" />}
+                {pt.label}
+              </span>
+            ),
+            activeClassName: cn('font-semibold', typeSegActiveText[pt.value]),
+          }))}
+          value={primaryType}
+          onChange={(v) => {
+            setPrimaryType(v)
+            resetForm()
+          }}
+          className="flex w-full min-w-max"
+        />
       </div>
 
       <form key={key} onSubmit={handleSubmit} className="space-y-4">
+        <HeroAmountCard
+          primaryType={primaryType}
+          resolvedType={resolvedType}
+          subType={subType}
+          onSubTypeChange={setSubType}
+          onValueChange={(cents) => setPreviewAmount((cents / 100).toFixed(2))}
+          errors={errors}
+        />
+
         {/* Nome / Origem */}
-        {(type === 'avulso' || type === 'fixo' || type === 'parcelado' || type === 'entrada') && (
+        {(primaryType === 'saida' || primaryType === 'entrada') && (
           <Field
-            label={type === 'entrada' ? 'Origem' : 'Nome'}
+            label={primaryType === 'entrada' ? 'Origem' : 'Nome'}
             error={errors.name ?? errors.source}
           >
             <Input
-              name={type === 'entrada' ? 'source' : 'name'}
-              placeholder={type === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'}
+              name={primaryType === 'entrada' ? 'source' : 'name'}
+              placeholder={
+                primaryType === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'
+              }
               error={!!(errors.name ?? errors.source)}
-              autoFocus
+              onChange={(e) => setPreviewName(e.target.value)}
             />
           </Field>
         )}
 
         {/* Tipo de investimento */}
-        {(type === 'investimento' || type === 'resgate') && (
+        {(primaryType === 'investimento' || primaryType === 'resgate') && (
           <Field label="Tipo de investimento" error={errors.investmentTypeId}>
             <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
               <SelectTrigger error={!!errors.investmentTypeId}>
@@ -319,179 +397,70 @@ export function TransactionForm({
           </Field>
         )}
 
-        {/* Valor */}
-        {type !== 'investimento' && (
-          <Field
-            label={type === 'parcelado' ? 'Valor total' : 'Valor'}
-            error={errors.amount ?? errors.totalAmount}
-          >
-            <CurrencyInput
-              name={type === 'parcelado' ? 'totalAmount' : 'amount'}
-              error={!!(errors.amount ?? errors.totalAmount)}
-              required
-            />
+        {/* Campos condicionais por tipo */}
+        {primaryType === 'saida' && (
+          <SaidaConditionalFields
+            resolvedType={resolvedType as 'avulso' | 'fixo' | 'parcelado'}
+            errors={errors}
+            month={month}
+            today={today}
+            installments={installments}
+            onInstallmentsChange={setInstallments}
+            previewAmount={previewAmount}
+            isPaid={isPaid}
+            onIsPaidChange={setIsPaid}
+          />
+        )}
+        {resolvedType === 'entrada' && <EntradaFields errors={errors} month={month} />}
+        {resolvedType === 'investimento' && (
+          <InvestimentoFields
+            errors={errors}
+            month={month}
+            excludeFromCashFlow={excludeFromCashFlow}
+            onExcludeChange={setExcludeFromCashFlow}
+          />
+        )}
+        {resolvedType === 'resgate' && (
+          <ResgateFields
+            errors={errors}
+            today={today}
+            destination={destination}
+            onDestinationChange={setDestination}
+          />
+        )}
+
+        {/* Categoria */}
+        {(primaryType === 'saida' || primaryType === 'entrada') && (
+          <CategoryPicker
+            categoryGroups={categoryGroups}
+            categoryId={categoryId}
+            onCategoryChange={setCategoryId}
+            error={errors.categoryId}
+            variant={categoryVariant}
+          />
+        )}
+
+        {/* Conta — apenas Saída */}
+        {primaryType === 'saida' && (
+          <Field label="Conta / Cartão" error={errors.accountId}>
+            <Select value={accountId} onValueChange={setAccountId}>
+              <SelectTrigger error={!!errors.accountId}>
+                <SelectValue placeholder="Selecione a conta" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((acc) => (
+                  <SelectItem key={acc.id} value={acc.id}>
+                    {acc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         )}
 
-        {/* Campos por tipo */}
-        {type === 'avulso' && (
-          <Field label="Data" error={errors.date}>
-            <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
-          </Field>
-        )}
-
-        {type === 'fixo' && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Dia de vencimento" error={errors.dueDay}>
-              <Input
-                name="dueDay"
-                type="number"
-                min="1"
-                max="31"
-                placeholder="Ex: 10"
-                error={!!errors.dueDay}
-                required
-              />
-            </Field>
-            <Field label="Mês de referência" error={errors.referenceMonth}>
-              <Input
-                name="referenceMonth"
-                type="month"
-                defaultValue={month}
-                error={!!errors.referenceMonth}
-                required
-              />
-            </Field>
-          </div>
-        )}
-
-        {type === 'parcelado' && (
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Nº de parcelas" error={errors.totalInstallments}>
-              <Input
-                name="totalInstallments"
-                type="number"
-                min="2"
-                max="60"
-                placeholder="Ex: 12"
-                error={!!errors.totalInstallments}
-                required
-              />
-            </Field>
-            <Field label="Data da 1ª parcela" error={errors.startDate}>
-              <Input
-                name="startDate"
-                type="date"
-                defaultValue={today}
-                error={!!errors.startDate}
-                required
-              />
-            </Field>
-          </div>
-        )}
-
-        {type === 'entrada' && (
-          <Field label="Mês de referência" error={errors.referenceMonth}>
-            <Input
-              name="referenceMonth"
-              type="month"
-              defaultValue={month}
-              error={!!errors.referenceMonth}
-              required
-            />
-          </Field>
-        )}
-
-        {type === 'investimento' && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Aporte (R$)" error={errors.amount}>
-                <CurrencyInput name="amount" autoFocus error={!!errors.amount} />
-              </Field>
-              <Field label="Rendimento (R$)" error={errors.yieldAmount}>
-                <CurrencyInput name="yieldAmount" error={!!errors.yieldAmount} />
-              </Field>
-            </div>
-            <Field label="Mês de referência" error={errors.referenceMonth}>
-              <Input
-                name="referenceMonth"
-                type="month"
-                defaultValue={month}
-                error={!!errors.referenceMonth}
-                required
-              />
-            </Field>
-            <Field label="Observações">
-              <Input name="notes" placeholder="Opcional" />
-            </Field>
-          </>
-        )}
-
-        {type === 'resgate' && (
-          <>
-            <Field label="Data do resgate" error={errors.date}>
-              <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
-            </Field>
-            <Field label="Destino" error={errors.destination}>
-              <Select value={destination} onValueChange={setDestination}>
-                <SelectTrigger error={!!errors.destination}>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
-                  <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Observações">
-              <Input name="notes" placeholder="Opcional" />
-            </Field>
-          </>
-        )}
-
-        {/* Categoria + Conta */}
-        {isExpense && (
-          <>
-            <Field label="Categoria" error={errors.categoryId}>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger error={!!errors.categoryId}>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoryGroups.map((group) => (
-                    <SelectGroup key={group.id}>
-                      <SelectLabel>{group.name}</SelectLabel>
-                      {group.categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field label="Conta / Cartão" error={errors.accountId}>
-              <Select value={accountId} onValueChange={setAccountId}>
-                <SelectTrigger error={!!errors.accountId}>
-                  <SelectValue placeholder="Selecione a conta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id}>
-                      {acc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </>
-        )}
-
-        <div className="flex items-center gap-3 pt-1">
-          <Button type="submit" className="flex-1" loading={isPending}>
-            Salvar
+        <div className="pt-1">
+          <Button type="submit" className="w-full" loading={isPending}>
+            {submitLabel[primaryType]}
           </Button>
         </div>
       </form>
