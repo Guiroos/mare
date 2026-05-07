@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
+import { Card } from '@/components/ui/card'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYearMonth, formatMonthShort } from '@/lib/utils/date'
 
@@ -66,26 +67,28 @@ export default async function ParcelasPage() {
 
       {/* ─── Resumo ──────────────────────────────────────────────────────────── */}
       {groupsWithEnd.length > 0 && (
-        <div className="rounded-xl border bg-bg-surface px-5 py-4">
+        <Card padding="md">
           <div className="flex flex-wrap gap-x-8 gap-y-3">
             <div>
-              <p className="text-xs text-text-secondary">Total restante</p>
-              <p className="text-2xl font-bold tabular-nums">{formatCurrency(totalRestante)}</p>
+              <p className="text-caption text-text-secondary">Total restante</p>
+              <p className="text-h2 tabular-nums">{formatCurrency(totalRestante)}</p>
             </div>
             <div>
-              <p className="text-xs text-text-secondary">Por mês</p>
-              <p className="text-lg font-semibold tabular-nums">{formatCurrency(totalMensal)}</p>
+              <p className="text-caption text-text-secondary">Por mês</p>
+              <p className="text-body-lg font-semibold tabular-nums">
+                {formatCurrency(totalMensal)}
+              </p>
             </div>
             <div>
-              <p className="text-xs text-text-secondary">Total já pago</p>
-              <p className="text-lg font-semibold tabular-nums">{formatCurrency(totalPago)}</p>
+              <p className="text-caption text-text-secondary">Total já pago</p>
+              <p className="text-body-lg font-semibold tabular-nums">{formatCurrency(totalPago)}</p>
             </div>
             <div>
-              <p className="text-xs text-text-secondary">Parcelas ativas</p>
-              <p className="text-lg font-semibold">{groupsWithEnd.length}</p>
+              <p className="text-caption text-text-secondary">Parcelas ativas</p>
+              <p className="text-body-lg font-semibold">{groupsWithEnd.length}</p>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* ─── Parcelas ativas ─────────────────────────────────────────────────── */}
@@ -104,17 +107,17 @@ export default async function ParcelasPage() {
       {/* ─── Gráficos ─────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Section title="Distribuição por categoria">
-          <div className="rounded-xl border bg-bg-surface px-4 py-4">
+          <Card padding="sm">
             <InstallmentCategoryChart data={categoryData} />
-          </div>
+          </Card>
         </Section>
 
-        <Section title="Compromissos por mês" className="flex h-full flex-col">
-          <div className="flex flex-1 flex-col rounded-xl border bg-bg-surface px-4 py-4">
-            <div className="min-h-0 flex-1">
+        <Section title="Compromissos por mês">
+          <Card padding="sm">
+            <div className="h-64">
               <InstallmentTimelineChart data={timeline} />
             </div>
-          </div>
+          </Card>
         </Section>
       </div>
     </PageLayout>
