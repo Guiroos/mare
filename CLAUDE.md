@@ -150,6 +150,9 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
 
+- Formulários complexos: extrair sub-componentes de apresentação em `components/forms/<form>/` com `types.ts` para tipos compartilhados; consumidores importam os tipos direto de `types.ts`, não re-exportar pelo componente principal
+- `Section` (DS) aceita `action?: ReactNode` — passar `<Badge variant="..." size="sm">` para contagens/totais; nunca criar `Section` local com prop `count`
+
 ### Gotchas de tokens e utilitários
 
 - `twMerge` (em `lib/utils/cn.ts`) está configurado com `extendTailwindMerge` para reconhecer os tokens customizados de tipografia — sobreposições como `text-display` sobre `text-body` funcionam corretamente
