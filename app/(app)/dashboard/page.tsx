@@ -132,7 +132,7 @@ export default async function DashboardPage({
         </Section>
       </div>
 
-      <DashboardFAB month={month} />
+      {/* {<DashboardFAB month={month} />} */}
     </PageLayout>
   )
 }

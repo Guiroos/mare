@@ -38,6 +38,7 @@ function FormContent({
   formData,
   month,
   onSuccess,
+  categoryVariant,
 }: {
   formData: {
     categoryGroups: CategoryGroup[]
@@ -46,10 +47,11 @@ function FormContent({
   } | null
   month: string | undefined
   onSuccess: () => void
+  categoryVariant: 'grid' | 'select'
 }) {
   if (!formData) {
     return (
-      <div className="flex items-center justify-center py-10 text-sm text-text-secondary">
+      <div className="flex items-center justify-center py-10 text-body text-text-secondary">
         Carregando...
       </div>
     )
@@ -61,6 +63,7 @@ function FormContent({
       investmentTypes={formData.investmentTypes}
       defaultMonth={month}
       onSuccess={onSuccess}
+      categoryVariant={categoryVariant}
     />
   )
 }
@@ -98,7 +101,12 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
               <DialogTitle>Novo lançamento</DialogTitle>
             </DialogHeader>
             <div className="flex-1 overflow-y-auto px-6 pb-6">
-              <FormContent formData={formData} month={month} onSuccess={() => setIsOpen(false)} />
+              <FormContent
+                formData={formData}
+                month={month}
+                onSuccess={() => setIsOpen(false)}
+                categoryVariant="grid"
+              />
             </div>
           </DialogContent>
         </Dialog>
@@ -109,7 +117,12 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
               <DrawerTitle>Novo lançamento</DrawerTitle>
             </DrawerHeader>
             <div className="overflow-y-auto px-4 pb-6">
-              <FormContent formData={formData} month={month} onSuccess={() => setIsOpen(false)} />
+              <FormContent
+                formData={formData}
+                month={month}
+                onSuccess={() => setIsOpen(false)}
+                categoryVariant="select"
+              />
             </div>
           </DrawerContent>
         </Drawer>
