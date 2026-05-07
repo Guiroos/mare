@@ -1,57 +1,52 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import * as RadixSelect from '@radix-ui/react-select'
 import { prevMonth, nextMonth, currentYearMonth, formatMonthYear } from '@/lib/utils/date'
+
+type CreditAccount = { id: string; name: string; closingDay: number }
 
 export function MonthSelector({
   currentMonth,
   isCurrentMonth,
-  isCycleView = false,
   cycleRange,
-  availableClosingDays = [],
-  activeClosingDay,
+  creditAccounts = [],
+  activeCycleAccountId,
 }: {
   currentMonth: string
   isCurrentMonth: boolean
-  isCycleView?: boolean
   cycleRange?: { start: string; end: string; label: string }
-  availableClosingDays?: number[]
-  activeClosingDay?: number
+  creditAccounts?: CreditAccount[]
+  activeCycleAccountId?: string
 }) {
   const router = useRouter()
   const pathname = usePathname()
+  const isCycleView = activeCycleAccountId != null
 
-  const buildUrl = (month: string, opts?: { view?: string; closingDay?: number }) => {
+  const buildUrl = (month: string, cycleAccountId?: string) => {
     const params = new URLSearchParams({ month })
-    if (opts?.view) params.set('view', opts.view)
-    if (opts?.closingDay != null) params.set('closingDay', String(opts.closingDay))
+    if (cycleAccountId) params.set('cycleAccount', cycleAccountId)
     return `${pathname}?${params.toString()}`
   }
 
   const navigate = (month: string) =>
-    router.push(
-      isCycleView && activeClosingDay
-        ? buildUrl(month, { view: 'cycle', closingDay: activeClosingDay })
-        : buildUrl(month)
-    )
+    router.push(buildUrl(month, isCycleView ? activeCycleAccountId : undefined))
 
-  const toggleCycleView = () => {
-    const closingDay = activeClosingDay ?? availableClosingDays[0]
-    if (isCycleView) {
+  const handleCycleSelect = (value: string) => {
+    if (value === 'month') {
       router.push(buildUrl(currentMonth))
     } else {
-      router.push(buildUrl(currentMonth, { view: 'cycle', closingDay }))
+      router.push(buildUrl(currentMonth, value))
     }
   }
 
-  const hasBillingCycle = availableClosingDays.length > 0
+  const hasBillingCycle = creditAccounts.length > 0
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
-          {/* Prev */}
           <button
             onClick={() => navigate(prevMonth(currentMonth))}
             aria-label="Mês anterior"
@@ -60,7 +55,6 @@ export function MonthSelector({
             <ChevronLeft className="h-4 w-4" />
           </button>
 
-          {/* Pill */}
           <div className="flex cursor-default flex-col items-center rounded-full border-2 border-border bg-bg-surface px-3.5 py-1.5 shadow-sm">
             <span className="text-body font-semibold text-text-primary">
               {formatMonthYear(currentMonth)}
@@ -70,7 +64,6 @@ export function MonthSelector({
             )}
           </div>
 
-          {/* Next */}
           <button
             onClick={() => navigate(nextMonth(currentMonth))}
             aria-label="Próximo mês"
@@ -81,21 +74,60 @@ export function MonthSelector({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Billing cycle toggle */}
           {hasBillingCycle && (
-            <button
-              onClick={toggleCycleView}
-              className={
-                isCycleView
-                  ? 'rounded-full bg-accent px-3 py-1.5 text-caption font-semibold text-text-inverse shadow-sm transition-[background,box-shadow] duration-fast hover:shadow-md active:scale-95'
-                  : 'rounded-full border border-border bg-bg-surface px-3 py-1.5 text-caption font-semibold text-text-secondary transition-[background,color] duration-fast hover:bg-bg-subtle active:scale-95'
-              }
+            <RadixSelect.Root
+              value={activeCycleAccountId ?? 'month'}
+              onValueChange={handleCycleSelect}
             >
-              Ciclo fatura
-            </button>
+              <RadixSelect.Trigger
+                className={[
+                  'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-semibold outline-none',
+                  'transition-all duration-fast active:scale-95',
+                  isCycleView
+                    ? 'bg-accent text-text-inverse shadow-sm hover:shadow-md'
+                    : 'border border-border bg-bg-surface text-text-secondary hover:bg-bg-subtle',
+                ].join(' ')}
+              >
+                <RadixSelect.Value>
+                  {isCycleView
+                    ? (creditAccounts.find((a) => a.id === activeCycleAccountId)?.name ?? 'Ciclo')
+                    : 'Mês'}
+                </RadixSelect.Value>
+                <ChevronDown className="h-3 w-3 opacity-70" />
+              </RadixSelect.Trigger>
+
+              <RadixSelect.Portal>
+                <RadixSelect.Content
+                  position="popper"
+                  sideOffset={6}
+                  align="end"
+                  className="z-50 min-w-40 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
+                >
+                  <RadixSelect.Viewport className="p-1">
+                    <RadixSelect.Item
+                      value="month"
+                      className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-small text-text-primary outline-none data-[highlighted]:bg-bg-subtle"
+                    >
+                      <RadixSelect.ItemText>Mês</RadixSelect.ItemText>
+                    </RadixSelect.Item>
+
+                    {creditAccounts.map((account) => (
+                      <RadixSelect.Item
+                        key={account.id}
+                        value={account.id}
+                        className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-small text-text-primary outline-none data-[highlighted]:bg-bg-subtle"
+                      >
+                        <RadixSelect.ItemText>
+                          {account.name} · dia {account.closingDay}
+                        </RadixSelect.ItemText>
+                      </RadixSelect.Item>
+                    ))}
+                  </RadixSelect.Viewport>
+                </RadixSelect.Content>
+              </RadixSelect.Portal>
+            </RadixSelect.Root>
           )}
 
-          {/* Jump to current month */}
           {!isCurrentMonth && (
             <button
               onClick={() => navigate(currentYearMonth())}

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getDashboardData, getDashboardDataBillingCycle } from '@/lib/queries/dashboard'
-import { getCreditClosingDays } from '@/lib/queries/categories'
+import { getCreditAccounts } from '@/lib/queries/categories'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge'
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { month?: string; view?: string; closingDay?: string }
+  searchParams: { month?: string; cycleAccount?: string }
 }) {
   const session = await auth()
   if (!session) redirect('/login')
@@ -33,21 +33,20 @@ export default async function DashboardPage({
   const month = searchParams.month ?? currentYearMonth()
   const referenceMonth = yearMonthToReferenceMonth(month)
 
-  const creditClosingDays = await getCreditClosingDays(userId)
-  const hasBillingCycle = creditClosingDays.length > 0
+  const creditAccounts = await getCreditAccounts(userId)
+  const activeAccount = creditAccounts.find((a) => a.id === searchParams.cycleAccount) ?? null
 
-  // Resolve active closing day (from URL param or first available)
-  const urlClosingDay = searchParams.closingDay ? parseInt(searchParams.closingDay, 10) : null
-  const activeClosingDay =
-    hasBillingCycle && searchParams.view === 'cycle'
-      ? (urlClosingDay ?? creditClosingDays[0])
-      : null
-
-  const cycleRange = activeClosingDay ? billingCycleDateRange(month, activeClosingDay) : null
+  const cycleRange = activeAccount ? billingCycleDateRange(month, activeAccount.closingDay) : null
   const isCycleView = cycleRange !== null
 
   const data = isCycleView
-    ? await getDashboardDataBillingCycle(userId, month, activeClosingDay!, cycleRange)
+    ? await getDashboardDataBillingCycle(
+        userId,
+        month,
+        activeAccount!.closingDay,
+        cycleRange,
+        activeAccount!.id
+      )
     : await getDashboardData(userId, referenceMonth)
 
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
@@ -71,10 +70,9 @@ export default async function DashboardPage({
       <MonthSelector
         currentMonth={month}
         isCurrentMonth={isCurrentMonth}
-        isCycleView={isCycleView}
         cycleRange={cycleRange ?? undefined}
-        availableClosingDays={creditClosingDays}
-        activeClosingDay={activeClosingDay ?? undefined}
+        creditAccounts={creditAccounts}
+        activeCycleAccountId={activeAccount?.id}
       />
 
       <PendencyBanner unpaidFixedCount={unpaidFixedCount} pendingYieldCount={pendingYieldCount} />

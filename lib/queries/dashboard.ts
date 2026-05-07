@@ -157,10 +157,15 @@ export async function getDashboardData(userId: string, referenceMonth: string) {
 export async function getTransactionsByDateRange(
   userId: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  accountId?: string
 ) {
   return db.query.transactions.findMany({
-    where: and(eq(transactions.userId, userId), between(transactions.date, startDate, endDate)),
+    where: and(
+      eq(transactions.userId, userId),
+      between(transactions.date, startDate, endDate),
+      accountId ? eq(transactions.accountId, accountId) : undefined
+    ),
     with: { category: true, account: true, installmentGroup: true },
     orderBy: [desc(transactions.date)],
   })
@@ -169,7 +174,8 @@ export async function getTransactionsByDateRange(
 export async function getFixedExpensesByBillingCycle(
   userId: string,
   yearMonth: string,
-  closingDay: number
+  closingDay: number,
+  accountId?: string
 ) {
   const currRefMonth = yearMonthToReferenceMonth(yearMonth)
   const prevRefMonth = yearMonthToReferenceMonth(prevMonth(yearMonth))
@@ -177,6 +183,7 @@ export async function getFixedExpensesByBillingCycle(
   return db.query.fixedExpenses.findMany({
     where: and(
       eq(fixedExpenses.userId, userId),
+      accountId ? eq(fixedExpenses.accountId, accountId) : undefined,
       or(
         and(eq(fixedExpenses.referenceMonth, prevRefMonth), gte(fixedExpenses.dueDay, closingDay)),
         and(eq(fixedExpenses.referenceMonth, currRefMonth), lt(fixedExpenses.dueDay, closingDay))
@@ -191,7 +198,8 @@ export async function getDashboardDataBillingCycle(
   userId: string,
   yearMonth: string,
   closingDay: number,
-  cycleRange: { start: string; end: string }
+  cycleRange: { start: string; end: string },
+  accountId?: string
 ) {
   const referenceMonth = yearMonthToReferenceMonth(yearMonth)
 
@@ -203,8 +211,8 @@ export async function getDashboardDataBillingCycle(
     investmentList,
     monthlyEvolutionData,
   ] = await Promise.all([
-    getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end),
-    getFixedExpensesByBillingCycle(userId, yearMonth, closingDay),
+    getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end, accountId),
+    getFixedExpensesByBillingCycle(userId, yearMonth, closingDay, accountId),
     getCategoryGroupProgress(userId, referenceMonth),
     getMonthIncomes(userId, referenceMonth),
     getMonthInvestments(userId, referenceMonth),

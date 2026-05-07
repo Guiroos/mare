@@ -17,11 +17,15 @@ export async function getPaymentAccounts(userId: string) {
   })
 }
 
-/** Returns only the closing days of credit accounts with closingDay > 1.
- *  Lightweight alternative to getPaymentAccounts for the dashboard billing cycle toggle. */
-export async function getCreditClosingDays(userId: string): Promise<number[]> {
+export async function getCreditAccounts(
+  userId: string
+): Promise<{ id: string; name: string; closingDay: number }[]> {
   const rows = await db
-    .select({ closingDay: paymentAccounts.closingDay })
+    .select({
+      id: paymentAccounts.id,
+      name: paymentAccounts.name,
+      closingDay: paymentAccounts.closingDay,
+    })
     .from(paymentAccounts)
     .where(
       and(
@@ -30,7 +34,8 @@ export async function getCreditClosingDays(userId: string): Promise<number[]> {
         gt(paymentAccounts.closingDay, 1)
       )
     )
-  return rows.map((r) => r.closingDay as number)
+    .orderBy(paymentAccounts.name)
+  return rows.map((r) => ({ id: r.id, name: r.name, closingDay: r.closingDay as number }))
 }
 
 export async function getCategoriesWithBudgets(userId: string, referenceMonth: string) {
