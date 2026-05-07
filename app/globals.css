@@ -9,6 +9,7 @@
     /* Background */
     --bg-base: oklch(97.2% 0.008 222);
     --bg-surface: oklch(99.5% 0.004 222);
+    --bg-input: oklch(100% 0 0);
     --bg-subtle: oklch(94.5% 0.012 222);
     --bg-muted: oklch(91.5% 0.014 222);
 
@@ -84,5 +85,11 @@
     background: var(--bg-base);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .bg-bg-input {
+    background-color: var(--bg-input);
   }
 }

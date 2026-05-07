@@ -8,6 +8,7 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
+  safelist: ['bg-bg-input'],
   theme: {
     extend: {
       fontFamily: {
@@ -55,6 +56,7 @@ const config: Config = {
         bg: {
           base: 'var(--bg-base)',
           surface: 'var(--bg-surface)',
+          input: 'var(--bg-input)',
           subtle: 'var(--bg-subtle)',
           muted: 'var(--bg-muted)',
         },

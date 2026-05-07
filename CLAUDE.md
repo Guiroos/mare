@@ -66,6 +66,8 @@ NEXTAUTH_URL=http://localhost:3000
 - Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
 - Após `db:generate`, rodar `npx prettier --write lib/db/migrations/meta/` antes de commitar — o pre-push hook rejeita a formatação gerada pelo Drizzle Kit
 - A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
+- O botão `+` do bottom nav (`aria-label="Novo lançamento"`) trava com `browser_click`; usar `browser_evaluate` com `querySelector`+`click()` para abrir o drawer de registro
+- `Segment` com muitas tabs em mobile: envolver com `<div className="overflow-x-auto">`, passar `className="flex w-full min-w-max"` ao Segment e chamar `e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })` no `onClick` de cada botão
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
 - Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
@@ -116,7 +118,7 @@ Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no s
 Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) `p-2.5` (10px)
 
 **Cores** — tokens semânticos do DS:
-`bg-bg-base` `bg-bg-surface` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` `text-text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
+`bg-bg-base` `bg-bg-surface` `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` `text-text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
 
 **Sombras** — `shadow-sm` `shadow-md` `shadow-lg` (mapeados para CSS vars)
 
@@ -147,3 +149,10 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 **Ao adicionar um componente a `components/ui/`, atualize `.claude/ds-components.md`** — não edite o inventário aqui.
 
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
+
+### Gotchas de tokens e utilitários
+
+- `twMerge` (em `lib/utils/cn.ts`) está configurado com `extendTailwindMerge` para reconhecer os tokens customizados de tipografia — sobreposições como `text-display` sobre `text-body` funcionam corretamente
+- Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
+- `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
+- `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
