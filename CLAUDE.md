@@ -56,7 +56,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Month params in URLs are `YYYY-MM`; use `lib/utils/date.ts` helpers (`currentYearMonth`, `yearMonthToReferenceMonth`, `referenceMonthToYearMonth`, `prevMonth`, `nextMonth`, `billingCycleDateRange`) — never construct month strings manually
 - Budget for a category is `category.defaultBudget` unless overridden by a `monthlyBudgetOverride` for that month
 - An installment purchase creates one `installmentGroup` row and N `transaction` rows (one per month), named `"<name> (i/N)"`
-- `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a "Ciclo fatura" toggle (`?view=cycle&closingDay=N`) that groups transactions by billing cycle instead of calendar month
+- `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a cycle select (`?cycleAccount=<uuid>`) that filters transactions and fixed expenses by that account's billing cycle — `closingDay` is derived from the account via `getCreditAccounts()`
 - Payment accounts are managed under `/contas` (dedicated route); `/categorias` covers only category groups and categories
 
 ### Gotchas
@@ -71,6 +71,7 @@ NEXTAUTH_URL=http://localhost:3000
 - `Segment` com muitas tabs em mobile: envolver com `<div className="overflow-x-auto">`, passar `className="flex w-full min-w-max"` ao Segment e chamar `e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })` no `onClick` de cada botão
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
+- `RadixSelect.Item` não aceita `value=""` (runtime error) — usar string sentinel não-vazia (ex: `"month"`) para opção padrão/limpar e checar por ela no `onValueChange`
 - Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
 - `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog` aceitam `open`/`onOpenChange` opcionais para controle externo — quando fornecidos, não renderizam o botão trigger
 - Subtítulo de linha de lista (categoria + conta): usar `flex min-w-0 items-center gap-1.5 overflow-hidden` na div e `truncate` no último span para evitar quebra em múltiplas linhas
