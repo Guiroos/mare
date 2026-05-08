@@ -52,4 +52,5 @@ export const installmentGroupSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
   categoryId: z.string().min(1, 'Selecione uma categoria'),
   accountId: z.string().min(1, 'Selecione uma conta'),
+  newTotalAmount: z.string().optional(),
 })

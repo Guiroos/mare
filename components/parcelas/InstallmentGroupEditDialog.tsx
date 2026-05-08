@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -40,6 +41,7 @@ type InstallmentGroup = {
   name: string
   categoryId: string
   accountId: string
+  totalAmount: number
 }
 
 function EditForm({
@@ -65,6 +67,7 @@ function EditForm({
       name: str('name'),
       categoryId: str('categoryId'),
       accountId: str('accountId'),
+      newTotalAmount: str('newTotalAmount') || undefined,
     })
 
     if (!result.success) {
@@ -124,10 +127,13 @@ function EditForm({
         </Select>
       </Field>
 
-      <p className="text-xs text-text-secondary">
-        Valor e número de parcelas não podem ser alterados. Isso atualizará todas as parcelas do
-        grupo.
-      </p>
+      <Field label="Valor total da compra" error={errors.newTotalAmount}>
+        <CurrencyInput
+          name="newTotalAmount"
+          defaultValue={group.totalAmount}
+          error={!!errors.newTotalAmount}
+        />
+      </Field>
 
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}
@@ -164,24 +170,41 @@ function FormLoader({ group, onSuccess }: { group: InstallmentGroup; onSuccess: 
   )
 }
 
-export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup }) {
-  const [open, setOpen] = useState(false)
+type EditButtonProps = {
+  group: InstallmentGroup
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function InstallmentGroupEditButton({
+  group,
+  open: controlledOpen,
+  onOpenChange,
+}: EditButtonProps) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const isControlled = controlledOpen !== undefined
+  const open = isControlled ? controlledOpen : internalOpen
+  const setOpen = isControlled ? onOpenChange! : setInternalOpen
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const content = <FormLoader group={group} onSuccess={() => setOpen(false)} />
 
+  const trigger = !isControlled && (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-8 w-8 shrink-0 text-text-secondary hover:text-text-primary"
+      onClick={() => setOpen(true)}
+      aria-label="Editar"
+    >
+      <Pencil className="h-4 w-4" />
+    </Button>
+  )
+
   if (isDesktop) {
     return (
       <>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 text-text-secondary hover:text-text-primary"
-          onClick={() => setOpen(true)}
-          aria-label="Editar"
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
+        {trigger}
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -196,15 +219,7 @@ export function InstallmentGroupEditButton({ group }: { group: InstallmentGroup 
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 shrink-0 text-text-secondary hover:text-text-primary"
-        onClick={() => setOpen(true)}
-        aria-label="Editar"
-      >
-        <Pencil className="h-4 w-4" />
-      </Button>
+      {trigger}
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerContent className="max-h-[92dvh]">
           <DrawerHeader>

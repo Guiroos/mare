@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema'
 import { auth } from '@/lib/auth'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, asc } from 'drizzle-orm'
 import { addMonths, format, startOfMonth } from 'date-fns'
 import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
 
@@ -250,13 +250,13 @@ export type UpdateInstallmentGroupInput = {
   name: string
   categoryId: string
   accountId: string
+  newTotalAmount?: string
 }
 
 export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
   const session = await auth()
   const userId = requireUserId(session)
 
-  // Fetch group to get totalInstallments for renaming transactions
   const [group] = await db
     .select({ totalInstallments: installmentGroups.totalInstallments })
     .from(installmentGroups)
@@ -264,16 +264,36 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
 
   if (!group) throw new Error('Grupo não encontrado')
 
+  const groupUpdate: Record<string, unknown> = {
+    name: data.name,
+    categoryId: data.categoryId,
+    accountId: data.accountId,
+  }
+  if (data.newTotalAmount) groupUpdate.totalAmount = data.newTotalAmount
+
   await db
     .update(installmentGroups)
-    .set({ name: data.name, categoryId: data.categoryId, accountId: data.accountId })
+    .set(groupUpdate)
     .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
 
-  // Update all child transactions: rename and sync category/account
   const childTransactions = await db
     .select({ id: transactions.id, installmentNumber: transactions.installmentNumber })
     .from(transactions)
     .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)))
+    .orderBy(asc(transactions.installmentNumber))
+
+  // Recalculate amounts for all installments, last one absorbs rounding
+  const amountUpdates: Record<string, string> = {}
+  if (data.newTotalAmount) {
+    const totalCents = Math.round(parseFloat(data.newTotalAmount) * 100)
+    const n = childTransactions.length
+    const baseCents = Math.floor(totalCents / n)
+    const remainderCents = totalCents - baseCents * n
+    childTransactions.forEach((t, i) => {
+      const cents = baseCents + (i === n - 1 ? remainderCents : 0)
+      amountUpdates[t.id] = (cents / 100).toFixed(2)
+    })
+  }
 
   await Promise.all(
     childTransactions.map((t) =>
@@ -283,6 +303,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
           name: `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
           categoryId: data.categoryId,
           accountId: data.accountId,
+          ...(amountUpdates[t.id] ? { amount: amountUpdates[t.id] } : {}),
         })
         .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
     )
@@ -290,6 +311,22 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
 
   revalidatePath('/dashboard')
   revalidatePath('/parcelas')
+}
+
+export async function deleteInstallmentGroup(id: string) {
+  const session = await auth()
+  const userId = requireUserId(session)
+
+  await db
+    .delete(transactions)
+    .where(and(eq(transactions.installmentGroupId, id), eq(transactions.userId, userId)))
+
+  await db
+    .delete(installmentGroups)
+    .where(and(eq(installmentGroups.id, id), eq(installmentGroups.userId, userId)))
+
+  revalidatePath('/parcelas')
+  revalidatePath('/dashboard')
 }
 
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────

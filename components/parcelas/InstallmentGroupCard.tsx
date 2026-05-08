@@ -1,8 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { RowActions } from '@/components/ui/row-actions'
 import { formatCurrency } from '@/lib/utils/currency'
+import { deleteInstallmentGroup } from '@/lib/actions/transactions'
 import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog'
 
 type Group = {
@@ -22,8 +25,10 @@ type Group = {
 }
 
 export function InstallmentGroupCard({ group }: { group: Group }) {
+  const [editOpen, setEditOpen] = useState(false)
+
   return (
-    <div className="space-y-3 rounded-xl border bg-bg-surface px-4 py-4">
+    <div className="group space-y-3 rounded-xl border bg-bg-surface px-4 py-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-0.5">
           <p className="font-semibold leading-tight">{group.name}</p>
@@ -33,13 +38,22 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
           <Badge variant="muted" dot={group.categoryColor}>
             {group.categoryName}
           </Badge>
+          <RowActions
+            onEdit={() => setEditOpen(true)}
+            onDelete={() => deleteInstallmentGroup(group.id)}
+            deleteTitle="Excluir parcelamento"
+            deleteDescription={`Isso irá excluir "${group.name}" e todas as suas parcelas. Essa ação não pode ser desfeita.`}
+          />
           <InstallmentGroupEditButton
             group={{
               id: group.id,
               name: group.name,
               categoryId: group.categoryId,
               accountId: group.accountId,
+              totalAmount: group.totalAmount,
             }}
+            open={editOpen}
+            onOpenChange={setEditOpen}
           />
         </div>
       </div>
