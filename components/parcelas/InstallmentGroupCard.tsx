@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { RowActions } from '@/components/ui/row-actions'
 import { formatCurrency } from '@/lib/utils/currency'
 import { deleteInstallmentGroup } from '@/lib/actions/transactions'
 import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog'
+
+const MAX_SEGMENTS = 24
 
 type Group = {
   id: string
@@ -16,6 +19,8 @@ type Group = {
   accountName: string
   categoryName: string
   categoryColor?: string
+  startDate: string
+  nextChargeMonth: string | null
   totalAmount: number
   totalInstallments: number
   paidInstallments: number
@@ -26,18 +31,30 @@ type Group = {
 
 export function InstallmentGroupCard({ group }: { group: Group }) {
   const [editOpen, setEditOpen] = useState(false)
+  const pct = Math.round((group.paidInstallments / group.totalInstallments) * 100)
+  const useSegments = group.totalInstallments <= MAX_SEGMENTS
 
   return (
-    <div className="group space-y-3 rounded-xl border bg-bg-surface px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-0.5">
-          <p className="font-semibold leading-tight">{group.name}</p>
-          <p className="text-xs text-text-secondary">{group.accountName}</p>
+    <Card
+      padding="none"
+      className="group space-y-3 px-5 py-4 transition-colors duration-fast hover:border-border-strong"
+    >
+      {/* Top row: avatar + identity + actions */}
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-small font-semibold text-text-secondary">
+          {group.name[0]?.toUpperCase() ?? '?'}
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <Badge variant="muted" dot={group.categoryColor}>
-            {group.categoryName}
-          </Badge>
+        <div className="min-w-0 flex-1">
+          <p className="text-body font-semibold leading-tight">{group.name}</p>
+          <div className="mt-1 flex min-w-0 items-center gap-1.5 overflow-hidden">
+            <Badge variant="muted" dot={group.categoryColor}>
+              {group.categoryName}
+            </Badge>
+            <span className="text-text-tertiary">·</span>
+            <span className="truncate text-caption text-text-tertiary">{group.accountName}</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center">
           <RowActions
             onEdit={() => setEditOpen(true)}
             onDelete={() => deleteInstallmentGroup(group.id)}
@@ -58,39 +75,59 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <Progress value={group.paidInstallments} max={group.totalInstallments} className="h-1.5" />
-        <p className="text-xs text-text-secondary">
-          Parcela {group.paidInstallments} de {group.totalInstallments}
-        </p>
+      {/* Segmented progress */}
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between">
+          <p className="text-caption font-medium text-text-secondary">
+            Parcela {group.paidInstallments} de {group.totalInstallments}
+          </p>
+          <p className="text-caption font-semibold text-text-primary">{pct}%</p>
+        </div>
+        {useSegments ? (
+          <div className="flex gap-0.5">
+            {Array.from({ length: group.totalInstallments }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 flex-1 rounded-full ${i < group.paidInstallments ? 'bg-accent' : 'bg-bg-muted'}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <Progress
+            value={group.paidInstallments}
+            max={group.totalInstallments}
+            className="h-1.5"
+          />
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-x-5 gap-y-1">
-        <div>
-          <p className="text-xs text-text-secondary">por mês</p>
-          <p className="text-sm font-semibold tabular-nums">
+      {/* Numbers */}
+      <div className="grid grid-cols-4 gap-3 pt-0.5">
+        <div className="space-y-0.5">
+          <p className="text-label uppercase text-text-tertiary">por mês</p>
+          <p className="text-small font-semibold tabular-nums text-accent-text">
             {formatCurrency(group.installmentAmount)}
           </p>
         </div>
-        <div>
-          <p className="text-xs text-text-secondary">restante</p>
-          <p className="text-sm font-semibold tabular-nums">
+        <div className="space-y-0.5">
+          <p className="text-label uppercase text-text-tertiary">restante</p>
+          <p className="text-small font-semibold tabular-nums">
             {formatCurrency(group.remainingAmount)}
           </p>
         </div>
-        <div>
-          <p className="text-xs text-text-secondary">total</p>
-          <p className="text-sm tabular-nums text-text-secondary">
+        <div className="space-y-0.5">
+          <p className="text-label uppercase text-text-tertiary">total</p>
+          <p className="text-small tabular-nums text-text-secondary">
             {formatCurrency(group.totalAmount)}
           </p>
         </div>
         {group.endLabel && (
-          <div>
-            <p className="text-xs text-text-secondary">termina em</p>
-            <p className="text-sm tabular-nums text-text-secondary">{group.endLabel}</p>
+          <div className="space-y-0.5">
+            <p className="text-label uppercase text-text-tertiary">termina</p>
+            <p className="text-small tabular-nums text-text-secondary">{group.endLabel}</p>
           </div>
         )}
       </div>
-    </div>
+    </Card>
   )
 }

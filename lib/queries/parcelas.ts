@@ -30,6 +30,10 @@ export async function getActiveInstallmentGroups(userId: string) {
       const remainingInstallments = totalInstallments - paidInstallments
       const remainingAmount = remainingInstallments * installmentAmount
 
+      const nextTx = group.transactions
+        .filter((t) => t.referenceMonth > currentMonthStr)
+        .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))[0]
+
       return {
         id: group.id,
         name: group.name,
@@ -38,6 +42,8 @@ export async function getActiveInstallmentGroups(userId: string) {
         accountName: group.account.name,
         categoryName: group.category.name,
         categoryColor: group.category.color ?? undefined,
+        startDate: group.startDate,
+        nextChargeMonth: nextTx ? nextTx.referenceMonth.slice(0, 7) : null,
         totalAmount,
         totalInstallments,
         paidInstallments,
