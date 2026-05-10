@@ -39,8 +39,10 @@ export function CurrencyInput({
   onValueChange,
 }: CurrencyInputProps) {
   const [cents, setCents] = useState(() => parseToCents(defaultValue))
+  const [touched, setTouched] = useState(false)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setTouched(true)
     const digits = e.target.value.replace(/\D/g, '')
     const newCents = parseInt(digits || '0', 10)
     setCents(newCents)
@@ -59,7 +61,11 @@ export function CurrencyInput({
         placeholder={placeholder ?? 'R$ 0,00'}
         className={cn(inputBase, error && inputErrorCls, className)}
       />
-      <input type="hidden" name={name} value={cents > 0 ? (cents / 100).toFixed(2) : ''} />
+      <input
+        type="hidden"
+        name={name}
+        value={touched || cents > 0 ? (cents / 100).toFixed(2) : ''}
+      />
     </>
   )
 }

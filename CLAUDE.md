@@ -80,6 +80,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Layout padrão de linha de lista: `icon/avatar | body (flex-1 min-w-0) | value (flex-shrink-0) | RowActions` — ações sempre na última coluna
 - `signOut({ callbackUrl: '/login' })` redireciona para `NEXTAUTH_URL + callbackUrl` — em dev com porta alternativa (ex: 3001), vai para a porta do `NEXTAUTH_URL` (3000); comportamento esperado
 - `@radix-ui/react-dropdown-menu` já está instalado (usado em `row-actions.tsx`); para dropdowns que abrem para cima, usar `side="top"` no `DropdownMenu.Content`
+- `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, adicione estado `touched` no componente e emita o valor numérico quando `touched || cents > 0`
 
 ### UI
 
