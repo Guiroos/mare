@@ -53,6 +53,7 @@ type Props = {
   accounts: Account[]
   investmentTypes?: InvestmentType[]
   defaultMonth?: string
+  defaultDate?: string
   onSuccess?: () => void
   onFormChange?: (state: import('./transaction/types').PreviewState) => void
   categoryVariant?: 'grid' | 'select'
@@ -84,12 +85,13 @@ export function TransactionForm({
   accounts,
   investmentTypes = [],
   defaultMonth,
+  defaultDate,
   onSuccess,
   onFormChange,
   categoryVariant = 'grid',
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
-  const today = todayISOString()
+  const today = defaultDate ?? todayISOString()
 
   const [primaryType, setPrimaryType] = useState<PrimaryType>('saida')
   const [subType, setSubType] = useState<SaidaSubType>('avulsa')

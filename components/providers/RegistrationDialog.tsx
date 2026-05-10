@@ -25,7 +25,7 @@ type InvestmentType = {
 }
 
 type RegistrationDialogCtx = {
-  open: (month?: string) => void
+  open: (month?: string, date?: string) => void
 }
 
 const ctx = createContext<RegistrationDialogCtx>({ open: () => {} })
@@ -37,6 +37,7 @@ export function useRegistrationDialog() {
 function FormContent({
   formData,
   month,
+  date,
   onSuccess,
   categoryVariant,
 }: {
@@ -46,6 +47,7 @@ function FormContent({
     investmentTypes: InvestmentType[]
   } | null
   month: string | undefined
+  date: string | undefined
   onSuccess: () => void
   categoryVariant: 'grid' | 'select'
 }) {
@@ -62,6 +64,7 @@ function FormContent({
       accounts={formData.accounts}
       investmentTypes={formData.investmentTypes}
       defaultMonth={month}
+      defaultDate={date}
       onSuccess={onSuccess}
       categoryVariant={categoryVariant}
     />
@@ -71,6 +74,7 @@ function FormContent({
 export function RegistrationDialogProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false)
   const [month, setMonth] = useState<string | undefined>()
+  const [date, setDate] = useState<string | undefined>()
   const [formData, setFormData] = useState<{
     categoryGroups: CategoryGroup[]
     accounts: Account[]
@@ -79,8 +83,9 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
-  const openDialog = useCallback((defaultMonth?: string) => {
+  const openDialog = useCallback((defaultMonth?: string, defaultDate?: string) => {
     setMonth(defaultMonth)
+    setDate(defaultDate)
     setIsOpen(true)
   }, [])
 
@@ -104,6 +109,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
               <FormContent
                 formData={formData}
                 month={month}
+                date={date}
                 onSuccess={() => setIsOpen(false)}
                 categoryVariant="grid"
               />

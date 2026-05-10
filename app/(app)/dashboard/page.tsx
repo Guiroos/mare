@@ -20,6 +20,7 @@ import { PendencyBanner } from '@/components/dashboard/PendencyBanner'
 import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
+import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
 
 export default async function DashboardPage({
   searchParams,
@@ -73,6 +74,7 @@ export default async function DashboardPage({
         cycleRange={cycleRange ?? undefined}
         creditAccounts={creditAccounts}
         activeCycleAccountId={activeAccount?.id}
+        action={<DashboardFAB month={month} />}
       />
 
       <PendencyBanner unpaidFixedCount={unpaidFixedCount} pendingYieldCount={pendingYieldCount} />

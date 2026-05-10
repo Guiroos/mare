@@ -2,22 +2,27 @@
 
 import { Plus } from 'lucide-react'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
+import { Button } from '@/components/ui/button'
+import { currentYearMonth } from '@/lib/utils/date'
 
 export function DashboardFAB({ month }: { month: string }) {
   const { open } = useRegistrationDialog()
 
+  function handleClick() {
+    if (month === currentYearMonth()) {
+      open(month)
+    } else {
+      const [y, m] = month.split('-').map(Number)
+      const lastDay = new Date(y, m, 0).getDate()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      open(month, `${y}-${pad(m)}-${pad(lastDay)}`)
+    }
+  }
+
   return (
-    <button
-      onClick={() => open(month)}
-      aria-label="Novo lançamento"
-      className="fixed bottom-8 right-8 hidden h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 hover:-translate-y-0.5 active:scale-95 lg:flex"
-      style={{
-        background: 'linear-gradient(135deg, var(--accent) 0%, oklch(45% 0.12 210) 100%)',
-        boxShadow:
-          '0 8px 24px oklch(50% 0.14 230 / 0.35), 0 2px 6px oklch(50% 0.14 230 / 0.2), inset 0 1px 0 oklch(100% 0 0 / 0.2)',
-      }}
-    >
-      <Plus className="h-[26px] w-[26px]" strokeWidth={2.5} />
-    </button>
+    <Button variant="outline" size="sm" onClick={handleClick} className="hidden lg:flex">
+      <Plus className="h-3.5 w-3.5" />
+      Nova
+    </Button>
   )
 }

@@ -13,12 +13,14 @@ export function MonthSelector({
   cycleRange,
   creditAccounts = [],
   activeCycleAccountId,
+  action,
 }: {
   currentMonth: string
   isCurrentMonth: boolean
   cycleRange?: { start: string; end: string; label: string }
   creditAccounts?: CreditAccount[]
   activeCycleAccountId?: string
+  action?: React.ReactNode
 }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -137,6 +139,7 @@ export function MonthSelector({
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           )}
+          {action}
         </div>
       </div>
     </div>
