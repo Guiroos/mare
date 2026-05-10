@@ -126,6 +126,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
               <FormContent
                 formData={formData}
                 month={month}
+                date={date}
                 onSuccess={() => setIsOpen(false)}
                 categoryVariant="select"
               />
