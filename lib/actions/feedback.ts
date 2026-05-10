@@ -2,21 +2,14 @@
 
 import { db } from '@/lib/db'
 import { feedback } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 export async function submitFeedback(data: {
   category: 'melhoria' | 'implementacao' | 'outros'
   message: string
   page: string
 }) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.insert(feedback).values({
     userId,

@@ -29,7 +29,7 @@ export default async function ConfiguracaoMesPage({
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
   const month = searchParams.month ?? currentYearMonth()
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)

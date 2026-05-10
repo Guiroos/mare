@@ -19,7 +19,7 @@ export default async function MetasPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
 
   const [goalsData, investmentTypes] = await Promise.all([
     getGoalsWithProgress(userId),

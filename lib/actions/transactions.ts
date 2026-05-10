@@ -3,18 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
 import { eq, and, asc } from 'drizzle-orm'
 import { addMonths, format, startOfMonth } from 'date-fns'
 import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
 
@@ -27,8 +19,7 @@ export type CreateTransactionInput = {
 }
 
 export async function createTransaction(data: CreateTransactionInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.insert(transactions).values({
     userId,
@@ -55,8 +46,7 @@ export type CreateFixedExpenseInput = {
 }
 
 export async function createFixedExpense(data: CreateFixedExpenseInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.insert(fixedExpenses).values({
     userId,
@@ -82,8 +72,7 @@ export type UpdateFixedExpenseInput = {
 }
 
 export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .update(fixedExpenses)
@@ -100,8 +89,7 @@ export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
 }
 
 export async function toggleFixedExpensePaid(id: string, paid: boolean) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .update(fixedExpenses)
@@ -113,8 +101,7 @@ export async function toggleFixedExpensePaid(id: string, paid: boolean) {
 }
 
 export async function deleteFixedExpense(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .delete(fixedExpenses)
@@ -127,8 +114,7 @@ export async function copyFixedExpensesFromPrevMonth(
   referenceMonth: string,
   prevReferenceMonth: string
 ) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const prevExpenses = await db.query.fixedExpenses.findMany({
     where: and(
@@ -173,8 +159,7 @@ export type CreateInstallmentInput = {
 }
 
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
@@ -225,8 +210,7 @@ export type UpdateTransactionInput = {
 }
 
 export async function updateTransaction(data: UpdateTransactionInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .update(transactions)
@@ -254,8 +238,7 @@ export type UpdateInstallmentGroupInput = {
 }
 
 export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const [group] = await db
     .select({ totalInstallments: installmentGroups.totalInstallments })
@@ -314,8 +297,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
 }
 
 export async function deleteInstallmentGroup(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .delete(transactions)
@@ -332,8 +314,7 @@ export async function deleteInstallmentGroup(id: string) {
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────
 
 export async function deleteTransaction(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
 

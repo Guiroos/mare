@@ -3,14 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { goals, goalContributions } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 export type UpsertGoalInput = {
   name: string
@@ -21,8 +15,7 @@ export type UpsertGoalInput = {
 }
 
 export async function upsertGoal(data: UpsertGoalInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const values = {
     name: data.name.trim(),
@@ -44,8 +37,7 @@ export async function upsertGoal(data: UpsertGoalInput) {
 }
 
 export async function deleteGoal(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.delete(goals).where(and(eq(goals.id, id), eq(goals.userId, userId)))
   revalidatePath('/metas')
 }
@@ -57,8 +49,7 @@ export type AddContributionInput = {
 }
 
 export async function addGoalContribution(data: AddContributionInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.insert(goalContributions).values({
     goalId: data.goalId,
     userId,
@@ -76,8 +67,7 @@ export type UpdateContributionInput = {
 }
 
 export async function updateGoalContribution(data: UpdateContributionInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .update(goalContributions)
@@ -88,8 +78,7 @@ export async function updateGoalContribution(data: UpdateContributionInput) {
 }
 
 export async function deleteGoalContribution(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .delete(goalContributions)
     .where(and(eq(goalContributions.id, id), eq(goalContributions.userId, userId)))

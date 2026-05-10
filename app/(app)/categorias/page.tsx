@@ -17,7 +17,7 @@ export default async function CategoriasPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
   const groups = await getCategoriesWithGroups(userId)
 
   const groupOptions = groups.map((g) => ({ id: g.id, name: g.name }))

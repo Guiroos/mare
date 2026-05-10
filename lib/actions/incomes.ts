@@ -3,14 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { incomes } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 export type CreateIncomeInput = {
   source: string
@@ -19,8 +13,7 @@ export type CreateIncomeInput = {
 }
 
 export async function createIncome(data: CreateIncomeInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.insert(incomes).values({
     userId,
@@ -39,8 +32,7 @@ export type UpdateIncomeInput = {
 }
 
 export async function updateIncome(data: UpdateIncomeInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db
     .update(incomes)
@@ -51,8 +43,7 @@ export async function updateIncome(data: UpdateIncomeInput) {
 }
 
 export async function deleteIncome(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   await db.delete(incomes).where(and(eq(incomes.id, id), eq(incomes.userId, userId)))
 

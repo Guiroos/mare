@@ -24,7 +24,7 @@ export default async function ParcelasPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
   const currentYM = currentYearMonth()
 
   const [groups, timeline] = await Promise.all([

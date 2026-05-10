@@ -8,27 +8,19 @@ import {
   monthlyBudgetOverrides,
   paymentAccounts,
 } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
 export async function createCategoryGroup(name: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.insert(categoryGroups).values({ userId, name })
   revalidatePath('/categorias')
 }
 
 export async function updateCategoryGroup(id: string, name: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .update(categoryGroups)
     .set({ name })
@@ -37,8 +29,7 @@ export async function updateCategoryGroup(id: string, name: string) {
 }
 
 export async function deleteCategoryGroup(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .delete(categoryGroups)
     .where(and(eq(categoryGroups.id, id), eq(categoryGroups.userId, userId)))
@@ -46,8 +37,7 @@ export async function deleteCategoryGroup(id: string) {
 }
 
 export async function reorderCategoryGroups(orderedIds: string[]) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await Promise.all(
     orderedIds.map((id, index) =>
       db
@@ -78,8 +68,7 @@ export type CategoryInput = {
 }
 
 export async function createCategory(data: CategoryInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.insert(categories).values({
     userId,
     name: data.name,
@@ -92,8 +81,7 @@ export async function createCategory(data: CategoryInput) {
 }
 
 export async function updateCategory(id: string, data: CategoryInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .update(categories)
     .set({
@@ -109,8 +97,7 @@ export async function updateCategory(id: string, data: CategoryInput) {
 }
 
 export async function deleteCategory(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.delete(categories).where(and(eq(categories.id, id), eq(categories.userId, userId)))
   revalidatePath('/categorias')
 }
@@ -123,8 +110,7 @@ export async function upsertBudgetOverride(data: {
   amount: string
   existingId?: string
 }) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   if (data.existingId) {
     await db
@@ -150,8 +136,7 @@ export async function upsertBudgetOverride(data: {
 }
 
 export async function deleteBudgetOverride(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .delete(monthlyBudgetOverrides)
     .where(and(eq(monthlyBudgetOverrides.id, id), eq(monthlyBudgetOverrides.userId, userId)))
@@ -163,8 +148,7 @@ export async function copyBudgetOverridesFromPrevMonth(
   referenceMonth: string,
   prevReferenceMonth: string
 ) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const prevOverrides = await db.query.monthlyBudgetOverrides.findMany({
     where: and(
@@ -207,8 +191,7 @@ export type AccountInput = {
 }
 
 export async function createPaymentAccount(data: AccountInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.insert(paymentAccounts).values({
     userId,
     name: data.name,
@@ -219,8 +202,7 @@ export async function createPaymentAccount(data: AccountInput) {
 }
 
 export async function updatePaymentAccount(id: string, data: AccountInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .update(paymentAccounts)
     .set({
@@ -233,8 +215,7 @@ export async function updatePaymentAccount(id: string, data: AccountInput) {
 }
 
 export async function deletePaymentAccount(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .delete(paymentAccounts)
     .where(and(eq(paymentAccounts.id, id), eq(paymentAccounts.userId, userId)))

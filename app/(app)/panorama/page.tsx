@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/ui/page-header'
 export default async function PanoramaPage() {
   const session = await auth()
   if (!session) redirect('/login')
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
 
   const year = currentYear()
 

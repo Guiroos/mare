@@ -3,28 +3,20 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
-import { auth } from '@/lib/auth'
 import { eq, and } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
 export async function createInvestmentType(name: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.insert(investmentTypes).values({ userId, name })
   revalidatePath('/investimentos')
 }
 
 export async function updateInvestmentType(id: string, name: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .update(investmentTypes)
     .set({ name })
@@ -33,8 +25,7 @@ export async function updateInvestmentType(id: string, name: string) {
 }
 
 export async function deleteInvestmentType(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db
     .delete(investmentTypes)
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
@@ -54,8 +45,7 @@ export type UpsertInvestmentInput = {
 }
 
 export async function upsertInvestment(data: UpsertInvestmentInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   if (data.existingId) {
     await db
@@ -84,8 +74,7 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
 }
 
 export async function deleteInvestment(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   await db.delete(investments).where(and(eq(investments.id, id), eq(investments.userId, userId)))
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
@@ -102,8 +91,7 @@ export type CreateWithdrawalInput = {
 }
 
 export async function createWithdrawal(data: CreateWithdrawalInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   let incomeId: string | null = null
 
@@ -143,8 +131,7 @@ export type UpdateWithdrawalInput = {
 }
 
 export async function updateWithdrawal(data: UpdateWithdrawalInput) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const [withdrawal] = await db.query.investmentWithdrawals.findMany({
     where: and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)),
@@ -175,8 +162,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
 }
 
 export async function deleteWithdrawal(id: string) {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
 
   const [withdrawal] = await db.query.investmentWithdrawals.findMany({
     where: and(eq(investmentWithdrawals.id, id), eq(investmentWithdrawals.userId, userId)),

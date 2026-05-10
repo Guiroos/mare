@@ -30,7 +30,7 @@ export default async function DashboardPage({
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
   const month = searchParams.month ?? currentYearMonth()
   const referenceMonth = yearMonthToReferenceMonth(month)
 

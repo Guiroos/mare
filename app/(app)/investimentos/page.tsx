@@ -24,7 +24,7 @@ export default async function InvestimentosPage() {
   const session = await auth()
   if (!session) redirect('/login')
 
-  const userId = (session.user as { id: string }).id
+  const userId = session.user.id
 
   const [balances, withdrawals, timeline] = await Promise.all([
     getInvestmentBalances(userId),
