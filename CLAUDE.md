@@ -58,6 +58,7 @@ NEXTAUTH_URL=http://localhost:3000
 - An installment purchase creates one `installmentGroup` row and N `transaction` rows (one per month), named `"<name> (i/N)"`
 - `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a cycle select (`?cycleAccount=<uuid>`) that filters transactions and fixed expenses by that account's billing cycle — `closingDay` is derived from the account via `getCreditAccounts()`
 - Payment accounts are managed under `/contas` (dedicated route); `/categorias` covers only category groups and categories
+- Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`; `app/(app)/layout.tsx` computa `isAdmin` e passa ao `<Sidebar>` para exibir o link condicionalmente
 
 ### Gotchas
 
@@ -161,3 +162,5 @@ Re-exports são proibidos: se um componente precisa ser compartilhado, mova para
 - Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
 - `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
 - `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
+- Wrappers Radix (`SelectTrigger`, etc.): className **sempre** via `cn()` de `lib/utils/cn` — nunca template string com ternário
+- `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)

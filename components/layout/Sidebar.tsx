@@ -15,6 +15,7 @@ import {
   LogOut,
   MessageSquare,
   CreditCard,
+  ShieldCheck,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
@@ -38,6 +39,7 @@ const configNav = [
 
 interface SidebarProps {
   user?: { name?: string | null; email?: string | null }
+  isAdmin?: boolean
 }
 
 function NavItem({
@@ -71,7 +73,7 @@ function NavItem({
   )
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, isAdmin }: SidebarProps) {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -157,6 +159,15 @@ export function Sidebar({ user }: SidebarProps) {
             onClick={() => setPendingHref(href)}
           />
         ))}
+        {isAdmin && (
+          <NavItem
+            href="/admin"
+            label="Admin"
+            icon={ShieldCheck}
+            active={isActive('/admin')}
+            onClick={() => setPendingHref('/admin')}
+          />
+        )}
       </nav>
 
       {/* User footer */}
