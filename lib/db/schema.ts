@@ -8,6 +8,7 @@ import {
   boolean,
   timestamp,
   text,
+  index,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -76,17 +77,21 @@ export const categories = pgTable('categories', {
   bgColor: varchar('bg_color', { length: 7 }),
 })
 
-export const monthlyBudgetOverrides = pgTable('monthly_budget_overrides', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  categoryId: uuid('category_id')
-    .notNull()
-    .references(() => categories.id, { onDelete: 'cascade' }),
-  referenceMonth: date('reference_month').notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-})
+export const monthlyBudgetOverrides = pgTable(
+  'monthly_budget_overrides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'cascade' }),
+    referenceMonth: date('reference_month').notNull(),
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  },
+  (t) => [index('mbo_user_month_idx').on(t.userId, t.referenceMonth)]
+)
 
 export const paymentAccounts = pgTable('payment_accounts', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -98,23 +103,27 @@ export const paymentAccounts = pgTable('payment_accounts', {
   closingDay: integer('closing_day'),
 })
 
-export const fixedExpenses = pgTable('fixed_expenses', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  accountId: uuid('account_id')
-    .notNull()
-    .references(() => paymentAccounts.id, { onDelete: 'restrict' }),
-  categoryId: uuid('category_id')
-    .notNull()
-    .references(() => categories.id, { onDelete: 'restrict' }),
-  name: varchar('name', { length: 200 }).notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  dueDay: integer('due_day').notNull(),
-  paid: boolean('paid').default(false).notNull(),
-  referenceMonth: date('reference_month').notNull(),
-})
+export const fixedExpenses = pgTable(
+  'fixed_expenses',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => paymentAccounts.id, { onDelete: 'restrict' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 200 }).notNull(),
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    dueDay: integer('due_day').notNull(),
+    paid: boolean('paid').default(false).notNull(),
+    referenceMonth: date('reference_month').notNull(),
+  },
+  (t) => [index('fixed_expenses_user_month_idx').on(t.userId, t.referenceMonth)]
+)
 
 export const installmentGroups = pgTable('installment_groups', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -133,37 +142,48 @@ export const installmentGroups = pgTable('installment_groups', {
   startDate: date('start_date').notNull(),
 })
 
-export const transactions = pgTable('transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  accountId: uuid('account_id')
-    .notNull()
-    .references(() => paymentAccounts.id, { onDelete: 'restrict' }),
-  categoryId: uuid('category_id')
-    .notNull()
-    .references(() => categories.id, { onDelete: 'restrict' }),
-  installmentGroupId: uuid('installment_group_id').references(() => installmentGroups.id, {
-    onDelete: 'set null',
-  }),
-  name: varchar('name', { length: 200 }).notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  date: date('date').notNull(),
-  referenceMonth: date('reference_month').notNull(),
-  installmentNumber: integer('installment_number'),
-  totalInstallments: integer('total_installments'),
-})
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => paymentAccounts.id, { onDelete: 'restrict' }),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id, { onDelete: 'restrict' }),
+    installmentGroupId: uuid('installment_group_id').references(() => installmentGroups.id, {
+      onDelete: 'set null',
+    }),
+    name: varchar('name', { length: 200 }).notNull(),
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    date: date('date').notNull(),
+    referenceMonth: date('reference_month').notNull(),
+    installmentNumber: integer('installment_number'),
+    totalInstallments: integer('total_installments'),
+  },
+  (t) => [
+    index('transactions_user_month_idx').on(t.userId, t.referenceMonth),
+    index('transactions_user_date_idx').on(t.userId, t.date),
+  ]
+)
 
-export const incomes = pgTable('incomes', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  source: varchar('source', { length: 200 }).notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  referenceMonth: date('reference_month').notNull(),
-})
+export const incomes = pgTable(
+  'incomes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    source: varchar('source', { length: 200 }).notNull(),
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    referenceMonth: date('reference_month').notNull(),
+  },
+  (t) => [index('incomes_user_month_idx').on(t.userId, t.referenceMonth)]
+)
 
 export const goals = pgTable('goals', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -185,37 +205,48 @@ export const investmentTypes = pgTable('investment_types', {
   goalId: uuid('goal_id').references(() => goals.id, { onDelete: 'set null' }),
 })
 
-export const investments = pgTable('investments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  investmentTypeId: uuid('investment_type_id')
-    .notNull()
-    .references(() => investmentTypes.id, { onDelete: 'restrict' }),
-  amount: decimal('amount', { precision: 10, scale: 2 }),
-  yieldAmount: decimal('yield_amount', { precision: 10, scale: 2 }),
-  referenceMonth: date('reference_month').notNull(),
-  notes: text('notes'),
-  excludeFromCashFlow: boolean('exclude_from_cash_flow').notNull().default(false),
-})
+export const investments = pgTable(
+  'investments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    investmentTypeId: uuid('investment_type_id')
+      .notNull()
+      .references(() => investmentTypes.id, { onDelete: 'restrict' }),
+    amount: decimal('amount', { precision: 10, scale: 2 }),
+    yieldAmount: decimal('yield_amount', { precision: 10, scale: 2 }),
+    referenceMonth: date('reference_month').notNull(),
+    notes: text('notes'),
+    excludeFromCashFlow: boolean('exclude_from_cash_flow').notNull().default(false),
+  },
+  (t) => [
+    index('investments_user_month_idx').on(t.userId, t.referenceMonth),
+    index('investments_user_type_idx').on(t.userId, t.investmentTypeId),
+  ]
+)
 
-export const investmentWithdrawals = pgTable('investment_withdrawals', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  investmentTypeId: uuid('investment_type_id')
-    .notNull()
-    .references(() => investmentTypes.id, { onDelete: 'restrict' }),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  date: date('date').notNull(),
-  destination: varchar('destination', { length: 20 }).notNull(), // income | transfer
-  incomeId: uuid('income_id').references(() => incomes.id, {
-    onDelete: 'set null',
-  }),
-  notes: text('notes'),
-})
+export const investmentWithdrawals = pgTable(
+  'investment_withdrawals',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    investmentTypeId: uuid('investment_type_id')
+      .notNull()
+      .references(() => investmentTypes.id, { onDelete: 'restrict' }),
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    date: date('date').notNull(),
+    destination: varchar('destination', { length: 20 }).notNull(), // income | transfer
+    incomeId: uuid('income_id').references(() => incomes.id, {
+      onDelete: 'set null',
+    }),
+    notes: text('notes'),
+  },
+  (t) => [index('withdrawals_user_type_idx').on(t.userId, t.investmentTypeId)]
+)
 
 export const goalContributions = pgTable('goal_contributions', {
   id: uuid('id').primaryKey().defaultRandom(),
