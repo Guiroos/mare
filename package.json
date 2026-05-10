@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "drizzle-kit migrate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
