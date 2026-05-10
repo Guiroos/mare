@@ -432,7 +432,7 @@ export function TransactionForm({
         )}
 
         {/* Categoria */}
-        {(primaryType === 'saida' || primaryType === 'entrada') && (
+        {primaryType === 'saida' && (
           <CategoryPicker
             categoryGroups={categoryGroups}
             categoryId={categoryId}

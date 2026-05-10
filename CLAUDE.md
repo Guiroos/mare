@@ -71,6 +71,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Segmented controls onde cada opção tem cor active diferente por tipo semântico (ex: negative/positive/accent): usar raw `<button>` em vez de `Chip`/`Segment` — os primitivos do DS não suportam active color variável por item
 - `Segment` com muitas tabs em mobile: envolver com `<div className="overflow-x-auto">`, passar `className="flex w-full min-w-max"` ao Segment e chamar `e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })` no `onClick` de cada botão
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
+- `incomes` não tem `categoryId` — categorias são exclusivas de despesas (saída); não exibir `CategoryPicker` para outros tipos de transação
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
 - `RadixSelect.Item` não aceita `value=""` (runtime error) — usar string sentinel não-vazia (ex: `"month"`) para opção padrão/limpar e checar por ela no `onValueChange`
 - Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
