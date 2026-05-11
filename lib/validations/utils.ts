@@ -45,6 +45,8 @@ export const dateSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida')
   .refine((v) => !isNaN(Date.parse(v + 'T12:00:00')), 'Data inválida')
 
+export const yearMonthSchema = z.string().regex(/^\d{4}-\d{2}$/, 'Mês inválido')
+
 export const referenceMonthSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-01$/, 'Mês de referência inválido')

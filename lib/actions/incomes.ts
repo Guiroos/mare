@@ -5,7 +5,7 @@ import { db } from '@/lib/db'
 import { incomes } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
-import { incomeSchema, updateIncomeActionSchema } from '@/lib/validations/transactions'
+import { createIncomeActionSchema, updateIncomeActionSchema } from '@/lib/validations/transactions'
 
 export type CreateIncomeInput = {
   source: string
@@ -15,7 +15,7 @@ export type CreateIncomeInput = {
 
 export async function createIncome(data: CreateIncomeInput) {
   const userId = await requireUserId()
-  incomeSchema.parse(data)
+  createIncomeActionSchema.parse(data)
 
   await db.insert(incomes).values({
     userId,

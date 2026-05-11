@@ -4,6 +4,7 @@ import {
   positiveAmountSchema,
   optionalPositiveAmountSchema,
   dateSchema,
+  yearMonthSchema,
   referenceMonthSchema,
 } from './utils'
 
@@ -30,8 +31,9 @@ const fixedExpenseBase = z.object({
 
 export const fixedExpenseEditSchema = fixedExpenseBase
 
+// client forms send YYYY-MM from <input type="month">
 export const fixedExpenseSchema = fixedExpenseBase.extend({
-  referenceMonth: referenceMonthSchema,
+  referenceMonth: yearMonthSchema,
 })
 
 export const installmentSchema = z.object({
@@ -53,8 +55,9 @@ const incomeBase = z.object({
 
 export const incomeEditSchema = incomeBase
 
+// client forms send YYYY-MM from <input type="month">
 export const incomeSchema = incomeBase.extend({
-  referenceMonth: referenceMonthSchema,
+  referenceMonth: yearMonthSchema,
 })
 
 export const installmentGroupSchema = z.object({
@@ -99,3 +102,8 @@ export const updateInstallmentGroupActionSchema = z.object({
 export const updateTransactionActionSchema = transactionSchema.extend({ id: uuidSchema })
 
 export const updateIncomeActionSchema = incomeEditSchema.extend({ id: uuidSchema })
+
+// action schemas for incomes receive YYYY-MM-01 (converted by the form)
+export const createIncomeActionSchema = incomeBase.extend({
+  referenceMonth: referenceMonthSchema,
+})

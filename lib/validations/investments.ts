@@ -4,6 +4,7 @@ import {
   positiveAmountSchema,
   nullishNonNegativeAmountSchema,
   dateSchema,
+  yearMonthSchema,
   referenceMonthSchema,
 } from './utils'
 
@@ -11,10 +12,11 @@ export const investmentTypeSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
 })
 
+// client forms send YYYY-MM from <input type="month">
 export const investmentEntrySchema = z
   .object({
     investmentTypeId: uuidSchema,
-    referenceMonth: referenceMonthSchema,
+    referenceMonth: yearMonthSchema,
     amount: nullishNonNegativeAmountSchema,
     yieldAmount: nullishNonNegativeAmountSchema,
     excludeFromCashFlow: z.boolean().optional().default(false),
@@ -37,5 +39,20 @@ export const withdrawalSchema = withdrawalBase.extend({
 })
 
 // ─── Action schemas ───────────────────────────────────────────────────────────
+
+// upsertInvestment receives referenceMonth as YYYY-MM-01 (converted by the form)
+export const upsertInvestmentActionSchema = z
+  .object({
+    investmentTypeId: uuidSchema,
+    referenceMonth: referenceMonthSchema,
+    amount: nullishNonNegativeAmountSchema,
+    yieldAmount: nullishNonNegativeAmountSchema,
+    excludeFromCashFlow: z.boolean().optional().default(false),
+    existingId: uuidSchema.optional(),
+  })
+  .refine((data) => !!data.amount || !!data.yieldAmount, {
+    message: 'Informe ao menos o aporte ou o rendimento',
+    path: ['amount'],
+  })
 
 export const updateWithdrawalActionSchema = withdrawalBase.extend({ id: uuidSchema })

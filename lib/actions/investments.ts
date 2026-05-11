@@ -9,7 +9,7 @@ import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
 import {
   investmentTypeSchema,
-  investmentEntrySchema,
+  upsertInvestmentActionSchema,
   withdrawalSchema,
   updateWithdrawalActionSchema,
 } from '@/lib/validations/investments'
@@ -55,7 +55,7 @@ export type UpsertInvestmentInput = {
 
 export async function upsertInvestment(data: UpsertInvestmentInput) {
   const userId = await requireUserId()
-  investmentEntrySchema.parse(data)
+  upsertInvestmentActionSchema.parse(data)
 
   if (data.existingId) {
     await db
