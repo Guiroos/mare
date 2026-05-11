@@ -50,27 +50,17 @@ export type UpsertInvestmentInput = {
   yieldAmount?: string | null
   notes?: string | null
   excludeFromCashFlow?: boolean
-  existingId?: string
 }
 
 export async function upsertInvestment(data: UpsertInvestmentInput) {
   const userId = await requireUserId()
   upsertInvestmentActionSchema.parse(data)
 
-  if (data.existingId) {
-    await db
-      .update(investments)
-      .set({
-        amount: data.amount || null,
-        yieldAmount: data.yieldAmount || null,
-        notes: data.notes || null,
-        excludeFromCashFlow: data.excludeFromCashFlow ?? false,
-      })
-      .where(and(eq(investments.id, data.existingId), eq(investments.userId, userId)))
-  } else {
-    await assertOwnsInvestmentType(userId, data.investmentTypeId)
+  await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
-    await db.insert(investments).values({
+  await db
+    .insert(investments)
+    .values({
       userId,
       investmentTypeId: data.investmentTypeId,
       referenceMonth: data.referenceMonth,
@@ -79,7 +69,15 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
       notes: data.notes || null,
       excludeFromCashFlow: data.excludeFromCashFlow ?? false,
     })
-  }
+    .onConflictDoUpdate({
+      target: [investments.userId, investments.investmentTypeId, investments.referenceMonth],
+      set: {
+        amount: data.amount || null,
+        yieldAmount: data.yieldAmount || null,
+        notes: data.notes || null,
+        excludeFromCashFlow: data.excludeFromCashFlow ?? false,
+      },
+    })
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')

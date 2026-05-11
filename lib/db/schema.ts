@@ -9,6 +9,7 @@ import {
   timestamp,
   text,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -90,7 +91,10 @@ export const monthlyBudgetOverrides = pgTable(
     referenceMonth: date('reference_month').notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
   },
-  (t) => [index('mbo_user_month_idx').on(t.userId, t.referenceMonth)]
+  (t) => [
+    index('mbo_user_month_idx').on(t.userId, t.referenceMonth),
+    uniqueIndex('mbo_user_category_month_uniq').on(t.userId, t.categoryId, t.referenceMonth),
+  ]
 )
 
 export const paymentAccounts = pgTable('payment_accounts', {
@@ -224,6 +228,11 @@ export const investments = pgTable(
   (t) => [
     index('investments_user_month_idx').on(t.userId, t.referenceMonth),
     index('investments_user_type_idx').on(t.userId, t.investmentTypeId),
+    uniqueIndex('investments_user_type_month_uniq').on(
+      t.userId,
+      t.investmentTypeId,
+      t.referenceMonth
+    ),
   ]
 )
 

@@ -65,7 +65,6 @@ export function BudgetOverrideDialog({
           categoryId,
           referenceMonth,
           amount: result.data.amount,
-          existingId: override?.id,
         })
         setOpen(false)
       } catch {

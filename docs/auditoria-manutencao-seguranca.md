@@ -573,7 +573,7 @@ Solução aplicada:
   Vercel usa esse campo no deploy, mantendo o comportamento de migration automática em
   produção sem afetar builds locais.
 
-### M2. Falta de constraints únicas para dados mensais
+### M2. Falta de constraints únicas para dados mensais ✅ Resolvido (2026-05-10)
 
 Severidade: média/alta
 
@@ -602,6 +602,18 @@ Recomendação:
 - Adicionar unique indexes.
 - Usar `onConflictDoUpdate` para upserts reais.
 - Criar rotina de saneamento para duplicatas existentes antes da migration.
+
+Solução aplicada:
+
+- Adicionados `uniqueIndex` em `investments(userId, investmentTypeId, referenceMonth)` e
+  `monthlyBudgetOverrides(userId, categoryId, referenceMonth)` no schema Drizzle.
+- `upsertBudgetOverride` e `upsertInvestment` reescritos para usar `onConflictDoUpdate`;
+  parâmetro `existingId` removido do contrato público das duas funções — o banco resolve o
+  conflito pela chave natural, sem depender do cliente informar se o registro existe.
+- `assertOwnsCategory` / `assertOwnsInvestmentType` passam a rodar sempre (antes eram
+  pulados no branch de update via `existingId`).
+- Migration `0006_same_lake.sql` inclui `DELETE ... WHERE id NOT IN (DISTINCT ON ...)` antes
+  dos `CREATE UNIQUE INDEX` para garantir idempotência em dados existentes.
 
 ### M3. Poucos índices compostos para queries centrais ✅ Resolvido (2026-05-10)
 
@@ -898,7 +910,7 @@ Tarefas:
 - revisar `@ducanh2912/next-pwa` e Workbox;
 - rodar `npm audit` depois de cada alteração.
 
-### Fase 4: Integridade do banco
+### Fase 4: Integridade do banco ✅ Parcialmente concluída (2026-05-10)
 
 Objetivo:
 
@@ -906,10 +918,10 @@ Objetivo:
 
 Tarefas:
 
-- adicionar unique indexes para registros mensais únicos;
-- adicionar índices compostos para queries por usuário/mês;
+- ✅ adicionar unique indexes para registros mensais únicos;
+- ✅ adicionar índices compostos para queries por usuário/mês (M3);
 - avaliar enums ou checks para strings de domínio;
-- criar migration de limpeza caso existam duplicatas.
+- ✅ migration de limpeza incluída na 0006_same_lake.sql.
 
 ### Fase 5: Observabilidade e testes
 

@@ -48,7 +48,6 @@ export const upsertInvestmentActionSchema = z
     amount: nullishNonNegativeAmountSchema,
     yieldAmount: nullishNonNegativeAmountSchema,
     excludeFromCashFlow: z.boolean().optional().default(false),
-    existingId: uuidSchema.optional(),
   })
   .refine((data) => !!data.amount || !!data.yieldAmount, {
     message: 'Informe ao menos o aporte ou o rendimento',

@@ -67,7 +67,6 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
       yieldAmount: (fd.get('yieldAmount') as string).trim() || null,
       notes: (fd.get('notes') as string).trim() || null,
       excludeFromCashFlow,
-      existingId: existing?.id,
     }
 
     startTransition(async () => {

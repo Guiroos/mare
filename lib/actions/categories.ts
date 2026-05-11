@@ -128,32 +128,29 @@ export async function upsertBudgetOverride(data: {
   categoryId: string
   referenceMonth: string
   amount: string
-  existingId?: string
 }) {
   const userId = await requireUserId()
   budgetOverrideSchema.parse({ amount: data.amount })
   referenceMonthSchema.parse(data.referenceMonth)
 
-  if (data.existingId) {
-    await db
-      .update(monthlyBudgetOverrides)
-      .set({ amount: data.amount })
-      .where(
-        and(
-          eq(monthlyBudgetOverrides.id, data.existingId),
-          eq(monthlyBudgetOverrides.userId, userId)
-        )
-      )
-  } else {
-    await assertOwnsCategory(userId, data.categoryId)
+  await assertOwnsCategory(userId, data.categoryId)
 
-    await db.insert(monthlyBudgetOverrides).values({
+  await db
+    .insert(monthlyBudgetOverrides)
+    .values({
       userId,
       categoryId: data.categoryId,
       referenceMonth: data.referenceMonth,
       amount: data.amount,
     })
-  }
+    .onConflictDoUpdate({
+      target: [
+        monthlyBudgetOverrides.userId,
+        monthlyBudgetOverrides.categoryId,
+        monthlyBudgetOverrides.referenceMonth,
+      ],
+      set: { amount: data.amount },
+    })
 
   revalidatePath('/configuracao-mes')
   revalidatePath('/dashboard')

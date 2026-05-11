@@ -48,6 +48,7 @@ NEXTAUTH_URL=http://localhost:3000
 - **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas; mesmo padrão aplicado em `panorama.ts` (`getAnnualOverview`)
 - **`toAmount(val)`** em `lib/utils/currency.ts` — use em vez de `Number(x.amount)` em queries; centraliza a conversão de campos `decimal` do Drizzle (retornados como string)
 - Indexes no schema Drizzle: terceiro parâmetro é função de array — `pgTable('t', { cols }, (t) => [index('name').on(t.col1, t.col2)])` — **não** usar sintaxe de objeto
+- Unique indexes no schema: usar `uniqueIndex('name').on(t.col1, t.col2)` no mesmo array; na action correspondente, usar `.onConflictDoUpdate({ target: [table.col1, ...], set: { ... } })` — elimina o anti-padrão `existingId ? UPDATE : INSERT`
 
 ### Auth
 
@@ -76,6 +77,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Hook `PostToolUse:Edit` do ESLint bloqueia edits com imports não usados (max-warnings 0); ao fazer múltiplas mudanças relacionadas num arquivo, usar `Write` para reescrever o arquivo inteiro em vez de encadear `Edit` calls
 - Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
 - Após `db:generate`, rodar `npx prettier --write lib/db/migrations/meta/` antes de commitar — o pre-push hook rejeita a formatação gerada pelo Drizzle Kit
+- Ao adicionar `uniqueIndex` em tabela existente: inserir `DELETE ... WHERE id NOT IN (SELECT DISTINCT ON (col1, col2) id FROM "tabela" ORDER BY col1, col2, id)` **antes** do `CREATE UNIQUE INDEX` na migration — evita falha se houver duplicatas (é no-op se não houver)
 - A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
 - O botão `+` do bottom nav (`aria-label="Novo lançamento"`) trava com `browser_click`; usar `browser_evaluate` com `querySelector`+`click()` para abrir o drawer de registro
 - Segmented controls onde cada opção tem cor active diferente por tipo semântico (ex: negative/positive/accent): usar raw `<button>` em vez de `Chip`/`Segment` — os primitivos do DS não suportam active color variável por item
