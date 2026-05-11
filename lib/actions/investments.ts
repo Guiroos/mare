@@ -6,6 +6,7 @@ import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/
 import { eq, and } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
+import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
@@ -58,6 +59,8 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
       })
       .where(and(eq(investments.id, data.existingId), eq(investments.userId, userId)))
   } else {
+    await assertOwnsInvestmentType(userId, data.investmentTypeId)
+
     await db.insert(investments).values({
       userId,
       investmentTypeId: data.investmentTypeId,
@@ -92,6 +95,8 @@ export type CreateWithdrawalInput = {
 
 export async function createWithdrawal(data: CreateWithdrawalInput) {
   const userId = await requireUserId()
+
+  await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
   let incomeId: string | null = null
 
@@ -133,11 +138,16 @@ export type UpdateWithdrawalInput = {
 export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   const userId = await requireUserId()
 
-  const [withdrawal] = await db.query.investmentWithdrawals.findMany({
-    where: and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)),
-    limit: 1,
-  })
+  // Fetch do resgate e ownership check do novo tipo em paralelo
+  const [withdrawals] = await Promise.all([
+    db.query.investmentWithdrawals.findMany({
+      where: and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)),
+      limit: 1,
+    }),
+    assertOwnsInvestmentType(userId, data.investmentTypeId),
+  ])
 
+  const withdrawal = withdrawals[0]
   if (!withdrawal) throw new Error('Resgate não encontrado')
 
   await db

@@ -7,6 +7,7 @@ import { eq, and, asc } from 'drizzle-orm'
 import { addMonths, format, startOfMonth } from 'date-fns'
 import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
+import { assertOwnsCategory, assertOwnsPaymentAccount } from '@/lib/auth/ownership'
 
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
 
@@ -20,6 +21,11 @@ export type CreateTransactionInput = {
 
 export async function createTransaction(data: CreateTransactionInput) {
   const userId = await requireUserId()
+
+  await Promise.all([
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
 
   await db.insert(transactions).values({
     userId,
@@ -48,6 +54,11 @@ export type CreateFixedExpenseInput = {
 export async function createFixedExpense(data: CreateFixedExpenseInput) {
   const userId = await requireUserId()
 
+  await Promise.all([
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
+
   await db.insert(fixedExpenses).values({
     userId,
     name: data.name,
@@ -73,6 +84,11 @@ export type UpdateFixedExpenseInput = {
 
 export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
   const userId = await requireUserId()
+
+  await Promise.all([
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
 
   await db
     .update(fixedExpenses)
@@ -161,6 +177,11 @@ export type CreateInstallmentInput = {
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const userId = await requireUserId()
 
+  await Promise.all([
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
+
   const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
   const [group] = await db
@@ -212,6 +233,11 @@ export type UpdateTransactionInput = {
 export async function updateTransaction(data: UpdateTransactionInput) {
   const userId = await requireUserId()
 
+  await Promise.all([
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
+
   await db
     .update(transactions)
     .set({
@@ -240,11 +266,17 @@ export type UpdateInstallmentGroupInput = {
 export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
   const userId = await requireUserId()
 
-  const [group] = await db
-    .select({ totalInstallments: installmentGroups.totalInstallments })
-    .from(installmentGroups)
-    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
+  // Fetch do grupo e ownership checks em paralelo para não adicionar latência
+  const [rows] = await Promise.all([
+    db
+      .select({ totalInstallments: installmentGroups.totalInstallments })
+      .from(installmentGroups)
+      .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId))),
+    assertOwnsCategory(userId, data.categoryId),
+    assertOwnsPaymentAccount(userId, data.accountId),
+  ])
 
+  const group = rows[0]
   if (!group) throw new Error('Grupo não encontrado')
 
   const groupUpdate: Record<string, unknown> = {

@@ -10,6 +10,7 @@ import {
 } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
+import { assertOwnsCategoryGroup, assertOwnsCategory } from '@/lib/auth/ownership'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,9 @@ export type CategoryInput = {
 
 export async function createCategory(data: CategoryInput) {
   const userId = await requireUserId()
+
+  await assertOwnsCategoryGroup(userId, data.groupId)
+
   await db.insert(categories).values({
     userId,
     name: data.name,
@@ -82,6 +86,9 @@ export async function createCategory(data: CategoryInput) {
 
 export async function updateCategory(id: string, data: CategoryInput) {
   const userId = await requireUserId()
+
+  await assertOwnsCategoryGroup(userId, data.groupId)
+
   await db
     .update(categories)
     .set({
@@ -123,6 +130,8 @@ export async function upsertBudgetOverride(data: {
         )
       )
   } else {
+    await assertOwnsCategory(userId, data.categoryId)
+
     await db.insert(monthlyBudgetOverrides).values({
       userId,
       categoryId: data.categoryId,

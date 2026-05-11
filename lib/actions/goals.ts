@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { goals, goalContributions } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
+import { assertOwnsInvestmentType, assertOwnsGoal } from '@/lib/auth/ownership'
 
 export type UpsertGoalInput = {
   name: string
@@ -16,6 +17,10 @@ export type UpsertGoalInput = {
 
 export async function upsertGoal(data: UpsertGoalInput) {
   const userId = await requireUserId()
+
+  if (data.investmentTypeId) {
+    await assertOwnsInvestmentType(userId, data.investmentTypeId)
+  }
 
   const values = {
     name: data.name.trim(),
@@ -50,6 +55,9 @@ export type AddContributionInput = {
 
 export async function addGoalContribution(data: AddContributionInput) {
   const userId = await requireUserId()
+
+  await assertOwnsGoal(userId, data.goalId)
+
   await db.insert(goalContributions).values({
     goalId: data.goalId,
     userId,
