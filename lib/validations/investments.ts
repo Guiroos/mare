@@ -1,15 +1,22 @@
 import { z } from 'zod'
+import {
+  uuidSchema,
+  positiveAmountSchema,
+  nullishNonNegativeAmountSchema,
+  dateSchema,
+  referenceMonthSchema,
+} from './utils'
 
 export const investmentTypeSchema = z.object({
-  name: z.string().min(1, 'Nome é obrigatório'),
+  name: z.string().min(1, 'Nome é obrigatório').max(200),
 })
 
 export const investmentEntrySchema = z
   .object({
-    investmentTypeId: z.string().min(1, 'Selecione o tipo de investimento'),
-    referenceMonth: z.string().min(1, 'Mês é obrigatório'),
-    amount: z.string().optional(),
-    yieldAmount: z.string().optional(),
+    investmentTypeId: uuidSchema,
+    referenceMonth: referenceMonthSchema,
+    amount: nullishNonNegativeAmountSchema,
+    yieldAmount: nullishNonNegativeAmountSchema,
     excludeFromCashFlow: z.boolean().optional().default(false),
   })
   .refine((data) => !!data.amount || !!data.yieldAmount, {
@@ -18,9 +25,9 @@ export const investmentEntrySchema = z
   })
 
 const withdrawalBase = z.object({
-  investmentTypeId: z.string().min(1, 'Selecione o tipo de investimento'),
-  amount: z.string().min(1, 'Valor é obrigatório'),
-  date: z.string().min(1, 'Data é obrigatória'),
+  investmentTypeId: uuidSchema,
+  amount: positiveAmountSchema,
+  date: dateSchema,
 })
 
 export const withdrawalEditSchema = withdrawalBase
@@ -28,3 +35,7 @@ export const withdrawalEditSchema = withdrawalBase
 export const withdrawalSchema = withdrawalBase.extend({
   destination: z.enum(['income', 'transfer']),
 })
+
+// ─── Action schemas ───────────────────────────────────────────────────────────
+
+export const updateWithdrawalActionSchema = withdrawalBase.extend({ id: uuidSchema })

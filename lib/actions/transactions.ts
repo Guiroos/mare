@@ -8,6 +8,15 @@ import { addMonths, format, startOfMonth } from 'date-fns'
 import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsCategory, assertOwnsPaymentAccount } from '@/lib/auth/ownership'
+import {
+  transactionSchema,
+  updateTransactionActionSchema,
+  createFixedExpenseActionSchema,
+  updateFixedExpenseActionSchema,
+  createInstallmentActionSchema,
+  updateInstallmentGroupActionSchema,
+} from '@/lib/validations/transactions'
+import { referenceMonthSchema } from '@/lib/validations/utils'
 
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
 
@@ -21,6 +30,7 @@ export type CreateTransactionInput = {
 
 export async function createTransaction(data: CreateTransactionInput) {
   const userId = await requireUserId()
+  transactionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -53,6 +63,7 @@ export type CreateFixedExpenseInput = {
 
 export async function createFixedExpense(data: CreateFixedExpenseInput) {
   const userId = await requireUserId()
+  createFixedExpenseActionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -84,6 +95,7 @@ export type UpdateFixedExpenseInput = {
 
 export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
   const userId = await requireUserId()
+  updateFixedExpenseActionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -131,6 +143,8 @@ export async function copyFixedExpensesFromPrevMonth(
   prevReferenceMonth: string
 ) {
   const userId = await requireUserId()
+  referenceMonthSchema.parse(referenceMonth)
+  referenceMonthSchema.parse(prevReferenceMonth)
 
   const prevExpenses = await db.query.fixedExpenses.findMany({
     where: and(
@@ -176,6 +190,7 @@ export type CreateInstallmentInput = {
 
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const userId = await requireUserId()
+  createInstallmentActionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -232,6 +247,7 @@ export type UpdateTransactionInput = {
 
 export async function updateTransaction(data: UpdateTransactionInput) {
   const userId = await requireUserId()
+  updateTransactionActionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -265,6 +281,7 @@ export type UpdateInstallmentGroupInput = {
 
 export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) {
   const userId = await requireUserId()
+  updateInstallmentGroupActionSchema.parse(data)
 
   // Fetch do grupo e ownership checks em paralelo para não adicionar latência
   const [rows] = await Promise.all([

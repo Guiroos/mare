@@ -1,6 +1,5 @@
 'use server'
 
-import { auth } from '@/lib/auth'
 import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
 import { getInvestmentTypes } from '@/lib/queries/investments'
 import {
@@ -10,16 +9,10 @@ import {
 } from '@/lib/queries/dashboard'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
-
-function requireUserId(session: Awaited<ReturnType<typeof auth>>) {
-  const userId = (session?.user as { id?: string })?.id
-  if (!userId) throw new Error('Não autorizado')
-  return userId
-}
+import { requireUserId } from '@/lib/auth/require-user'
 
 export async function getRegistrationFormData() {
-  const session = await auth()
-  const userId = requireUserId(session)
+  const userId = await requireUserId()
   const month = yearMonthToReferenceMonth(currentYearMonth())
 
   const [categoryGroups, accounts, investmentTypes, groupProgress, incomeList, investmentList] =

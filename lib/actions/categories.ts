@@ -9,19 +9,29 @@ import {
   paymentAccounts,
 } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { z } from 'zod'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsCategoryGroup, assertOwnsCategory } from '@/lib/auth/ownership'
+import {
+  groupSchema,
+  categorySchema,
+  budgetOverrideSchema,
+  accountActionSchema,
+} from '@/lib/validations/categories'
+import { uuidSchema, referenceMonthSchema } from '@/lib/validations/utils'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
 export async function createCategoryGroup(name: string) {
   const userId = await requireUserId()
+  groupSchema.parse({ name })
   await db.insert(categoryGroups).values({ userId, name })
   revalidatePath('/categorias')
 }
 
 export async function updateCategoryGroup(id: string, name: string) {
   const userId = await requireUserId()
+  groupSchema.parse({ name })
   await db
     .update(categoryGroups)
     .set({ name })
@@ -39,6 +49,7 @@ export async function deleteCategoryGroup(id: string) {
 
 export async function reorderCategoryGroups(orderedIds: string[]) {
   const userId = await requireUserId()
+  z.array(uuidSchema).parse(orderedIds)
   await Promise.all(
     orderedIds.map((id, index) =>
       db
@@ -64,12 +75,13 @@ function deriveBgColor(hex: string): string {
 export type CategoryInput = {
   name: string
   groupId: string
-  defaultBudget?: string
+  defaultBudget?: string | null
   color?: string
 }
 
 export async function createCategory(data: CategoryInput) {
   const userId = await requireUserId()
+  categorySchema.parse(data)
 
   await assertOwnsCategoryGroup(userId, data.groupId)
 
@@ -86,6 +98,7 @@ export async function createCategory(data: CategoryInput) {
 
 export async function updateCategory(id: string, data: CategoryInput) {
   const userId = await requireUserId()
+  categorySchema.parse(data)
 
   await assertOwnsCategoryGroup(userId, data.groupId)
 
@@ -118,6 +131,8 @@ export async function upsertBudgetOverride(data: {
   existingId?: string
 }) {
   const userId = await requireUserId()
+  budgetOverrideSchema.parse({ amount: data.amount })
+  referenceMonthSchema.parse(data.referenceMonth)
 
   if (data.existingId) {
     await db
@@ -158,6 +173,8 @@ export async function copyBudgetOverridesFromPrevMonth(
   prevReferenceMonth: string
 ) {
   const userId = await requireUserId()
+  referenceMonthSchema.parse(referenceMonth)
+  referenceMonthSchema.parse(prevReferenceMonth)
 
   const prevOverrides = await db.query.monthlyBudgetOverrides.findMany({
     where: and(
@@ -201,6 +218,7 @@ export type AccountInput = {
 
 export async function createPaymentAccount(data: AccountInput) {
   const userId = await requireUserId()
+  accountActionSchema.parse(data)
   await db.insert(paymentAccounts).values({
     userId,
     name: data.name,
@@ -212,6 +230,7 @@ export async function createPaymentAccount(data: AccountInput) {
 
 export async function updatePaymentAccount(id: string, data: AccountInput) {
   const userId = await requireUserId()
+  accountActionSchema.parse(data)
   await db
     .update(paymentAccounts)
     .set({

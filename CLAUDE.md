@@ -69,6 +69,9 @@ NEXTAUTH_URL=http://localhost:3000
 - `session.user.id` é tipado diretamente — `types/next-auth.d.ts` faz module augmentation do NextAuth; **nunca** usar `(session.user as { id: string }).id`
 - Em actions, usar `const userId = await requireUserId()` de `@/lib/auth/require-user` — **não** criar `requireUserId` local em novos arquivos de action
 - Ownership de IDs relacionados: importar `assertOwns*` de `@/lib/auth/ownership` antes de qualquer insert/update que referencie `categoryId`, `accountId`, `groupId`, `investmentTypeId` ou `goalId` vindo do cliente; quando a action já faz um SELECT antes de mutar, paralelizar os checks no mesmo `Promise.all`
+- Ordem obrigatória em toda action com mutação: `requireUserId()` → `schema.parse(data)` → `assertOwns*` → query
+- Schemas de amount em `lib/validations/utils.ts`: `positiveAmountSchema` (> 0) para transações/entradas/resgates/contribuições; `nonNegativeAmountSchema` (>= 0, obrigatório) para overrides de orçamento; `nullishNonNegativeAmountSchema` (>= 0, nullish) para aportes/rendimentos de investimento que aceitam zero
+- Schemas de action vs formulário: quando o tipo do input da action tem campos `number` (ex: `dueDay`, `totalInstallments`) usar o schema `xxxActionSchema` definido no mesmo arquivo de validação — schemas sem sufixo são os de formulário com strings de FormData
 - Hook `PostToolUse:Edit` do ESLint bloqueia edits com imports não usados (max-warnings 0); ao fazer múltiplas mudanças relacionadas num arquivo, usar `Write` para reescrever o arquivo inteiro em vez de encadear `Edit` calls
 - Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
 - Após `db:generate`, rodar `npx prettier --write lib/db/migrations/meta/` antes de commitar — o pre-push hook rejeita a formatação gerada pelo Drizzle Kit

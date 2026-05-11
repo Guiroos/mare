@@ -7,17 +7,25 @@ import { eq, and } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
+import {
+  investmentTypeSchema,
+  investmentEntrySchema,
+  withdrawalSchema,
+  updateWithdrawalActionSchema,
+} from '@/lib/validations/investments'
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
 export async function createInvestmentType(name: string) {
   const userId = await requireUserId()
+  investmentTypeSchema.parse({ name })
   await db.insert(investmentTypes).values({ userId, name })
   revalidatePath('/investimentos')
 }
 
 export async function updateInvestmentType(id: string, name: string) {
   const userId = await requireUserId()
+  investmentTypeSchema.parse({ name })
   await db
     .update(investmentTypes)
     .set({ name })
@@ -47,6 +55,7 @@ export type UpsertInvestmentInput = {
 
 export async function upsertInvestment(data: UpsertInvestmentInput) {
   const userId = await requireUserId()
+  investmentEntrySchema.parse(data)
 
   if (data.existingId) {
     await db
@@ -95,6 +104,7 @@ export type CreateWithdrawalInput = {
 
 export async function createWithdrawal(data: CreateWithdrawalInput) {
   const userId = await requireUserId()
+  withdrawalSchema.parse(data)
 
   await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
@@ -137,6 +147,7 @@ export type UpdateWithdrawalInput = {
 
 export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   const userId = await requireUserId()
+  updateWithdrawalActionSchema.parse(data)
 
   // Fetch do resgate e ownership check do novo tipo em paralelo
   const [withdrawals] = await Promise.all([

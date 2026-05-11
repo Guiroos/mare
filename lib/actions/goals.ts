@@ -6,6 +6,11 @@ import { goals, goalContributions } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsInvestmentType, assertOwnsGoal } from '@/lib/auth/ownership'
+import {
+  upsertGoalActionSchema,
+  addContributionActionSchema,
+  updateContributionActionSchema,
+} from '@/lib/validations/goals'
 
 export type UpsertGoalInput = {
   name: string
@@ -17,6 +22,7 @@ export type UpsertGoalInput = {
 
 export async function upsertGoal(data: UpsertGoalInput) {
   const userId = await requireUserId()
+  upsertGoalActionSchema.parse(data)
 
   if (data.investmentTypeId) {
     await assertOwnsInvestmentType(userId, data.investmentTypeId)
@@ -55,6 +61,7 @@ export type AddContributionInput = {
 
 export async function addGoalContribution(data: AddContributionInput) {
   const userId = await requireUserId()
+  addContributionActionSchema.parse(data)
 
   await assertOwnsGoal(userId, data.goalId)
 
@@ -76,6 +83,7 @@ export type UpdateContributionInput = {
 
 export async function updateGoalContribution(data: UpdateContributionInput) {
   const userId = await requireUserId()
+  updateContributionActionSchema.parse(data)
 
   await db
     .update(goalContributions)

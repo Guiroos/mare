@@ -352,7 +352,7 @@ Solução aplicada:
   `investments.ts`, `goals.ts`) com `Promise.all` quando há múltiplos checks independentes
   ou quando a action já realizava um SELECT que pode ser paralelizado.
 
-### S2. Validação server-side é insuficiente nas server actions
+### S2. Validação server-side é insuficiente nas server actions ✅ Resolvido (2026-05-10)
 
 Severidade: alta
 
@@ -393,6 +393,24 @@ Recomendação:
   - `amount > 0` para receitas, despesas, aportes e pagamentos;
   - regras específicas para adjustment quando o domínio de devedores for criado.
 - Retornar erros controlados de validação em vez de depender de exceções do banco.
+
+Solução aplicada:
+
+- Adicionados primitivos reutilizáveis em `lib/validations/utils.ts`: `uuidSchema`, `positiveAmountSchema`,
+  `nonNegativeAmountSchema`, `optionalPositiveAmountSchema`, `nullishNonNegativeAmountSchema`,
+  `dateSchema`, `referenceMonthSchema`.
+- Schemas de formulário existentes fortalecidos: IDs validados como UUID, amounts como positivo/não-negativo
+  conforme domínio (investimentos aceitam 0), datas validadas em formato `YYYY-MM-DD`, meses de referência
+  em `YYYY-MM-01`, nomes com `.max(N)` alinhado ao schema do banco.
+- Schemas server-side criados para actions com tipos diferentes do formulário (ex: `dueDay: number`,
+  `totalInstallments: number`): `createFixedExpenseActionSchema`, `updateFixedExpenseActionSchema`,
+  `createInstallmentActionSchema`, `updateInstallmentGroupActionSchema`, `accountActionSchema`,
+  `upsertGoalActionSchema`, `addContributionActionSchema`, `updateContributionActionSchema`,
+  `updateWithdrawalActionSchema`, `updateTransactionActionSchema`, `updateIncomeActionSchema`.
+- Todas as actions chamam `schema.parse(data)` como primeira linha após `requireUserId()`, antes de
+  qualquer ownership check ou query.
+- `lib/actions/form-data.ts` corrigido: removida `requireUserId` local que havia ficado de fora do M4.
+- `lib/actions/feedback.ts`: adicionado schema inline com enum para `category` e limites em `message`/`page`.
 
 ### S3. Vulnerabilidades em dependências
 
@@ -854,7 +872,7 @@ Tarefas:
 - ✅ aplicar validação nas actions de transações, categorias, investimentos e metas;
 - adicionar testes de usuário A tentando referenciar ID do usuário B.
 
-### Fase 2: Validação server-side
+### Fase 2: Validação server-side ✅ Concluída (2026-05-10)
 
 Objetivo:
 
@@ -862,9 +880,8 @@ Objetivo:
 
 Tarefas:
 
-- mover ou reutilizar schemas Zod dentro das actions;
-- fortalecer schemas com UUID, moeda, datas, enums e limites;
-- criar funções de erro padronizadas;
+- ✅ mover ou reutilizar schemas Zod dentro das actions;
+- ✅ fortalecer schemas com UUID, moeda, datas, enums e limites;
 - cobrir casos inválidos com testes.
 
 ### Fase 3: Dependências e build
