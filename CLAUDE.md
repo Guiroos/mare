@@ -57,6 +57,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 - All financial data is scoped per `userId` and per `referenceMonth` (always stored as `YYYY-MM-01`)
 - Month params in URLs are `YYYY-MM`; use `lib/utils/date.ts` helpers (`currentYearMonth`, `yearMonthToReferenceMonth`, `referenceMonthToYearMonth`, `prevMonth`, `nextMonth`, `billingCycleDateRange`) — never construct month strings manually
+- `<input type="month">` retorna `YYYY-MM` — schemas de formulário com campo de mês devem usar `yearMonthSchema` de `lib/validations/utils.ts`; o formulário converte para `YYYY-MM-01` com `+ '-01'` ou `yearMonthToReferenceMonth()` antes de chamar a action, que usa `referenceMonthSchema`
 - Budget for a category is `category.defaultBudget` unless overridden by a `monthlyBudgetOverride` for that month
 - An installment purchase creates one `installmentGroup` row and N `transaction` rows (one per month), named `"<name> (i/N)"`
 - `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a cycle select (`?cycleAccount=<uuid>`) that filters transactions and fixed expenses by that account's billing cycle — `closingDay` is derived from the account via `getCreditAccounts()`
