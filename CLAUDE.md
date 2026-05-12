@@ -13,6 +13,7 @@ npm run db:studio    # open Drizzle Studio (DB browser)
 npm run lint         # run ESLint (next lint)
 ```
 
+- Antes de commitar: `npm run lint && npx prettier --check . && npx tsc --noEmit`
 - `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
 
 Não há testes automatizados. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
@@ -92,10 +93,10 @@ NEXTAUTH_URL=http://localhost:3000
 - Layout padrão de linha de lista: `icon/avatar | body (flex-1 min-w-0) | value (flex-shrink-0) | RowActions` — ações sempre na última coluna
 - `signOut({ callbackUrl: '/login' })` redireciona para `NEXTAUTH_URL + callbackUrl` — em dev com porta alternativa (ex: 3001), vai para a porta do `NEXTAUTH_URL` (3000); comportamento esperado
 - `@radix-ui/react-dropdown-menu` já está instalado (usado em `row-actions.tsx`); para dropdowns que abrem para cima, usar `side="top"` no `DropdownMenu.Content`
-- `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, adicione estado `touched` no componente e emita o valor numérico quando `touched || cents > 0`
+- `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, passar `preserveExplicitZero` ao componente — campos de orçamento e aportes que aceitam zero devem sempre incluir essa prop
 - `app/(app)/layout.tsx` aplica `px-4 py-6 lg:px-8 lg:py-7` + `pb-20 lg:pb-0` — páginas **não** devem adicionar wrapper próprio com padding; usar `PageLayout` diretamente
 - Header de página com botões de ação: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + div de ações, como primeiro filho de `<PageLayout>`
-- `RowActions` aceita `onDelete` opcional — quando não fornecido, "Excluir" não aparece no dropdown (útil para linhas que só permitem edição)
+- `RowActions` aceita `onDelete` opcional — quando não fornecido, "Excluir" não aparece no dropdown (útil para linhas que só permitem edição); aceita também `triggerClassName` para sobrescrever o hover do botão kebab quando está sobre fundo colorido (ex: `hover:bg-warning-subtle` em linhas pendentes)
 - Para abrir dialog via `RowActions`: adicionar `open`/`onOpenChange` ao dialog e controlar com `useState` no pai; server components com inline `'use server'` que precisam de state devem ser convertidos para `'use client'` (importar server actions de `lib/actions/` normalmente)
 
 ### UI
@@ -172,7 +173,7 @@ Se um valor não existir como token, **parar e discutir** antes de usar `[valor-
 Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
 
 - Formulários complexos: extrair sub-componentes de apresentação em `components/forms/<form>/` com `types.ts` para tipos compartilhados; consumidores importam os tipos direto de `types.ts`, não re-exportar pelo componente principal
-- `Section` (DS) aceita `action?: ReactNode` — passar `<Badge variant="..." size="sm">` para contagens/totais; nunca criar `Section` local com prop `count`
+- `Section` (DS) aceita `action?: ReactNode` — passar `<Badge variant="..." size="sm">` ou span de texto para contagens/totais; nunca criar `Section` local com prop `count`; blocos com `rounded-lg border bg-bg-surface shadow-sm` próprio são cards, não seções — manter como `<section>` HTML
 
 ### Gotchas de tokens e utilitários
 
@@ -180,7 +181,7 @@ Re-exports são proibidos: se um componente precisa ser compartilhado, mova para
 - Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
 - `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
 - `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
-- Wrappers Radix (`SelectTrigger`, etc.): className **sempre** via `cn()` de `lib/utils/cn` — nunca template string com ternário
+- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput`/`NumericInput` usam `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
 - `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)
 - `[grid-template-columns:...]` é valor arbitrário proibido — usar `flex` com `flex-1`/`flex-shrink-0` para layouts de 3-4 colunas com largura variável
 - `ds-reviewer`: ao implementar múltiplos componentes novos numa sessão, executar **uma vez ao final** com todos os arquivos — não após cada arquivo individualmente

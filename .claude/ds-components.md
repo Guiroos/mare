@@ -59,7 +59,7 @@ Radix UI + primitivos.
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
 | `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página                                    |
 | `delete-button.tsx`  | `DeleteButton`                  | Confirmação inline responsiva. **Nunca** criar botão de delete ad-hoc            |
-| `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮) com Editar + Excluir. Última coluna de listas, após o valor       |
+| `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮) com Editar + Excluir. Última coluna de listas, após o valor; `triggerClassName` para override do hover do kebab em fundo colorido |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
 | `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
