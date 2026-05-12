@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
+import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
 import {
@@ -16,19 +17,37 @@ import {
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
-export async function createInvestmentType(name: string) {
+export type InvestmentTypeInput = {
+  name: string
+  color?: string
+}
+
+export async function createInvestmentType(data: InvestmentTypeInput) {
   const userId = await requireUserId()
-  investmentTypeSchema.parse({ name })
-  await db.insert(investmentTypes).values({ userId, name })
+  investmentTypeSchema.parse(data)
+  const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+
+  await db.insert(investmentTypes).values({
+    userId,
+    name: data.name,
+    color,
+    bgColor: deriveBgColor(color),
+  })
   revalidatePath('/investimentos')
 }
 
-export async function updateInvestmentType(id: string, name: string) {
+export async function updateInvestmentType(id: string, data: InvestmentTypeInput) {
   const userId = await requireUserId()
-  investmentTypeSchema.parse({ name })
+  investmentTypeSchema.parse(data)
+  const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+
   await db
     .update(investmentTypes)
-    .set({ name })
+    .set({
+      name: data.name,
+      color,
+      bgColor: deriveBgColor(color),
+    })
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
 }

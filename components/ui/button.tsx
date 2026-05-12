@@ -1,6 +1,7 @@
 import { forwardRef, ReactNode, ButtonHTMLAttributes } from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils/cn'
 
 export type ButtonVariant =
   | 'primary'
@@ -64,7 +65,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const Comp = asChild ? Slot : 'button'
-    const cls = [base, variants[variant], sizes[size], className].filter(Boolean).join(' ')
+    const cls = cn(base, variants[variant], sizes[size], className)
 
     return (
       <Comp ref={ref} className={cls} disabled={disabled || loading} {...props}>

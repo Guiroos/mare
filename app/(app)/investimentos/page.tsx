@@ -15,6 +15,7 @@ import {
 } from '@/lib/utils/date'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Section } from '@/components/ui/section'
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
 import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
@@ -46,19 +47,30 @@ export default async function InvestimentosPage() {
   const totalAporte = balances.reduce((s, b) => s + b.totalAmount, 0)
   const totalYield = balances.reduce((s, b) => s + b.totalYield, 0)
 
+  const currentRefMonth = currentReferenceMonth()
+  const currentYearMonth = referenceMonthToYearMonth(currentRefMonth)
+  const hasCurrentMonthPendingYield = balances.some((balance) => balance.pendingYield)
+  const latestTimelinePoint = timeline.at(-1)
+  const heroTimeline =
+    hasCurrentMonthPendingYield && latestTimelinePoint?.month === currentYearMonth
+      ? timeline.slice(0, -1)
+      : timeline
+
   const delta =
-    timeline.length >= 2
-      ? timeline[timeline.length - 1].total - timeline[timeline.length - 2].total
+    heroTimeline.length >= 2
+      ? heroTimeline[heroTimeline.length - 1].total - heroTimeline[heroTimeline.length - 2].total
       : null
-  const prevMonthTotal = timeline.length >= 2 ? timeline[timeline.length - 2].total : null
+  const prevMonthTotal =
+    heroTimeline.length >= 2 ? heroTimeline[heroTimeline.length - 2].total : null
   const deltaPercent =
     delta !== null && prevMonthTotal && prevMonthTotal > 0 ? (delta / prevMonthTotal) * 100 : null
   const prevMonthLabel =
-    timeline.length >= 2
-      ? formatMonthAbbr(referenceMonthToYearMonth(timeline[timeline.length - 2].month + '-01'))
+    heroTimeline.length >= 2
+      ? formatMonthAbbr(
+          referenceMonthToYearMonth(heroTimeline[heroTimeline.length - 2].month + '-01')
+        )
       : null
 
-  const currentRefMonth = currentReferenceMonth()
   const thisMonthAporte = balances.reduce((s, b) => {
     const entry = b.entries.find((e) => e.referenceMonth === currentRefMonth)
     return s + (entry?.amount ?? 0)
@@ -77,7 +89,7 @@ export default async function InvestimentosPage() {
           description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
         />
         <div className="hidden items-center gap-2 lg:flex">
-          <InvestmentTypeDialog mode="create" />
+          <InvestmentTypeDialog mode="create" triggerSize="md" />
           <InvestmentEntryDialog investmentTypes={investmentTypeOptions} />
         </div>
       </div>
@@ -97,27 +109,23 @@ export default async function InvestimentosPage() {
       )}
 
       {/* ── Patrimônio por tipo ─────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <span className="whitespace-nowrap text-label uppercase text-text-tertiary">
-              Patrimônio por tipo
-            </span>
-            <span className="text-caption text-text-tertiary">
-              <strong className="font-semibold tabular-nums text-text-primary">
-                {balances.length}
-              </strong>{' '}
+      <Section
+        title="Patrimônio por tipo"
+        action={
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap text-caption tabular-nums text-text-tertiary">
+              <strong className="font-semibold text-text-primary">{balances.length}</strong>{' '}
               {balances.length === 1 ? 'tipo ativo' : 'tipos ativos'}
               <span className="hidden md:inline"> · ordenados por valor</span>
             </span>
+            {balances.length > 0 && (
+              <div className="lg:hidden">
+                <InvestmentTypeDialog mode="create" />
+              </div>
+            )}
           </div>
-          {balances.length > 0 && (
-            <div className="lg:hidden">
-              <InvestmentTypeDialog mode="create" />
-            </div>
-          )}
-        </div>
-
+        }
+      >
         {balances.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-10">
             <EmptyState
@@ -129,9 +137,9 @@ export default async function InvestimentosPage() {
         ) : (
           <>
             {/* Desktop — type cards with table */}
-            <div className="hidden flex-col gap-3.5 lg:flex">
-              {balances.map((balance, i) => (
-                <InvestmentTypeCard key={balance.id} balance={balance} colorIndex={i} />
+            <div className="hidden flex-col gap-4 lg:flex">
+              {balances.map((balance) => (
+                <InvestmentTypeCard key={balance.id} balance={balance} />
               ))}
             </div>
 
@@ -141,7 +149,7 @@ export default async function InvestimentosPage() {
             </div>
           </>
         )}
-      </section>
+      </Section>
 
       {/* ── Evolução do patrimônio ─────────────────────────────────────────── */}
       {timeline.length > 1 && (
@@ -153,16 +161,13 @@ export default async function InvestimentosPage() {
               </span>
               <p className="mt-0.5 text-h3">Últimos {timeline.length} meses</p>
             </div>
-            <div className="flex items-center gap-3.5 text-caption text-text-secondary">
+            <div className="flex items-center gap-4 text-caption text-text-secondary">
               <span className="flex items-center gap-1.5">
                 <span className="h-0.5 w-2.5 rounded-sm bg-accent" />
                 Patrimônio total
               </span>
               <span className="flex items-center gap-1.5">
-                <span
-                  className="h-0.5 w-2.5 rounded-sm border-t-2 border-dashed border-text-tertiary"
-                  style={{ background: 'transparent' }}
-                />
+                <span className="h-0.5 w-2.5 rounded-sm border-t-2 border-dashed border-text-tertiary" />
                 Aporte acumulado
               </span>
             </div>
@@ -183,24 +188,7 @@ export default async function InvestimentosPage() {
         </div>
 
         {withdrawals.length === 0 ? (
-          <div className="mx-5 mb-5 flex items-center gap-2.5 rounded-md border border-dashed border-border-strong bg-bg-base px-4 py-3.5 text-small text-text-secondary">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              className="flex-shrink-0 text-text-tertiary"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span>
-              Nenhum resgate registrado nos últimos 6 meses. Bom trabalho mantendo o patrimônio.
-            </span>
-          </div>
+          <EmptyState title="Sem resgates nos últimos 6 meses." className="px-5 py-8" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse">
@@ -241,7 +229,7 @@ export default async function InvestimentosPage() {
                         <Badge variant="muted">Transferência</Badge>
                       )}
                     </td>
-                    <td className="max-w-[120px] truncate px-5 py-2.5 text-caption text-text-secondary">
+                    <td className="max-w-32 truncate px-5 py-2.5 text-caption text-text-secondary">
                       {w.notes ?? ''}
                     </td>
                     <td className="px-5 py-2.5">

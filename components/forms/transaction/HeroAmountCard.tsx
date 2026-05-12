@@ -75,6 +75,7 @@ export function HeroAmountCard({
               error={!!errors.amount}
               autoFocus
               onValueChange={onValueChange}
+              preserveExplicitZero
               className={cn(
                 'h-auto border-0 bg-transparent py-1 text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
                 heroLabel.investimento
@@ -92,6 +93,7 @@ export function HeroAmountCard({
             <NumericInput
               name="yieldAmount"
               error={!!errors.yieldAmount}
+              preserveExplicitZero
               className={cn(
                 'h-auto border-0 bg-transparent py-1 text-h2 tabular-nums shadow-none focus:border-transparent focus:shadow-none',
                 heroLabel.investimento

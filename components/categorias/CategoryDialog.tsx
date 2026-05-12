@@ -144,6 +144,7 @@ export function CategoryDialog(props: Props) {
             <CurrencyInput
               name="defaultBudget"
               defaultValue={props.mode === 'edit' ? (props.category.defaultBudget ?? '') : ''}
+              preserveExplicitZero
             />
           </Field>
 

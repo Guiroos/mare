@@ -10,7 +10,18 @@ import {
 
 export const investmentTypeSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida')
+    .optional()
+    .or(z.literal('')),
 })
+
+function hasPositiveInvestmentValue(value: string | null | undefined) {
+  if (!value) return false
+  const amount = Number.parseFloat(value)
+  return Number.isFinite(amount) && amount > 0
+}
 
 // client forms send YYYY-MM from <input type="month">
 export const investmentEntrySchema = z
@@ -21,10 +32,14 @@ export const investmentEntrySchema = z
     yieldAmount: nullishNonNegativeAmountSchema,
     excludeFromCashFlow: z.boolean().optional().default(false),
   })
-  .refine((data) => !!data.amount || !!data.yieldAmount, {
-    message: 'Informe ao menos o aporte ou o rendimento',
-    path: ['amount'],
-  })
+  .refine(
+    (data) =>
+      hasPositiveInvestmentValue(data.amount) || hasPositiveInvestmentValue(data.yieldAmount),
+    {
+      message: 'Informe ao menos um aporte ou rendimento maior que zero',
+      path: ['amount'],
+    }
+  )
 
 const withdrawalBase = z.object({
   investmentTypeId: uuidSchema,
@@ -49,9 +64,13 @@ export const upsertInvestmentActionSchema = z
     yieldAmount: nullishNonNegativeAmountSchema,
     excludeFromCashFlow: z.boolean().optional().default(false),
   })
-  .refine((data) => !!data.amount || !!data.yieldAmount, {
-    message: 'Informe ao menos o aporte ou o rendimento',
-    path: ['amount'],
-  })
+  .refine(
+    (data) =>
+      hasPositiveInvestmentValue(data.amount) || hasPositiveInvestmentValue(data.yieldAmount),
+    {
+      message: 'Informe ao menos um aporte ou rendimento maior que zero',
+      path: ['amount'],
+    }
+  )
 
 export const updateWithdrawalActionSchema = withdrawalBase.extend({ id: uuidSchema })

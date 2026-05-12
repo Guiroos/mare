@@ -1,3 +1,5 @@
+import { cn } from '@/lib/utils/cn'
+
 export function Section({
   title,
   children,
@@ -10,7 +12,7 @@ export function Section({
   className?: string
 }) {
   return (
-    <div className={`space-y-3${className ? ` ${className}` : ''}`}>
+    <div className={cn('space-y-3', className)}>
       <div className="flex items-center justify-between">
         <h2 className="text-label font-semibold uppercase tracking-wide text-text-secondary">
           {title}

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
-import { eq, and, sum, asc } from 'drizzle-orm'
+import { eq, and, sum, asc, gte } from 'drizzle-orm'
+import { currentReferenceMonth, pastNMonths } from '@/lib/utils/date'
 
 export async function getInvestmentTypes(userId: string) {
   return db.query.investmentTypes.findMany({
@@ -10,6 +11,7 @@ export async function getInvestmentTypes(userId: string) {
 }
 
 export async function getInvestmentBalances(userId: string) {
+  const currentRefMonth = currentReferenceMonth()
   const types = await db.query.investmentTypes.findMany({
     where: eq(investmentTypes.userId, userId),
     orderBy: asc(investmentTypes.name),
@@ -43,17 +45,26 @@ export async function getInvestmentBalances(userId: string) {
       const totalYield = Number(amountResult[0]?.totalYield ?? 0)
       const totalWithdrawn = Number(withdrawalResult[0]?.totalWithdrawn ?? 0)
       const currentBalance = totalAmount + totalYield - totalWithdrawn
-      const pendingYield = allEntries.some((e) => e.amount !== null && e.yieldAmount === null)
+      const pendingEntry = allEntries.find(
+        (entry) =>
+          entry.referenceMonth === currentRefMonth &&
+          entry.amount !== null &&
+          entry.yieldAmount === null
+      )
+      const pendingYield = pendingEntry !== undefined
 
       return {
         id: type.id,
         name: type.name,
+        color: type.color,
+        bgColor: type.bgColor,
         goalId: type.goalId,
         totalAmount,
         totalYield,
         totalWithdrawn,
         currentBalance,
         pendingYield,
+        pendingReferenceMonth: pendingEntry?.referenceMonth ?? null,
         entries: allEntries
           .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))
           .map((e) => ({
@@ -86,8 +97,12 @@ export async function getInvestmentHistory(userId: string, investmentTypeId: str
 }
 
 export async function getInvestmentWithdrawals(userId: string) {
+  const firstVisibleMonth = pastNMonths(6)[0]
   const rows = await db.query.investmentWithdrawals.findMany({
-    where: eq(investmentWithdrawals.userId, userId),
+    where: and(
+      eq(investmentWithdrawals.userId, userId),
+      gte(investmentWithdrawals.date, firstVisibleMonth)
+    ),
     with: { investmentType: true },
     orderBy: (iw, { desc }) => [desc(iw.date)],
   })

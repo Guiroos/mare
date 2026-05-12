@@ -206,6 +206,8 @@ export const investmentTypes = pgTable('investment_types', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 200 }).notNull(),
+  color: varchar('color', { length: 7 }),
+  bgColor: varchar('bg_color', { length: 7 }),
   goalId: uuid('goal_id').references(() => goals.id, { onDelete: 'set null' }),
 })
 

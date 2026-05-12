@@ -13,6 +13,7 @@ interface CurrencyInputProps {
   placeholder?: string
   error?: boolean
   onValueChange?: (cents: number) => void
+  preserveExplicitZero?: boolean
 }
 
 function parseToCents(value: string | number | undefined): number {
@@ -23,9 +24,13 @@ function parseToCents(value: string | number | undefined): number {
   return Math.round(parseFloat(str || '0') * 100)
 }
 
-function formatCents(cents: number): string {
-  if (cents === 0) return ''
+function formatCents(cents: number, showZero: boolean): string {
+  if (cents === 0 && !showZero) return ''
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+}
+
+function hasExplicitDefaultValue(value: string | number | undefined) {
+  return value !== undefined && value !== ''
 }
 
 export function CurrencyInput({
@@ -37,24 +42,29 @@ export function CurrencyInput({
   placeholder,
   error = false,
   onValueChange,
+  preserveExplicitZero = false,
 }: CurrencyInputProps) {
   const [cents, setCents] = useState(() => parseToCents(defaultValue))
-  const [touched, setTouched] = useState(false)
+  const [hasExplicitValue, setHasExplicitValue] = useState(() =>
+    hasExplicitDefaultValue(defaultValue)
+  )
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setTouched(true)
     const digits = e.target.value.replace(/\D/g, '')
     const newCents = parseInt(digits || '0', 10)
     setCents(newCents)
+    setHasExplicitValue(digits.length > 0)
     onValueChange?.(newCents)
   }
+
+  const showExplicitZero = preserveExplicitZero && cents === 0 && hasExplicitValue
 
   return (
     <>
       <input
         type="text"
         inputMode="numeric"
-        value={formatCents(cents)}
+        value={formatCents(cents, showExplicitZero)}
         onChange={handleChange}
         required={required}
         autoFocus={autoFocus}
@@ -64,7 +74,7 @@ export function CurrencyInput({
       <input
         type="hidden"
         name={name}
-        value={touched || cents > 0 ? (cents / 100).toFixed(2) : ''}
+        value={hasExplicitValue || cents > 0 ? (cents / 100).toFixed(2) : ''}
       />
     </>
   )

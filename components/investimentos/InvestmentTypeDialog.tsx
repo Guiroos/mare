@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, type ButtonSize } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
@@ -17,24 +18,38 @@ import { toast } from 'sonner'
 import { createInvestmentType, updateInvestmentType } from '@/lib/actions/investments'
 import { investmentTypeSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { DEFAULT_INVESTMENT_TYPE_COLOR } from '@/lib/utils/color'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
-type Props = ({ mode: 'create' } | { mode: 'edit'; type: { id: string; name: string } }) & {
+type Props =
+  | { mode: 'create' }
+  | { mode: 'edit'; type: { id: string; name: string; color: string | null } }
+
+type DialogProps = Props & {
   open?: boolean
   onOpenChange?: (v: boolean) => void
+  triggerSize?: ButtonSize
 }
 
-export function InvestmentTypeDialog(props: Props) {
+export function InvestmentTypeDialog(props: DialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const defaultAutomaticColor =
+    props.mode === 'create' ||
+    props.type.color === null ||
+    props.type.color === DEFAULT_INVESTMENT_TYPE_COLOR
+  const [useAutomaticColor, setUseAutomaticColor] = useState(defaultAutomaticColor)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = props.open !== undefined
   const open = isControlled ? props.open! : internalOpen
 
   const setOpen = (v: boolean) => {
-    if (!v) setErrors({})
+    if (!v) {
+      setErrors({})
+      setUseAutomaticColor(defaultAutomaticColor)
+    }
     if (isControlled) {
       props.onOpenChange?.(v)
     } else {
@@ -44,9 +59,13 @@ export function InvestmentTypeDialog(props: Props) {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const name = (new FormData(e.currentTarget).get('name') as string).trim()
+    const fd = new FormData(e.currentTarget)
+    const raw = {
+      name: (fd.get('name') as string).trim(),
+      color: useAutomaticColor ? undefined : (fd.get('color') as string) || undefined,
+    }
 
-    const result = investmentTypeSchema.safeParse({ name })
+    const result = investmentTypeSchema.safeParse(raw)
     if (!result.success) {
       setErrors(formatZodErrors(result.error))
       return
@@ -56,9 +75,9 @@ export function InvestmentTypeDialog(props: Props) {
     startTransition(async () => {
       try {
         if (props.mode === 'create') {
-          await createInvestmentType(result.data.name)
+          await createInvestmentType(result.data)
         } else {
-          await updateInvestmentType(props.type.id, result.data.name)
+          await updateInvestmentType(props.type.id, result.data)
         }
         setOpen(false)
       } catch {
@@ -68,6 +87,7 @@ export function InvestmentTypeDialog(props: Props) {
   }
 
   const title = props.mode === 'create' ? 'Novo tipo de investimento' : 'Editar tipo'
+  const triggerSize = props.triggerSize ?? 'sm'
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -80,6 +100,29 @@ export function InvestmentTypeDialog(props: Props) {
           autoFocus
         />
       </Field>
+      <Field label="Cor" hint="A cor automática usa o azul principal da Maré." error={errors.color}>
+        <div className="space-y-3">
+          <Switch
+            label="Cor automática"
+            checked={useAutomaticColor}
+            onChange={setUseAutomaticColor}
+          />
+          {!useAutomaticColor && (
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                name="color"
+                defaultValue={
+                  props.mode === 'edit'
+                    ? (props.type.color ?? DEFAULT_INVESTMENT_TYPE_COLOR)
+                    : DEFAULT_INVESTMENT_TYPE_COLOR
+                }
+                className="h-12 w-14 cursor-pointer rounded-md border border-border bg-bg-surface p-1 outline-none transition duration-fast focus:border-accent focus:shadow-[0_0_0_3px_var(--ring-accent)]"
+              />
+            </div>
+          )}
+        </div>
+      </Field>
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar'}
       </Button>
@@ -87,7 +130,11 @@ export function InvestmentTypeDialog(props: Props) {
   )
 
   const trigger = !isControlled && (
-    <Button size="sm" variant="outline" className="gap-1.5">
+    <Button
+      size={triggerSize}
+      variant="outline"
+      className={triggerSize === 'md' ? 'gap-2' : 'gap-1.5'}
+    >
       <Plus className="h-4 w-4" />
       <span className="hidden sm:inline">Novo tipo</span>
     </Button>

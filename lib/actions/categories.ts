@@ -12,6 +12,7 @@ import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsCategoryGroup, assertOwnsCategory } from '@/lib/auth/ownership'
+import { deriveBgColor } from '@/lib/utils/color'
 import {
   groupSchema,
   categorySchema,
@@ -62,15 +63,6 @@ export async function reorderCategoryGroups(orderedIds: string[]) {
 }
 
 // ─── Categorias ───────────────────────────────────────────────────────────────
-
-function deriveBgColor(hex: string): string {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  const mix = (ch: number) => Math.round(ch * 0.12 + 255 * 0.88)
-  const toHex = (n: number) => n.toString(16).padStart(2, '0')
-  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`
-}
 
 export type CategoryInput = {
   name: string

@@ -5,6 +5,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { MoreVertical } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from './button'
+import { cn } from '@/lib/utils/cn'
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ interface RowActionsProps {
   onDelete?: () => Promise<void>
   deleteTitle?: string
   deleteDescription?: string
+  triggerClassName?: string
 }
 
 export function RowActions({
@@ -28,6 +30,7 @@ export function RowActions({
   onDelete,
   deleteTitle = 'Excluir item',
   deleteDescription = 'Essa ação não pode ser desfeita.',
+  triggerClassName,
 }: RowActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -64,7 +67,10 @@ export function RowActions({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity duration-fast lg:opacity-0 lg:group-hover:opacity-100"
+            className={cn(
+              'h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity duration-fast lg:opacity-0 lg:group-hover:opacity-100',
+              triggerClassName
+            )}
             aria-label="Ações"
           >
             <MoreVertical className="h-3.5 w-3.5" />

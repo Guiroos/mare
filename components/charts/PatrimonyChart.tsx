@@ -1,13 +1,13 @@
 'use client'
 
 import {
-  LineChart,
+  ComposedChart,
+  Area,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import { formatMonthShort } from '@/lib/utils/date'
@@ -41,7 +41,13 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
 
   return (
     <ResponsiveContainer width="100%" height={200}>
-      <LineChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+      <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="patrimonyAreaFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" style={{ stopColor: 'var(--accent)', stopOpacity: 0.22 }} />
+            <stop offset="100%" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
+          </linearGradient>
+        </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
         <YAxis
@@ -59,12 +65,6 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
           labelFormatter={(label) => `Mês: ${label}`}
         />
         {hasAporte && (
-          <Legend
-            formatter={(value) => (value === 'total' ? 'Patrimônio total' : 'Aporte acumulado')}
-            iconType="plainline"
-          />
-        )}
-        {hasAporte && (
           <Line
             type="monotone"
             dataKey="aporte"
@@ -75,15 +75,22 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
             className="stroke-text-tertiary"
           />
         )}
+        <Area
+          type="monotone"
+          dataKey="total"
+          stroke="none"
+          fill="url(#patrimonyAreaFill)"
+          isAnimationActive={false}
+        />
         <Line
           type="monotone"
           dataKey="total"
-          strokeWidth={2}
+          strokeWidth={2.2}
           dot={false}
           activeDot={{ r: 4 }}
           className="stroke-accent"
         />
-      </LineChart>
+      </ComposedChart>
     </ResponsiveContainer>
   )
 }

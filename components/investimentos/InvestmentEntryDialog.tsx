@@ -138,6 +138,7 @@ function EntryForm({
           defaultValue={existing?.amount ?? ''}
           autoFocus
           error={!!errors.amount}
+          preserveExplicitZero
         />
       </Field>
       <Field label="Rendimento líquido (R$)" error={errors.yieldAmount}>
@@ -145,6 +146,7 @@ function EntryForm({
           name="yieldAmount"
           defaultValue={existing?.yieldAmount ?? ''}
           error={!!errors.yieldAmount}
+          preserveExplicitZero
         />
       </Field>
       <Field label="Observações" hint="Opcional">

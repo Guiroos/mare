@@ -50,6 +50,13 @@
       "when": 1778465278816,
       "tag": "0006_same_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1778558024307,
+      "tag": "0007_remarkable_purple_man",
+      "breakpoints": true
     }
   ]
 }

@@ -112,6 +112,7 @@ export function BudgetOverrideDialog({
               defaultValue={override?.amount ?? defaultBudget ?? ''}
               error={!!errors.amount}
               autoFocus
+              preserveExplicitZero
             />
           </Field>
           <div className="flex gap-2">
