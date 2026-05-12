@@ -34,6 +34,7 @@ export function RowActions({
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   function handleDelete() {
+    if (!onDelete) return
     startTransition(async () => {
       try {
         await onDelete()
