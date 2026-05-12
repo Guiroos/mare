@@ -15,7 +15,7 @@ export async function getInvestmentBalances(userId: string) {
     orderBy: asc(investmentTypes.name),
   })
 
-  return Promise.all(
+  const results = await Promise.all(
     types.map(async (type) => {
       const [amountResult, withdrawalResult, allEntries] = await Promise.all([
         db
@@ -67,6 +67,7 @@ export async function getInvestmentBalances(userId: string) {
       }
     })
   )
+  return results.sort((a, b) => b.currentBalance - a.currentBalance)
 }
 
 export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
@@ -115,11 +116,14 @@ export async function getPatrimonyTimeline(userId: string) {
   ])
 
   const monthMap = new Map<string, number>()
+  const aporteMonthMap = new Map<string, number>()
 
   for (const inv of allInvestments) {
     const month = inv.referenceMonth.slice(0, 7)
     const prev = monthMap.get(month) ?? 0
+    const prevAporte = aporteMonthMap.get(month) ?? 0
     monthMap.set(month, prev + Number(inv.amount ?? 0) + Number(inv.yieldAmount ?? 0))
+    aporteMonthMap.set(month, prevAporte + Number(inv.amount ?? 0))
   }
 
   for (const wd of allWithdrawals) {
@@ -131,8 +135,10 @@ export async function getPatrimonyTimeline(userId: string) {
   const sortedMonths = Array.from(monthMap.keys()).sort()
 
   let cumulative = 0
+  let cumulativeAporte = 0
   return sortedMonths.map((month) => {
     cumulative += monthMap.get(month)!
-    return { month, total: cumulative }
+    cumulativeAporte += aporteMonthMap.get(month) ?? 0
+    return { month, total: cumulative, aporte: cumulativeAporte }
   })
 }

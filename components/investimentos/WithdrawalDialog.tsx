@@ -81,7 +81,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
       <DialogTrigger asChild>
         <Button size="sm" variant="outline" className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />
-          Registrar resgate
+          <span className="hidden sm:inline">Registrar resgate</span>
         </Button>
       </DialogTrigger>
       <DialogContent>

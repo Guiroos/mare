@@ -7,29 +7,36 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from 'recharts'
 import { formatMonthShort } from '@/lib/utils/date'
 
-type DataPoint = { month: string; total: number }
+type DataPoint = { month: string; total: number; aporte?: number }
 
 function formatCurrencyShort(value: number) {
   if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
   return `R$${value.toFixed(0)}`
 }
 
+function formatCurrencyFull(value: number) {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
+}
+
 export function PatrimonyChart({ data }: { data: DataPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-text-secondary">
+      <div className="flex h-40 items-center justify-center text-small text-text-secondary">
         Nenhum dado ainda.
       </div>
     )
   }
 
+  const hasAporte = data.some((d) => d.aporte !== undefined)
   const chartData = data.map((d) => ({
     month: formatMonthShort(d.month),
     total: d.total,
+    ...(hasAporte ? { aporte: d.aporte } : {}),
   }))
 
   return (
@@ -45,18 +52,36 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
           width={56}
         />
         <Tooltip
-          formatter={(value: number) =>
-            new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-          }
+          formatter={(value: number, name: string) => [
+            formatCurrencyFull(value),
+            name === 'total' ? 'Patrimônio total' : 'Aporte acumulado',
+          ]}
           labelFormatter={(label) => `Mês: ${label}`}
         />
+        {hasAporte && (
+          <Legend
+            formatter={(value) => (value === 'total' ? 'Patrimônio total' : 'Aporte acumulado')}
+            iconType="plainline"
+          />
+        )}
+        {hasAporte && (
+          <Line
+            type="monotone"
+            dataKey="aporte"
+            strokeWidth={1.5}
+            strokeDasharray="4 4"
+            dot={false}
+            activeDot={{ r: 3 }}
+            className="stroke-text-tertiary"
+          />
+        )}
         <Line
           type="monotone"
           dataKey="total"
           strokeWidth={2}
           dot={false}
           activeDot={{ r: 4 }}
-          className="stroke-primary"
+          className="stroke-accent"
         />
       </LineChart>
     </ResponsiveContainer>

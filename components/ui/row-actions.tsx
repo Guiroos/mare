@@ -18,7 +18,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface RowActionsProps {
   onEdit: () => void
-  onDelete: () => Promise<void>
+  onDelete?: () => Promise<void>
   deleteTitle?: string
   deleteDescription?: string
 }
@@ -63,7 +63,7 @@ export function RowActions({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+            className="h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity duration-fast lg:opacity-0 lg:group-hover:opacity-100"
             aria-label="Ações"
           >
             <MoreVertical className="h-3.5 w-3.5" />
@@ -76,17 +76,19 @@ export function RowActions({
             className="z-50 min-w-28 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
           >
             <DropdownMenu.Item
-              className="flex cursor-pointer items-center px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+              className="flex cursor-pointer items-center px-3 py-2 text-small text-text-primary outline-none transition-colors duration-fast hover:bg-bg-subtle focus:bg-bg-subtle"
               onSelect={onEdit}
             >
               Editar
             </DropdownMenu.Item>
-            <DropdownMenu.Item
-              className="flex cursor-pointer items-center px-3 py-2 text-small text-negative-text outline-none transition-colors hover:bg-negative-subtle focus:bg-negative-subtle"
-              onSelect={() => setConfirmOpen(true)}
-            >
-              Excluir
-            </DropdownMenu.Item>
+            {onDelete && (
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center px-3 py-2 text-small text-negative-text outline-none transition-colors duration-fast hover:bg-negative-subtle focus:bg-negative-subtle"
+                onSelect={() => setConfirmOpen(true)}
+              >
+                Excluir
+              </DropdownMenu.Item>
+            )}
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>

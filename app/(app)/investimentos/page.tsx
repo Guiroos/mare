@@ -5,20 +5,27 @@ import {
   getInvestmentWithdrawals,
   getPatrimonyTimeline,
 } from '@/lib/queries/investments'
-import { deleteInvestmentType, deleteInvestment, deleteWithdrawal } from '@/lib/actions/investments'
+import { deleteWithdrawal } from '@/lib/actions/investments'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatMonthName, referenceMonthToYearMonth, formatDate } from '@/lib/utils/date'
+import {
+  formatMonthAbbr,
+  currentReferenceMonth,
+  referenceMonthToYearMonth,
+  formatDate,
+} from '@/lib/utils/date'
 import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Separator } from '@/components/ui/separator'
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
 import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
 import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { PatrimonyChart } from '@/components/charts/PatrimonyChart'
-import { PageLayout } from '@/components/ui/page-layout'
+import { PatrimonyHero } from '@/components/investimentos/PatrimonyHero'
+import { InvestmentTypeCard } from '@/components/investimentos/InvestmentTypeCard'
+import { InvestmentTypeAccordion } from '@/components/investimentos/InvestmentTypeAccordion'
 import { PageHeader } from '@/components/ui/page-header'
+import { PageLayout } from '@/components/ui/page-layout'
 
 export default async function InvestimentosPage() {
   const session = await auth()
@@ -34,198 +41,210 @@ export default async function InvestimentosPage() {
 
   const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
 
-  const totalPatrimony = balances.reduce((sum, b) => sum + b.currentBalance, 0)
+  // ── Hero stats ──────────────────────────────────────────────────────────────
+  const totalPatrimony = balances.reduce((s, b) => s + b.currentBalance, 0)
+  const totalAporte = balances.reduce((s, b) => s + b.totalAmount, 0)
+  const totalYield = balances.reduce((s, b) => s + b.totalYield, 0)
+
+  const delta =
+    timeline.length >= 2
+      ? timeline[timeline.length - 1].total - timeline[timeline.length - 2].total
+      : null
+  const prevMonthTotal = timeline.length >= 2 ? timeline[timeline.length - 2].total : null
+  const deltaPercent =
+    delta !== null && prevMonthTotal && prevMonthTotal > 0 ? (delta / prevMonthTotal) * 100 : null
+  const prevMonthLabel =
+    timeline.length >= 2
+      ? formatMonthAbbr(referenceMonthToYearMonth(timeline[timeline.length - 2].month + '-01'))
+      : null
+
+  const currentRefMonth = currentReferenceMonth()
+  const thisMonthAporte = balances.reduce((s, b) => {
+    const entry = b.entries.find((e) => e.referenceMonth === currentRefMonth)
+    return s + (entry?.amount ?? 0)
+  }, 0)
+  const thisMonthYield = balances.reduce((s, b) => {
+    const entry = b.entries.find((e) => e.referenceMonth === currentRefMonth)
+    return s + (entry?.yieldAmount ?? 0)
+  }, 0)
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Investimentos"
-        description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
-      />
-
-      {/* ─── Patrimônio total ─────────────────────────────────────────────── */}
-      {balances.length > 0 && (
-        <div className="rounded-xl border bg-bg-surface px-5 py-4">
-          <p className="text-sm text-text-secondary">Patrimônio total</p>
-          <p className="mt-1 text-2xl font-bold">{formatCurrency(totalPatrimony)}</p>
+      {/* Page header */}
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Investimentos"
+          description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
+        />
+        <div className="hidden items-center gap-2 lg:flex">
+          <InvestmentTypeDialog mode="create" />
+          <InvestmentEntryDialog investmentTypes={investmentTypeOptions} />
         </div>
+      </div>
+
+      {/* Hero */}
+      {balances.length > 0 && (
+        <PatrimonyHero
+          total={totalPatrimony}
+          totalAporte={totalAporte}
+          totalYield={totalYield}
+          delta={delta}
+          deltaPercent={deltaPercent}
+          prevMonthLabel={prevMonthLabel}
+          thisMonthAporte={thisMonthAporte}
+          thisMonthYield={thisMonthYield}
+        />
       )}
 
-      {/* ─── Por tipo ─────────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Patrimônio por tipo
-          </h2>
-          <InvestmentTypeDialog mode="create" />
+      {/* ── Patrimônio por tipo ─────────────────────────────────────────────── */}
+      <section className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-2">
+            <span className="whitespace-nowrap text-label uppercase text-text-tertiary">
+              Patrimônio por tipo
+            </span>
+            <span className="text-caption text-text-tertiary">
+              <strong className="font-semibold tabular-nums text-text-primary">
+                {balances.length}
+              </strong>{' '}
+              {balances.length === 1 ? 'tipo ativo' : 'tipos ativos'}
+              <span className="hidden md:inline"> · ordenados por valor</span>
+            </span>
+          </div>
+          {balances.length > 0 && (
+            <div className="lg:hidden">
+              <InvestmentTypeDialog mode="create" />
+            </div>
+          )}
         </div>
 
         {balances.length === 0 ? (
-          <EmptyState title="Nenhum tipo de investimento cadastrado." />
-        ) : (
-          <div className="space-y-3">
-            {balances.map((balance) => {
-              const history = balance.entries
-              return (
-                <div key={balance.id} className="rounded-xl border bg-bg-surface">
-                  {/* Header do tipo */}
-                  <div className="flex items-center gap-2 px-4 py-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium">{balance.name}</span>
-                          {balance.pendingYield && (
-                            <Badge variant="warning">Rendimento pendente</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-sm font-semibold">
-                            {formatCurrency(balance.currentBalance)}
-                          </span>
-                          <InvestmentTypeDialog
-                            mode="edit"
-                            type={{ id: balance.id, name: balance.name }}
-                          />
-                          <DeleteButton
-                            onDelete={async () => {
-                              'use server'
-                              await deleteInvestmentType(balance.id)
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-1 flex gap-4 text-xs text-text-secondary">
-                        <span>Aportes: {formatCurrency(balance.totalAmount)}</span>
-                        <span>Rendimentos: {formatCurrency(balance.totalYield)}</span>
-                        {balance.totalWithdrawn > 0 && (
-                          <span>Resgates: −{formatCurrency(balance.totalWithdrawn)}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Histórico mensal */}
-                  {history.length > 0 && (
-                    <>
-                      <Separator />
-                      <div className="overflow-x-auto px-4 py-3">
-                        <table className="w-full min-w-[400px] text-sm">
-                          <thead>
-                            <tr className="text-xs text-text-secondary">
-                              <th className="pb-2 text-left font-medium">Mês</th>
-                              <th className="pb-2 text-right font-medium">Aporte</th>
-                              <th className="pb-2 text-right font-medium">Rendimento</th>
-                              <th className="pb-2 text-right font-medium">Notas</th>
-                              <th className="pb-2" />
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {history.map((entry) => (
-                              <tr key={entry.id}>
-                                <td className="py-1.5 pr-4 text-text-secondary">
-                                  {formatMonthName(referenceMonthToYearMonth(entry.referenceMonth))}
-                                </td>
-                                <td className="py-1.5 pr-4 text-right tabular-nums">
-                                  {entry.amount !== null ? formatCurrency(entry.amount) : '—'}
-                                </td>
-                                <td className="py-1.5 pr-4 text-right tabular-nums">
-                                  {entry.yieldAmount !== null ? (
-                                    formatCurrency(entry.yieldAmount)
-                                  ) : (
-                                    <span className="text-yellow-600">pendente</span>
-                                  )}
-                                </td>
-                                <td className="max-w-[120px] truncate py-1.5 pr-2 text-right text-xs text-text-secondary">
-                                  {entry.notes ?? ''}
-                                </td>
-                                <td className="py-1.5">
-                                  <div className="flex items-center justify-end gap-0.5">
-                                    <InvestmentEntryDialog
-                                      investmentTypeId={balance.id}
-                                      existing={entry}
-                                    />
-                                    <DeleteButton
-                                      onDelete={async () => {
-                                        'use server'
-                                        await deleteInvestment(entry.id)
-                                      }}
-                                    />
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Adicionar novo mês */}
-                  <div className="px-4 pb-3">
-                    <InvestmentEntryDialog investmentTypeId={balance.id} />
-                  </div>
-                </div>
-              )
-            })}
+          <div className="flex flex-col items-center gap-4 py-10">
+            <EmptyState
+              title="Nenhum tipo de investimento cadastrado."
+              description="Crie seu primeiro tipo para começar a registrar aportes e rendimentos."
+            />
+            <InvestmentTypeDialog mode="create" />
           </div>
-        )}
-      </div>
+        ) : (
+          <>
+            {/* Desktop — type cards with table */}
+            <div className="hidden flex-col gap-3.5 lg:flex">
+              {balances.map((balance, i) => (
+                <InvestmentTypeCard key={balance.id} balance={balance} colorIndex={i} />
+              ))}
+            </div>
 
-      {/* ─── Evolução do patrimônio ───────────────────────────────────────── */}
+            {/* Mobile — accordion */}
+            <div className="lg:hidden">
+              <InvestmentTypeAccordion balances={balances} totalPatrimony={totalPatrimony} />
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* ── Evolução do patrimônio ─────────────────────────────────────────── */}
       {timeline.length > 1 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Evolução do patrimônio
-          </h2>
-          <div className="rounded-xl border bg-bg-surface px-4 py-4">
+        <section className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-0">
+            <div>
+              <span className="text-label uppercase text-text-tertiary">
+                Evolução do patrimônio
+              </span>
+              <p className="mt-0.5 text-h3">Últimos {timeline.length} meses</p>
+            </div>
+            <div className="flex items-center gap-3.5 text-caption text-text-secondary">
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-2.5 rounded-sm bg-accent" />
+                Patrimônio total
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-0.5 w-2.5 rounded-sm border-t-2 border-dashed border-text-tertiary"
+                  style={{ background: 'transparent' }}
+                />
+                Aporte acumulado
+              </span>
+            </div>
+          </div>
+          <div className="px-5 py-4">
             <PatrimonyChart data={timeline} />
           </div>
-        </div>
+        </section>
       )}
 
-      {/* ─── Resgates ─────────────────────────────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Resgates
-          </h2>
+      {/* ── Resgates ───────────────────────────────────────────────────────── */}
+      <section className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
+        <div className="flex items-center justify-between px-5 py-4">
+          <span className="whitespace-nowrap text-label uppercase text-text-tertiary">
+            Resgates<span className="hidden sm:inline"> · últimos 6 meses</span>
+          </span>
           <WithdrawalDialog investmentTypes={investmentTypeOptions} />
         </div>
 
         {withdrawals.length === 0 ? (
-          <EmptyState title="Nenhum resgate registrado." />
+          <div className="mx-5 mb-5 flex items-center gap-2.5 rounded-md border border-dashed border-border-strong bg-bg-base px-4 py-3.5 text-small text-text-secondary">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              className="flex-shrink-0 text-text-tertiary"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>
+              Nenhum resgate registrado nos últimos 6 meses. Bom trabalho mantendo o patrimônio.
+            </span>
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border bg-bg-surface">
-            <table className="w-full min-w-[480px] text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[480px] border-collapse">
               <thead>
-                <tr className="border-b text-xs text-text-secondary">
-                  <th className="px-4 py-3 text-left font-medium">Tipo</th>
-                  <th className="px-4 py-3 text-left font-medium">Data</th>
-                  <th className="px-4 py-3 text-right font-medium">Valor</th>
-                  <th className="px-4 py-3 text-left font-medium">Destino</th>
-                  <th className="px-4 py-3 text-left font-medium">Notas</th>
-                  <th className="px-4 py-3" />
+                <tr className="border-b border-border bg-bg-subtle">
+                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
+                    Tipo
+                  </th>
+                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
+                    Data
+                  </th>
+                  <th className="px-5 py-2 text-right text-label uppercase text-text-tertiary">
+                    Valor
+                  </th>
+                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
+                    Destino
+                  </th>
+                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
+                    Notas
+                  </th>
+                  <th className="px-5 py-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody>
                 {withdrawals.map((w) => (
-                  <tr key={w.id}>
-                    <td className="px-4 py-2">{w.typeName}</td>
-                    <td className="px-4 py-2 text-text-secondary">{formatDate(w.date)}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">
-                      {formatCurrency(w.amount)}
+                  <tr key={w.id} className="border-t border-border hover:bg-bg-subtle">
+                    <td className="px-5 py-2.5 text-small">{w.typeName}</td>
+                    <td className="px-5 py-2.5 text-small text-text-secondary">
+                      {formatDate(w.date)}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-5 py-2.5 text-right text-small font-semibold tabular-nums text-negative-text">
+                      − {formatCurrency(w.amount)}
+                    </td>
+                    <td className="px-5 py-2.5">
                       {w.destination === 'income' ? (
                         <Badge variant="muted">Caixa</Badge>
                       ) : (
                         <Badge variant="muted">Transferência</Badge>
                       )}
                     </td>
-                    <td className="max-w-[120px] truncate px-4 py-2 text-xs text-text-secondary">
+                    <td className="max-w-[120px] truncate px-5 py-2.5 text-caption text-text-secondary">
                       {w.notes ?? ''}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-5 py-2.5">
                       <div className="flex items-center gap-1">
                         <WithdrawalEditButton
                           withdrawal={w}
@@ -245,7 +264,7 @@ export default async function InvestimentosPage() {
             </table>
           </div>
         )}
-      </div>
+      </section>
     </PageLayout>
   )
 }

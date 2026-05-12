@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Pencil } from 'lucide-react'
+import { Plus, Pencil, TrendingUp } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,13 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Switch } from '@/components/ui/switch'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { toast } from 'sonner'
 import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/investments'
 import { formatMonthName, referenceMonthToYearMonth, currentYearMonth } from '@/lib/utils/date'
@@ -26,18 +33,25 @@ type Existing = {
 }
 
 type Props = {
-  investmentTypeId: string
+  investmentTypeId?: string
+  investmentTypes?: { id: string; name: string }[]
   existing?: Existing
   open?: boolean
   onOpenChange?: (v: boolean) => void
 }
 
-function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSuccess: () => void }) {
+function EntryForm({
+  investmentTypeId: fixedTypeId,
+  investmentTypes,
+  existing,
+  onSuccess,
+}: Props & { onSuccess: () => void }) {
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [excludeFromCashFlow, setExcludeFromCashFlow] = useState(
     existing?.excludeFromCashFlow ?? false
   )
+  const [selectedTypeId, setSelectedTypeId] = useState(fixedTypeId ?? '')
 
   const defaultMonth = existing
     ? referenceMonthToYearMonth(existing.referenceMonth)
@@ -49,7 +63,7 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
     const selectedMonth = (fd.get('referenceMonth') as string).trim()
 
     const result = investmentEntrySchema.safeParse({
-      investmentTypeId,
+      investmentTypeId: selectedTypeId,
       referenceMonth: selectedMonth,
       amount: (fd.get('amount') as string).trim() || undefined,
       yieldAmount: (fd.get('yieldAmount') as string).trim() || undefined,
@@ -61,7 +75,7 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
 
     setErrors({})
     const data: UpsertInvestmentInput = {
-      investmentTypeId,
+      investmentTypeId: selectedTypeId,
       referenceMonth: result.data.referenceMonth + '-01',
       amount: (fd.get('amount') as string).trim() || null,
       yieldAmount: (fd.get('yieldAmount') as string).trim() || null,
@@ -81,6 +95,22 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {investmentTypes && !fixedTypeId && (
+        <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+          <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
+            <SelectTrigger className="bg-bg-input">
+              <SelectValue placeholder="Selecionar tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              {investmentTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      )}
       <Field
         label="Mês de referência"
         hint={
@@ -134,6 +164,7 @@ function EntryForm({ investmentTypeId, existing, onSuccess }: Props & { onSucces
 
 export function InvestmentEntryDialog({
   investmentTypeId,
+  investmentTypes,
   existing,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -145,7 +176,9 @@ export function InvestmentEntryDialog({
   const open = isControlled ? controlledOpen! : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
-  const title = existing ? 'Editar registro' : 'Novo registro'
+  const isGlobal = !investmentTypeId && !!investmentTypes
+  const title = existing ? 'Editar registro' : 'Registrar aporte'
+
   const trigger =
     !isControlled &&
     (existing ? (
@@ -155,7 +188,12 @@ export function InvestmentEntryDialog({
         className="h-7 w-7 text-text-tertiary hover:text-text-primary"
         onClick={() => setOpen(true)}
       >
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-3 w-3" />
+      </Button>
+    ) : isGlobal ? (
+      <Button variant="primary" className="gap-2" onClick={() => setOpen(true)}>
+        <TrendingUp className="h-4 w-4" />
+        <span className="hidden sm:inline">Registrar aporte</span>
       </Button>
     ) : (
       <Button
@@ -165,13 +203,14 @@ export function InvestmentEntryDialog({
         onClick={() => setOpen(true)}
       >
         <Plus className="h-3 w-3" />
-        Registrar
+        Registrar mês
       </Button>
     ))
 
   const form = (
     <EntryForm
       investmentTypeId={investmentTypeId}
+      investmentTypes={investmentTypes}
       existing={existing}
       onSuccess={() => setOpen(false)}
     />

@@ -48,7 +48,7 @@ NEXTAUTH_URL=http://localhost:3000
 - **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas; mesmo padrão aplicado em `panorama.ts` (`getAnnualOverview`)
 - **`toAmount(val)`** em `lib/utils/currency.ts` — use em vez de `Number(x.amount)` em queries; centraliza a conversão de campos `decimal` do Drizzle (retornados como string)
 - Indexes no schema Drizzle: terceiro parâmetro é função de array — `pgTable('t', { cols }, (t) => [index('name').on(t.col1, t.col2)])` — **não** usar sintaxe de objeto
-- Unique indexes no schema: usar `uniqueIndex('name').on(t.col1, t.col2)` no mesmo array; na action correspondente, usar `.onConflictDoUpdate({ target: [table.col1, ...], set: { ... } })` — elimina o anti-padrão `existingId ? UPDATE : INSERT`
+- Unique indexes no schema: usar `uniqueIndex('name').on(t.col1, t.col2)` no mesmo array; na action correspondente, usar `.onConflictDoUpdate({ target: [table.col1, ...], set: { ... } })` — elimina o anti-padrão `existingId ? UPDATE : INSERT`; `.onConflictDoUpdate` retorna 500 em runtime se o unique index não existe no banco — rodar `npm run db:migrate` sempre que houver migrations pendentes antes de testar mutations
 
 ### Auth
 
@@ -93,6 +93,10 @@ NEXTAUTH_URL=http://localhost:3000
 - `signOut({ callbackUrl: '/login' })` redireciona para `NEXTAUTH_URL + callbackUrl` — em dev com porta alternativa (ex: 3001), vai para a porta do `NEXTAUTH_URL` (3000); comportamento esperado
 - `@radix-ui/react-dropdown-menu` já está instalado (usado em `row-actions.tsx`); para dropdowns que abrem para cima, usar `side="top"` no `DropdownMenu.Content`
 - `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, adicione estado `touched` no componente e emita o valor numérico quando `touched || cents > 0`
+- `app/(app)/layout.tsx` aplica `px-4 py-6 lg:px-8 lg:py-7` + `pb-20 lg:pb-0` — páginas **não** devem adicionar wrapper próprio com padding; usar `PageLayout` diretamente
+- Header de página com botões de ação: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + div de ações, como primeiro filho de `<PageLayout>`
+- `RowActions` aceita `onDelete` opcional — quando não fornecido, "Excluir" não aparece no dropdown (útil para linhas que só permitem edição)
+- Para abrir dialog via `RowActions`: adicionar `open`/`onOpenChange` ao dialog e controlar com `useState` no pai; server components com inline `'use server'` que precisam de state devem ser convertidos para `'use client'` (importar server actions de `lib/actions/` normalmente)
 
 ### UI
 
@@ -129,7 +133,7 @@ Componentes avançados que combinam primitivos **devem importar e usar os compon
 Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no sistema.
 
 **Tipografia** — usar apenas tokens do `tailwind.config.ts`:
-`text-display` `text-h1` `text-h2` `text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
+`text-hero` (40px) `text-display` `text-h1` `text-h2` `text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
 
 **Espaçamento** — grid de 4px do Tailwind: `p-1` (4px) `p-2` (8px) `p-3` (12px) etc.
 Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) `p-2.5` (10px)
@@ -178,3 +182,9 @@ Re-exports são proibidos: se um componente precisa ser compartilhado, mova para
 - `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
 - Wrappers Radix (`SelectTrigger`, etc.): className **sempre** via `cn()` de `lib/utils/cn` — nunca template string com ternário
 - `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)
+- `[grid-template-columns:...]` é valor arbitrário proibido — usar `flex` com `flex-1`/`flex-shrink-0` para layouts de 3-4 colunas com largura variável
+- `ds-reviewer`: ao implementar múltiplos componentes novos numa sessão, executar **uma vez ao final** com todos os arquivos — não após cada arquivo individualmente
+- Hero com 4 colunas + sidebar visível: usar `grid-cols-1 md:grid-cols-2 xl:grid-cols-4` — `lg:grid-cols-4` a 1024px deixa ~148px por coluna, insuficiente; no `xl:` (1280px) cada coluna tem ~250px; valor principal com `text-hero xl:text-h1 2xl:text-hero`
+- Botões de ação em headers de seção/card: envolver o label em `<span className="hidden sm:inline">` para icon-only abaixo de 640px; posicionar o botão no header com `lg:hidden` (não solto após a lista)
+- Accordion header com badge + valor à direita: nome deve usar `<span className="block truncate">` para não quebrar linha; badge de status vai na linha do subtítulo (substituindo barra de progresso) — não inline com o nome
+- Labels de seção em `flex justify-between`: adicionar `whitespace-nowrap` no label esquerdo; texto secundário verboso (ex: "· ordenados por valor") em `<span className="hidden md:inline">` para sumir em mobile
