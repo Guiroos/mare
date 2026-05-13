@@ -1,8 +1,16 @@
 'use client'
 
 import { useRouter, usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
-import * as RadixSelect from '@radix-ui/react-select'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils/cn'
 import { prevMonth, nextMonth, currentYearMonth, formatMonthYear } from '@/lib/utils/date'
 
 type CreditAccount = { id: string; name: string; closingDay: number }
@@ -49,15 +57,17 @@ export function MonthSelector({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate(prevMonth(currentMonth))}
             aria-label="Mês anterior"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-text-primary"
+            className="h-7 w-7 rounded-full text-text-tertiary"
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
+          </Button>
 
-          <div className="flex cursor-default flex-col items-center rounded-full border-2 border-border bg-bg-surface px-3.5 py-1.5 shadow-sm">
+          <div className="flex cursor-default flex-col items-center rounded-full border-2 border-border bg-bg-surface px-4 py-1.5 shadow-sm">
             <span className="text-body font-semibold text-text-primary">
               {formatMonthYear(currentMonth)}
             </span>
@@ -66,78 +76,51 @@ export function MonthSelector({
             )}
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate(nextMonth(currentMonth))}
             aria-label="Próximo mês"
-            className="flex h-7 w-7 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-bg-subtle hover:text-text-primary"
+            className="h-7 w-7 rounded-full text-text-tertiary"
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex items-center gap-2">
           {hasBillingCycle && (
-            <RadixSelect.Root
-              value={activeCycleAccountId ?? 'month'}
-              onValueChange={handleCycleSelect}
-            >
-              <RadixSelect.Trigger
-                className={[
-                  'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-semibold outline-none',
-                  'transition-all duration-fast active:scale-95',
+            <Select value={activeCycleAccountId ?? 'month'} onValueChange={handleCycleSelect}>
+              <SelectTrigger
+                className={cn(
+                  'h-7 w-auto gap-1.5 rounded-full px-3 text-caption font-semibold active:scale-95',
                   isCycleView
-                    ? 'bg-accent text-text-inverse shadow-sm hover:shadow-md'
-                    : 'border border-border bg-bg-surface text-text-secondary hover:bg-bg-subtle',
-                ].join(' ')}
+                    ? 'border-transparent bg-accent text-text-inverse shadow-sm hover:shadow-md'
+                    : 'border-border bg-bg-surface text-text-secondary hover:bg-bg-subtle'
+                )}
               >
-                <RadixSelect.Value>
-                  {isCycleView
-                    ? (creditAccounts.find((a) => a.id === activeCycleAccountId)?.name ?? 'Ciclo')
-                    : 'Mês'}
-                </RadixSelect.Value>
-                <ChevronDown className="h-3 w-3 opacity-70" />
-              </RadixSelect.Trigger>
-
-              <RadixSelect.Portal>
-                <RadixSelect.Content
-                  position="popper"
-                  sideOffset={6}
-                  align="end"
-                  className="z-50 min-w-40 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
-                >
-                  <RadixSelect.Viewport className="p-1">
-                    <RadixSelect.Item
-                      value="month"
-                      className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-small text-text-primary outline-none data-[highlighted]:bg-bg-subtle"
-                    >
-                      <RadixSelect.ItemText>Mês</RadixSelect.ItemText>
-                    </RadixSelect.Item>
-
-                    {creditAccounts.map((account) => (
-                      <RadixSelect.Item
-                        key={account.id}
-                        value={account.id}
-                        className="flex cursor-pointer select-none items-center rounded-sm px-3 py-2 text-small text-text-primary outline-none data-[highlighted]:bg-bg-subtle"
-                      >
-                        <RadixSelect.ItemText>
-                          {account.name} · dia {account.closingDay}
-                        </RadixSelect.ItemText>
-                      </RadixSelect.Item>
-                    ))}
-                  </RadixSelect.Viewport>
-                </RadixSelect.Content>
-              </RadixSelect.Portal>
-            </RadixSelect.Root>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent position="popper" sideOffset={6} align="end" className="min-w-40">
+                <SelectItem value="month">Mês</SelectItem>
+                {creditAccounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name} · dia {account.closingDay}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
 
           {!isCurrentMonth && (
-            <button
+            <Button
+              variant="primary"
+              size="xs"
               onClick={() => navigate(currentYearMonth())}
-              className="flex items-center gap-1 rounded-full bg-accent px-3 py-1.5 text-caption font-semibold text-text-inverse shadow-sm transition-all hover:shadow-md active:scale-95"
+              className="rounded-full"
+              rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
             >
               Mês atual
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           )}
           {action}
         </div>

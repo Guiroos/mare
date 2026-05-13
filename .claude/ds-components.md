@@ -83,3 +83,7 @@ Radix UI + primitivos.
 - `select-none` em componentes de navegação (`BottomNav`, `Sidebar`) previne seleção de texto acidental ao clicar em itens de nav
 - `uppercase tracking-wide` sobrescreve o `letter-spacing` configurado nos tokens tipográficos — `text-label` e `text-caption` já têm tracking próprio no `tailwind.config.ts`; não acumular `uppercase tracking-wide` sobre eles; se o visual "caixa alta espaçada" for recorrente, criar token específico
 - Seletores de filho `[&>svg]:h-N [&>svg]:w-N [&>svg]:text-*` para estilizar SVGs filhos sem exigir que callers os estilizem — aceitos como funcionais (mesmo padrão de `[&>span]:line-clamp-1`); não são violação da Regra 3
+- `SelectTrigger` em contextos compactos (toolbar, pill): usar `h-7`/`h-8` + `w-auto` via `className` — nunca `h-auto`, que não é altura válida de controle interativo (Regra 3)
+- `SelectContent` do DS já encapsula `SelectPrimitive.Portal` internamente — não adicionar `Portal` separado ao usar o DS `Select`; props `sideOffset` e `align` passam via `...props` para `SelectPrimitive.Content`
+- Sub-grid de espaçamento permitido termina em `p-2.5` (10px): `p-3.5` (14px) é inválido — não está no grid de 4px nem na lista de sub-grid `p-0.5`/`p-1.5`/`p-2.5`
+- `Chip` aceita `className` para adaptar shape em toolbars: `rounded-md border text-caption h-8` transforma o pill padrão em chip retangular compacto; use `Chip` quando todos os itens têm a mesma cor active — para cores active variáveis por item, usar raw `<button>`

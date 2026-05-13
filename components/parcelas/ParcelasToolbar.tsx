@@ -2,6 +2,14 @@
 
 import { useState, useMemo } from 'react'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Chip } from '@/components/ui/chip'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
 import { InstallmentGroupCard } from './InstallmentGroupCard'
 import { formatCurrency } from '@/lib/utils/currency'
 
@@ -108,28 +116,23 @@ export function ParcelasToolbar({ groups }: { groups: Group[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
           {FILTERS.map(({ key, label }) => {
             const count = key === 'all' ? groups.length : applyFilter(groups, key).length
             const isActive = filter === key
             return (
-              <button
+              <Chip
                 key={key}
+                active={isActive}
                 onClick={() => setFilter(key)}
-                className={[
-                  'inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-caption font-medium transition-colors duration-fast',
-                  isActive
-                    ? 'border-transparent bg-accent-subtle font-semibold text-accent-text'
-                    : 'border-border bg-bg-surface text-text-secondary hover:text-text-primary',
-                ].join(' ')}
+                className="h-8 gap-1.5 rounded-md border text-caption"
               >
                 {label}
                 {(key === 'all' || count !== groups.length) && count > 0 && (
                   <span
                     className={[
-                      'rounded px-1 text-caption font-bold',
+                      'rounded px-1 text-caption font-bold tabular-nums',
                       isActive
                         ? 'bg-accent-subtle text-accent-text'
                         : 'bg-bg-subtle text-text-tertiary',
@@ -138,28 +141,27 @@ export function ParcelasToolbar({ groups }: { groups: Group[] }) {
                     {count}
                   </span>
                 )}
-              </button>
+              </Chip>
             )
           })}
         </div>
-        {/* Native select intentional: DS Select is h-12 (form-sized); toolbar needs compact h-8 */}
         <div className="flex items-center gap-2 text-caption text-text-secondary">
           <span>Ordenar:</span>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
-            className="h-8 rounded-md border border-border bg-bg-surface px-2 text-caption font-medium text-text-primary"
-          >
-            {SORTS.map(({ key, label }) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <Select value={sort} onValueChange={(v) => setSort(v as Sort)}>
+            <SelectTrigger className="h-8 w-auto px-3 text-caption font-medium">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {SORTS.map(({ key, label }) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* Section heading */}
       <div className="flex items-baseline justify-between">
         <p className="text-label uppercase text-text-tertiary">Parcelas ativas</p>
         <p className="text-caption text-text-tertiary">
@@ -171,7 +173,6 @@ export function ParcelasToolbar({ groups }: { groups: Group[] }) {
         </p>
       </div>
 
-      {/* Cards */}
       {filtered.length === 0 ? (
         <EmptyState title="Nenhuma parcela nesta categoria." />
       ) : (
