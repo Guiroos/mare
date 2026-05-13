@@ -104,9 +104,7 @@ function RegistroPreviewPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-caption font-semibold uppercase tracking-widest text-text-tertiary">
-        Preview
-      </p>
+      <p className="text-caption font-semibold uppercase text-text-tertiary">Preview</p>
 
       {/* Transaction card */}
       <Card padding="md">
@@ -157,7 +155,7 @@ function RegistroPreviewPanel({
       {/* Impacto no orçamento — saída com categoria selecionada */}
       {categoryData && projectedSpent !== null && state.primaryType === 'saida' && (
         <Card padding="md">
-          <p className="mb-3 text-caption font-semibold uppercase tracking-widest text-text-tertiary">
+          <p className="mb-3 text-caption font-semibold uppercase text-text-tertiary">
             Impacto no orçamento
           </p>
           <BudgetBar
@@ -178,7 +176,7 @@ function RegistroPreviewPanel({
       {/* Saldo após lançamento */}
       {amountNum > 0 && (isDebit || isCredit) && (
         <Card padding="md">
-          <p className="mb-1 text-caption font-semibold uppercase tracking-widest text-text-tertiary">
+          <p className="mb-1 text-caption font-semibold uppercase text-text-tertiary">
             Saldo após lançamento
           </p>
           <p className="text-h1 font-semibold tabular-nums text-text-primary">
@@ -211,17 +209,19 @@ export function RegistroPageClient({ formData }: { formData: FormDataType }) {
   )
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-start">
-      <Card padding="lg">
-        <TransactionForm
-          categoryGroups={formData.categoryGroups}
-          accounts={formData.accounts}
-          investmentTypes={formData.investmentTypes}
-          onFormChange={setPreviewState}
-          categoryVariant="grid"
-        />
-      </Card>
-      <div className="hidden flex-col gap-4 lg:flex">
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+      <div className="flex-1">
+        <Card padding="lg">
+          <TransactionForm
+            categoryGroups={formData.categoryGroups}
+            accounts={formData.accounts}
+            investmentTypes={formData.investmentTypes}
+            onFormChange={setPreviewState}
+            categoryVariant="grid"
+          />
+        </Card>
+      </div>
+      <div className="hidden w-72 flex-shrink-0 flex-col gap-4 lg:flex">
         <RegistroPreviewPanel
           state={previewState}
           categorySpends={formData.categorySpends}

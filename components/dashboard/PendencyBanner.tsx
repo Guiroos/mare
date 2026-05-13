@@ -27,9 +27,9 @@ export function PendencyBanner({ unpaidFixedCount, pendingYieldCount }: Props) {
   if (items.length === 0) return null
 
   return (
-    <div className="flex items-start gap-2 rounded-[12px] border border-warning bg-warning-subtle px-3.5 py-2.5 text-[13px] font-medium text-warning-text">
+    <div className="flex items-start gap-2 rounded-lg border border-warning bg-warning-subtle px-3.5 py-2.5 text-small font-medium text-warning-text">
       <svg
-        className="mt-[1px] shrink-0 text-warning"
+        className="mt-px shrink-0 text-warning"
         width="15"
         height="15"
         viewBox="0 0 24 24"

@@ -77,7 +77,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-white/20">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${budgetOver ? 'bg-negative/80' : 'bg-white/75'}`}
+              className={`h-full rounded-full transition-all duration-base ${budgetOver ? 'bg-negative opacity-80' : 'bg-white/75'}`}
               style={{ width: `${budgetPct}%` }}
             />
           </div>

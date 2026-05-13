@@ -55,24 +55,24 @@ function NavItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex flex-1 flex-col items-center gap-[3px] px-1 py-2"
+      className="flex flex-1 flex-col items-center gap-1 px-1 py-2"
     >
       <div
         className={cn(
-          'duration-[160ms] flex h-7 w-11 items-center justify-center rounded-[14px] transition-all',
+          'flex h-7 w-11 items-center justify-center rounded-lg transition-all duration-base',
           active ? 'bg-accent-subtle' : ''
         )}
       >
         <Icon
           className={cn(
-            'duration-[160ms] h-5 w-5 transition-colors',
+            'h-5 w-5 transition-colors duration-base',
             active ? 'stroke-2 text-accent' : 'stroke-[1.75] text-text-tertiary'
           )}
         />
       </div>
       <span
         className={cn(
-          'duration-[160ms] text-[10.5px] tracking-[-0.005em] transition-colors',
+          'text-caption transition-colors duration-base',
           active ? 'font-semibold text-accent-text' : 'font-medium text-text-tertiary'
         )}
       >
@@ -119,7 +119,7 @@ export function BottomNav() {
           <div className="flex flex-1 items-start justify-center">
             <button
               onClick={() => open()}
-              className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-150 hover:-translate-y-0.5 active:scale-95"
+              className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full text-white transition-transform duration-fast hover:-translate-y-0.5 active:scale-95"
               style={{
                 background: 'linear-gradient(135deg, var(--accent) 0%, oklch(45% 0.12 210) 100%)',
                 boxShadow:
@@ -127,7 +127,7 @@ export function BottomNav() {
               }}
               aria-label="Novo lançamento"
             >
-              <Plus className="h-[26px] w-[26px] stroke-[2.5]" />
+              <Plus className="h-7 w-7 stroke-[2.5]" />
             </button>
           </div>
 
@@ -143,24 +143,24 @@ export function BottomNav() {
           {/* Menu */}
           <button
             onClick={() => setMenuOpen(true)}
-            className="flex flex-1 flex-col items-center gap-[3px] px-1 py-2"
+            className="flex flex-1 flex-col items-center gap-1 px-1 py-2"
           >
             <div
               className={cn(
-                'duration-[160ms] flex h-7 w-11 items-center justify-center rounded-[14px] transition-all',
+                'flex h-7 w-11 items-center justify-center rounded-lg transition-all duration-base',
                 isMenuActive ? 'bg-accent-subtle' : ''
               )}
             >
               <Menu
                 className={cn(
-                  'duration-[160ms] h-5 w-5 stroke-[1.75] transition-colors',
+                  'h-5 w-5 stroke-[1.75] transition-colors duration-base',
                   isMenuActive ? 'text-accent' : 'text-text-tertiary'
                 )}
               />
             </div>
             <span
               className={cn(
-                'duration-[160ms] text-[10.5px] tracking-[-0.005em] transition-colors',
+                'text-caption transition-colors duration-base',
                 isMenuActive ? 'font-semibold text-accent-text' : 'font-medium text-text-tertiary'
               )}
             >

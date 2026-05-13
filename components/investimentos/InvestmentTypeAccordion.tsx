@@ -187,7 +187,7 @@ export function InvestmentTypeAccordion({ balances, totalPatrimony }: Props) {
                     >
                       {/* Month label */}
                       <span
-                        className={`min-w-[60px] text-caption font-medium ${isPending ? 'font-semibold text-warning-text' : 'text-text-secondary'}`}
+                        className={`min-w-16 text-caption font-medium ${isPending ? 'font-semibold text-warning-text' : 'text-text-secondary'}`}
                       >
                         {formatMonthName(referenceMonthToYearMonth(entry.referenceMonth))}
                       </span>
