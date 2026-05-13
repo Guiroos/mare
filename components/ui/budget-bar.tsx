@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { cn } from '@/lib/utils/cn'
 import { formatCurrency as defaultFormat } from '@/lib/utils/currency'
 
 type BudgetTone = 'ok' | 'warn' | 'over' | 'accent'
@@ -27,13 +28,13 @@ export function BudgetBar({
   tone,
   hint,
   formatValue = defaultFormat,
-  className = '',
+  className,
 }: BudgetBarProps) {
   const pct = target > 0 ? (current / target) * 100 : 0
   const t: BudgetTone = tone ?? (pct > 100 ? 'over' : pct >= 80 ? 'warn' : 'ok')
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div className={cn('flex flex-col gap-2', className)}>
       <div className="flex items-center justify-between">
         <span className="text-small font-medium text-text-primary">{label}</span>
         <span className="text-caption tabular-nums text-text-secondary">
@@ -43,7 +44,7 @@ export function BudgetBar({
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-bg-muted">
         <div
-          className={`h-full rounded-full transition-[width] duration-300 ${toneBg[t]}`}
+          className={cn('h-full rounded-full transition-all duration-300', toneBg[t])}
           style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>

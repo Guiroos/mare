@@ -1,4 +1,5 @@
 import { ReactNode } from 'react'
+import { cn } from '@/lib/utils/cn'
 
 interface EmptyStateProps {
   icon?: ReactNode
@@ -15,11 +16,14 @@ export function EmptyState({
   description,
   action,
   boxed = false,
-  className = '',
+  className,
 }: EmptyStateProps) {
   const body = (
     <div
-      className={`flex flex-col items-center justify-center gap-4 px-8 py-12 text-center ${className}`}
+      className={cn(
+        'flex flex-col items-center justify-center gap-4 px-8 py-12 text-center',
+        className
+      )}
     >
       {icon && (
         <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-bg-subtle [&>svg]:h-7 [&>svg]:w-7 [&>svg]:text-text-tertiary">

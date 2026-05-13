@@ -1,4 +1,5 @@
 import { HTMLAttributes, ReactNode } from 'react'
+import { cn } from '@/lib/utils/cn'
 
 export type BadgeVariant = 'positive' | 'negative' | 'accent' | 'warning' | 'muted'
 export type BadgeSize = 'sm' | 'md' | 'lg'
@@ -34,12 +35,15 @@ export function Badge({
 }: BadgeProps) {
   return (
     <span
-      className={`inline-flex items-center gap-[5px] rounded-full font-medium ${sizes[size]} ${variants[variant]} ${className}`}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full font-medium',
+        sizes[size],
+        variants[variant],
+        className
+      )}
       {...props}
     >
-      {dot && (
-        <span className="h-[7px] w-[7px] shrink-0 rounded-full" style={{ background: dot }} />
-      )}
+      {dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dot }} />}
       {children}
     </span>
   )

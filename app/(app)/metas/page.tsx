@@ -35,9 +35,7 @@ export default async function MetasPage() {
       {/* ─── Lista de metas ───────────────────────────────────────────────── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-secondary">
-            Suas metas
-          </h2>
+          <h2 className="text-label font-semibold text-text-secondary">Suas metas</h2>
           <GoalDialog mode="create" investmentTypes={investmentTypeOptions} />
         </div>
 
@@ -85,19 +83,21 @@ export default async function MetasPage() {
                       <Progress
                         value={goal.currentBalance}
                         max={goal.targetAmount}
-                        indicatorClassName={isComplete ? 'bg-green-600' : undefined}
+                        indicatorClassName={isComplete ? 'bg-positive' : undefined}
                       />
-                      <div className="flex items-center justify-between text-xs text-text-secondary">
-                        <span>
+                      <div className="flex items-center justify-between text-caption text-text-secondary">
+                        <span className="tabular-nums">
                           {formatCurrency(goal.currentBalance)} de{' '}
                           {formatCurrency(goal.targetAmount)}
                         </span>
-                        <span className="font-medium">{goal.progress.toFixed(1)}%</span>
+                        <span className="font-medium tabular-nums">
+                          {goal.progress.toFixed(1)}%
+                        </span>
                       </div>
                     </div>
 
                     {/* Datas */}
-                    <div className="mt-2 flex flex-wrap gap-4 text-xs text-text-secondary">
+                    <div className="mt-2 flex flex-wrap gap-4 text-caption text-text-secondary">
                       {goal.targetDate && (
                         <span>Prazo: {formatMonthName(goal.targetDate.slice(0, 7))}</span>
                       )}
@@ -113,16 +113,16 @@ export default async function MetasPage() {
                       <Separator />
                       <div className="space-y-3 px-4 py-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+                          <span className="text-caption font-medium text-text-secondary">
                             Aportes
                           </span>
                           <ContributionDialog goalId={goal.id} />
                         </div>
 
                         {goal.contributions.length > 0 && (
-                          <table className="w-full text-sm">
+                          <table className="w-full text-small">
                             <thead>
-                              <tr className="text-xs text-text-secondary">
+                              <tr className="text-caption text-text-secondary">
                                 <th className="pb-1.5 text-left font-medium">Mês</th>
                                 <th className="pb-1.5 text-right font-medium">Valor</th>
                                 <th className="pb-1.5" />

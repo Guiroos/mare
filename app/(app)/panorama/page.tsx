@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { getAnnualOverview, getAnnualExpensesByGroup } from '@/lib/queries/panorama'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
+import { cn } from '@/lib/utils/cn'
 import { Card } from '@/components/ui/card'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 import { PageLayout } from '@/components/ui/page-layout'
@@ -40,9 +41,9 @@ export default async function PanoramaPage() {
         </div>
         {/* Desktop table */}
         <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-sm">
+          <table className="w-full text-small">
             <thead>
-              <tr className="bg-bg-subtle/50 border-b">
+              <tr className="border-b bg-bg-muted">
                 <th className="px-4 py-3 text-left font-medium text-text-secondary">Mês</th>
                 <th className="px-4 py-3 text-right font-medium text-text-secondary">Entradas</th>
                 <th className="px-4 py-3 text-right font-medium text-text-secondary">Gastos</th>
@@ -56,21 +57,22 @@ export default async function PanoramaPage() {
               {overview.map((row) => {
                 const monthLabel = formatMonthAbbr(row.month).toUpperCase()
                 return (
-                  <tr key={row.month} className="hover:bg-bg-subtle/30 border-b last:border-0">
+                  <tr key={row.month} className="border-b last:border-0 hover:bg-bg-muted">
                     <td className="px-4 py-3 font-medium">{monthLabel}</td>
-                    <td className="px-4 py-3 text-right text-green-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-positive-text">
                       {formatCurrency(row.totalIncomes)}
                     </td>
-                    <td className="px-4 py-3 text-right text-red-500">
+                    <td className="px-4 py-3 text-right tabular-nums text-negative-text">
                       {formatCurrency(row.totalExpenses)}
                     </td>
-                    <td className="px-4 py-3 text-right text-blue-600">
+                    <td className="px-4 py-3 text-right tabular-nums text-accent-text">
                       {formatCurrency(row.totalInvested)}
                     </td>
                     <td
-                      className={`px-4 py-3 text-right font-medium ${
-                        row.balance >= 0 ? 'text-green-600' : 'text-red-500'
-                      }`}
+                      className={cn(
+                        'px-4 py-3 text-right font-medium tabular-nums',
+                        row.balance >= 0 ? 'text-positive-text' : 'text-negative-text'
+                      )}
                     >
                       {formatCurrency(row.balance)}
                     </td>
@@ -79,21 +81,22 @@ export default async function PanoramaPage() {
               })}
             </tbody>
             <tfoot>
-              <tr className="bg-bg-subtle/50 border-t font-semibold">
+              <tr className="border-t bg-bg-muted font-semibold">
                 <td className="px-4 py-3">Total</td>
-                <td className="px-4 py-3 text-right text-green-600">
+                <td className="px-4 py-3 text-right tabular-nums text-positive-text">
                   {formatCurrency(totalIncomes)}
                 </td>
-                <td className="px-4 py-3 text-right text-red-500">
+                <td className="px-4 py-3 text-right tabular-nums text-negative-text">
                   {formatCurrency(totalExpenses)}
                 </td>
-                <td className="px-4 py-3 text-right text-blue-600">
+                <td className="px-4 py-3 text-right tabular-nums text-accent-text">
                   {formatCurrency(totalInvested)}
                 </td>
                 <td
-                  className={`px-4 py-3 text-right ${
-                    finalBalance >= 0 ? 'text-green-600' : 'text-red-500'
-                  }`}
+                  className={cn(
+                    'px-4 py-3 text-right tabular-nums',
+                    finalBalance >= 0 ? 'text-positive-text' : 'text-negative-text'
+                  )}
                 >
                   {formatCurrency(finalBalance)}
                 </td>
@@ -109,31 +112,32 @@ export default async function PanoramaPage() {
             return (
               <div key={row.month} className="px-4 py-3">
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-semibold">{monthLabel}</span>
+                  <span className="text-small font-semibold">{monthLabel}</span>
                   <span
-                    className={`text-sm font-medium ${
-                      row.balance >= 0 ? 'text-green-600' : 'text-red-500'
-                    }`}
+                    className={cn(
+                      'text-small font-medium tabular-nums',
+                      row.balance >= 0 ? 'text-positive-text' : 'text-negative-text'
+                    )}
                   >
                     {formatCurrency(row.balance)}
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-1 text-xs text-text-secondary">
+                <div className="grid grid-cols-3 gap-1 text-caption text-text-secondary">
                   <div>
                     <span className="block">Entradas</span>
-                    <span className="font-medium text-green-600">
+                    <span className="font-medium tabular-nums text-positive-text">
                       {formatCurrency(row.totalIncomes)}
                     </span>
                   </div>
                   <div>
                     <span className="block">Gastos</span>
-                    <span className="font-medium text-red-500">
+                    <span className="font-medium tabular-nums text-negative-text">
                       {formatCurrency(row.totalExpenses)}
                     </span>
                   </div>
                   <div>
                     <span className="block">Investido</span>
-                    <span className="font-medium text-blue-600">
+                    <span className="font-medium tabular-nums text-accent-text">
                       {formatCurrency(row.totalInvested)}
                     </span>
                   </div>
@@ -142,29 +146,36 @@ export default async function PanoramaPage() {
             )
           })}
           {/* Summary row on mobile */}
-          <div className="bg-bg-subtle/50 px-4 py-3">
+          <div className="bg-bg-muted px-4 py-3">
             <div className="mb-1 flex items-center justify-between">
-              <span className="text-sm font-bold">Total</span>
+              <span className="text-small font-bold">Total</span>
               <span
-                className={`text-sm font-bold ${
-                  finalBalance >= 0 ? 'text-green-600' : 'text-red-500'
-                }`}
+                className={cn(
+                  'text-small font-bold tabular-nums',
+                  finalBalance >= 0 ? 'text-positive-text' : 'text-negative-text'
+                )}
               >
                 {formatCurrency(finalBalance)}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1 text-xs text-text-secondary">
+            <div className="grid grid-cols-3 gap-1 text-caption text-text-secondary">
               <div>
                 <span className="block">Entradas</span>
-                <span className="font-semibold text-green-600">{formatCurrency(totalIncomes)}</span>
+                <span className="font-semibold tabular-nums text-positive-text">
+                  {formatCurrency(totalIncomes)}
+                </span>
               </div>
               <div>
                 <span className="block">Gastos</span>
-                <span className="font-semibold text-red-500">{formatCurrency(totalExpenses)}</span>
+                <span className="font-semibold tabular-nums text-negative-text">
+                  {formatCurrency(totalExpenses)}
+                </span>
               </div>
               <div>
                 <span className="block">Investido</span>
-                <span className="font-semibold text-blue-600">{formatCurrency(totalInvested)}</span>
+                <span className="font-semibold tabular-nums text-accent-text">
+                  {formatCurrency(totalInvested)}
+                </span>
               </div>
             </div>
           </div>
