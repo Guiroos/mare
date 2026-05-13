@@ -132,7 +132,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
               <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
             </Field>
 
-            <p className="text-xs text-text-secondary">
+            <p className="text-caption text-text-secondary">
               O destino do resgate não pode ser alterado.
             </p>
 

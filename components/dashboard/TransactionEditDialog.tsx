@@ -173,7 +173,7 @@ function FormLoader({
 
   if (!formData) {
     return (
-      <div className="flex items-center justify-center py-10 text-sm text-text-secondary">
+      <div className="flex items-center justify-center py-10 text-small text-text-secondary">
         Carregando...
       </div>
     )

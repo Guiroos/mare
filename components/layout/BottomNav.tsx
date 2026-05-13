@@ -185,7 +185,7 @@ export function BottomNav() {
                   setMenuOpen(false)
                 }}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg border px-4 py-3 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg border px-4 py-3 text-small font-medium transition-colors',
                   isActive(href)
                     ? 'border-accent/30 bg-accent-subtle text-accent-text'
                     : 'border-border text-text-primary hover:bg-bg-subtle'

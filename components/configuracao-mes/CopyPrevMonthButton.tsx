@@ -38,7 +38,7 @@ export function CopyPrevMonthButton({ referenceMonth, prevReferenceMonth }: Prop
         <Copy className="h-3.5 w-3.5" />
         {isPending ? 'Copiando...' : 'Copiar do mês anterior'}
       </Button>
-      {message && <span className="text-xs text-text-secondary">{message}</span>}
+      {message && <span className="text-caption text-text-secondary">{message}</span>}
     </div>
   )
 }
