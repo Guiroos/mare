@@ -174,18 +174,3 @@ Re-exports são proibidos: se um componente precisa ser compartilhado, mova para
 
 - Formulários complexos: extrair sub-componentes de apresentação em `components/forms/<form>/` com `types.ts` para tipos compartilhados; consumidores importam os tipos direto de `types.ts`, não re-exportar pelo componente principal
 - `Section` (DS) aceita `action?: ReactNode` — passar `<Badge variant="..." size="sm">` ou span de texto para contagens/totais; nunca criar `Section` local com prop `count`; blocos com `rounded-lg border bg-bg-surface shadow-sm` próprio são cards, não seções — manter como `<section>` HTML
-
-### Gotchas de tokens e utilitários
-
-- `twMerge` (em `lib/utils/cn.ts`) está configurado com `extendTailwindMerge` para reconhecer os tokens customizados de tipografia — sobreposições como `text-display` sobre `text-body` funcionam corretamente
-- Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
-- `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
-- `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
-- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput`/`NumericInput` usam `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
-- `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)
-- `[grid-template-columns:...]` é valor arbitrário proibido — usar `flex` com `flex-1`/`flex-shrink-0` para layouts de 3-4 colunas com largura variável
-- `ds-reviewer`: ao implementar múltiplos componentes novos numa sessão, executar **uma vez ao final** com todos os arquivos — não após cada arquivo individualmente
-- Hero com 4 colunas + sidebar visível: usar `grid-cols-1 md:grid-cols-2 xl:grid-cols-4` — `lg:grid-cols-4` a 1024px deixa ~148px por coluna, insuficiente; no `xl:` (1280px) cada coluna tem ~250px; valor principal com `text-hero xl:text-h1 2xl:text-hero`
-- Botões de ação em headers de seção/card: envolver o label em `<span className="hidden sm:inline">` para icon-only abaixo de 640px; posicionar o botão no header com `lg:hidden` (não solto após a lista)
-- Accordion header com badge + valor à direita: nome deve usar `<span className="block truncate">` para não quebrar linha; badge de status vai na linha do subtítulo (substituindo barra de progresso) — não inline com o nome
-- Labels de seção em `flex justify-between`: adicionar `whitespace-nowrap` no label esquerdo; texto secundário verboso (ex: "· ordenados por valor") em `<span className="hidden md:inline">` para sumir em mobile

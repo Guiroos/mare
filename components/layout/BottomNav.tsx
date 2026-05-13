@@ -99,7 +99,7 @@ export function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-bg-surface lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 select-none border-t border-border bg-bg-surface lg:hidden"
         style={{ height: '76px', boxShadow: '0 -4px 20px oklch(16% 0.022 230 / 0.04)' }}
       >
         <div className="flex h-full items-center justify-around px-1">

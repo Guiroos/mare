@@ -94,7 +94,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
     : '?'
 
   return (
-    <aside className="hidden lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:flex lg:min-h-screen lg:w-60 lg:flex-col lg:border-r lg:border-border lg:bg-bg-surface">
+    <aside className="hidden select-none lg:fixed lg:bottom-0 lg:left-0 lg:top-0 lg:flex lg:min-h-screen lg:w-60 lg:flex-col lg:border-r lg:border-border lg:bg-bg-surface">
       {/* Logo */}
       <div className="flex items-center gap-2.5 border-b border-border px-5 py-5">
         <div
