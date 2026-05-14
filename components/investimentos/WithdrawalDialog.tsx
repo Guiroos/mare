@@ -6,13 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import {
   Select,
   SelectContent,
@@ -24,6 +19,7 @@ import { toast } from 'sonner'
 import { createWithdrawal } from '@/lib/actions/investments'
 import { withdrawalSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Props = {
   investmentTypes: { id: string; name: string }[]
@@ -35,6 +31,7 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
   const [destination, setDestination] = useState<'income' | 'transfer'>('income')
   const [typeId, setTypeId] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -76,61 +73,77 @@ export function WithdrawalDialog({ investmentTypes }: Props) {
     })
   }
 
+  const form = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+        <Select value={typeId} onValueChange={setTypeId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione..." />
+          </SelectTrigger>
+          <SelectContent>
+            {investmentTypes.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field label="Valor (R$)" error={errors.amount}>
+        <CurrencyInput name="amount" error={!!errors.amount} required />
+      </Field>
+      <Field label="Data do resgate" error={errors.date}>
+        <Input name="date" type="date" error={!!errors.date} required />
+      </Field>
+      <Field label="Destino">
+        <Select
+          value={destination}
+          onValueChange={(v) => setDestination(v as 'income' | 'transfer')}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
+            <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+      <Field label="Observações" hint="Opcional">
+        <Input name="notes" />
+      </Field>
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? 'Salvando...' : 'Registrar'}
+      </Button>
+    </form>
+  )
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Registrar resgate</span>
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Registrar resgate</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Tipo de investimento" error={errors.investmentTypeId}>
-            <Select value={typeId} onValueChange={setTypeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
-              </SelectTrigger>
-              <SelectContent>
-                {investmentTypes.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Valor (R$)" error={errors.amount}>
-            <CurrencyInput name="amount" error={!!errors.amount} required />
-          </Field>
-          <Field label="Data do resgate" error={errors.date}>
-            <Input name="date" type="date" error={!!errors.date} required />
-          </Field>
-          <Field label="Destino">
-            <Select
-              value={destination}
-              onValueChange={(v) => setDestination(v as 'income' | 'transfer')}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
-                <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Observações" hint="Opcional">
-            <Input name="notes" />
-          </Field>
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Salvando...' : 'Registrar'}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
+        <Plus className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Registrar resgate</span>
+      </Button>
+
+      {isDesktop ? (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registrar resgate</DialogTitle>
+            </DialogHeader>
+            {form}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={open} onOpenChange={handleOpenChange}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Registrar resgate</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-6">{form}</div>
+          </DrawerContent>
+        </Drawer>
+      )}
+    </>
   )
 }

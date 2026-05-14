@@ -87,7 +87,7 @@ NEXTAUTH_URL=http://localhost:3000
 - `incomes` não tem `categoryId` — categorias são exclusivas de despesas (saída); não exibir `CategoryPicker` para outros tipos de transação
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
 - `RadixSelect.Item` não aceita `value=""` (runtime error) — usar string sentinel não-vazia (ex: `"month"`) para opção padrão/limpar e checar por ela no `onValueChange`
-- Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência
+- Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência; ao converter: remover `DialogTrigger` e usar botão standalone com `onClick={() => setOpen(true)}`; extrair JSX do formulário em `const form = (...)` compartilhado entre os dois branches
 - `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog` aceitam `open`/`onOpenChange` opcionais para controle externo — quando fornecidos, não renderizam o botão trigger
 - Subtítulo de linha de lista (categoria + conta): usar `flex min-w-0 items-center gap-1.5 overflow-hidden` na div e `truncate` no último span para evitar quebra em múltiplas linhas
 - Layout padrão de linha de lista: `icon/avatar | body (flex-1 min-w-0) | value (flex-shrink-0) | RowActions` — ações sempre na última coluna

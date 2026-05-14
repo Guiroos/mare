@@ -13,17 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { upsertGoal } from '@/lib/actions/goals'
 import { goalSchema } from '@/lib/validations/goals'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type InvestmentTypeOption = { id: string; name: string }
 
@@ -48,6 +44,7 @@ export function GoalDialog(props: Props) {
     props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -84,82 +81,97 @@ export function GoalDialog(props: Props) {
     })
   }
 
+  const title = props.mode === 'create' ? 'Nova meta financeira' : 'Editar meta'
+
+  const form = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Field label="Nome" required error={errors.name}>
+        <Input
+          name="name"
+          defaultValue={props.mode === 'edit' ? props.goal.name : ''}
+          placeholder="Ex: Reserva de emergência, Viagem, Apartamento..."
+          error={!!errors.name}
+          autoFocus
+        />
+      </Field>
+      <Field label="Valor alvo (R$)" required error={errors.targetAmount}>
+        <CurrencyInput
+          name="targetAmount"
+          defaultValue={props.mode === 'edit' ? props.goal.targetAmount : ''}
+          error={!!errors.targetAmount}
+          required
+        />
+      </Field>
+      <Field label="Prazo" hint="Opcional">
+        <Input
+          name="targetDate"
+          type="date"
+          defaultValue={props.mode === 'edit' && props.goal.targetDate ? props.goal.targetDate : ''}
+        />
+      </Field>
+      {props.investmentTypes.length > 0 && (
+        <Field
+          label="Vínculo com investimento"
+          hint="Opcional. Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos."
+        >
+          <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sem vínculo (aporte manual)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem vínculo (aporte manual)</SelectItem>
+              {props.investmentTypes.map((t) => (
+                <SelectItem key={t.id} value={t.id}>
+                  {t.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </Field>
+      )}
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? 'Salvando...' : 'Salvar'}
+      </Button>
+    </form>
+  )
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        {props.mode === 'create' ? (
-          <Button size="sm" variant="outline" className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Nova meta
-          </Button>
-        ) : (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7 text-text-tertiary hover:text-text-primary"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>
-            {props.mode === 'create' ? 'Nova meta financeira' : 'Editar meta'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field label="Nome" required error={errors.name}>
-            <Input
-              name="name"
-              defaultValue={props.mode === 'edit' ? props.goal.name : ''}
-              placeholder="Ex: Reserva de emergência, Viagem, Apartamento..."
-              error={!!errors.name}
-              autoFocus
-            />
-          </Field>
-          <Field label="Valor alvo (R$)" required error={errors.targetAmount}>
-            <CurrencyInput
-              name="targetAmount"
-              defaultValue={props.mode === 'edit' ? props.goal.targetAmount : ''}
-              error={!!errors.targetAmount}
-              required
-            />
-          </Field>
-          <Field label="Prazo" hint="Opcional">
-            <Input
-              name="targetDate"
-              type="date"
-              defaultValue={
-                props.mode === 'edit' && props.goal.targetDate ? props.goal.targetDate : ''
-              }
-            />
-          </Field>
-          {props.investmentTypes.length > 0 && (
-            <Field
-              label="Vínculo com investimento"
-              hint="Opcional. Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos."
-            >
-              <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sem vínculo (aporte manual)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sem vínculo (aporte manual)</SelectItem>
-                  {props.investmentTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          )}
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <>
+      {props.mode === 'create' ? (
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
+          <Plus className="h-3.5 w-3.5" />
+          Nova meta
+        </Button>
+      ) : (
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-7 w-7 text-text-tertiary hover:text-text-primary"
+          onClick={() => setOpen(true)}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      )}
+
+      {isDesktop ? (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+            </DialogHeader>
+            {form}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={open} onOpenChange={handleOpenChange}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>{title}</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-6">{form}</div>
+          </DrawerContent>
+        </Drawer>
+      )}
+    </>
   )
 }

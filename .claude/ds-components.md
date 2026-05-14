@@ -87,3 +87,5 @@ Radix UI + primitivos.
 - `SelectContent` do DS já encapsula `SelectPrimitive.Portal` internamente — não adicionar `Portal` separado ao usar o DS `Select`; props `sideOffset` e `align` passam via `...props` para `SelectPrimitive.Content`
 - Sub-grid de espaçamento permitido termina em `p-2.5` (10px): `p-3.5` (14px) é inválido — não está no grid de 4px nem na lista de sub-grid `p-0.5`/`p-1.5`/`p-2.5`
 - `Chip` aceita `className` para adaptar shape em toolbars: `rounded-md border text-caption h-8` transforma o pill padrão em chip retangular compacto; use `Chip` quando todos os itens têm a mesma cor active — para cores active variáveis por item, usar raw `<button>`
+- `transition` do Tailwind já inclui `border-color` e `box-shadow` no conjunto padrão — `transition-[border-color,box-shadow]` é valor arbitrário proibido; usar `transition` diretamente
+- `DrawerContent` não tem padding horizontal próprio: ao exibir formulário dentro de `Drawer`, envolver o conteúdo com `<div className="px-4 pb-6">` (horizontal padding + bottom padding)

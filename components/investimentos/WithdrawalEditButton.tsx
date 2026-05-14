@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from 'react'
 import { Pencil } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,7 @@ import { toast } from 'sonner'
 import { updateWithdrawal } from '@/lib/actions/investments'
 import { withdrawalEditSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Withdrawal = {
   id: string
@@ -37,6 +39,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const [isPending, startTransition] = useTransition()
   const [typeId, setTypeId] = useState(withdrawal.investmentTypeId)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -76,6 +79,56 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
     })
   }
 
+  const form = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+        <Select value={typeId} onValueChange={setTypeId}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione..." />
+          </SelectTrigger>
+          <SelectContent>
+            {investmentTypes.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </Field>
+
+      <Field label="Valor (R$)" error={errors.amount}>
+        <CurrencyInput
+          name="amount"
+          defaultValue={withdrawal.amount}
+          error={!!errors.amount}
+          required
+        />
+      </Field>
+
+      <Field label="Data do resgate" error={errors.date}>
+        <Input
+          name="date"
+          type="date"
+          defaultValue={withdrawal.date}
+          error={!!errors.date}
+          required
+        />
+      </Field>
+
+      <Field label="Observações">
+        <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
+      </Field>
+
+      <p className="text-caption text-text-secondary">
+        O destino do resgate não pode ser alterado.
+      </p>
+
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? 'Salvando...' : 'Salvar alterações'}
+      </Button>
+    </form>
+  )
+
   return (
     <>
       <Button
@@ -88,60 +141,25 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         <Pencil className="h-3.5 w-3.5" />
       </Button>
 
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Editar resgate</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <Field label="Tipo de investimento" error={errors.investmentTypeId}>
-              <Select value={typeId} onValueChange={setTypeId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {investmentTypes.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <Field label="Valor (R$)" error={errors.amount}>
-              <CurrencyInput
-                name="amount"
-                defaultValue={withdrawal.amount}
-                error={!!errors.amount}
-                required
-              />
-            </Field>
-
-            <Field label="Data do resgate" error={errors.date}>
-              <Input
-                name="date"
-                type="date"
-                defaultValue={withdrawal.date}
-                error={!!errors.date}
-                required
-              />
-            </Field>
-
-            <Field label="Observações">
-              <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
-            </Field>
-
-            <p className="text-caption text-text-secondary">
-              O destino do resgate não pode ser alterado.
-            </p>
-
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? 'Salvando...' : 'Salvar alterações'}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {isDesktop ? (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Editar resgate</DialogTitle>
+            </DialogHeader>
+            {form}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={open} onOpenChange={handleOpenChange}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Editar resgate</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-6">{form}</div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </>
   )
 }

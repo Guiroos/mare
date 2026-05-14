@@ -5,17 +5,13 @@ import { Pencil, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Field } from '@/components/ui/field'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { upsertBudgetOverride, deleteBudgetOverride } from '@/lib/actions/categories'
 import { budgetOverrideSchema } from '@/lib/validations/categories'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Props = {
   categoryId: string
@@ -35,6 +31,7 @@ export function BudgetOverrideDialog({
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const defaultBudgetLabel = defaultBudget
     ? Number(defaultBudget).toLocaleString('pt-BR', {
@@ -85,55 +82,74 @@ export function BudgetOverrideDialog({
     })
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-text-tertiary hover:text-text-primary"
-        >
-          <Pencil className="h-3 w-3" />
+  const title = `Orçamento de ${categoryName}`
+
+  const form = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <Field
+        label="Orçamento deste mês"
+        hint={defaultBudgetLabel ? `Padrão: ${defaultBudgetLabel}` : undefined}
+        required
+        error={errors.amount}
+      >
+        <CurrencyInput
+          name="amount"
+          defaultValue={override?.amount ?? defaultBudget ?? ''}
+          error={!!errors.amount}
+          autoFocus
+          preserveExplicitZero
+        />
+      </Field>
+      <div className="flex gap-2">
+        <Button type="submit" className="flex-1" disabled={isPending}>
+          {isPending ? 'Salvando...' : 'Definir'}
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Orçamento de {categoryName}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <Field
-            label="Orçamento deste mês"
-            hint={defaultBudgetLabel ? `Padrão: ${defaultBudgetLabel}` : undefined}
-            required
-            error={errors.amount}
+        {override && (
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-1.5"
+            disabled={isPending}
+            onClick={handleReset}
           >
-            <CurrencyInput
-              name="amount"
-              defaultValue={override?.amount ?? defaultBudget ?? ''}
-              error={!!errors.amount}
-              autoFocus
-              preserveExplicitZero
-            />
-          </Field>
-          <div className="flex gap-2">
-            <Button type="submit" className="flex-1" disabled={isPending}>
-              {isPending ? 'Salvando...' : 'Definir'}
-            </Button>
-            {override && (
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-1.5"
-                disabled={isPending}
-                onClick={handleReset}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Usar padrão
-              </Button>
-            )}
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+            <RotateCcw className="h-3.5 w-3.5" />
+            Usar padrão
+          </Button>
+        )}
+      </div>
+    </form>
+  )
+
+  return (
+    <>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-6 w-6 text-text-tertiary hover:text-text-primary"
+        onClick={() => setOpen(true)}
+      >
+        <Pencil className="h-3 w-3" />
+      </Button>
+
+      {isDesktop ? (
+        <Dialog open={open} onOpenChange={handleOpenChange}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{title}</DialogTitle>
+            </DialogHeader>
+            {form}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={open} onOpenChange={handleOpenChange}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>{title}</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-6">{form}</div>
+          </DrawerContent>
+        </Drawer>
+      )}
+    </>
   )
 }
