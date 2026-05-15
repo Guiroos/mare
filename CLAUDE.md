@@ -38,7 +38,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 - `app/(auth)/login` — unauthenticated entry point (Google OAuth via NextAuth)
 - `app/(app)/` — authenticated shell; `layout.tsx` enforces session and renders `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
-- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`
+- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`
 
 ### Data layer
 
@@ -65,13 +65,19 @@ NEXTAUTH_URL=http://localhost:3000
 - `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a cycle select (`?cycleAccount=<uuid>`) that filters transactions and fixed expenses by that account's billing cycle — `closingDay` is derived from the account via `getCreditAccounts()`
 - Payment accounts are managed under `/contas` (dedicated route); `/categorias` covers only category groups and categories
 - Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`; `app/(app)/layout.tsx` computa `isAdmin` e passa ao `<Sidebar>` para exibir o link condicionalmente
+- Feature **devedores** usa duas tabelas: `people` (cadastro) + `debtorEntries` (lançamentos); `debtorEntries.type`: `charge` (débito, soma ao saldo) | `payment` (pagamento, subtrai) | `adjustment` (ajuste, também soma — nunca negativo por tipo); `balance > 0` = pessoa deve a você; `balance < 0` = você deve à pessoa (crédito)
+- `debtorEntries.status`: `null` ou `'open'` = cobrança aberta; `'settled'` = quitada; `null`/`'open'` são equivalentes para toda lógica de UI e queries — charges pré-migration ficaram com `null`; `settledByPaymentId` aponta para o `debtor_entry` de `type='payment'` que quitou a charge
+- `settleCharge` (Fluxo A) cria um payment com o valor exato da charge e marca `status='settled'` atomicamente via `db.transaction` — não permite quitação parcial; `createDebtPayment` aceita `settleChargeIds?: string[]` (Fluxo B) para vincular cobranças abertas no mesmo ato de registrar um pagamento manual
+- Ao deletar um payment com charges vinculadas: `deleteDebtEntry` faz `UPDATE status='open', settledByPaymentId=null` **antes** de deletar o payment — a FK `ON DELETE SET NULL` limpa `settledByPaymentId` automaticamente mas **não** reseta `status`, por isso o UPDATE explícito é obrigatório
+- `createDebtPayment` com `createIncome: true` cria um registro em `incomes` além do `debtorEntry` — mutation cross-domain que revalida `/dashboard` e `/panorama`; ao deletar o entry correspondente, passar `alsoDeleteIncome: true` para limpar o income vinculado
+- `deletePersonIfEmpty` deleta pessoa somente se não houver `debtorEntries`; se houver histórico, usar `archivePerson` (seta `archived: true`) — regra de negócio explícita não refletida no schema
 
 ### Gotchas
 
 - Dates are parsed with `T12:00:00` suffix (e.g. `new Date(dateStr + 'T12:00:00')`) to avoid UTC offset shifting the day when converting to `referenceMonth`
 - `session.user.id` é tipado diretamente — `types/next-auth.d.ts` faz module augmentation do NextAuth; **nunca** usar `(session.user as { id: string }).id`
 - Em actions, usar `const userId = await requireUserId()` de `@/lib/auth/require-user` — **não** criar `requireUserId` local em novos arquivos de action
-- Ownership de IDs relacionados: importar `assertOwns*` de `@/lib/auth/ownership` antes de qualquer insert/update que referencie `categoryId`, `accountId`, `groupId`, `investmentTypeId` ou `goalId` vindo do cliente; quando a action já faz um SELECT antes de mutar, paralelizar os checks no mesmo `Promise.all`
+- Ownership de IDs relacionados: importar `assertOwns*` de `@/lib/auth/ownership` antes de qualquer insert/update que referencie `categoryId`, `accountId`, `groupId`, `investmentTypeId`, `goalId`, `personId` ou `debtEntryId` vindo do cliente; quando a action já faz um SELECT antes de mutar, paralelizar os checks no mesmo `Promise.all`
 - Ordem obrigatória em toda action com mutação: `requireUserId()` → `schema.parse(data)` → `assertOwns*` → query
 - Schemas de amount em `lib/validations/utils.ts`: `positiveAmountSchema` (> 0) para transações/entradas/resgates/contribuições; `nonNegativeAmountSchema` (>= 0, obrigatório) para overrides de orçamento; `nullishNonNegativeAmountSchema` (>= 0, nullish) para aportes/rendimentos de investimento que aceitam zero
 - Schemas de action vs formulário: quando o tipo do input da action tem campos `number` (ex: `dueDay`, `totalInstallments`) usar o schema `xxxActionSchema` definido no mesmo arquivo de validação — schemas sem sufixo são os de formulário com strings de FormData
@@ -79,11 +85,23 @@ NEXTAUTH_URL=http://localhost:3000
 - Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
 - Após `db:generate`, rodar `npx prettier --write lib/db/migrations/meta/` antes de commitar — o pre-push hook rejeita a formatação gerada pelo Drizzle Kit
 - Ao adicionar `uniqueIndex` em tabela existente: inserir `DELETE ... WHERE id NOT IN (SELECT DISTINCT ON (col1, col2) id FROM "tabela" ORDER BY col1, col2, id)` **antes** do `CREATE UNIQUE INDEX` na migration — evita falha se houver duplicatas (é no-op se não houver)
+- Ao adicionar coluna de status/discriminador em tabela existente: `db:generate` não cria backfill — adicionar manualmente `UPDATE "tabela" SET "col" = 'valor' WHERE "condição"` após o último `statement-breakpoint` na migration gerada
+- FK self-referente no Drizzle: importar `AnyPgColumn` de `drizzle-orm/pg-core` **sem** o modifier `type` (ESLint reporta false "unused" com `import { type AnyPgColumn }`) e usar função lazy: `settledByPaymentId: uuid('...').references((): AnyPgColumn => table.id, { onDelete: 'set null' })`
+- `inArray(col, ids)` no Drizzle gera SQL inválido (`IN ()`) se `ids` for array vazio — sempre guardar com `if (ids.length > 0)` antes de chamar `inArray`
+- `import { type X }` causa falso positivo "defined but never used" no ESLint (max-warnings 0) mesmo quando `X` é usada em anotação de tipo — importar sem o modifier `type`
+- Mutações que escrevem em múltiplas tabelas ou linhas relacionadas devem usar `db.transaction(async (tx) => { ... })` — substituir `db` por `tx` dentro do callback; garante rollback atômico se qualquer step falhar
+- Queries `findFirst` dentro de `db.transaction` retornam `null` silenciosamente — sempre verificar null e lançar erro explícito; nunca usar `?.` quando o dado é obrigatório para o passo seguinte (ex: person?.name produz string vazia e o insert prossegue corrompido)
+- Condições `OR … IS NULL` no Drizzle: usar `or(eq(col, val), isNull(col))` de `drizzle-orm` em vez de `sql` template literal — helpers tipados, sem risco de interpolação errada
+- Dialogs de mutação: fechar somente no caminho feliz (`try`), nunca no `catch` — `onOpenChange(false)` no catch faz o usuário perder contexto e ter que reabrir o dialog para tentar novamente
+- Em dialogs com estado acumulado (selectedIds, amounts), o botão "Cancelar" deve chamar `handleOpenChange(false)`, não `setOpen(false)` direto — `handleOpenChange` é responsável pelo cleanup de estado; chamar `setOpen` diretamente pula o reset
 - A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
 - O botão `+` do bottom nav (`aria-label="Novo lançamento"`) trava com `browser_click`; usar `browser_evaluate` com `querySelector`+`click()` para abrir o drawer de registro
 - Segmented controls onde cada opção tem cor active diferente por tipo semântico (ex: negative/positive/accent): usar raw `<button>` em vez de `Chip`/`Segment` — os primitivos do DS não suportam active color variável por item
 - `Segment` com muitas tabs em mobile: envolver com `<div className="overflow-x-auto">`, passar `className="flex w-full min-w-max"` ao Segment e chamar `e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })` no `onClick` de cada botão
 - Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
+- Playwright — múltiplos `button[aria-label="Ações"]` numa lista causam strict mode violation; usar `button[aria-label="Ações"] >> nth=0` ou `.nth(0)` para selecionar o kebab de uma linha específica
+- Playwright — `browser_evaluate` com `element.click()` **não** abre Radix dropdowns (Radix intercepta eventos sintéticos); usar `browser_click` com seletor específico
+- Playwright — múltiplos elementos com o mesmo texto visível em formulários (ex: "Registrar" aparece no dialog e nos botões do fundo): usar `button[type="submit"]` para atingir o botão de submit sem strict mode violation
 - `incomes` não tem `categoryId` — categorias são exclusivas de despesas (saída); não exibir `CategoryPicker` para outros tipos de transação
 - Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
 - `RadixSelect.Item` não aceita `value=""` (runtime error) — usar string sentinel não-vazia (ex: `"month"`) para opção padrão/limpar e checar por ela no `onValueChange`
@@ -96,8 +114,11 @@ NEXTAUTH_URL=http://localhost:3000
 - `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, passar `preserveExplicitZero` ao componente — campos de orçamento e aportes que aceitam zero devem sempre incluir essa prop
 - `app/(app)/layout.tsx` aplica `px-4 py-6 lg:px-8 lg:py-7` + `pb-20 lg:pb-0` — páginas **não** devem adicionar wrapper próprio com padding; usar `PageLayout` diretamente
 - Header de página com botões de ação: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + div de ações, como primeiro filho de `<PageLayout>`
-- `RowActions` aceita `onDelete` opcional — quando não fornecido, "Excluir" não aparece no dropdown (útil para linhas que só permitem edição); aceita também `triggerClassName` para sobrescrever o hover do botão kebab quando está sobre fundo colorido (ex: `hover:bg-warning-subtle` em linhas pendentes)
+- `RowActions` aceita `onEdit` e `onDelete` opcionais — quando omitidos, "Editar" e "Excluir" não aparecem no dropdown respectivamente; aceita também `triggerClassName` para sobrescrever o hover do botão kebab quando está sobre fundo colorido (ex: `hover:bg-warning-subtle` em linhas pendentes); aceita `additionalActions?: Array<{ label: string; icon?: LucideIcon; onClick: () => void; variant?: 'default' | 'destructive' }>` para ações extras renderizadas antes do separador de Editar/Excluir — o componente controla a renderização para manter coerência visual; quando o dialog de confirmação precisa de UI customizada (ex: toggle "excluir income vinculado"), usar `additionalActions` com `variant: 'destructive'` em vez de `onDelete` — o `onClick` abre o dialog externo e o `RowActions` não renderiza confirmação built-in
+- `RowActions` requer `group` na div da row pai — sem ele o botão kebab fica `opacity-0` no desktop e nunca aparece (`lg:group-hover:opacity-100` depende do ancestral com `group`)
 - Para abrir dialog via `RowActions`: adicionar `open`/`onOpenChange` ao dialog e controlar com `useState` no pai; server components com inline `'use server'` que precisam de state devem ser convertidos para `'use client'` (importar server actions de `lib/actions/` normalmente)
+- `drizzle-orm/neon-http` não suporta `db.transaction()` — trocar para `drizzle-orm/neon-serverless` com `Pool` de `@neondatabase/serverless` (já instalado); Node.js 18+ tem WebSocket nativo, sem precisar configurar `neonConfig`; verificar que nenhuma rota usa `export const runtime = 'edge'` antes de trocar
+- `nextjs-toploader` instalado no root layout (`app/layout.tsx`) para feedback imediato de navegação; links dentro de `Dialog`/`Drawer` de menu não são prefetchados pelo Next.js porque ficam fora do viewport — navegações via menu sempre buscam RSC fresh e mostram `loading.tsx` após o threshold do `startTransition`
 
 ### UI
 

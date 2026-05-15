@@ -59,7 +59,7 @@ Radix UI + primitivos.
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
 | `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página                                    |
 | `delete-button.tsx`  | `DeleteButton`                  | Confirmação inline responsiva. **Nunca** criar botão de delete ad-hoc            |
-| `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮) com Editar + Excluir. Última coluna de listas, após o valor; `triggerClassName` para override do hover do kebab em fundo colorido |
+| `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮). Props: `onEdit?` `onDelete?` (omitir remove o item do menu); `additionalActions?: Array<{label, icon?, onClick, variant?}>` renderizadas antes do separador Editar/Excluir; `triggerClassName` para override do hover em fundo colorido; requer `group` na div pai |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
 | `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
@@ -89,3 +89,8 @@ Radix UI + primitivos.
 - `Chip` aceita `className` para adaptar shape em toolbars: `rounded-md border text-caption h-8` transforma o pill padrão em chip retangular compacto; use `Chip` quando todos os itens têm a mesma cor active — para cores active variáveis por item, usar raw `<button>`
 - `transition` do Tailwind já inclui `border-color` e `box-shadow` no conjunto padrão — `transition-[border-color,box-shadow]` é valor arbitrário proibido; usar `transition` diretamente
 - `DrawerContent` não tem padding horizontal próprio: ao exibir formulário dentro de `Drawer`, envolver o conteúdo com `<div className="px-4 pb-6">` (horizontal padding + bottom padding)
+- Itens destrutivos em `DropdownMenu`: usar `text-negative` (vermelho vibrante, herda para ícones via `currentColor`) — não `text-negative-text`, que é para texto sobre fundo vermelho
+- Gráficos Recharts com estado vazio: usar `h-56` (224px) no container do estado vazio e `height={224}` no `ResponsiveContainer` para alinhar sem valor arbitrário; `borderRadius` em `contentStyle` do `Tooltip` deve seguir tokens: `'10px'` = `rounded-md`, `'16px'` = `rounded-lg`
+- Listas de multi-select com checkboxes: usar `<input type="checkbox" className="accent-accent">` dentro de `<Label>` do DS (nunca `<label>` HTML — viola Regra 4 mesmo sem ser um campo `<Field>`); o DS não tem primitivo `Checkbox`; `<Switch>` não substitui checkbox em multi-select (Switch é toggle binário único)
+- Qualquer `tracking-*` acumulado sobre token tipográfico é proibido — a regra de `tracking-wide` aplica-se igualmente a `tracking-widest`, `tracking-wider` etc.; todos sobrescrevem o letter-spacing configurado no token; se o visual "caixa alta espaçada" for recorrente, criar token específico
+- Alturas de elementos fixos (navbars, headers com `position: fixed/sticky`) devem usar classe Tailwind no grid de 4px, não `style={{ height: 'Xpx' }}` — a Regra 3 (zero valores arbitrários) aplica-se também a `style={}`, não só a `className`
