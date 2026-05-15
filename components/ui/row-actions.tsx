@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { MoreVertical } from 'lucide-react'
+import { LucideIcon, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from './button'
 import { cn } from '@/lib/utils/cn'
@@ -17,12 +17,20 @@ import {
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from './drawer'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
+interface AdditionalAction {
+  label: string
+  icon?: LucideIcon
+  onClick: () => void
+  variant?: 'default' | 'destructive'
+}
+
 interface RowActionsProps {
-  onEdit: () => void
+  onEdit?: () => void
   onDelete?: () => Promise<void>
   deleteTitle?: string
   deleteDescription?: string
   triggerClassName?: string
+  additionalActions?: AdditionalAction[]
 }
 
 export function RowActions({
@@ -31,6 +39,7 @@ export function RowActions({
   deleteTitle = 'Excluir item',
   deleteDescription = 'Essa ação não pode ser desfeita.',
   triggerClassName,
+  additionalActions,
 }: RowActionsProps) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -82,17 +91,44 @@ export function RowActions({
             sideOffset={4}
             className="z-50 min-w-28 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
           >
-            <DropdownMenu.Item
-              className="flex cursor-pointer items-center px-3 py-2 text-small text-text-primary outline-none transition-colors duration-fast hover:bg-bg-subtle focus:bg-bg-subtle"
-              onSelect={onEdit}
-            >
-              Editar
-            </DropdownMenu.Item>
+            {additionalActions && additionalActions.length > 0 && (
+              <>
+                {additionalActions.map((action) => {
+                  const Icon = action.icon
+                  return (
+                    <DropdownMenu.Item
+                      key={action.label}
+                      className={cn(
+                        'flex cursor-pointer items-center gap-2 px-3 py-2 text-small outline-none transition-colors duration-fast',
+                        action.variant === 'destructive'
+                          ? 'text-negative hover:bg-negative-subtle focus:bg-negative-subtle'
+                          : 'text-text-primary hover:bg-bg-subtle focus:bg-bg-subtle'
+                      )}
+                      onSelect={action.onClick}
+                    >
+                      {Icon && <Icon className="h-3.5 w-3.5" />}
+                      {action.label}
+                    </DropdownMenu.Item>
+                  )
+                })}
+                {(onEdit || onDelete) && <DropdownMenu.Separator className="my-1 h-px bg-border" />}
+              </>
+            )}
+            {onEdit && (
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors duration-fast hover:bg-bg-subtle focus:bg-bg-subtle"
+                onSelect={onEdit}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </DropdownMenu.Item>
+            )}
             {onDelete && (
               <DropdownMenu.Item
-                className="flex cursor-pointer items-center px-3 py-2 text-small text-negative-text outline-none transition-colors duration-fast hover:bg-negative-subtle focus:bg-negative-subtle"
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-negative outline-none transition-colors duration-fast hover:bg-negative-subtle focus:bg-negative-subtle"
                 onSelect={() => setConfirmOpen(true)}
               >
+                <Trash2 className="h-3.5 w-3.5" />
                 Excluir
               </DropdownMenu.Item>
             )}
