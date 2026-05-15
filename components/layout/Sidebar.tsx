@@ -16,6 +16,7 @@ import {
   MessageSquare,
   CreditCard,
   ShieldCheck,
+  HandCoins,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
@@ -29,6 +30,7 @@ const mainNav = [
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
+  { href: '/devedores', label: 'Devedores', icon: HandCoins },
 ]
 
 const configNav = [
@@ -126,9 +128,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
       </div>
 
       {/* Principal */}
-      <p className="px-5 pb-2 pt-4 text-label uppercase tracking-widest text-text-tertiary">
-        Principal
-      </p>
+      <p className="px-5 pb-2 pt-4 text-label uppercase text-text-tertiary">Principal</p>
       <nav className="flex flex-col gap-0.5 overflow-visible px-2.5">
         {mainNav.map(({ href, label, icon }) => (
           <NavItem
@@ -142,12 +142,10 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mx-3.5 my-2.5 h-px bg-border" />
+      <div className="mx-4 my-2.5 h-px bg-border" />
 
       {/* Configuração */}
-      <p className="px-5 pb-2 text-label uppercase tracking-widest text-text-tertiary">
-        Configuração
-      </p>
+      <p className="px-5 pb-2 text-label uppercase text-text-tertiary">Configuração</p>
       <nav className="flex flex-col gap-0.5 overflow-visible px-2.5">
         {configNav.map(({ href, label, icon }) => (
           <NavItem
@@ -171,7 +169,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
       </nav>
 
       {/* User footer */}
-      <div className="mt-auto border-t border-border p-3.5">
+      <div className="mt-auto border-t border-border p-3">
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-bg-subtle">

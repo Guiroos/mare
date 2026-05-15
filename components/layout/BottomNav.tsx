@@ -15,6 +15,7 @@ import {
   LogOut,
   MessageSquare,
   CreditCard,
+  HandCoins,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -33,6 +34,7 @@ const primaryNav = [
 const menuItems = [
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
+  { href: '/devedores', label: 'Devedores', icon: HandCoins },
   { href: '/categorias', label: 'Categorias e Grupos', icon: Tags },
   { href: '/contas', label: 'Contas e Cartões', icon: CreditCard },
   { href: '/configuracao-mes', label: 'Configuração do Mês', icon: Settings },
@@ -99,8 +101,8 @@ export function BottomNav() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 select-none border-t border-border bg-bg-surface lg:hidden"
-        style={{ height: '76px', boxShadow: '0 -4px 20px oklch(16% 0.022 230 / 0.04)' }}
+        className="fixed bottom-0 left-0 right-0 z-40 h-20 select-none border-t border-border bg-bg-surface lg:hidden"
+        style={{ boxShadow: '0 -4px 20px oklch(16% 0.022 230 / 0.04)' }}
       >
         <div className="flex h-full items-center justify-around px-1">
           {/* Left items */}
