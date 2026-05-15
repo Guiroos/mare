@@ -1,0 +1,343 @@
+import { db } from '@/lib/db'
+import { people, debtorEntries, transactions, categories, paymentAccounts } from '@/lib/db/schema'
+import { eq, and, sql, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
+import { toAmount } from '@/lib/utils/currency'
+
+export type PersonWithBalance = {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  notes: string | null
+  archived: boolean
+  balance: number
+  lastMovement: string | null
+}
+
+export async function getPeopleWithBalances(userId: string): Promise<PersonWithBalance[]> {
+  const rows = await db
+    .select({
+      id: people.id,
+      name: people.name,
+      email: people.email,
+      phone: people.phone,
+      notes: people.notes,
+      archived: people.archived,
+      rawBalance: sql<string>`COALESCE(SUM(CASE
+        WHEN ${debtorEntries.type} = 'charge' THEN ${debtorEntries.amount}
+        WHEN ${debtorEntries.type} = 'payment' THEN -${debtorEntries.amount}
+        WHEN ${debtorEntries.type} = 'adjustment' THEN ${debtorEntries.amount}
+        ELSE 0
+      END), 0)`,
+      lastMovement: sql<string | null>`MAX(${debtorEntries.entryDate})`,
+    })
+    .from(people)
+    .leftJoin(
+      debtorEntries,
+      and(eq(debtorEntries.personId, people.id), eq(debtorEntries.userId, userId))
+    )
+    .where(and(eq(people.userId, userId), eq(people.archived, false)))
+    .groupBy(
+      people.id,
+      people.name,
+      people.email,
+      people.phone,
+      people.notes,
+      people.archived,
+      people.createdAt
+    )
+    .orderBy(asc(people.name))
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    notes: r.notes,
+    archived: r.archived,
+    balance: toAmount(r.rawBalance),
+    lastMovement: r.lastMovement ?? null,
+  }))
+}
+
+export type DebtEntryDetail = {
+  id: string
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number
+  description: string
+  referenceMonth: string
+  entryDate: string
+  notes: string | null
+  incomeId: string | null
+  status: string | null
+  settledByPaymentId: string | null
+  settledCharges: Array<{ id: string; description: string; amount: number }>
+  sourceTransaction: {
+    id: string
+    name: string
+    amount: number
+    date: string
+  } | null
+}
+
+export type BalanceEvolutionPoint = {
+  month: string
+  balance: number
+}
+
+export type PersonDebtDetails = {
+  person: {
+    id: string
+    name: string
+    email: string | null
+    phone: string | null
+    notes: string | null
+    archived: boolean
+  }
+  summary: {
+    balance: number
+    totalCharged: number
+    totalPaid: number
+    lastMovement: string | null
+    chargeCount: number
+    paymentCount: number
+  }
+  balanceEvolution: BalanceEvolutionPoint[]
+  entries: DebtEntryDetail[]
+} | null
+
+export async function getPersonDebtDetails(
+  userId: string,
+  personId: string
+): Promise<PersonDebtDetails> {
+  const [person, rawEntries] = await Promise.all([
+    db.query.people.findFirst({
+      where: and(eq(people.userId, userId), eq(people.id, personId)),
+    }),
+    db
+      .select({
+        id: debtorEntries.id,
+        type: debtorEntries.type,
+        amount: debtorEntries.amount,
+        description: debtorEntries.description,
+        referenceMonth: debtorEntries.referenceMonth,
+        entryDate: debtorEntries.entryDate,
+        notes: debtorEntries.notes,
+        incomeId: debtorEntries.incomeId,
+        status: debtorEntries.status,
+        settledByPaymentId: debtorEntries.settledByPaymentId,
+        sourceTransactionId: debtorEntries.sourceTransactionId,
+        sourceTxName: transactions.name,
+        sourceTxAmount: transactions.amount,
+        sourceTxDate: transactions.date,
+      })
+      .from(debtorEntries)
+      .leftJoin(transactions, eq(debtorEntries.sourceTransactionId, transactions.id))
+      .where(and(eq(debtorEntries.userId, userId), eq(debtorEntries.personId, personId)))
+      .orderBy(asc(debtorEntries.entryDate), asc(debtorEntries.createdAt)),
+  ])
+
+  if (!person) return null
+
+  // Second query: fetch settled charges grouped by the payment that settled them.
+  // Only runs if there are payment entries to look up.
+  const paymentIds = rawEntries.filter((e) => e.type === 'payment').map((e) => e.id)
+
+  const settledChargesMap: Record<
+    string,
+    Array<{ id: string; description: string; amount: number }>
+  > = {}
+
+  if (paymentIds.length > 0) {
+    const settled = await db
+      .select({
+        settledByPaymentId: debtorEntries.settledByPaymentId,
+        id: debtorEntries.id,
+        description: debtorEntries.description,
+        amount: debtorEntries.amount,
+      })
+      .from(debtorEntries)
+      .where(
+        and(inArray(debtorEntries.settledByPaymentId, paymentIds), eq(debtorEntries.userId, userId))
+      )
+
+    for (const row of settled) {
+      const pid = row.settledByPaymentId!
+      if (!settledChargesMap[pid]) settledChargesMap[pid] = []
+      settledChargesMap[pid].push({
+        id: row.id,
+        description: row.description,
+        amount: toAmount(row.amount),
+      })
+    }
+  }
+
+  const entries = rawEntries.map((e) => ({
+    id: e.id,
+    type: e.type as 'charge' | 'payment' | 'adjustment',
+    amount: toAmount(e.amount),
+    description: e.description,
+    referenceMonth: e.referenceMonth,
+    entryDate: e.entryDate,
+    notes: e.notes ?? null,
+    incomeId: e.incomeId,
+    status: e.status,
+    settledByPaymentId: e.settledByPaymentId,
+    settledCharges: settledChargesMap[e.id] ?? [],
+    sourceTransaction: e.sourceTransactionId
+      ? {
+          id: e.sourceTransactionId,
+          name: e.sourceTxName!,
+          amount: toAmount(e.sourceTxAmount),
+          date: e.sourceTxDate!,
+        }
+      : null,
+  }))
+
+  let balance = 0
+  let totalCharged = 0
+  let totalPaid = 0
+  let chargeCount = 0
+  let paymentCount = 0
+  let lastMovement: string | null = null
+
+  for (const e of entries) {
+    if (e.type === 'payment') {
+      balance -= e.amount
+      totalPaid += e.amount
+      paymentCount++
+    } else {
+      balance += e.amount
+      totalCharged += e.amount
+      chargeCount++
+    }
+    if (!lastMovement || e.entryDate > lastMovement) lastMovement = e.entryDate
+  }
+
+  // balanceEvolution: one point per month (last balance of each month), entries already asc
+  const balanceEvolution: BalanceEvolutionPoint[] = []
+  let runningBalance = 0
+  let currentMonth = ''
+  for (const e of entries) {
+    if (e.type === 'payment') {
+      runningBalance -= e.amount
+    } else {
+      runningBalance += e.amount
+    }
+    const month = e.entryDate.slice(0, 7)
+    if (month !== currentMonth) {
+      if (currentMonth) balanceEvolution.push({ month: currentMonth, balance: runningBalance })
+      currentMonth = month
+    } else {
+      if (
+        balanceEvolution.length > 0 &&
+        balanceEvolution[balanceEvolution.length - 1].month === month
+      ) {
+        balanceEvolution[balanceEvolution.length - 1].balance = runningBalance
+      }
+    }
+  }
+  if (currentMonth) {
+    const last = balanceEvolution[balanceEvolution.length - 1]
+    if (!last || last.month !== currentMonth) {
+      balanceEvolution.push({ month: currentMonth, balance: runningBalance })
+    } else {
+      last.balance = runningBalance
+    }
+  }
+
+  // entries returned desc for display
+  const entriesDesc = [...entries].reverse()
+
+  return {
+    person: {
+      id: person.id,
+      name: person.name,
+      email: person.email,
+      phone: person.phone,
+      notes: person.notes,
+      archived: person.archived,
+    },
+    summary: { balance, totalCharged, totalPaid, lastMovement, chargeCount, paymentCount },
+    balanceEvolution,
+    entries: entriesDesc,
+  }
+}
+
+export type TransactionForDebtLink = {
+  id: string
+  name: string
+  amount: number
+  date: string
+  categoryName: string
+  accountName: string
+}
+
+export async function getTransactionsForDebtLink(
+  userId: string
+): Promise<TransactionForDebtLink[]> {
+  const cutoff = new Date()
+  cutoff.setMonth(cutoff.getMonth() - 6)
+  const cutoffStr = cutoff.toISOString().slice(0, 10)
+
+  const rows = await db
+    .select({
+      id: transactions.id,
+      name: transactions.name,
+      amount: transactions.amount,
+      date: transactions.date,
+      categoryName: categories.name,
+      accountName: paymentAccounts.name,
+    })
+    .from(transactions)
+    .innerJoin(categories, eq(transactions.categoryId, categories.id))
+    .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
+    .where(and(eq(transactions.userId, userId), gte(transactions.date, cutoffStr)))
+    .orderBy(desc(transactions.date))
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    amount: toAmount(r.amount),
+    date: r.date,
+    categoryName: r.categoryName,
+    accountName: r.accountName,
+  }))
+}
+
+export type OpenChargeForLinking = {
+  id: string
+  description: string
+  amount: number
+  entryDate: string
+}
+
+export async function getOpenChargesForPerson(
+  userId: string,
+  personId: string
+): Promise<OpenChargeForLinking[]> {
+  const rows = await db
+    .select({
+      id: debtorEntries.id,
+      description: debtorEntries.description,
+      amount: debtorEntries.amount,
+      entryDate: debtorEntries.entryDate,
+    })
+    .from(debtorEntries)
+    .where(
+      and(
+        eq(debtorEntries.userId, userId),
+        eq(debtorEntries.personId, personId),
+        eq(debtorEntries.type, 'charge'),
+        or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+      )
+    )
+    .orderBy(asc(debtorEntries.entryDate))
+
+  return rows.map((r) => ({
+    id: r.id,
+    description: r.description,
+    amount: toAmount(r.amount),
+    entryDate: r.entryDate,
+  }))
+}
