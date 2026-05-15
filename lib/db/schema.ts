@@ -10,6 +10,7 @@ import {
   text,
   index,
   uniqueIndex,
+  AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -286,6 +287,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   investmentWithdrawals: many(investmentWithdrawals),
   goals: many(goals),
   goalContributions: many(goalContributions),
+  people: many(people),
+  debtorEntries: many(debtorEntries),
 }))
 
 export const categoryGroupsRelations = relations(categoryGroups, ({ one, many }) => ({
@@ -353,7 +356,7 @@ export const installmentGroupsRelations = relations(installmentGroups, ({ one, m
   transactions: many(transactions),
 }))
 
-export const transactionsRelations = relations(transactions, ({ one }) => ({
+export const transactionsRelations = relations(transactions, ({ one, many }) => ({
   user: one(users, { fields: [transactions.userId], references: [users.id] }),
   account: one(paymentAccounts, {
     fields: [transactions.accountId],
@@ -367,10 +370,12 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
     fields: [transactions.installmentGroupId],
     references: [installmentGroups.id],
   }),
+  debtorEntries: many(debtorEntries),
 }))
 
-export const incomesRelations = relations(incomes, ({ one }) => ({
+export const incomesRelations = relations(incomes, ({ one, many }) => ({
   user: one(users, { fields: [incomes.userId], references: [users.id] }),
+  debtorEntries: many(debtorEntries),
 }))
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
@@ -429,6 +434,60 @@ export const goalContributionsRelations = relations(goalContributions, ({ one })
   }),
 }))
 
+export const people = pgTable('people', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 200 }).notNull(),
+  email: varchar('email', { length: 255 }),
+  phone: varchar('phone', { length: 40 }),
+  notes: text('notes'),
+  archived: boolean('archived').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+})
+
+export const debtorEntries = pgTable(
+  'debtor_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    personId: uuid('person_id')
+      .notNull()
+      .references(() => people.id, { onDelete: 'cascade' }),
+    type: varchar('type', { length: 20 }).notNull(), // charge | payment | adjustment
+    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    description: varchar('description', { length: 200 }).notNull(),
+    referenceMonth: date('reference_month').notNull(),
+    entryDate: date('entry_date').notNull(),
+    dueDate: date('due_date'),
+    sourceTransactionId: uuid('source_transaction_id').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
+    incomeId: uuid('income_id').references(() => incomes.id, {
+      onDelete: 'set null',
+    }),
+    // null for payments/adjustments; 'open' | 'settled' for charges
+    status: varchar('status', { length: 20 }),
+    // self-referential FK: points to the payment entry that settled this charge
+    settledByPaymentId: uuid('settled_by_payment_id').references(
+      (): AnyPgColumn => debtorEntries.id,
+      { onDelete: 'set null' }
+    ),
+    notes: text('notes'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [
+    index('debtor_entries_user_person_idx').on(t.userId, t.personId),
+    index('debtor_entries_user_month_idx').on(t.userId, t.referenceMonth),
+    index('debtor_entries_settled_by_idx').on(t.settledByPaymentId),
+  ]
+)
+
 export const feedback = pgTable('feedback', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id')
@@ -440,3 +499,24 @@ export const feedback = pgTable('feedback', {
   status: varchar('status', { length: 20 }).notNull().default('new'), // new | read | done | dismissed
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
+
+export const peopleRelations = relations(people, ({ one, many }) => ({
+  user: one(users, { fields: [people.userId], references: [users.id] }),
+  debtorEntries: many(debtorEntries),
+}))
+
+export const debtorEntriesRelations = relations(debtorEntries, ({ one, many }) => ({
+  user: one(users, { fields: [debtorEntries.userId], references: [users.id] }),
+  person: one(people, { fields: [debtorEntries.personId], references: [people.id] }),
+  sourceTransaction: one(transactions, {
+    fields: [debtorEntries.sourceTransactionId],
+    references: [transactions.id],
+  }),
+  income: one(incomes, { fields: [debtorEntries.incomeId], references: [incomes.id] }),
+  settledByPayment: one(debtorEntries, {
+    fields: [debtorEntries.settledByPaymentId],
+    references: [debtorEntries.id],
+    relationName: 'charge_settled_by',
+  }),
+  settledCharges: many(debtorEntries, { relationName: 'charge_settled_by' }),
+}))

@@ -57,6 +57,20 @@
       "when": 1778558024307,
       "tag": "0007_remarkable_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1778725179242,
+      "tag": "0008_lying_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1778805199753,
+      "tag": "0009_smooth_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,8 @@ import {
   paymentAccounts,
   investmentTypes,
   goals,
+  people,
+  debtorEntries,
 } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 
@@ -56,6 +58,24 @@ export async function assertOwnsGoal(userId: string, goalId: string): Promise<vo
     .select({ id: goals.id })
     .from(goals)
     .where(and(eq(goals.id, goalId), eq(goals.userId, userId)))
+    .limit(1)
+  if (!row) unauthorized()
+}
+
+export async function assertOwnsPerson(userId: string, personId: string): Promise<void> {
+  const [row] = await db
+    .select({ id: people.id })
+    .from(people)
+    .where(and(eq(people.id, personId), eq(people.userId, userId)))
+    .limit(1)
+  if (!row) unauthorized()
+}
+
+export async function assertOwnsDebtEntry(userId: string, entryId: string): Promise<void> {
+  const [row] = await db
+    .select({ id: debtorEntries.id })
+    .from(debtorEntries)
+    .where(and(eq(debtorEntries.id, entryId), eq(debtorEntries.userId, userId)))
     .limit(1)
   if (!row) unauthorized()
 }
