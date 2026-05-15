@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
+import NextTopLoader from 'nextjs-toploader'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={dmSans.className}>
+        <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
         {children}
         <Toaster richColors position="top-center" />
       </body>
