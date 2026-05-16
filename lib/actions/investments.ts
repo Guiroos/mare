@@ -127,27 +127,29 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
 
   let incomeId: string | null = null
 
-  if (data.destination === 'income') {
-    const [income] = await db
-      .insert(incomes)
-      .values({
-        userId,
-        source: 'Resgate de investimento',
-        amount: data.amount,
-        referenceMonth: dateToReferenceMonth(data.date),
-      })
-      .returning({ id: incomes.id })
-    incomeId = income.id
-  }
+  await db.transaction(async (tx) => {
+    if (data.destination === 'income') {
+      const [income] = await tx
+        .insert(incomes)
+        .values({
+          userId,
+          source: 'Resgate de investimento',
+          amount: data.amount,
+          referenceMonth: dateToReferenceMonth(data.date),
+        })
+        .returning({ id: incomes.id })
+      incomeId = income.id
+    }
 
-  await db.insert(investmentWithdrawals).values({
-    userId,
-    investmentTypeId: data.investmentTypeId,
-    amount: data.amount,
-    date: data.date,
-    destination: data.destination,
-    incomeId,
-    notes: data.notes || null,
+    await tx.insert(investmentWithdrawals).values({
+      userId,
+      investmentTypeId: data.investmentTypeId,
+      amount: data.amount,
+      date: data.date,
+      destination: data.destination,
+      incomeId,
+      notes: data.notes || null,
+    })
   })
 
   revalidatePath('/investimentos')
@@ -178,22 +180,24 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   const withdrawal = withdrawals[0]
   if (!withdrawal) throw new Error('Resgate não encontrado')
 
-  await db
-    .update(investmentWithdrawals)
-    .set({
-      investmentTypeId: data.investmentTypeId,
-      amount: data.amount,
-      date: data.date,
-      notes: data.notes || null,
-    })
-    .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)))
+  await db.transaction(async (tx) => {
+    await tx
+      .update(investmentWithdrawals)
+      .set({
+        investmentTypeId: data.investmentTypeId,
+        amount: data.amount,
+        date: data.date,
+        notes: data.notes || null,
+      })
+      .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)))
 
-  if (withdrawal.incomeId) {
-    await db
-      .update(incomes)
-      .set({ amount: data.amount, referenceMonth: dateToReferenceMonth(data.date) })
-      .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
-  }
+    if (withdrawal.incomeId) {
+      await tx
+        .update(incomes)
+        .set({ amount: data.amount, referenceMonth: dateToReferenceMonth(data.date) })
+        .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
+    }
+  })
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
@@ -209,15 +213,17 @@ export async function deleteWithdrawal(id: string) {
 
   if (!withdrawal) return
 
-  await db
-    .delete(investmentWithdrawals)
-    .where(and(eq(investmentWithdrawals.id, id), eq(investmentWithdrawals.userId, userId)))
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(investmentWithdrawals)
+      .where(and(eq(investmentWithdrawals.id, id), eq(investmentWithdrawals.userId, userId)))
 
-  if (withdrawal.incomeId) {
-    await db
-      .delete(incomes)
-      .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
-  }
+    if (withdrawal.incomeId) {
+      await tx
+        .delete(incomes)
+        .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
+    }
+  })
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')

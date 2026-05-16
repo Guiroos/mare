@@ -8,9 +8,7 @@ inconsistente.
 
 ## Ocorrências conhecidas
 
-| Arquivo | Situação |
-| ------- | -------- |
-| `lib/actions/investments.ts` — `createWithdrawal` | Insere em `incomes` → depois em `investmentWithdrawals`. Se o segundo falhar, income fica órfão. |
+Nenhuma ocorrência pendente.
 
 ## Resolvidas
 
@@ -18,6 +16,9 @@ inconsistente.
 | ------- | ------ | ---- |
 | `lib/actions/debtors.ts` — `createDebtPayment` | Fase 8 devedores | Migrado para `db.transaction()` — income + payment entry + charge updates num único bloco atômico. |
 | `lib/actions/debtors.ts` — `deleteDebtEntry` (payment) | Fase 8 devedores | Migrado para `db.transaction()` — reabertura de charges + delete do payment em ordem garantida. |
+| `lib/actions/investments.ts` — `createWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — income + withdrawal num único bloco atômico. |
+| `lib/actions/investments.ts` — `updateWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — update do withdrawal + update do income vinculado num único bloco atômico. |
+| `lib/actions/investments.ts` — `deleteWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — delete do withdrawal + delete do income vinculado num único bloco atômico. |
 
 ## Por que não resolvemos agora
 
