@@ -2,6 +2,7 @@ import { ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency, formatCurrencyShort } from '@/lib/utils/currency'
+import { currentYearMonth } from '@/lib/utils/date'
 import { OverviewMonth } from '@/lib/queries/panorama'
 
 interface Props {
@@ -58,16 +59,18 @@ export function AnnualSummaryCards({
   totalIncomes,
   totalInvested,
 }: Props) {
-  // Evita contar meses futuros que aparecem no overview por causa de parcelas
-  const active = overview.filter((m) => m.totalIncomes > 0)
+  // Meses já ocorridos: determina por data, não por presença de receita.
+  // Filtrar por totalIncomes > 0 quebra quando não há receitas no ano (só parcelas).
+  const nowYearMonth = currentYearMonth()
+  const active = overview.filter((m) => m.month <= nowYearMonth)
   const monthsElapsed = active.length
-  const activeMonths = new Set(active.map((m) => m.month))
+  const activeMonthKeys = new Set(active.map((m) => m.month.slice(5)))
 
   const totalExpensesYTD = active.reduce((s, m) => s + m.totalExpenses, 0)
 
   const balance = totalIncomes - totalExpensesYTD
 
-  const prevSamePeriod = prevOverview.filter((m) => activeMonths.has(m.month))
+  const prevSamePeriod = prevOverview.filter((m) => activeMonthKeys.has(m.month.slice(5)))
   const prevIncomes = prevSamePeriod.reduce((s, m) => s + m.totalIncomes, 0)
   const prevExpenses = prevSamePeriod.reduce((s, m) => s + m.totalExpenses, 0)
   const prevInvested = prevSamePeriod.reduce((s, m) => s + m.totalInvested, 0)
