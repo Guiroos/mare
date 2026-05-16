@@ -65,7 +65,6 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
         prevOverview={prevOverview}
         year={year}
         totalIncomes={totalIncomes}
-        totalExpenses={totalExpenses}
         totalInvested={totalInvested}
       />
 

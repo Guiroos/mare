@@ -9,7 +9,6 @@ interface Props {
   prevOverview: OverviewMonth[]
   year: number
   totalIncomes: number
-  totalExpenses: number
   totalInvested: number
 }
 
@@ -57,14 +56,16 @@ export function AnnualSummaryCards({
   prevOverview,
   year,
   totalIncomes,
-  totalExpenses,
   totalInvested,
 }: Props) {
-  const balance = totalIncomes - totalExpenses
-
-  const active = overview.filter((m) => m.totalIncomes > 0 || m.totalExpenses > 0)
-  const monthsWithData = active.length
+  // Evita contar meses futuros que aparecem no overview por causa de parcelas
+  const active = overview.filter((m) => m.totalIncomes > 0)
+  const monthsElapsed = active.length
   const activeMonths = new Set(active.map((m) => m.month))
+
+  const totalExpensesYTD = active.reduce((s, m) => s + m.totalExpenses, 0)
+
+  const balance = totalIncomes - totalExpensesYTD
 
   const prevSamePeriod = prevOverview.filter((m) => activeMonths.has(m.month))
   const prevIncomes = prevSamePeriod.reduce((s, m) => s + m.totalIncomes, 0)
@@ -72,13 +73,14 @@ export function AnnualSummaryCards({
   const prevInvested = prevSamePeriod.reduce((s, m) => s + m.totalInvested, 0)
   const prevBalance = prevIncomes - prevExpenses
 
-  const avgExpense = monthsWithData > 0 ? totalExpenses / monthsWithData : 0
-  const projectedIncome = monthsWithData > 0 ? (totalIncomes / monthsWithData) * 12 : 0
+  const avgExpense = monthsElapsed > 0 ? totalExpensesYTD / monthsElapsed : 0
+  const projectedIncome = monthsElapsed > 0 ? (totalIncomes / monthsElapsed) * 12 : 0
   const taxaPoupanca = totalIncomes > 0 ? Math.round((balance / totalIncomes) * 100) : 0
   const taxaInvestimento = totalIncomes > 0 ? Math.round((totalInvested / totalIncomes) * 100) : 0
+  const monthsWithInvestment = overview.filter((m) => m.totalInvested > 0).length
 
   const incomeChangePct = changePct(totalIncomes, prevIncomes)
-  const expenseChangePct = changePct(totalExpenses, prevExpenses)
+  const expenseChangePct = changePct(totalExpensesYTD, prevExpenses)
   const balanceChangePct = changePct(balance, prevBalance, true)
   const investedChangePct = changePct(totalInvested, prevInvested)
 
@@ -144,21 +146,21 @@ export function AnnualSummaryCards({
         accentClass="before:bg-positive"
         year={year}
         footer={
-          monthsWithData > 0
-            ? `proj. ${formatCurrencyShort(projectedIncome)} · média ${formatCurrencyShort(totalIncomes / monthsWithData)}/mês`
+          monthsElapsed > 0
+            ? `proj. ${formatCurrencyShort(projectedIncome)} · média ${formatCurrencyShort(totalIncomes / monthsElapsed)}/mês`
             : 'sem dados ainda'
         }
       />
 
       <MetricCard
         label="Despesa Acumulada"
-        value={totalExpenses}
+        value={totalExpensesYTD}
         pct={expenseChangePct}
         variant={expenseChangePct !== null && expenseChangePct > 0 ? 'warning' : 'positive'}
         accentClass="before:bg-negative"
         year={year}
         footer={
-          monthsWithData > 0
+          monthsElapsed > 0
             ? `proj. ${formatCurrencyShort(avgExpense * 12)} · média ${formatCurrencyShort(avgExpense)}/mês`
             : 'sem dados ainda'
         }
@@ -172,8 +174,8 @@ export function AnnualSummaryCards({
         accentClass="before:bg-accent"
         year={year}
         footer={
-          monthsWithData > 0
-            ? `média/mês ${formatCurrencyShort(totalInvested / monthsWithData)} · ${taxaInvestimento}% da receita`
+          monthsWithInvestment > 0
+            ? `média/mês ${formatCurrencyShort(totalInvested / monthsWithInvestment)} · ${taxaInvestimento}% da receita`
             : 'sem aportes registrados'
         }
       />
