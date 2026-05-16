@@ -68,13 +68,13 @@ export function AnnualSummaryCards({
 
   const totalExpensesYTD = active.reduce((s, m) => s + m.totalExpenses, 0)
 
-  const balance = totalIncomes - totalExpensesYTD
+  const balance = totalIncomes - totalExpensesYTD - totalInvested
 
   const prevSamePeriod = prevOverview.filter((m) => activeMonthKeys.has(m.month.slice(5)))
   const prevIncomes = prevSamePeriod.reduce((s, m) => s + m.totalIncomes, 0)
   const prevExpenses = prevSamePeriod.reduce((s, m) => s + m.totalExpenses, 0)
   const prevInvested = prevSamePeriod.reduce((s, m) => s + m.totalInvested, 0)
-  const prevBalance = prevIncomes - prevExpenses
+  const prevBalance = prevIncomes - prevExpenses - prevInvested
 
   const avgExpense = monthsElapsed > 0 ? totalExpensesYTD / monthsElapsed : 0
   const projectedIncome = monthsElapsed > 0 ? (totalIncomes / monthsElapsed) * 12 : 0
