@@ -1,24 +1,35 @@
 import { redirect } from 'next/navigation'
+import { Download } from 'lucide-react'
 import { auth } from '@/lib/auth'
-import { getAnnualOverview, getAnnualExpensesByGroup } from '@/lib/queries/panorama'
+import {
+  getAnnualOverview,
+  getAnnualExpensesByGroup,
+  getAvailableYears,
+} from '@/lib/queries/panorama'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
+import { YearSelector } from '@/components/panorama/YearSelector'
+import { AnnualSummaryCards } from '@/components/panorama/AnnualSummaryCards'
 
-export default async function PanoramaPage() {
+export default async function PanoramaPage({ searchParams }: { searchParams: { year?: string } }) {
   const session = await auth()
   if (!session) redirect('/login')
   const userId = session.user.id
 
-  const year = currentYear()
+  const parsedYear = parseInt(searchParams.year ?? '', 10)
+  const year = isFinite(parsedYear) && parsedYear > 2000 ? parsedYear : currentYear()
 
-  const [overview, expensesByGroup] = await Promise.all([
+  const [overview, prevOverview, expensesByGroup, availableYears] = await Promise.all([
     getAnnualOverview(userId, year),
+    getAnnualOverview(userId, year - 1),
     getAnnualExpensesByGroup(userId, year),
+    getAvailableYears(userId),
   ])
 
   const totalIncomes = overview.reduce((sum, m) => sum + m.totalIncomes, 0)
@@ -30,9 +41,33 @@ export default async function PanoramaPage() {
     new Set(expensesByGroup.flatMap((m) => m.groups.map((g) => g.groupName)))
   )
 
+  const years = availableYears.includes(year)
+    ? availableYears
+    : [...availableYears, year].sort((a, b) => a - b)
+
   return (
     <PageLayout>
-      <PageHeader title="Panorama Anual" description={String(year)} />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Panorama Anual"
+          description="Como o seu ano financeiro está se desenhando — receitas, despesas e patrimônio mês a mês."
+        />
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <YearSelector years={years} selected={year} />
+          <Button variant="outline" size="sm" disabled leftIcon={<Download className="h-4 w-4" />}>
+            <span className="hidden sm:inline">Exportar</span>
+          </Button>
+        </div>
+      </div>
+
+      <AnnualSummaryCards
+        overview={overview}
+        prevOverview={prevOverview}
+        year={year}
+        totalIncomes={totalIncomes}
+        totalExpenses={totalExpenses}
+        totalInvested={totalInvested}
+      />
 
       {/* Section 1 — Monthly table */}
       <Card>

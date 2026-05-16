@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { transactions, fixedExpenses, incomes, investments, categoryGroups } from '@/lib/db/schema'
-import { eq, and, sum, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, sum, gte, lte, inArray, sql } from 'drizzle-orm'
+import { currentYear } from '@/lib/utils/date'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,33 @@ function yearMonths(year: number): string[] {
     const month = i + 1
     return `${year}-${String(month).padStart(2, '0')}-01`
   })
+}
+
+// ─── Anos disponíveis ─────────────────────────────────────────────────────────
+
+export async function getAvailableYears(userId: string): Promise<number[]> {
+  const [incomesYears, txYears, fixedYears] = await Promise.all([
+    db
+      .selectDistinct({ year: sql<number>`EXTRACT(YEAR FROM ${incomes.referenceMonth})::int` })
+      .from(incomes)
+      .where(eq(incomes.userId, userId)),
+    db
+      .selectDistinct({
+        year: sql<number>`EXTRACT(YEAR FROM ${transactions.referenceMonth})::int`,
+      })
+      .from(transactions)
+      .where(eq(transactions.userId, userId)),
+    db
+      .selectDistinct({
+        year: sql<number>`EXTRACT(YEAR FROM ${fixedExpenses.referenceMonth})::int`,
+      })
+      .from(fixedExpenses)
+      .where(eq(fixedExpenses.userId, userId)),
+  ])
+
+  const all = [...incomesYears, ...txYears, ...fixedYears].map((r) => r.year)
+  const unique = Array.from(new Set(all)).sort((a, b) => a - b)
+  return unique.length > 0 ? unique : [currentYear()]
 }
 
 // ─── Visão geral anual ────────────────────────────────────────────────────────
@@ -62,6 +90,8 @@ export async function getAnnualOverview(userId: string, year: number) {
     return { month: refMonth.slice(0, 7), totalIncomes, totalExpenses, totalInvested, balance }
   })
 }
+
+export type OverviewMonth = Awaited<ReturnType<typeof getAnnualOverview>>[number]
 
 // ─── Gastos anuais por grupo de categoria ─────────────────────────────────────
 
