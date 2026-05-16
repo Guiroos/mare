@@ -119,6 +119,11 @@ NEXTAUTH_URL=http://localhost:3000
 - Para abrir dialog via `RowActions`: adicionar `open`/`onOpenChange` ao dialog e controlar com `useState` no pai; server components com inline `'use server'` que precisam de state devem ser convertidos para `'use client'` (importar server actions de `lib/actions/` normalmente)
 - `drizzle-orm/neon-http` não suporta `db.transaction()` — trocar para `drizzle-orm/neon-serverless` com `Pool` de `@neondatabase/serverless` (já instalado); Node.js 18+ tem WebSocket nativo, sem precisar configurar `neonConfig`; verificar que nenhuma rota usa `export const runtime = 'edge'` antes de trocar
 - `nextjs-toploader` instalado no root layout (`app/layout.tsx`) para feedback imediato de navegação; links dentro de `Dialog`/`Drawer` de menu não são prefetchados pelo Next.js porque ficam fora do viewport — navegações via menu sempre buscam RSC fresh e mostram `loading.tsx` após o threshold do `startTransition`
+- `formatCurrencyShort(value)` em `lib/utils/currency.ts` — produz "R$ 42,9k" / "R$ 1,2M"; usar em footers de card, chips e projeções onde o valor completo (`formatCurrency`) não cabe
+- Comparações YTD no panorama: ao calcular percentuais de variação vs. ano anterior, filtrar `prevOverview` pelos meses ativos do ano atual (`activeMonths = new Set(overview.filter(...).map(m => m.month))`) — comparar Jan–Mai do ano atual com Jan–Mai do anterior, nunca com o ano inteiro anterior
+- Seletor de anos disponíveis no Drizzle: usar `sql<number>\`EXTRACT(YEAR FROM ${col})::int\`` com `selectDistinct` em cada tabela relevante, juntar os arrays, deduplicar com `new Set(...)` e ordenar — retornar `[currentYear()]` como fallback se não houver dados; ver `getAvailableYears` em `lib/queries/panorama.ts`
+- Cards de resumo do panorama anual devem cobrir o mesmo período — misturar all-time com período anual quebra a consistência de leitura (ex: 3 cards do ano + 1 card all-time confunde o usuário ao comparar valores)
+- Tipo de retorno de query Drizzle sem export explícito: usar `export type X = Awaited<ReturnType<typeof fn>>[number]` logo após a função — evita redefinir interface no componente e mantém tipos sincronizados automaticamente quando a query muda de shape
 
 ### UI
 
