@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 # Roda após Edit/Write: formata com Prettier e verifica com ESLint.
 # Acorda o Claude (exit 2) se houver erros de lint.
+set -euo pipefail
 
-PROJECT_DIR="/home/guiroos/Documentos/Projects/mare"
-
-f=$(jq -r '.tool_input.file_path')
+input=$(cat)
+f=$(jq -r '.tool_input.file_path // ""' <<< "$input")
 
 case "$f" in
   *.ts|*.tsx|*.js|*.jsx|*.mjs) ;;
   *) exit 0 ;;
 esac
-
-cd "$PROJECT_DIR"
 
 # Prettier: auto-fixa silenciosamente
 npx prettier --write "$f" 2>/dev/null

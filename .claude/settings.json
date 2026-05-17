@@ -58,12 +58,7 @@
             "command": "bash .claude/hooks/post-edit-format.sh",
             "statusMessage": "Prettier + ESLint...",
             "asyncRewake": true
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
+          },
           {
             "type": "command",
             "command": "bash .claude/hooks/post-edit-ds-review.sh",
