@@ -127,6 +127,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Cards de resumo do panorama anual devem cobrir o mesmo período — misturar all-time com período anual quebra a consistência de leitura (ex: 3 cards do ano + 1 card all-time confunde o usuário ao comparar valores)
 - Saldo do panorama (`balance` e `prevBalance` em `AnnualSummaryCards`): sempre subtrair investimentos — `income - expenses - invested`; omitir infla o saldo visível (usuário vê R$ 10k mas R$ 7k já foram para investimentos); `taxaPoupanca` deriva de `balance` e portanto representa caixa real após tudo, não "tudo que não foi gasto em despesas"
 - Tipo de retorno de query Drizzle sem export explícito: usar `export type X = Awaited<ReturnType<typeof fn>>[number]` logo após a função — evita redefinir interface no componente e mantém tipos sincronizados automaticamente quando a query muda de shape
+- ESLint `react-hooks/immutability` dispara para `let` reassignment dentro de callbacks (`.map()`, `.reduce()`, `.filter()`) com erro "Cannot reassign variable after render completes" — solução: usar `for` loop + `push` ou `reduce` sem mutação de variável externa ao callback; não confundir com `const` mutation (arrays/objects)
 
 ### UI
 
