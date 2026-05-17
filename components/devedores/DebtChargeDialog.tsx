@@ -167,9 +167,9 @@ export function DebtChargeDialog({ personId, transactions, open: openProp, onOpe
   )
 
   const trigger = !controlled ? (
-    <Button variant="primary" size="md" onClick={() => setOpen(true)}>
+    <Button variant="primary" size="md" className="flex-1" onClick={() => setOpen(true)}>
       <Plus className="mr-1.5 h-4 w-4" />
-      Registrar cobrança
+      Cobrança
     </Button>
   ) : null
 

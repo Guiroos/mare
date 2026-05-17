@@ -242,9 +242,9 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
   )
 
   const trigger = !controlled ? (
-    <Button variant="secondary" size="md" onClick={() => setOpen(true)}>
+    <Button variant="secondary" size="md" className="flex-1" onClick={() => setOpen(true)}>
       <Plus className="mr-1.5 h-4 w-4" />
-      Registrar pagamento
+      Pagamento
     </Button>
   ) : null
 
