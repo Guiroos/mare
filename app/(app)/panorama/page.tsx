@@ -6,12 +6,14 @@ import {
   getAnnualExpensesByGroup,
   getAvailableYears,
 } from '@/lib/queries/panorama'
+import { getPatrimonyTimeline } from '@/lib/queries/investments'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
+import { PatrimonyEvolutionChart } from '@/components/charts/PatrimonyEvolutionChart'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 import { YearSelector } from '@/components/panorama/YearSelector'
@@ -25,12 +27,14 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
   const parsedYear = parseInt(searchParams.year ?? '', 10)
   const year = isFinite(parsedYear) && parsedYear > 2000 ? parsedYear : currentYear()
 
-  const [overview, prevOverview, expensesByGroup, availableYears] = await Promise.all([
-    getAnnualOverview(userId, year),
-    getAnnualOverview(userId, year - 1),
-    getAnnualExpensesByGroup(userId, year),
-    getAvailableYears(userId),
-  ])
+  const [overview, prevOverview, expensesByGroup, availableYears, patrimonyTimeline] =
+    await Promise.all([
+      getAnnualOverview(userId, year),
+      getAnnualOverview(userId, year - 1),
+      getAnnualExpensesByGroup(userId, year),
+      getAvailableYears(userId),
+      getPatrimonyTimeline(userId),
+    ])
 
   const totalIncomes = overview.reduce((sum, m) => sum + m.totalIncomes, 0)
   const totalExpenses = overview.reduce((sum, m) => sum + m.totalExpenses, 0)
@@ -67,6 +71,14 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
         totalIncomes={totalIncomes}
         totalInvested={totalInvested}
       />
+
+      <Card padding="md">
+        <PatrimonyEvolutionChart
+          overview={overview}
+          patrimonyTimeline={patrimonyTimeline}
+          year={year}
+        />
+      </Card>
 
       {/* Section 1 — Monthly table */}
       <Card>
