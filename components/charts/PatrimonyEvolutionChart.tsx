@@ -154,13 +154,20 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
   const endPatrimony = isPastYear ? resolvedPatrimony[11] : currentPatrimony
   const growthAbs = endPatrimony - startPatrimony
   const growthPct = startPatrimony > 0 ? (growthAbs / startPatrimony) * 100 : null
-  const activeCount = isPastYear ? overview.length : currentMonthIdx >= 0 ? currentMonthIdx + 1 : 0
+  let activeCount = 0
+  if (isPastYear) {
+    activeCount = overview.length
+  } else if (currentMonthIdx >= 0) {
+    activeCount = currentMonthIdx + 1
+  }
 
   const projDec = isCurrentYear
     ? (chartData[11]?.patrimonyProjected ?? chartData[11]?.patrimony ?? null)
     : null
 
-  const hasData = activeMonths.some((m) => m.totalIncomes > 0 || m.totalExpenses > 0)
+  const hasData =
+    activeMonths.some((m) => m.totalIncomes > 0 || m.totalExpenses > 0) ||
+    resolvedPatrimony.some((p) => p > 0)
 
   if (!hasData) {
     return (
@@ -180,10 +187,20 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
       <ResponsiveContainer width="100%" height={224}>
         <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-          <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+          <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
           <YAxis
+            yAxisId="left"
             tickFormatter={formatCurrencyShort}
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 12 }}
+            tickLine={false}
+            axisLine={false}
+            width={56}
+          />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tickFormatter={formatCurrencyShort}
+            tick={{ fontSize: 12, fill: COLOR_PATRIMONY }}
             tickLine={false}
             axisLine={false}
             width={56}
@@ -213,6 +230,7 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
 
           {isCurrentYear && (
             <ReferenceLine
+              yAxisId="left"
               x={formatMonthShort(nowYM)}
               stroke="var(--text-tertiary)"
               strokeDasharray="3 3"
@@ -225,21 +243,28 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
             />
           )}
 
-          <Bar dataKey="income" name="income" maxBarSize={32} radius={[2, 2, 0, 0]}>
-            {chartData.map((d, i) => (
-              <Cell key={i} fill={COLOR_INCOME} fillOpacity={d.isFuture ? 0.2 : 1} />
+          <Bar dataKey="income" name="income" yAxisId="left" maxBarSize={32} radius={[2, 2, 0, 0]}>
+            {chartData.map((d) => (
+              <Cell key={d.rawMonth} fill={COLOR_INCOME} fillOpacity={d.isFuture ? 0.2 : 1} />
             ))}
           </Bar>
 
-          <Bar dataKey="expense" name="expense" maxBarSize={32} radius={[2, 2, 0, 0]}>
-            {chartData.map((d, i) => (
-              <Cell key={i} fill={COLOR_EXPENSE} fillOpacity={d.isFuture ? 0.2 : 1} />
+          <Bar
+            dataKey="expense"
+            name="expense"
+            yAxisId="left"
+            maxBarSize={32}
+            radius={[2, 2, 0, 0]}
+          >
+            {chartData.map((d) => (
+              <Cell key={d.rawMonth} fill={COLOR_EXPENSE} fillOpacity={d.isFuture ? 0.2 : 1} />
             ))}
           </Bar>
 
           <Line
             dataKey="patrimony"
             name="patrimony"
+            yAxisId="right"
             stroke={COLOR_PATRIMONY}
             strokeWidth={2}
             dot={false}
@@ -249,6 +274,7 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
           <Line
             dataKey="patrimonyProjected"
             name="patrimonyProjected"
+            yAxisId="right"
             stroke={COLOR_PATRIMONY}
             strokeWidth={2}
             strokeDasharray="5 4"
@@ -265,14 +291,14 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
           <StatCard
             label="Melhor mês (sobra)"
             value={formatCurrency(bestMonth.balance)}
-            sub={formatMonthShort(bestMonth.month).toUpperCase()}
+            sub={formatMonthShort(bestMonth.month)}
           />
         )}
         {worstMonth && (
           <StatCard
             label="Pior mês (sobra)"
             value={formatCurrency(worstMonth.balance)}
-            sub={formatMonthShort(worstMonth.month).toUpperCase()}
+            sub={formatMonthShort(worstMonth.month)}
           />
         )}
         {activeCount > 0 && (
