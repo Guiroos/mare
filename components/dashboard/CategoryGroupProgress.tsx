@@ -8,6 +8,7 @@ import { TxList, TxItem } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Progress } from '@/components/ui/progress'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { BudgetBar } from '@/components/ui/budget-bar'
 import { ChevronDown } from 'lucide-react'
@@ -49,21 +50,6 @@ type FixedExpense = {
   paid: boolean
   categoryId: string | null
   account: { name: string } | null
-}
-
-function ProgressBar({ value, max, over }: { value: number; max: number; over: boolean }) {
-  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
-  return (
-    <div className="h-1.5 overflow-hidden rounded-full bg-bg-muted">
-      <div
-        className={cn(
-          'h-full rounded-full transition-all duration-500',
-          over ? 'bg-negative' : pct >= 85 ? 'bg-warning' : 'bg-positive'
-        )}
-        style={{ width: `${pct}%` }}
-      />
-    </div>
-  )
 }
 
 function CategoryTransactionsList({
@@ -139,6 +125,8 @@ export function CategoryGroupProgress({
       <TxList>
         {groups.map((group) => {
           const over = group.totalBudget > 0 && group.totalSpent > group.totalBudget
+          const groupMax = group.totalBudget || group.totalSpent || 1
+          const groupPct = (group.totalSpent / groupMax) * 100
           const isOpen = expanded.has(group.id)
 
           const toggle = () => {
@@ -154,7 +142,7 @@ export function CategoryGroupProgress({
             <div key={group.id} className="border-b border-border last:border-0">
               <button
                 onClick={toggle}
-                className="flex w-full items-center gap-4 px-4 py-3.5 text-left transition-colors hover:bg-bg-subtle"
+                className="flex w-full items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-bg-subtle"
               >
                 <div className="min-w-0 flex-1">
                   <div className="mb-2 flex items-center justify-between">
@@ -162,7 +150,7 @@ export function CategoryGroupProgress({
                     <span
                       className={cn(
                         'text-small font-semibold tabular-nums',
-                        over ? 'text-negative-text' : 'text-text-secondary'
+                        over ? 'text-negative' : 'text-text-secondary'
                       )}
                     >
                       {formatCurrency(group.totalSpent)}
@@ -174,23 +162,33 @@ export function CategoryGroupProgress({
                       )}
                     </span>
                   </div>
-                  <ProgressBar
+                  <Progress
                     value={group.totalSpent}
-                    max={group.totalBudget || group.totalSpent || 1}
-                    over={over}
+                    max={groupMax}
+                    className="h-1.5"
+                    indicatorClassName={cn(
+                      over ? 'bg-negative' : groupPct >= 85 ? 'bg-warning' : 'bg-positive'
+                    )}
                   />
                 </div>
                 <ChevronDown
-                  className="h-3.5 w-3.5 flex-shrink-0 text-text-tertiary transition-transform duration-base"
-                  style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  className={cn(
+                    'h-3.5 w-3.5 flex-shrink-0 text-text-tertiary transition-transform duration-base',
+                    isOpen && 'rotate-180'
+                  )}
                 />
               </button>
 
               {isOpen && (
                 <div className="border-t border-border">
                   {group.categories.map((cat) => {
-                    const catOver = cat.budget > 0 && cat.spent > cat.budget
-                    const catPct = cat.budget > 0 ? (cat.spent / cat.budget) * 100 : 0
+                    const noBudget = cat.budget === 0
+                    const catOver = !noBudget && cat.spent > cat.budget
+                    const catPct = noBudget
+                      ? cat.spent > 0
+                        ? 100
+                        : 0
+                      : (cat.spent / cat.budget) * 100
 
                     return (
                       <button
@@ -214,30 +212,32 @@ export function CategoryGroupProgress({
                         <span className="flex-1 truncate text-caption text-text-secondary">
                           {cat.name}
                         </span>
-                        <div className="h-1 w-12 flex-shrink-0 overflow-hidden rounded-full bg-bg-muted lg:w-20">
-                          <div
-                            className={cn(
-                              'h-full rounded-full',
-                              catOver ? 'bg-negative' : catPct >= 85 ? 'bg-warning' : 'bg-positive'
-                            )}
-                            style={{ width: `${Math.min(catPct, 100)}%` }}
-                          />
-                        </div>
+                        <Progress
+                          value={catPct}
+                          max={100}
+                          className="h-1 w-12 flex-shrink-0 lg:w-20"
+                          indicatorClassName={cn(
+                            catOver
+                              ? 'bg-negative'
+                              : noBudget
+                                ? 'bg-accent'
+                                : catPct >= 85
+                                  ? 'bg-warning'
+                                  : 'bg-positive'
+                          )}
+                        />
                         <div className="flex-shrink-0 text-right">
                           <span
                             className={cn(
                               'text-caption font-semibold tabular-nums',
-                              catOver ? 'text-negative-text' : 'text-text-secondary'
+                              catOver ? 'text-negative' : 'text-text-secondary'
                             )}
                           >
                             {formatCurrency(cat.spent)}
                           </span>
-                          {cat.budget > 0 && (
-                            <span className="text-caption tabular-nums text-text-tertiary">
-                              {' '}
-                              / {formatCurrency(cat.budget)}
-                            </span>
-                          )}
+                          <span className="text-caption tabular-nums text-text-tertiary">
+                            {cat.budget > 0 ? ` / ${formatCurrency(cat.budget)}` : ' / —'}
+                          </span>
                         </div>
                       </button>
                     )

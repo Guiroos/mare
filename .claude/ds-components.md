@@ -49,7 +49,7 @@ Radix UI + primitivos.
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
 | `separator.tsx`      | `Separator`                     | Radix; prop `orientation`: `horizontal` (default) / `vertical`                   |
-| `progress.tsx`       | `Progress`                      | Props: `value` `max` `indicatorClassName`                                        |
+| `progress.tsx`       | `Progress`                      | Props: `value` `max` `indicatorClassName`; `className` dimensiona o container (ex: `h-1.5`, `w-12 lg:w-20 flex-shrink-0`) |
 | `budget-bar.tsx`     | `BudgetBar`                     | Props: `current` `target` `label` `tone` (`ok`/`warn`/`over`/`accent`) `hint`    |
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
 | `summary-card.tsx`   | `SummaryCard`                   | Props: `variant` (`balance`/`positive`/`negative`) `label` `amount` `footer` `icon` |
