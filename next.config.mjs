@@ -1,18 +1,14 @@
-import withPWA from '@ducanh2912/next-pwa'
+import withSerwistInit from '@serwist/next'
+
+const withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  disable: process.env.NODE_ENV === 'development',
+})
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      allowedOrigins: ['localhost:3000'],
-    },
-  },
+  turbopack: {},
 }
 
-export default withPWA({
-  dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: false,
-  reloadOnOnline: true,
-  disable: process.env.NODE_ENV === 'development',
-})(nextConfig)
+export default withSerwist(nextConfig)
