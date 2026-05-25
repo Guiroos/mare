@@ -17,14 +17,13 @@ import { DebtBalanceEvolutionChart } from '@/components/devedores/DebtBalanceEvo
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-export default async function DevedorDetailPage({ params }: { params: { id: string } }) {
-  const session = await auth()
+export default async function DevedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [session, { id }] = await Promise.all([auth(), params])
   if (!session) redirect('/login')
-
   const [data, txForLink, openCharges] = await Promise.all([
-    getPersonDebtDetails(session.user.id, params.id),
+    getPersonDebtDetails(session.user.id, id),
     getTransactionsForDebtLink(session.user.id),
-    getOpenChargesForPerson(session.user.id, params.id),
+    getOpenChargesForPerson(session.user.id, id),
   ])
   if (!data) notFound()
 

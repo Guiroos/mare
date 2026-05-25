@@ -28,22 +28,24 @@ import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { month?: string; cycleAccount?: string }
+  searchParams: Promise<{ month?: string; cycleAccount?: string }>
 }) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const userId = session.user.id
-  const month = searchParams.month ?? currentYearMonth()
+  const { month: rawMonth, cycleAccount } = await searchParams
+  const month = rawMonth ?? currentYearMonth()
   const referenceMonth = yearMonthToReferenceMonth(month)
 
-  const creditAccounts = await getCreditAccounts(userId)
-  const activeAccount = creditAccounts.find((a) => a.id === searchParams.cycleAccount) ?? null
+  const [creditAccounts, creditMode] = await Promise.all([
+    getCreditAccounts(userId),
+    getUserCreditMode(userId),
+  ])
+  const activeAccount = creditAccounts.find((a) => a.id === cycleAccount) ?? null
 
   const cycleRange = activeAccount ? billingCycleDateRange(month, activeAccount.closingDay) : null
   const isCycleView = cycleRange !== null
-
-  const creditMode = await getUserCreditMode(userId)
   const isFaturaMode = !isCycleView && creditMode.creditMode === 'fatura'
 
   const faturaCtx = isFaturaMode
@@ -84,12 +86,11 @@ export default async function DashboardPage({
     faturaCtx && creditIdSet.size > 0
       ? data.fixedExpenses.filter((e) => !creditIdSet.has(e.accountId))
       : data.fixedExpenses
-  const unpaidFixedCount = isCurrentMonth ? fixedForPendency.filter((e) => !e.paid).length : 0
+  const pendingFixed = fixedForPendency.filter((e) => !e.paid).length
+  const unpaidFixedCount = isCurrentMonth ? pendingFixed : 0
   const pendingYieldCount = isCurrentMonth
     ? data.investments.filter((i) => i.amount !== null && i.yieldAmount === null).length
     : 0
-
-  const pendingFixed = fixedForPendency.filter((e) => !e.paid).length
   const totalTransactions = data.transactions.length
   const totalIncomes = data.summary.totalIncomes
   const totalInvested = data.summary.totalInvested
