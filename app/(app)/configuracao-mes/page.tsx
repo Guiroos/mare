@@ -24,13 +24,14 @@ import { cn } from '@/lib/utils/cn'
 export default async function ConfiguracaoMesPage({
   searchParams,
 }: {
-  searchParams: { month?: string }
+  searchParams: Promise<{ month?: string }>
 }) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const userId = session.user.id
-  const month = searchParams.month ?? currentYearMonth()
+  const { month: rawMonth } = await searchParams
+  const month = rawMonth ?? currentYearMonth()
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
   const isCurrentMonth = month === currentYearMonth()
@@ -79,7 +80,7 @@ export default async function ConfiguracaoMesPage({
             {categoriesWithBudgets.map((group) => (
               <div key={group.id} className="rounded-xl border bg-bg-surface">
                 <div className="border-b px-4 py-2.5">
-                  <span className="text-sm font-semibold">{group.name}</span>
+                  <span className="text-body font-semibold">{group.name}</span>
                 </div>
                 <div className="divide-y">
                   {group.categories.map((cat) => {
@@ -90,19 +91,21 @@ export default async function ConfiguracaoMesPage({
 
                     return (
                       <div key={cat.id} className="flex items-center justify-between px-4 py-2.5">
-                        <span className="text-sm">{cat.name}</span>
+                        <span className="text-body">{cat.name}</span>
                         <div className="flex items-center gap-2">
                           {effective > 0 ? (
                             <span
                               className={cn(
-                                'text-sm font-medium',
+                                'text-body font-medium',
                                 hasOverride ? 'text-accent' : 'text-text-secondary'
                               )}
                             >
                               {formatCurrency(effective)}
                             </span>
                           ) : (
-                            <span className="text-text-secondary/50 text-xs">sem orçamento</span>
+                            <span className="text-caption text-text-secondary opacity-50">
+                              sem orçamento
+                            </span>
                           )}
                           {hasOverride && (
                             <Badge variant="accent" size="sm">
@@ -155,7 +158,7 @@ export default async function ConfiguracaoMesPage({
             {installments.map((t) => (
               <div key={t.id} className="flex items-center justify-between px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{t.name}</p>
+                  <p className="truncate text-body font-medium">{t.name}</p>
                   <div className="mt-0.5 flex items-center gap-1.5">
                     {t.category && (
                       <Badge variant="muted" size="sm">
@@ -163,11 +166,11 @@ export default async function ConfiguracaoMesPage({
                       </Badge>
                     )}
                     {t.account && (
-                      <span className="text-xs text-text-secondary">{t.account.name}</span>
+                      <span className="text-caption text-text-secondary">{t.account.name}</span>
                     )}
                   </div>
                 </div>
-                <span className="shrink-0 text-sm font-semibold text-negative">
+                <span className="shrink-0 text-body font-semibold text-negative">
                   {formatCurrency(Number(t.amount))}
                 </span>
               </div>

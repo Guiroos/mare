@@ -21,12 +21,17 @@ import { PageHeader } from '@/components/ui/page-header'
 import { YearSelector } from '@/components/panorama/YearSelector'
 import { AnnualSummaryCards } from '@/components/panorama/AnnualSummaryCards'
 
-export default async function PanoramaPage({ searchParams }: { searchParams: { year?: string } }) {
+export default async function PanoramaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>
+}) {
   const session = await auth()
   if (!session) redirect('/login')
   const userId = session.user.id
 
-  const parsedYear = parseInt(searchParams.year ?? '', 10)
+  const { year: rawYear } = await searchParams
+  const parsedYear = parseInt(rawYear ?? '', 10)
   const year = isFinite(parsedYear) && parsedYear > 2000 ? parsedYear : currentYear()
 
   const [creditMode, creditAccounts] = await Promise.all([
@@ -117,7 +122,7 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
             </thead>
             <tbody>
               {overview.map((row) => {
-                const monthLabel = formatMonthAbbr(row.month).toUpperCase()
+                const monthLabel = formatMonthAbbr(row.month)
                 return (
                   <tr key={row.month} className="border-b last:border-0 hover:bg-bg-muted">
                     <td className="px-4 py-3 font-medium">{monthLabel}</td>
@@ -170,7 +175,7 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
         {/* Mobile card list */}
         <div className="divide-y md:hidden">
           {overview.map((row) => {
-            const monthLabel = formatMonthAbbr(row.month).toUpperCase()
+            const monthLabel = formatMonthAbbr(row.month)
             return (
               <div key={row.month} className="px-4 py-3">
                 <div className="mb-1 flex items-center justify-between">
