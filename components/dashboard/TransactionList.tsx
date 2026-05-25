@@ -23,6 +23,7 @@ type Transaction = {
   date: string
   categoryId: string | null
   accountId: string | null
+  faturaAccountId: string | null
   installmentNumber: number | null
   totalInstallments: number | null
   category: { name: string; color: string | null; bgColor: string | null } | null
@@ -110,9 +111,16 @@ function getInitial(name: string) {
   return name.slice(0, 1).toUpperCase()
 }
 
-function TransactionRow({ transaction: t }: { transaction: Transaction }) {
+function TransactionRow({
+  transaction: t,
+  creditAccountIds,
+}: {
+  transaction: Transaction
+  creditAccountIds: Set<string>
+}) {
   const [editOpen, setEditOpen] = useState(false)
   const col = t.category ?? null
+  const isViaFatura = t.accountId !== null && creditAccountIds.has(t.accountId)
 
   return (
     <div className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-bg-subtle">
@@ -148,8 +156,13 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
             </>
           )}
           {t.installmentNumber && t.totalInstallments && (
-            <span className="ml-1 flex-shrink-0 rounded border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
+            <span className="ml-1 flex-shrink-0 rounded-sm border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
               {t.installmentNumber}/{t.totalInstallments}
+            </span>
+          )}
+          {isViaFatura && (
+            <span className="ml-1 flex-shrink-0 rounded-sm border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
+              via fatura
             </span>
           )}
         </div>
@@ -161,7 +174,10 @@ function TransactionRow({ transaction: t }: { transaction: Transaction }) {
         </span>
       </div>
 
-      {!t.installmentGroup && (
+      {!t.installmentGroup && t.faturaAccountId && (
+        <RowActions onDelete={() => deleteTransaction(t.id)} />
+      )}
+      {!t.installmentGroup && !t.faturaAccountId && (
         <>
           <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteTransaction(t.id)} />
           <TransactionEditButton transaction={t} open={editOpen} onOpenChange={setEditOpen} />
@@ -198,10 +214,12 @@ function DateGroupedView({
   transactions,
   showAll,
   onShowAll,
+  creditAccountIds,
 }: {
   transactions: Transaction[]
   showAll: boolean
   onShowAll: () => void
+  creditAccountIds: Set<string>
 }) {
   const visible = showAll ? transactions : transactions.slice(0, INITIAL_LIMIT)
   const hiddenCount = transactions.length - visible.length
@@ -216,7 +234,7 @@ function DateGroupedView({
             total={`− ${formatCurrency(items.reduce((s, t) => s + Number(t.amount), 0))}`}
           />
           {items.map((t) => (
-            <TransactionRow key={t.id} transaction={t} />
+            <TransactionRow key={t.id} transaction={t} creditAccountIds={creditAccountIds} />
           ))}
         </Fragment>
       ))}
@@ -236,10 +254,12 @@ function AccountGroupedView({
   transactions,
   expanded,
   onToggle,
+  creditAccountIds,
 }: {
   transactions: Transaction[]
   expanded: Set<string>
   onToggle: (key: string) => void
+  creditAccountIds: Set<string>
 }) {
   const groups = buildAccountGroups(transactions)
 
@@ -281,7 +301,7 @@ function AccountGroupedView({
             {isOpen && (
               <div className="border-t border-border">
                 {g.transactions.map((t) => (
-                  <TransactionRow key={t.id} transaction={t} />
+                  <TransactionRow key={t.id} transaction={t} creditAccountIds={creditAccountIds} />
                 ))}
               </div>
             )}
@@ -296,10 +316,12 @@ function TypeGroupedView({
   transactions,
   expanded,
   onToggle,
+  creditAccountIds,
 }: {
   transactions: Transaction[]
   expanded: Set<string>
   onToggle: (key: string) => void
+  creditAccountIds: Set<string>
 }) {
   const groups = buildTypeGroups(transactions)
 
@@ -326,7 +348,7 @@ function TypeGroupedView({
             {isOpen && (
               <div className="border-t border-border">
                 {g.items.map((t) => (
-                  <TransactionRow key={t.id} transaction={t} />
+                  <TransactionRow key={t.id} transaction={t} creditAccountIds={creditAccountIds} />
                 ))}
               </div>
             )}
@@ -337,10 +359,18 @@ function TypeGroupedView({
   )
 }
 
-export function TransactionList({ transactions }: { transactions: Transaction[] }) {
+export function TransactionList({
+  transactions,
+  creditAccountIds: creditAccountIdsProp,
+}: {
+  transactions: Transaction[]
+  creditAccountIds?: string[]
+}) {
   const [groupBy, setGroupBy] = useState<GroupBy>('date')
   const [showAll, setShowAll] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+  const creditAccountIds = new Set(creditAccountIdsProp ?? [])
 
   const handleGroupBy = (next: GroupBy) => {
     setGroupBy(next)
@@ -375,6 +405,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
           transactions={transactions}
           showAll={showAll}
           onShowAll={() => setShowAll(true)}
+          creditAccountIds={creditAccountIds}
         />
       )}
       {groupBy === 'account' && (
@@ -382,6 +413,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
           transactions={transactions}
           expanded={expanded}
           onToggle={toggleExpanded}
+          creditAccountIds={creditAccountIds}
         />
       )}
       {groupBy === 'type' && (
@@ -389,6 +421,7 @@ export function TransactionList({ transactions }: { transactions: Transaction[] 
           transactions={transactions}
           expanded={expanded}
           onToggle={toggleExpanded}
+          creditAccountIds={creditAccountIds}
         />
       )}
     </TxList>
