@@ -2,14 +2,14 @@
 
 ## Status Por Fase
 
-| Fase | Objetivo                          | Status    |
-| ---- | --------------------------------- | --------- |
-| 1    | Schema e configuração             | pendente  |
-| 2    | Queries de estado de fatura       | pendente  |
-| 3    | Cards de fatura no dashboard      | pendente  |
-| 4    | Fluxo de pagamento de fatura      | pendente  |
-| 5    | Bifurcação das queries de despesa | pendente  |
-| 6    | Polish e edge cases               | pendente  |
+| Fase | Objetivo                          | Status       |
+| ---- | --------------------------------- | ------------ |
+| 1    | Schema e configuração             | concluída    |
+| 2    | Queries de estado de fatura       | concluída    |
+| 3    | Cards de fatura no dashboard      | concluída    |
+| 4    | Fluxo de pagamento de fatura      | concluída    |
+| 5    | Bifurcação das queries de despesa | concluída    |
+| 6    | Polish e edge cases               | em progresso |
 
 ---
 
@@ -19,24 +19,24 @@
 
 Passos:
 
-- [ ] Criar tabela `user_settings` em `lib/db/schema.ts` com `creditMode` e `faturaActiveFrom`
-- [ ] Adicionar `faturaAccountId` e `faturaCycleMonth` em `transactions` no schema
-- [ ] Tornar `transactions.categoryId` nullable no schema, mantendo obrigatório nas
+- [x] Criar tabela `user_settings` em `lib/db/schema.ts` com `creditMode` e `faturaActiveFrom`
+- [x] Adicionar `faturaAccountId` e `faturaCycleMonth` em `transactions` no schema
+- [x] Tornar `transactions.categoryId` nullable no schema, mantendo obrigatório nas
       validações de transações normais
-- [ ] Adicionar `transactions_fatura_unique_idx` no schema Drizzle com
+- [x] Adicionar `transactions_fatura_unique_idx` no schema Drizzle com
       `uniqueIndex(...).where(sql\`${t.faturaAccountId} IS NOT NULL\`)`
-- [ ] Rodar `npm run db:generate`
-- [ ] Editar manualmente a migration gerada: remover `NOT NULL` de `transactions.category_id`
+- [x] Rodar `npm run db:generate`
+- [x] Editar manualmente a migration gerada: remover `NOT NULL` de `transactions.category_id`
       e adicionar check constraints para permitir `categoryId = null` somente em pagamento de
       fatura e manter `creditMode` coerente com `faturaActiveFrom`
-- [ ] Formatar migration: `npx prettier --write lib/db/migrations/meta/`
-- [ ] Criar `lib/validations/settings.ts` com `creditModeSchema`
-- [ ] Criar `lib/actions/fatura.ts` com `updateCreditMode`
-- [ ] Implementar validação em `updateCreditMode`: bloquear qualquer alteração de
+- [x] Formatar migration: `npx prettier --write lib/db/migrations/meta/`
+- [x] Criar `lib/validations/settings.ts` com `creditModeSchema`
+- [x] Criar `lib/actions/fatura.ts` com `updateCreditMode`
+- [x] Implementar validação em `updateCreditMode`: bloquear qualquer alteração de
       `creditMode`/`faturaActiveFrom` se já houver pagamento de fatura registrado
-- [ ] Criar UI de toggle + seletor de mês em `/contas` (`app/(app)/contas/page.tsx`),
+- [x] Criar UI de toggle + seletor de mês em `/contas` (`app/(app)/contas/page.tsx`),
       numa `<Section title="Regime de fatura">` separada (configuração global, não por conta)
-- [ ] Rodar `npm run lint && npx tsc --noEmit`
+- [x] Rodar `npm run lint && npx tsc --noEmit`
 
 Critério de aceite:
 
@@ -56,12 +56,12 @@ Critério de aceite:
 
 Passos:
 
-- [ ] Criar `lib/queries/fatura.ts`
-- [ ] Implementar `getUserCreditMode(userId)`
-- [ ] Implementar `getFaturaState(userId, accountId, referenceMonth)`
-- [ ] Implementar `getOpenFaturas(userId)`
-- [ ] Verificar que `billingCycleDateRange` cobre os casos necessários; ajustar se preciso
-- [ ] Rodar `npx tsc --noEmit`
+- [x] Criar `lib/queries/fatura.ts`
+- [x] Implementar `getUserCreditMode(userId)`
+- [x] Implementar `getFaturaState(userId, accountId, referenceMonth)`
+- [x] Implementar `getOpenFaturas(userId)`
+- [x] Verificar que `billingCycleDateRange` cobre os casos necessários; ajustar se preciso
+- [x] Rodar `npx tsc --noEmit`
 
 Critério de aceite:
 
@@ -78,12 +78,12 @@ Critério de aceite:
 
 Passos:
 
-- [ ] Criar `components/fatura/FaturaCard.tsx`
-- [ ] Implementar os três estados: ciclo aberto, ciclo fechado sem pagamento (alerta), pago
-- [ ] Integrar ao `app/(app)/dashboard/page.tsx` — exibir somente quando `creditMode = 'fatura'`
-- [ ] Garantir que contas sem `closingDay > 1` não geram card
+- [x] Criar `components/fatura/FaturaCard.tsx`
+- [x] Implementar os três estados: ciclo aberto, ciclo fechado sem pagamento (alerta), pago
+- [x] Integrar ao `app/(app)/dashboard/page.tsx` — exibir somente quando `creditMode = 'fatura'`
+- [x] Garantir que contas sem `closingDay > 1` não geram card
 - [ ] Testar com Playwright: verificar os três estados visuais
-- [ ] Rodar `npm run lint`
+- [x] Rodar `npm run lint`
 
 Critério de aceite:
 
@@ -100,17 +100,17 @@ Critério de aceite:
 
 Passos:
 
-- [ ] Criar `lib/validations/fatura.ts` com `faturaPaymentActionSchema`
-- [ ] Implementar `createFaturaPayment` em `lib/actions/fatura.ts`
-- [ ] Usar `assertOwnsPaymentAccount` existente em `lib/auth/ownership.ts` (não criar nova)
-- [ ] Criar `components/fatura/FaturaPaymentDialog.tsx` (dialog desktop + drawer mobile)
-- [ ] Conectar botão "Registrar pagamento" do `FaturaCard` ao dialog
-- [ ] Ocultar/bloquear edição genérica de transações com `faturaAccountId IS NOT NULL`;
+- [x] Criar `lib/validations/fatura.ts` com `faturaPaymentActionSchema`
+- [x] Implementar `createFaturaPayment` em `lib/actions/fatura.ts`
+- [x] Usar `assertOwnsPaymentAccount` existente em `lib/auth/ownership.ts` (não criar nova)
+- [x] Criar `components/fatura/FaturaPaymentDialog.tsx` (dialog desktop + drawer mobile)
+- [x] Conectar botão "Registrar pagamento" do `FaturaCard` ao dialog
+- [x] Ocultar/bloquear edição genérica de transações com `faturaAccountId IS NOT NULL`;
       na v1, correção é deletar e registrar de novo
 - [ ] Testar com Playwright: registrar pagamento e verificar que o ciclo pago deixa de exibir
       ação de pagamento duplicada
 - [ ] Testar com Playwright: tentar registrar segundo pagamento para o mesmo ciclo — deve falhar
-- [ ] Rodar `npm run lint && npx tsc --noEmit`
+- [x] Rodar `npm run lint && npx tsc --noEmit`
 
 Critério de aceite:
 
@@ -130,24 +130,24 @@ Critério de aceite:
 
 Passos:
 
-- [ ] Atualizar `getDashboardData` em `lib/queries/dashboard.ts` filtrando as listas já
+- [x] Atualizar `getDashboardData` em `lib/queries/dashboard.ts` filtrando as listas já
       carregadas antes do `reduce` (sem query de soma extra)
-- [ ] Atualizar `getCategoryGroupProgress` em `lib/queries/dashboard.ts` com filtro SQL
+- [x] Atualizar `getCategoryGroupProgress` em `lib/queries/dashboard.ts` com filtro SQL
       `accountId NOT IN creditAccountIds` e `isNotNull(transactions.categoryId)`
-- [ ] Atualizar `getMonthlyEvolution` em `lib/queries/dashboard.ts` (**agregação SQL** —
-      exige JOIN com `paymentAccounts` dentro do SUM; não somar fatura em query separada)
-- [ ] Atualizar `getAnnualOverview` em `lib/queries/panorama.ts` (**agregação SQL** —
-      mesma complexidade de `getMonthlyEvolution`)
-- [ ] Atualizar `getAnnualExpensesByGroup` em `lib/queries/panorama.ts` para ignorar
+- [x] Atualizar `getMonthlyEvolution` em `lib/queries/dashboard.ts` (**agregação SQL** —
+      INNER JOIN com `paymentAccounts` + condição OR por mês; sem query separada)
+- [x] Atualizar `getAnnualOverview` em `lib/queries/panorama.ts` (**agregação SQL** —
+      mesmo padrão de `getMonthlyEvolution`)
+- [x] Atualizar `getAnnualExpensesByGroup` em `lib/queries/panorama.ts` para ignorar
       `categoryId = null` e excluir contas de crédito nos meses em regime de fatura
-- [ ] Garantir que meses `< faturaActiveFrom` usam comportamento accrual
-- [ ] Garantir que usuários sem regime ativo (`creditMode = 'accrual'`) não são afetados
-- [ ] Garantir que pagamento de fatura não é contado duas vezes no dashboard
-- [ ] Garantir que gastos fixos no crédito não somem do fluxo: saem do dashboard mensal direto
+- [x] Garantir que meses `< faturaActiveFrom` usam comportamento accrual
+- [x] Garantir que usuários sem regime ativo (`creditMode = 'accrual'`) não são afetados
+- [x] Garantir que pagamento de fatura não é contado duas vezes no dashboard
+- [x] Garantir que gastos fixos no crédito não somem do fluxo: saem do dashboard mensal direto
       e entram no total da fatura
-- [ ] Ajustar `unpaidFixedCount` para não alertar gastos fixos de crédito em meses de fatura
+- [x] Ajustar `unpaidFixedCount` para não alertar gastos fixos de crédito em meses de fatura
 - [ ] Testar com Playwright: verificar que saldo do mês exclui compras de crédito e inclui pagamento de fatura
-- [ ] Rodar `npm run lint && npx tsc --noEmit && npm run build`
+- [x] Rodar `npm run lint && npx tsc --noEmit && npm run build`
 
 Critério de aceite:
 
@@ -164,11 +164,11 @@ Critério de aceite:
 
 Passos:
 
-- [ ] Exibir aviso ao ativar quando nenhum cartão tiver `closingDay > 1`
-- [ ] Orientar no card de fatura de contas sem `closingDay > 1` a configurar o campo
-- [ ] Validar que `creditMode`/`faturaActiveFrom` não podem ser alterados enquanto houver
+- [x] Exibir aviso ao ativar quando nenhum cartão tiver `closingDay > 1`
+- [x] Orientar no card de fatura de contas sem `closingDay > 1` a configurar o campo
+- [x] Validar que `creditMode`/`faturaActiveFrom` não podem ser alterados enquanto houver
       pagamento de fatura registrado
-- [ ] Verificar que ao deletar uma transação de pagamento de fatura via `/registro`, o card
+- [x] Verificar que ao deletar uma transação de pagamento de fatura via `/registro`, o card
       volta ao estado "fechado sem pagamento" (comportamento automático — sem lógica extra)
 - [ ] Testar Playwright completo: ativar regime → acumular ciclo → registrar pagamento → verificar dashboard → deletar pagamento → verificar reversão do card → desativar regime → verificar restauração
 - [ ] Rodar `npm run lint && npx prettier --check . && npx tsc --noEmit && npm run build`
@@ -187,7 +187,7 @@ Critério de aceite:
 | - | ------- | ------------ | ------ |
 | 1 | Exibir data de vencimento exata no card? | Depende de `dueDay`; v1 exibe data de fechamento como referência | aberta |
 | 2 | Categoria para pagamento de fatura | `categoryId = null` somente para pagamento de fatura; transações normais continuam obrigatórias | decidida |
-| 3 | O que mostrar em relatório de categorias para usuário em regime de fatura? | Exibir nota informativa; sem breakdown de crédito nesses meses | aberta |
+| 3 | O que mostrar em relatório de categorias para usuário em regime de fatura? | Exibir nota informativa; sem breakdown de crédito nesses meses — resolvido na v2 com orçamento híbrido | decidida |
 
 ---
 
@@ -208,10 +208,11 @@ Critério de aceite:
 | Tela de histórico de faturas | Lista de ciclos pagos e abertos por conta de crédito |
 | Breakdown de categorias dentro da fatura | Drill-down do pagamento mostrando as compras individuais por categoria |
 | Pagamento parcial | Com rastreamento de saldo devedor do ciclo |
+| Orçamento híbrido (v2) | Separar fluxo de caixa de orçamento por categoria: manter exclusão de crédito no saldo/evolução, mas incluir transações de crédito no `getCategoryGroupProgress` pelo `referenceMonth` da compra — usuário vê consumo real por categoria sem distorcer o saldo do mês |
 
 ## Inventário de Arquivos
 
-### A Criar
+### Criados
 
 | Arquivo |
 | ------- |
@@ -221,8 +222,10 @@ Critério de aceite:
 | `lib/validations/settings.ts` |
 | `components/fatura/FaturaCard.tsx` |
 | `components/fatura/FaturaPaymentDialog.tsx` |
+| `components/fatura/OverdueCycleCard.tsx` |
+| `components/contas/CreditModeSection.tsx` |
 
-### A Alterar
+### Alterados
 
 | Arquivo |
 | ------- |
@@ -230,4 +233,5 @@ Critério de aceite:
 | `lib/queries/dashboard.ts` |
 | `lib/queries/panorama.ts` |
 | `app/(app)/dashboard/page.tsx` |
+| `app/(app)/panorama/page.tsx` |
 | `app/(app)/contas/page.tsx` |

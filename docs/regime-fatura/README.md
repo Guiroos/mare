@@ -2,16 +2,16 @@
 
 Esta pasta organiza o planejamento e execução do recurso **Regime de Fatura**.
 
-## Status em 21/05/2026
+## Status em 24/05/2026
 
-| Fase | Objetivo                          | Status   |
-| ---- | --------------------------------- | -------- |
-| 1    | Schema e configuração             | pendente |
-| 2    | Queries de estado de fatura       | pendente |
-| 3    | Cards de fatura no dashboard      | pendente |
-| 4    | Fluxo de pagamento de fatura      | pendente |
-| 5    | Bifurcação das queries de despesa | pendente |
-| 6    | Polish e edge cases               | pendente |
+| Fase | Objetivo                          | Status     |
+| ---- | --------------------------------- | ---------- |
+| 1    | Schema e configuração             | concluída  |
+| 2    | Queries de estado de fatura       | concluída  |
+| 3    | Cards de fatura no dashboard      | concluída  |
+| 4    | Fluxo de pagamento de fatura      | concluída  |
+| 5    | Bifurcação das queries de despesa | concluída  |
+| 6    | Polish e edge cases               | em progresso |
 
 ---
 
@@ -53,5 +53,5 @@ há fatura vencida sem pagamento registrado.
 - Schema: `lib/db/schema.ts`
 - Utilitário de ciclo: `lib/utils/date.ts` — `billingCycleDateRange`
 - Dashboard: `app/(app)/dashboard/page.tsx`
-- Configurações: `app/(app)/configuracao-mes/page.tsx`
+- Configurações: `app/(app)/contas/page.tsx` — `CreditModeSection`
 - Ownership: `lib/auth/ownership.ts`
