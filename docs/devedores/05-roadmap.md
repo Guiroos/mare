@@ -25,7 +25,7 @@ Passos:
 - [x] Adicionar relações Drizzle
 - [x] Rodar `npm run db:generate` → `0008_lying_payback.sql`
 - [x] Formatar migrations: `npx prettier --write lib/db/migrations/meta/`
-- [x] Rodar `npx tsc --noEmit` — passou sem erros
+- [x] Rodar `npm run typecheck` — passou sem erros
 
 Critério de aceite:
 
@@ -49,7 +49,7 @@ Passos:
 - [x] Revalidar `/devedores` em mutações de pessoa
 - [x] Revalidar `/devedores` e `/devedores/[id]` em mutações de lançamento
 - [x] Revalidar `/dashboard` e `/panorama` quando pagamento gerar `income`
-- [x] Rodar `npm run build:check`
+- [x] Rodar `npm run typecheck`
 
 Critério de aceite:
 
@@ -76,7 +76,7 @@ Passos:
 - [x] Adicionar `/devedores` no `BottomNav`
 - [x] Implementar `archivePerson` com aviso de saldo em aberto (quando `saldo > 0`)
 - [x] Implementar `deletePersonIfEmpty` (apaga apenas se não houver lançamentos)
-- [x] Rodar `npm run lint && npm run build:check`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -101,7 +101,7 @@ Passos:
 - [x] Criar `components/devedores/DebtEntryList.tsx` com exclusão de lançamento simples
 - [x] Mostrar histórico de lançamentos em `/devedores/[id]`
 - [x] Implementar exclusão de `charge` sem `sourceTransactionId` via `DeleteButton`
-- [x] Rodar `npm run lint && npm run build:check`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -124,7 +124,7 @@ Passos:
 - [x] Mostrar pagamento no histórico
 - [x] Atualizar saldo da pessoa
 - [x] Implementar exclusão de `payment` sem `incomeId` via `DeleteButton`
-- [x] Rodar `npm run lint && npm run build:check`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -147,7 +147,7 @@ Passos:
 - [x] Salvar `sourceTransactionId`
 - [x] Mostrar transação vinculada no histórico
 - [x] Exibir aviso se valor atribuído for maior que o da transação
-- [x] Rodar `npm run lint && npm run build:check`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -166,7 +166,7 @@ Passos:
 - [x] Se `payment` tem `incomeId`, exibir confirmação com opção de excluir também a entrada vinculada
 - [x] Passar flag `alsoDeleteIncome` para `deleteDebtEntry` conforme escolha do usuário
 - [ ] Adicionar ajuste manual de saldo se houver caso de uso concreto
-- [x] Rodar `npm run lint`, `npm run build:check` e `npm run build`
+- [x] Rodar `npm run lint`, `npm run typecheck` e `npm run build`
 
 Critério de aceite:
 

@@ -157,7 +157,7 @@ Nao apareceu regressao evidente de ownership nos fluxos que recebem `investmentT
 
 ### 4.2 Verificacoes automaticas
 
-1. `npm run build:check` passou no estado revisado.
+1. `npm run typecheck` passou no estado revisado.
 2. `npm run lint` passou no estado revisado.
 
 ## 5. Ordem sugerida de ataque

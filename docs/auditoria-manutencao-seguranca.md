@@ -711,7 +711,7 @@ Evidência:
 
 - Não há testes do projeto encontrados.
 - `CLAUDE.md` também registra que não há testes automatizados.
-- `npm run lint` e `npm run build:check` passam, mas não substituem testes de
+- `npm run lint` e `npm run typecheck` passam, mas não substituem testes de
   comportamento.
 
 Recomendação:
@@ -853,14 +853,14 @@ Foram analisados:
 
 ```bash
 npm run lint
-npm run build:check
+npm run typecheck
 npm audit --audit-level=moderate
 ```
 
 Resultados:
 
 - `npm run lint`: passou.
-- `npm run build:check`: passou.
+- `npm run typecheck`: passou.
 - `npm audit --audit-level=moderate`: falhou primeiro por restrição/rede no
   sandbox; depois rodou com acesso de rede e encontrou 13 vulnerabilidades.
 

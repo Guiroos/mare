@@ -13,7 +13,7 @@ npm run db:studio    # open Drizzle Studio (DB browser)
 npm run lint         # run ESLint (next lint)
 ```
 
-- Antes de commitar: `npm run lint && npx prettier --check . && npx tsc --noEmit`
+- Antes de commitar: `npm run lint && npm run format:check && npm run typecheck`
 - `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
 
 Não há testes automatizados. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.

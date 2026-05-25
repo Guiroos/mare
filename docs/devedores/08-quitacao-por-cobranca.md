@@ -499,5 +499,5 @@ Novo arquivo: `components/devedores/PaymentWithSettledChargesDeleteDialog.tsx`
 
 ### Fase 6 — Validação
 
-15. `npm run lint && npx prettier --check . && npx tsc --noEmit`
+15. `npm run lint && npm run format:check && npm run typecheck`
 16. Testar via Playwright: Fluxo A, Fluxo B, delete, visual do histórico

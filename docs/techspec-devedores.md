@@ -442,7 +442,7 @@ Passos:
 2. Adicionar relações Drizzle.
 3. Rodar `npm run db:generate`.
 4. Formatar migrations geradas, especialmente `lib/db/migrations/meta/`.
-5. Rodar `npm run build:check`.
+5. Rodar `npm run typecheck`.
 
 Critério de aceite:
 
@@ -464,7 +464,7 @@ Passos:
 4. Garantir validação de `userId` em pessoa, transação e entrada.
 5. Revalidar `/devedores` nas mutações.
 6. Revalidar `/dashboard` e `/panorama` quando pagamento gerar `income`.
-7. Rodar `npm run build:check`.
+7. Rodar `npm run typecheck`.
 
 Critério de aceite:
 
@@ -486,7 +486,7 @@ Passos:
 4. Criar estado vazio.
 5. Adicionar `/devedores` no `Sidebar`.
 6. Adicionar `/devedores` no menu mobile do `BottomNav`.
-7. Rodar `npm run lint` e `npm run build:check`.
+7. Rodar `npm run lint` e `npm run typecheck`.
 
 Critério de aceite:
 
@@ -508,7 +508,7 @@ Passos:
 3. Mostrar saldo por pessoa.
 4. Mostrar total em aberto.
 5. Mostrar histórico simples.
-6. Rodar `npm run lint` e `npm run build:check`.
+6. Rodar `npm run lint` e `npm run typecheck`.
 
 Critério de aceite:
 
@@ -529,7 +529,7 @@ Passos:
 3. Se marcado, criar `income` vinculado.
 4. Mostrar pagamento no histórico.
 5. Atualizar saldo da pessoa.
-6. Rodar `npm run lint` e `npm run build:check`.
+6. Rodar `npm run lint` e `npm run typecheck`.
 
 Critério de aceite:
 
@@ -551,7 +551,7 @@ Passos:
 4. Salvar `sourceTransactionId`.
 5. Mostrar transação vinculada no histórico.
 6. Exibir aviso se valor atribuído for maior que o valor da transação.
-7. Rodar `npm run lint` e `npm run build:check`.
+7. Rodar `npm run lint` e `npm run typecheck`.
 
 Critério de aceite:
 
@@ -572,7 +572,7 @@ Passos:
 3. Adicionar ajuste manual se necessário.
 4. Implementar arquivamento de pessoa.
 5. Implementar exclusão definitiva apenas para pessoa sem lançamentos.
-6. Rodar `npm run lint`, `npm run build:check` e `npm run build`.
+6. Rodar `npm run lint`, `npm run typecheck` e `npm run build`.
 
 Critério de aceite:
 

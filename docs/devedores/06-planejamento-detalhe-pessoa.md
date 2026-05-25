@@ -249,7 +249,7 @@ Critérios de aceite:
 - usuário vê saldo atual, total cobrado, total recebido e último movimento;
 - saldo continua igual ao cálculo anterior;
 - pessoa sem lançamentos renderiza sem erro;
-- `npm run lint` e `npm run build:check` passam.
+- `npm run lint` e `npm run typecheck` passam.
 
 ### Fase 2 — Evolução do Saldo
 

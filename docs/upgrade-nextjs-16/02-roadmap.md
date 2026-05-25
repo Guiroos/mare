@@ -182,13 +182,13 @@ Critério de aceite:
 
 ### Validação
 
-- [ ] Rodar `npx tsc --noEmit` — sem erros de tipo
+- [ ] Rodar `npm run typecheck` — sem erros de tipo
 - [ ] Rodar `npm run build` — build passa
 - [ ] Testar navegação em dev: dashboard com `?month=`, panorama com `?year=`, devedores com ID dinâmico
 
 Critério de aceite:
 
-- `npx tsc --noEmit` sem erros.
+- `npm run typecheck` sem erros.
 - Todas as páginas carregam corretamente com e sem query params.
 - Sem warnings de "sync dynamic API" no console de dev.
 
@@ -228,7 +228,7 @@ Critério de aceite:
 
 - [ ] `npm run lint` — zero warnings
 - [ ] `npx prettier --check .` — sem diferenças de formatação
-- [ ] `npx tsc --noEmit` — zero erros
+- [ ] `npm run typecheck` — zero erros
 - [ ] `npm run build` — build completo sem erros
 
 ### Smoke tests com Playwright (fluxo principal)

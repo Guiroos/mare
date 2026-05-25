@@ -36,7 +36,7 @@ Passos:
       `creditMode`/`faturaActiveFrom` se já houver pagamento de fatura registrado
 - [x] Criar UI de toggle + seletor de mês em `/contas` (`app/(app)/contas/page.tsx`),
       numa `<Section title="Regime de fatura">` separada (configuração global, não por conta)
-- [x] Rodar `npm run lint && npx tsc --noEmit`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -61,7 +61,7 @@ Passos:
 - [x] Implementar `getFaturaState(userId, accountId, referenceMonth)`
 - [x] Implementar `getOpenFaturas(userId)`
 - [x] Verificar que `billingCycleDateRange` cobre os casos necessários; ajustar se preciso
-- [x] Rodar `npx tsc --noEmit`
+- [x] Rodar `npm run typecheck`
 
 Critério de aceite:
 
@@ -110,7 +110,7 @@ Passos:
 - [ ] Testar com Playwright: registrar pagamento e verificar que o ciclo pago deixa de exibir
       ação de pagamento duplicada
 - [ ] Testar com Playwright: tentar registrar segundo pagamento para o mesmo ciclo — deve falhar
-- [x] Rodar `npm run lint && npx tsc --noEmit`
+- [x] Rodar `npm run lint && npm run typecheck`
 
 Critério de aceite:
 
@@ -147,7 +147,7 @@ Passos:
       e entram no total da fatura
 - [x] Ajustar `unpaidFixedCount` para não alertar gastos fixos de crédito em meses de fatura
 - [ ] Testar com Playwright: verificar que saldo do mês exclui compras de crédito e inclui pagamento de fatura
-- [x] Rodar `npm run lint && npx tsc --noEmit && npm run build`
+- [x] Rodar `npm run lint && npm run typecheck && npm run build`
 
 Critério de aceite:
 
@@ -171,7 +171,7 @@ Passos:
 - [x] Verificar que ao deletar uma transação de pagamento de fatura via `/registro`, o card
       volta ao estado "fechado sem pagamento" (comportamento automático — sem lógica extra)
 - [ ] Testar Playwright completo: ativar regime → acumular ciclo → registrar pagamento → verificar dashboard → deletar pagamento → verificar reversão do card → desativar regime → verificar restauração
-- [ ] Rodar `npm run lint && npx prettier --check . && npx tsc --noEmit && npm run build`
+- [ ] Rodar `npm run lint && npx prettier --check . && npm run typecheck && npm run build`
 
 Critério de aceite:
 
