@@ -12,7 +12,7 @@ import {
   uniqueIndex,
   AnyPgColumn,
 } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -21,6 +21,21 @@ export const users = pgTable('users', {
   image: varchar('image', { length: 500 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
+
+export const userSettings = pgTable(
+  'user_settings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .unique()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    creditMode: varchar('credit_mode', { length: 20 }).notNull().default('accrual'), // accrual | fatura
+    faturaActiveFrom: date('fatura_active_from'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [index('user_settings_user_idx').on(t.userId)]
+)
 
 // NextAuth required tables
 export const accounts = pgTable('accounts', {
@@ -157,12 +172,14 @@ export const transactions = pgTable(
     accountId: uuid('account_id')
       .notNull()
       .references(() => paymentAccounts.id, { onDelete: 'restrict' }),
-    categoryId: uuid('category_id')
-      .notNull()
-      .references(() => categories.id, { onDelete: 'restrict' }),
+    categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'restrict' }),
     installmentGroupId: uuid('installment_group_id').references(() => installmentGroups.id, {
       onDelete: 'set null',
     }),
+    faturaAccountId: uuid('fatura_account_id').references(() => paymentAccounts.id, {
+      onDelete: 'restrict',
+    }),
+    faturaCycleMonth: date('fatura_cycle_month'),
     name: varchar('name', { length: 200 }).notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
     date: date('date').notNull(),
@@ -173,6 +190,9 @@ export const transactions = pgTable(
   (t) => [
     index('transactions_user_month_idx').on(t.userId, t.referenceMonth),
     index('transactions_user_date_idx').on(t.userId, t.date),
+    uniqueIndex('transactions_fatura_unique_idx')
+      .on(t.userId, t.faturaAccountId, t.faturaCycleMonth)
+      .where(sql`${t.faturaAccountId} IS NOT NULL`),
   ]
 )
 
@@ -274,7 +294,8 @@ export const goalContributions = pgTable('goal_contributions', {
 })
 
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
+  settings: one(userSettings, { fields: [users.id], references: [userSettings.userId] }),
   categoryGroups: many(categoryGroups),
   categories: many(categories),
   paymentAccounts: many(paymentAccounts),
@@ -289,6 +310,10 @@ export const usersRelations = relations(users, ({ many }) => ({
   goalContributions: many(goalContributions),
   people: many(people),
   debtorEntries: many(debtorEntries),
+}))
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, { fields: [userSettings.userId], references: [users.id] }),
 }))
 
 export const categoryGroupsRelations = relations(categoryGroups, ({ one, many }) => ({
@@ -325,7 +350,8 @@ export const paymentAccountsRelations = relations(paymentAccounts, ({ one, many 
   }),
   fixedExpenses: many(fixedExpenses),
   installmentGroups: many(installmentGroups),
-  transactions: many(transactions),
+  transactions: many(transactions, { relationName: 'transaction_account' }),
+  faturaTransactions: many(transactions, { relationName: 'transaction_fatura_account' }),
 }))
 
 export const fixedExpensesRelations = relations(fixedExpenses, ({ one }) => ({
@@ -361,6 +387,12 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
   account: one(paymentAccounts, {
     fields: [transactions.accountId],
     references: [paymentAccounts.id],
+    relationName: 'transaction_account',
+  }),
+  faturaAccount: one(paymentAccounts, {
+    fields: [transactions.faturaAccountId],
+    references: [paymentAccounts.id],
+    relationName: 'transaction_fatura_account',
   }),
   category: one(categories, {
     fields: [transactions.categoryId],
