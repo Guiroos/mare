@@ -601,7 +601,6 @@ Critério de aceite:
 
 Adicionar:
 
-- `docs/techspec-devedores.md`
 - `app/(app)/devedores/page.tsx`
 - `app/(app)/devedores/loading.tsx`
 - `components/devedores/PersonDialog.tsx`

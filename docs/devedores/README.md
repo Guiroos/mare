@@ -56,4 +56,4 @@ Esta pasta organiza o planejamento e execução do módulo `devedores`.
 - Detalhe: `app/(app)/devedores/[id]/page.tsx`
 - Schema: `lib/db/schema.ts`
 - Ownership: `lib/auth/ownership.ts`
-- Spec original: `docs/techspec-devedores.md`
+- Spec original: [00-techspec.md](./00-techspec.md)

@@ -1,22 +1,4 @@
-# Design Review — Auditoria DS Maré
-
-> Gerado em: 2026-05-13
-> Última atualização: 2026-05-13 (P7 concluída — auditoria completa)
-> Escopo: `components/ui/`, `components/`, `app/(app)/`
-> Método: revisão sistemática pelas 6 regras do DS Maré
-
----
-
-## Sumário
-
-| Regra                                               | Violações originais | Resolvidas | Pendentes |
-| --------------------------------------------------- | ------------------- | ---------- | --------- |
-| Regra 2 — Compostos usam primitivos / `cn()`        | 6                   | 6          | 0         |
-| Regra 3 — Tokens nomeados, zero valores arbitrários | 24                  | 24         | 0         |
-| Regra 5 — Modais responsivos Dialog + Drawer        | 8                   | 8          | 0         |
-| **Total**                                           | **38**              | **38**     | **0**     |
-
----
+# Violações por Prioridade
 
 ## Prioridade 1 — Erros nos primitivos do DS ✓ concluída
 
@@ -134,7 +116,7 @@ Padrão: `text-xs` → `text-caption`, `text-sm` → `text-small`.
 
 ## Prioridade 7 — Modais sem padrão responsivo (Dialog + Drawer) ✓ concluída
 
-Todos os componentes abaixo usam apenas `<Dialog>` sem fallback `<Drawer>` para mobile. Padrão de referência: `DeleteButton` e `InvestmentEntryDialog`.
+Todos os componentes abaixo usavam apenas `<Dialog>` sem fallback `<Drawer>` para mobile. Padrão de referência: `DeleteButton` e `InvestmentEntryDialog`.
 
 - [x] **R5** `components/investimentos/WithdrawalEditButton.tsx`
 - [x] **R5** `components/investimentos/WithdrawalDialog.tsx`
@@ -162,7 +144,9 @@ Todos os componentes abaixo usam apenas `<Dialog>` sem fallback `<Drawer>` para 
 
 ---
 
-## Não são violações (registrado para clareza)
+## Não São Violações
+
+Registrado para clareza futura.
 
 - `select.tsx`: `h-[var(--radix-select-trigger-height)]` e `[&>span]:line-clamp-1` — valores funcionais do Radix sem alternativa em token, aceitos.
 - `empty-state.tsx`: `[&>svg]:h-7 [&>svg]:w-7 [&>svg]:text-text-tertiary` — seletor de filho sem equivalente Tailwind; aceito (mesmo padrão de `[&>span]:line-clamp-1`).
