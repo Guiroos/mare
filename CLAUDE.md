@@ -13,10 +13,10 @@ npm run db:studio    # open Drizzle Studio (DB browser)
 npm run lint         # run ESLint (next lint)
 ```
 
-- Antes de commitar: `npm run lint && npm run format:check && npm run typecheck`
+- Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
 
-Não há testes automatizados. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
+Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm test:coverage`. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
 
 ## Environment
 
@@ -135,6 +135,7 @@ NEXTAUTH_URL=http://localhost:3000
 - `getUserCreditMode(userId)` nunca retorna null — retorna `{ creditMode: 'accrual', faturaActiveFrom: null }` por default para usuários sem row em `userSettings`; não precisa de null check
 - Em Next.js 16, `params` e `searchParams` em pages são `Promise<>` e exigem `await`; em páginas dinâmicas que precisam de `auth()`, paralelizar com `const [session, { id }] = await Promise.all([auth(), params])` — os dois são independentes e podem ser resolvidos em paralelo
 - `@serwist/next` injeta webpack config no Next.js; como o v16 usa Turbopack por padrão no build, o `next build` aborta com "This build is using Turbopack, with a webpack config and no turbopack config" — solução: adicionar `turbopack: {}` vazio ao `next.config.mjs` para sinalizar coexistência intencional
+- `dateSchema` (`lib/validations/utils.ts`) valida formato via regex E executa `Date.parse(v + 'T12:00:00')`, mas `Date.parse` faz overflow silencioso em datas inválidas de calendário (ex: 29/02 em ano não-bissexto vira 01/03) em vez de retornar NaN — o schema aceita essas datas; apenas componentes impossíveis como mês 13 são rejeitados; não confiar no schema para validar precisão de calendário
 
 ### UI
 
