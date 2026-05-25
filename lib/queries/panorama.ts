@@ -1,7 +1,15 @@
 import { db } from '@/lib/db'
-import { transactions, fixedExpenses, incomes, investments, categoryGroups } from '@/lib/db/schema'
-import { eq, and, sum, gte, lte, inArray, sql } from 'drizzle-orm'
+import {
+  transactions,
+  fixedExpenses,
+  incomes,
+  investments,
+  categoryGroups,
+  paymentAccounts,
+} from '@/lib/db/schema'
+import { eq, and, sum, gte, lte, inArray, sql, ne, lt, or } from 'drizzle-orm'
 import { currentYear } from '@/lib/utils/date'
+import { FaturaContext } from '@/lib/queries/fatura'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,9 +48,16 @@ export async function getAvailableYears(userId: string): Promise<number[]> {
 }
 
 // ─── Visão geral anual ────────────────────────────────────────────────────────
+// Em regime de fatura, usa JOIN com paymentAccounts para excluir contas de crédito
+// nos meses com regime ativo — sem query extra de soma.
 
-export async function getAnnualOverview(userId: string, year: number) {
+export async function getAnnualOverview(userId: string, year: number, faturaCtx?: FaturaContext) {
   const months = yearMonths(year)
+
+  const isFaturaMode =
+    faturaCtx !== undefined &&
+    faturaCtx.creditMode === 'fatura' &&
+    faturaCtx.faturaActiveFrom !== null
 
   const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows] = await Promise.all([
     db
@@ -50,16 +65,59 @@ export async function getAnnualOverview(userId: string, year: number) {
       .from(incomes)
       .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months)))
       .groupBy(incomes.referenceMonth),
-    db
-      .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
-      .from(transactions)
-      .where(and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months)))
-      .groupBy(transactions.referenceMonth),
-    db
-      .select({ referenceMonth: fixedExpenses.referenceMonth, total: sum(fixedExpenses.amount) })
-      .from(fixedExpenses)
-      .where(and(eq(fixedExpenses.userId, userId), inArray(fixedExpenses.referenceMonth, months)))
-      .groupBy(fixedExpenses.referenceMonth),
+
+    isFaturaMode
+      ? db
+          .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
+          .from(transactions)
+          .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              inArray(transactions.referenceMonth, months),
+              or(
+                lt(transactions.referenceMonth, faturaCtx.faturaActiveFrom!),
+                ne(paymentAccounts.type, 'credit')
+              )
+            )
+          )
+          .groupBy(transactions.referenceMonth)
+      : db
+          .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
+          .from(transactions)
+          .where(and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months)))
+          .groupBy(transactions.referenceMonth),
+
+    isFaturaMode
+      ? db
+          .select({
+            referenceMonth: fixedExpenses.referenceMonth,
+            total: sum(fixedExpenses.amount),
+          })
+          .from(fixedExpenses)
+          .innerJoin(paymentAccounts, eq(fixedExpenses.accountId, paymentAccounts.id))
+          .where(
+            and(
+              eq(fixedExpenses.userId, userId),
+              inArray(fixedExpenses.referenceMonth, months),
+              or(
+                lt(fixedExpenses.referenceMonth, faturaCtx.faturaActiveFrom!),
+                ne(paymentAccounts.type, 'credit')
+              )
+            )
+          )
+          .groupBy(fixedExpenses.referenceMonth)
+      : db
+          .select({
+            referenceMonth: fixedExpenses.referenceMonth,
+            total: sum(fixedExpenses.amount),
+          })
+          .from(fixedExpenses)
+          .where(
+            and(eq(fixedExpenses.userId, userId), inArray(fixedExpenses.referenceMonth, months))
+          )
+          .groupBy(fixedExpenses.referenceMonth),
+
     db
       .select({ referenceMonth: investments.referenceMonth, total: sum(investments.amount) })
       .from(investments)
@@ -95,9 +153,20 @@ export type OverviewMonth = Awaited<ReturnType<typeof getAnnualOverview>>[number
 
 // ─── Gastos anuais por grupo de categoria ─────────────────────────────────────
 
-export async function getAnnualExpensesByGroup(userId: string, year: number) {
+export async function getAnnualExpensesByGroup(
+  userId: string,
+  year: number,
+  faturaCtx?: FaturaContext
+) {
   const firstMonth = `${year}-01-01`
   const lastMonth = `${year}-12-01`
+
+  const isFaturaMode =
+    faturaCtx !== undefined &&
+    faturaCtx.creditMode === 'fatura' &&
+    faturaCtx.faturaActiveFrom !== null
+
+  const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
 
   // Fetch all category groups with their categories in one query
   const groups = await db.query.categoryGroups.findMany({
@@ -118,6 +187,7 @@ export async function getAnnualExpensesByGroup(userId: string, year: number) {
     db
       .select({
         categoryId: transactions.categoryId,
+        accountId: transactions.accountId,
         referenceMonth: transactions.referenceMonth,
         amount: transactions.amount,
       })
@@ -132,6 +202,7 @@ export async function getAnnualExpensesByGroup(userId: string, year: number) {
     db
       .select({
         categoryId: fixedExpenses.categoryId,
+        accountId: fixedExpenses.accountId,
         referenceMonth: fixedExpenses.referenceMonth,
         amount: fixedExpenses.amount,
       })
@@ -150,6 +221,18 @@ export async function getAnnualExpensesByGroup(userId: string, year: number) {
 
   for (const t of [...allTransactions, ...allFixedExpenses]) {
     const month = t.referenceMonth.slice(0, 7) // YYYY-MM
+    if (!t.categoryId) continue
+
+    // Skip credit account expenses in fatura months
+    if (
+      isFaturaMode &&
+      faturaCtx!.faturaActiveFrom !== null &&
+      t.referenceMonth >= faturaCtx!.faturaActiveFrom &&
+      creditIdSet.has(t.accountId)
+    ) {
+      continue
+    }
+
     const groupInfo = categoryToGroup.get(t.categoryId)
     if (!groupInfo) continue
 
