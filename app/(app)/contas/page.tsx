@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getPaymentAccounts } from '@/lib/queries/categories'
 import { AccountDialog } from '@/components/contas/AccountDialog'
+import { CreditModeSection } from '@/components/contas/CreditModeSection'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { deletePaymentAccount } from '@/lib/actions/categories'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Section } from '@/components/ui/section'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
+import { getUserCreditMode } from '@/lib/queries/fatura'
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   credit: 'Crédito',
@@ -22,7 +24,12 @@ export default async function ContasPage() {
   if (!session) redirect('/login')
 
   const userId = session.user.id
-  const accounts = await getPaymentAccounts(userId)
+  const [accounts, creditMode] = await Promise.all([
+    getPaymentAccounts(userId),
+    getUserCreditMode(userId),
+  ])
+
+  const hasCreditAccounts = accounts.some((a) => a.type === 'credit' && (a.closingDay ?? 0) > 1)
 
   return (
     <PageLayout>
@@ -69,6 +76,12 @@ export default async function ContasPage() {
           </Card>
         )}
       </Section>
+
+      <CreditModeSection
+        initialCreditMode={creditMode.creditMode}
+        initialFaturaActiveFrom={creditMode.faturaActiveFrom}
+        hasCreditAccounts={hasCreditAccounts}
+      />
     </PageLayout>
   )
 }

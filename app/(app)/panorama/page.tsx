@@ -7,6 +7,8 @@ import {
   getAvailableYears,
 } from '@/lib/queries/panorama'
 import { getPatrimonyTimeline } from '@/lib/queries/investments'
+import { getUserCreditMode } from '@/lib/queries/fatura'
+import { getCreditAccounts } from '@/lib/queries/categories'
 import { formatCurrency } from '@/lib/utils/currency'
 import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
@@ -27,11 +29,25 @@ export default async function PanoramaPage({ searchParams }: { searchParams: { y
   const parsedYear = parseInt(searchParams.year ?? '', 10)
   const year = isFinite(parsedYear) && parsedYear > 2000 ? parsedYear : currentYear()
 
+  const [creditMode, creditAccounts] = await Promise.all([
+    getUserCreditMode(userId),
+    getCreditAccounts(userId),
+  ])
+
+  const faturaCtx =
+    creditMode.creditMode === 'fatura'
+      ? {
+          creditMode: creditMode.creditMode as 'accrual' | 'fatura',
+          faturaActiveFrom: creditMode.faturaActiveFrom,
+          creditAccountIds: creditAccounts.map((a) => a.id),
+        }
+      : undefined
+
   const [overview, prevOverview, expensesByGroup, availableYears, patrimonyTimeline] =
     await Promise.all([
-      getAnnualOverview(userId, year),
-      getAnnualOverview(userId, year - 1),
-      getAnnualExpensesByGroup(userId, year),
+      getAnnualOverview(userId, year, faturaCtx),
+      getAnnualOverview(userId, year - 1, faturaCtx),
+      getAnnualExpensesByGroup(userId, year, faturaCtx),
       getAvailableYears(userId),
       getPatrimonyTimeline(userId),
     ])

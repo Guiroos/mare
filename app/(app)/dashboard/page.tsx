@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getDashboardData, getDashboardDataBillingCycle } from '@/lib/queries/dashboard'
-import { getCreditAccounts } from '@/lib/queries/categories'
+import { getCreditAccounts, getPaymentAccounts } from '@/lib/queries/categories'
+import { getUserCreditMode, getOpenFaturas } from '@/lib/queries/fatura'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
@@ -17,6 +19,7 @@ import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList'
 import { IncomeList } from '@/components/dashboard/IncomeList'
 import { InvestmentList } from '@/components/dashboard/InvestmentList'
 import { PendencyBanner } from '@/components/dashboard/PendencyBanner'
+import { FaturaCard } from '@/components/fatura/FaturaCard'
 import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
@@ -40,15 +43,35 @@ export default async function DashboardPage({
   const cycleRange = activeAccount ? billingCycleDateRange(month, activeAccount.closingDay) : null
   const isCycleView = cycleRange !== null
 
-  const data = isCycleView
-    ? await getDashboardDataBillingCycle(
-        userId,
-        month,
-        activeAccount!.closingDay,
-        cycleRange,
-        activeAccount!.id
-      )
-    : await getDashboardData(userId, referenceMonth)
+  const creditMode = await getUserCreditMode(userId)
+  const isFaturaMode = !isCycleView && creditMode.creditMode === 'fatura'
+
+  const faturaCtx = isFaturaMode
+    ? {
+        creditMode: creditMode.creditMode as 'accrual' | 'fatura',
+        faturaActiveFrom: creditMode.faturaActiveFrom,
+        creditAccountIds: creditAccounts.map((a) => a.id),
+      }
+    : undefined
+
+  const [data, openFaturas, allAccounts] = await Promise.all([
+    isCycleView
+      ? getDashboardDataBillingCycle(
+          userId,
+          month,
+          activeAccount!.closingDay,
+          cycleRange,
+          activeAccount!.id
+        )
+      : getDashboardData(userId, referenceMonth, faturaCtx),
+    isFaturaMode ? getOpenFaturas(userId, creditMode.faturaActiveFrom) : Promise.resolve([]),
+    isFaturaMode ? getPaymentAccounts(userId) : Promise.resolve([]),
+  ])
+
+  const debitAccounts = allAccounts.filter((a) => a.type !== 'credit')
+  const unconfiguredCreditAccounts = isFaturaMode
+    ? allAccounts.filter((a) => a.type === 'credit' && (a.closingDay == null || a.closingDay <= 1))
+    : []
 
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
@@ -56,12 +79,17 @@ export default async function DashboardPage({
   const isPastMonth =
     displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
 
-  const unpaidFixedCount = isCurrentMonth ? data.fixedExpenses.filter((e) => !e.paid).length : 0
+  const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
+  const fixedForPendency =
+    faturaCtx && creditIdSet.size > 0
+      ? data.fixedExpenses.filter((e) => !creditIdSet.has(e.accountId))
+      : data.fixedExpenses
+  const unpaidFixedCount = isCurrentMonth ? fixedForPendency.filter((e) => !e.paid).length : 0
   const pendingYieldCount = isCurrentMonth
     ? data.investments.filter((i) => i.amount !== null && i.yieldAmount === null).length
     : 0
 
-  const pendingFixed = data.fixedExpenses.filter((e) => !e.paid).length
+  const pendingFixed = fixedForPendency.filter((e) => !e.paid).length
   const totalTransactions = data.transactions.length
   const totalIncomes = data.summary.totalIncomes
   const totalInvested = data.summary.totalInvested
@@ -80,6 +108,29 @@ export default async function DashboardPage({
       <PendencyBanner unpaidFixedCount={unpaidFixedCount} pendingYieldCount={pendingYieldCount} />
 
       <SummaryCards summary={data.summary} />
+
+      {(openFaturas.length > 0 || unconfiguredCreditAccounts.length > 0) && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {openFaturas.map((fatura) => (
+            <FaturaCard key={fatura.account.id} data={fatura} debitAccounts={debitAccounts} />
+          ))}
+          {unconfiguredCreditAccounts.map((account) => (
+            <div
+              key={account.id}
+              className="relative flex flex-col gap-3 overflow-hidden rounded-lg border border-border bg-bg-surface p-5 shadow-sm before:absolute before:left-0 before:right-0 before:top-0 before:h-1 before:rounded-t-lg before:bg-warning before:content-['']"
+            >
+              <span className="text-caption font-medium text-text-secondary">{account.name}</span>
+              <p className="text-small text-text-secondary">
+                Configure o dia de fechamento deste cartão em{' '}
+                <Link href="/contas" className="font-medium text-accent-text hover:underline">
+                  Contas
+                </Link>{' '}
+                para incluí-lo no regime de fatura.
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Row 1: Orçamento + Gastos Fixos */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -107,6 +158,7 @@ export default async function DashboardPage({
             isCurrentMonth={isCurrentMonth}
             isPastMonth={isPastMonth}
             todayDay={todayDay}
+            creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
           />
         </Section>
       </div>
@@ -122,7 +174,10 @@ export default async function DashboardPage({
           ) : undefined
         }
       >
-        <TransactionList transactions={data.transactions} />
+        <TransactionList
+          transactions={data.transactions}
+          creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+        />
       </Section>
 
       {/* Row 2: Entradas + Investimentos */}
