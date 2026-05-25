@@ -133,6 +133,8 @@ NEXTAUTH_URL=http://localhost:3000
 - `isFaturaMode` e `isCycleView` são mutuamente exclusivos no dashboard: `isFaturaMode = !isCycleView && creditMode === 'fatura'` — quando o usuário navega pelo cycle view de uma conta (`?cycleAccount=`), o regime de fatura é desligado; não aplicar `faturaCtx` dentro do branch de `isCycleView`
 - Em fatura mode, `fixedForPendency` exclui gastos fixos vinculados a contas de crédito do count de pendências no dashboard — esses itens são gerenciados via `FaturaCard`, não marcados individualmente como pago; `unpaidFixedCount` e `pendingFixed` derivam de `fixedForPendency`, não de `data.fixedExpenses`
 - `getUserCreditMode(userId)` nunca retorna null — retorna `{ creditMode: 'accrual', faturaActiveFrom: null }` por default para usuários sem row em `userSettings`; não precisa de null check
+- Em Next.js 16, `params` e `searchParams` em pages são `Promise<>` e exigem `await`; em páginas dinâmicas que precisam de `auth()`, paralelizar com `const [session, { id }] = await Promise.all([auth(), params])` — os dois são independentes e podem ser resolvidos em paralelo
+- `@serwist/next` injeta webpack config no Next.js; como o v16 usa Turbopack por padrão no build, o `next build` aborta com "This build is using Turbopack, with a webpack config and no turbopack config" — solução: adicionar `turbopack: {}` vazio ao `next.config.mjs` para sinalizar coexistência intencional
 
 ### UI
 
