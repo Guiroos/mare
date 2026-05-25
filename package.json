@@ -24,6 +24,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "prepare": "husky"
   },
   "dependencies": {
@@ -67,6 +68,7 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.4",
     "husky": "9.1.7",
+    "neon-testing": "2.7.0",
     "postcss": "8.5.10",
     "prettier": "3.8.3",
     "prettier-plugin-tailwindcss": "0.7.2",

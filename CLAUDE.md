@@ -16,7 +16,7 @@ npm run lint         # run ESLint (next lint)
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
 
-Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm test:coverage`. Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
+Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm test:coverage`. Testes de integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID` no `.env.local`). Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser. Gotchas de infraestrutura de testes: @.claude/testing.md
 
 ## Environment
 
