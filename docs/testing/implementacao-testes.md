@@ -266,12 +266,12 @@ playwright.config.ts
 ## Checklist de implementação
 
 ### Fase 1 — Unitários
-- [ ] Instalar `vitest` + `@vitejs/plugin-react` + `@vitest/coverage-v8`
-- [ ] Criar `vitest.config.ts`
-- [ ] Adicionar scripts `test`, `test:watch`, `test:coverage` ao `package.json`
-- [ ] Criar `__tests__/unit/date.test.ts`
-- [ ] Criar `__tests__/unit/currency.test.ts`
-- [ ] Criar `__tests__/unit/validations.test.ts`
+- [x] Instalar `vitest` + `@vitejs/plugin-react` + `@vitest/coverage-v8`
+- [x] Criar `vitest.config.ts`
+- [x] Adicionar scripts `test`, `test:watch`, `test:coverage` ao `package.json`
+- [x] Criar `__tests__/unit/date.test.ts`
+- [x] Criar `__tests__/unit/currency.test.ts`
+- [x] Criar `__tests__/unit/validations.test.ts`
 
 ### Fase 2 — Integração
 - [ ] Instalar `neon-testing`
