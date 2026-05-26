@@ -8,7 +8,7 @@ export default defineConfig({
     setupFiles: ['__tests__/integration/env-setup.ts'],
     include: ['__tests__/integration/**/*.test.ts'],
     pool: 'forks',
-    poolOptions: { forks: { singleFork: false } },
+    poolOptions: { forks: { singleFork: false, maxForks: 4 } },
     testTimeout: 30000,
   },
   resolve: {

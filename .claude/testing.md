@@ -11,6 +11,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 - **`autoCloseWebSockets: true` obrigatório**: quando usando `Pool` de `@neondatabase/serverless`, omitir essa opção faz o cleanup do branch falhar silenciosamente com conexões WebSocket abertas
 - **`parentBranchId` obrigatório**: sem ele, neon-testing clona do branch default do projeto (prod); sempre passar `NEON_PARENT_BRANCH_ID` apontando para o branch dev — o ID fica em console.neon.tech → Branches
 - **Branches são clones — sem migrations**: o branch de teste herda o schema completo do pai; nunca chamar `migrate()` nos testes
+- **Neon hobby plan — `maxForks: 4`**: o plano hobby tem limite de 10 branches por projeto; com 2 branches fixos (prod + dev), restam 8 slots; sem `maxForks`, todos os arquivos criam branches em paralelo e os últimos falham com `BRANCHES_LIMIT_EXCEEDED`; `maxForks: 4` garante no máximo 6 branches simultâneos (4 test + 2 fixos), com margem para branches lentos a destruir
 
 ## Carregamento de variáveis de ambiente
 
@@ -27,6 +28,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 
 - **`createTransaction` exige `categoryId` via overrides**: a factory não tem `categoryId` nos defaults; a check constraint `transactions_fatura_category_check` do banco rejeita qualquer `INSERT` sem `categoryId` e sem `faturaAccountId` — chamadas sem override falham com erro de constraint enigmático; sempre passar `categoryId` via overrides em testes que criam transações comuns
 - **Isolamento por ID, não por truncate**: os factories criam usuários com sufixo único (`Date.now()`); não confiar em isolamento por ordem de execução — filtrar sempre por ID específico; testes dentro do mesmo arquivo compartilham `userId`, o que é suficiente desde que cada teste crie suas próprias entidades
+- **`userSettings` exige par consistente `(creditMode, faturaActiveFrom)`**: a constraint `user_settings_credit_mode_check` rejeita `creditMode='fatura'` sem `faturaActiveFrom` e `creditMode='accrual'` com `faturaActiveFrom` não-null; ao inserir diretamente em testes, sempre passar o par: `{ creditMode: 'accrual', faturaActiveFrom: null }` ou `{ creditMode: 'fatura', faturaActiveFrom: '2025-01-01' }`
 
 ## Testando actions com banco real
 

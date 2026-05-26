@@ -28,17 +28,21 @@ beforeAll(async () => {
 
 describe('userSettings — upsert via onConflictDoUpdate', () => {
   it('inserir duas vezes não cria duas rows', async () => {
-    const upsert = (creditMode: string) =>
+    const accrualRow = { creditMode: 'accrual', faturaActiveFrom: null, updatedAt: new Date() }
+    const faturaRow = {
+      creditMode: 'fatura',
+      faturaActiveFrom: '2025-01-01',
+      updatedAt: new Date(),
+    }
+
+    const upsert = (values: typeof accrualRow | typeof faturaRow) =>
       db
         .insert(schema.userSettings)
-        .values({ userId, creditMode, updatedAt: new Date() })
-        .onConflictDoUpdate({
-          target: [schema.userSettings.userId],
-          set: { creditMode, updatedAt: new Date() },
-        })
+        .values({ userId, ...values })
+        .onConflictDoUpdate({ target: [schema.userSettings.userId], set: values })
 
-    await upsert('accrual')
-    await upsert('fatura')
+    await upsert(accrualRow)
+    await upsert(faturaRow)
 
     const rows = await db.query.userSettings.findMany({
       where: eq(schema.userSettings.userId, userId),
