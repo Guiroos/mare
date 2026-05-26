@@ -7,8 +7,18 @@ Três camadas de teste, cada uma com escopo e ferramenta definidos:
 | Camada | Ferramenta | O que testa |
 |---|---|---|
 | Unitária | Vitest | Funções puras, schemas Zod |
-| Integração | Vitest + `neon-testing` | Invariantes de banco: constraints, FKs, transactions |
+| Integração (schema) | Vitest + `neon-testing` | Invariantes de banco: constraints, FKs, transactions |
+| Integração (actions) | Vitest + `neon-testing` | Lógica de negócio das server actions com banco real |
 | E2E | Playwright | Fluxos críticos no browser |
+
+### Estado atual da cobertura
+
+| Pasta | Cobertura | Observação |
+|---|---|---|
+| `lib/utils/` | Alta | Unitários para `currency`, `date`, `validations` |
+| `lib/db/schema` | Alta | Contratos FK/constraint cobertos pelos testes de integração |
+| `lib/actions/` | **Zero** | Maior gap — auth, ownership, lógica de negócio não testados |
+| `lib/queries/` | **Zero** | Queries de aggregação (`getDashboardData`, `getAnnualOverview`) não testadas |
 
 ---
 
@@ -85,11 +95,15 @@ As actions do Maré têm lógica que depende de restrições do banco:
 
 Mocks de banco não detectariam falhas nessas situações. A `neon-testing` cria um branch Neon por arquivo de teste com o schema completo, isolado e descartável.
 
-### Por que testar a camada de banco, não as server actions
+### O desafio de testar as server actions
 
-As server actions importam `@/lib/db`, que inicializa `new Pool({ connectionString: process.env.DATABASE_URL })` no nível do módulo. Isso captura a URL no momento do import — antes do `beforeAll` do neon-testing rodar e setar a URL do branch de teste. Importar as actions nos testes causaria conexão com o banco de produção/dev.
+As server actions importam `@/lib/db`, que inicializa `new Pool({ connectionString: process.env.DATABASE_URL })` no nível do módulo. Imports estáticos capturam a URL no momento do import — antes do `beforeAll` do neon-testing setar a URL do branch de teste, o que causaria conexão com o banco de dev.
 
-A alternativa seria mockar `@/lib/db` inteiro, o que remove o valor do teste de integração. A abordagem correta é testar as operações de banco diretamente, criando a conexão dentro do `beforeAll` (após o neon-testing setar `DATABASE_URL`).
+**Solução: dynamic imports dentro do `beforeAll`**. Como Vitest com `pool: 'forks'` roda cada arquivo num processo separado, nenhum módulo está pré-carregado. O `beforeAll` do neon-testing seta `DATABASE_URL` para o branch de teste antes do nosso `beforeAll`. Importando a action dinamicamente dentro do nosso `beforeAll`, o `lib/db` é inicializado com a URL correta.
+
+`vi.mock` é hoistado pelo compilador Vitest — pode ficar no topo do arquivo e afeta imports dinâmicos também. Módulos importados dinamicamente múltiplas vezes retornam o mesmo cache — sem overhead por `it()`.
+
+Os testes de schema da Fase 2 (constraints, FKs) continuam válidos e necessários: testam invariantes que não passam pela camada de application. Os testes de action da Fase 2.5 cobrem a lógica de negócio, validação e checks de autorização — camadas distintas.
 
 ### 2.1 Instalar dependências
 
@@ -204,6 +218,16 @@ export async function createCharge(db: TestDb, userId: string, personId: string,
 export async function createPayment(db: TestDb, userId: string, personId: string, overrides?)
 ```
 
+**Gotcha: `createTransaction` não tem `categoryId` default.** A check constraint `transactions_fatura_category_check` exige `categoryId IS NOT NULL` quando `faturaAccountId IS NULL`. Chamar `createTransaction(db, userId, accountId)` sem overrides falha com erro de constraint. Sempre passar `{ categoryId }` via overrides para transações comuns:
+
+```ts
+// correto
+await createTransaction(db, userId, accountId, { categoryId })
+
+// falha na constraint do banco
+await createTransaction(db, userId, accountId)
+```
+
 ### 2.8 Padrão de cada arquivo de teste
 
 ```ts
@@ -227,7 +251,7 @@ beforeAll(async () => {
 
 ### 2.9 O que cada arquivo de integração testa
 
-**`debtors.test.ts`**:
+**`debtors.test.ts`** ✅:
 - Pessoa criada com `archived=false` por padrão
 - `archivePerson` seta `archived=true` sem deletar a row
 - `deletePersonIfEmpty` — impede deleção quando há entries (replica a guarda da action)
@@ -236,23 +260,174 @@ beforeAll(async () => {
 - `createDebtPayment` com `settleChargeIds` — apenas as charges especificadas são vinculadas (charges de outras pessoas não são afetadas)
 - `createDebtPayment` com `createIncome` — income e payment compartilham `incomeId`; deletar com `alsoDeleteIncome` limpa ambos
 
-**`transactions.test.ts`**:
+**`transactions.test.ts`** ✅:
 - N transações criadas com nomes `"<name> (i/N)"`
 - `installmentGroupId` e `totalInstallments` presentes em todas as parcelas
 - `referenceMonth` correto na virada de ano (nov → dez → jan → fev)
 
-**`budgets.test.ts`**:
+**`budgets.test.ts`** ✅:
 - Upsert via `onConflictDoUpdate` — sem duplicatas, valor atualizado
 - Meses diferentes criam rows independentes
 - Insert sem `onConflictDoUpdate` lança erro com chave duplicada
 
-### 2.10 Decisões de design
+---
+
+### 2.10 Próximos arquivos de integração (não implementados)
+
+Ordenados por prioridade. Os três primeiros blindam fluxos destrutivos — deleção de entidades com dependentes, onde o banco é a última barreira.
+
+**`investments.test.ts`** — alta prioridade:
+- Upsert via `onConflictDoUpdate` em `[userId, investmentTypeId, referenceMonth]` — confirma que o unique index existe no banco (mesmo padrão do `budgets`, índice diferente)
+- `createWithdrawal` com `destination: 'income'` — `db.transaction` cria `investmentWithdrawals` + `incomes` atomicamente; falha no meio não deve persistir nenhum row
+- `investmentWithdrawals.incomeId` tem `ON DELETE SET NULL` — deletar o income vinculado nulifica `incomeId` no withdrawal mas não deleta a row do withdrawal
+- `investments.goalId` tem `ON DELETE SET NULL` — deletar o goal nulifica o campo em investments sem deletar a row
+
+**`categories.test.ts`** — alta prioridade:
+- `transactions.categoryId` tem `onDelete: 'restrict'` — tentar deletar categoria com transações vinculadas lança erro de FK no banco (não só na UI)
+- Deleção de `categoryGroup` tem cascade para `categories` — se a categoria tem transações (`restrict`), a cascade falha; esse encadeamento é um gotcha real
+
+**`payment-accounts.test.ts`** — alta prioridade:
+- `fixedExpenses.accountId` e `transactions.accountId` têm `onDelete: 'restrict'` — deletar conta com gastos fixos ou transações vinculadas deve falhar no banco
+
+**`installments-delete.test.ts`** — alta prioridade:
+- `transactions.installmentGroupId` tem `onDelete: 'set null'` — deletar o `installmentGroup` deixa as N transações órfãs (`installmentGroupId = null`), não as deleta em cascata; comportamento não-óbvio que vale estar documentado
+
+**`goals.test.ts`** — média prioridade:
+- `goalContributions` tem `onDelete: 'cascade'` na FK para `goals` — deletar o goal apaga todas as contribuições automaticamente
+- `investments.goalId` com `ON DELETE SET NULL` — teste cruzado: deletar goal nulifica o campo em investments sem deletar a row
+
+**`fatura.test.ts`** — média prioridade:
+- `userSettings` upsert via `onConflictDoUpdate` em `userId` — chamar `updateCreditMode` duas vezes não cria duas rows
+- Guard de "não trocar regime enquanto houver pagamentos de fatura" — verificação feita por query na action (não é constraint do banco); o teste documenta explicitamente onde está a barreira
+
+### 2.11 Casos adicionais identificados (não implementados)
+
+São casos que pertencem a arquivos já existentes — não requerem novo arquivo, só novos `it()` dentro do `describe` correspondente.
+
+**`investments.test.ts`** — alta prioridade:
+- `investmentTypes.id` tem `onDelete: 'restrict'` em `investments` — deletar um tipo com aportes vinculados deve falhar no banco
+- `investmentTypes.id` tem `onDelete: 'restrict'` em `investmentWithdrawals` — deletar um tipo com resgates vinculados deve falhar no banco
+
+**`payment-accounts.test.ts`** — média prioridade:
+- `installmentGroups.accountId` tem `onDelete: 'restrict'` — deletar conta com grupos de parcelamento vinculados deve falhar; não coberto pelos casos de transactions/fixedExpenses já existentes
+
+**`categories.test.ts`** — média prioridade:
+- `installmentGroups.categoryId` tem `onDelete: 'restrict'` — deletar categoria com grupos de parcelamento vinculados deve falhar; o encadeamento testado atualmente é apenas via `transactions.categoryId`
+
+**`debtors.test.ts`** — média prioridade:
+- `debtorEntries.sourceTransactionId` tem `ON DELETE SET NULL` — deletar uma transação vinculada a uma entry deve nulificar `sourceTransactionId` sem deletar a entry
+- `debtorEntries.incomeId` tem `ON DELETE SET NULL` — deletar um income vinculado a uma entry deve nulificar `incomeId` sem deletar a entry
+
+### 2.12 Decisões de design
 
 **Não testar `revalidatePath`**: é efeito colateral do Next.js, sem impacto no banco. Testes de integração verificam estado persistido, não side effects de cache.
 
 **Não usar `beforeEach` com truncate**: isolamento por ID (cada teste cria dados próprios) é suficiente e mais rápido que truncar tabelas entre testes.
 
 **Teste documentando bug latente** (`ON DELETE SET NULL`): o teste `'ON DELETE SET NULL não reseta status — UPDATE explícito é obrigatório'` falha propositalmente sem o guard da action. Mantê-lo garante que qualquer refactor que remova o UPDATE seja imediatamente detectado.
+
+**Não replicar lógica de action nos testes de schema**: testes de schema verificam invariantes do banco, não a corretude das actions. Se o teste precisa reproduzir o que a action faria, o alvo correto é a Fase 2.5 (testes de action), não a Fase 2.
+
+**Coverage de `lib/actions` e `lib/queries`**: o `vitest.config.ts` inclui essas pastas no `coverage.include`, mas a cobertura atual é zero. Manter o coverage config como aspiracional só é útil se houver testes. Antes de adicionar os primeiros testes de action, o relatório de coverage é enganoso.
+
+---
+
+## Fase 2.5 — Testes de actions e queries
+
+Esta fase cobre a camada de aplicação: as `lib/actions/` (mutations com auth + validação + DB) e as `lib/queries/` (reads complexos). É a camada com maior gap de cobertura e onde mais bugs de regressão escapam.
+
+### Padrão de arquivo para testes de action
+
+```ts
+import { vi, describe, it, expect, beforeAll } from 'vitest'
+import { neonTestingSetup } from './setup'
+import { createTestDb, type TestDb } from './helpers/db'
+import { createUser, createCategoryGroup, createCategory, createAccount } from './helpers/factories'
+
+// vi.mock é hoistado — afeta imports dinâmicos também
+vi.mock('@/lib/auth/require-user', () => ({
+  requireUserId: vi.fn(),
+}))
+vi.mock('@/lib/auth/ownership', () => ({
+  assertOwnsCategory: vi.fn(),
+  assertOwnsAccount: vi.fn(),
+  assertOwnsGroup: vi.fn(),
+  assertOwnsGoal: vi.fn(),
+  assertOwnsPerson: vi.fn(),
+  assertOwnsDebtEntry: vi.fn(),
+  assertOwnsInvestmentType: vi.fn(),
+})
+
+neonTestingSetup()
+
+let db: TestDb
+let userId: string
+
+beforeAll(async () => {
+  db = createTestDb()
+  ;({ id: userId } = await createUser(db, `actions-feature-${Date.now()}`))
+
+  // Configurar mocks depois que neon-testing setou DATABASE_URL
+  const { requireUserId } = await import('@/lib/auth/require-user')
+  vi.mocked(requireUserId).mockResolvedValue(userId)
+})
+```
+
+Em cada `it()` que testa um caminho específico, importar a action dinamicamente:
+
+```ts
+it('cria entidade e persiste no banco', async () => {
+  const { createSomething } = await import('@/lib/actions/something')
+  const result = await createSomething(new FormData())
+  // verificar estado no banco via db.query
+})
+```
+
+### O que testar em cada action
+
+Para cada action, cobrir os três caminhos:
+
+1. **Caminho feliz**: dados válidos → entidade criada/atualizada no banco
+2. **Validação de schema**: dados inválidos (amount negativo, mês fora de formato) → action retorna erro sem gravar nada
+3. **Check de ownership**: IDs que não pertencem ao `userId` → action rejeita (testar com `mockRejectedValueOnce`)
+
+Exemplo de estrutura para `createTransaction`:
+
+```ts
+describe('createTransaction', () => {
+  it('cria transação com dados válidos', async () => { ... })
+  it('rejeita amount zero', async () => { ... })
+  it('rejeita categoryId de outro userId', async () => {
+    const { assertOwnsCategory } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsCategory).mockRejectedValueOnce(new Error('Forbidden'))
+    // chamar a action — deve propagar o erro
+  })
+})
+```
+
+### Arquivos prioritários para Fase 2.5
+
+**`__tests__/integration/actions-debtors.test.ts`** — alta prioridade:
+- `settleCharge`: chama a action real, verifica no banco que status='settled' e settledByPaymentId está preenchido
+- `deleteDebtEntry` com payment vinculado: verifica que o UPDATE de status='open' acontece antes da deleção (a versão atual em `debtors.test.ts` reimplementa a lógica — esse arquivo a testaria via action real)
+- `createDebtPayment` com `createIncome: true`: verifica que o income foi criado E o payment tem o `incomeId` correto
+
+**`__tests__/integration/actions-transactions.test.ts`** — alta prioridade:
+- `createInstallments`: verifica N transações criadas com nomes corretos e `installmentGroupId` compartilhado
+- `deleteInstallmentGroup`: verifica que as transações ficam órfãs (não são deletadas)
+
+**`__tests__/integration/queries-dashboard.test.ts`** — média prioridade:
+- `getDashboardData`: inserir transações e gastos fixos, verificar que os totais do summary batem com os dados inseridos
+- Verificar que transações de outro `userId` não contaminam os totais
+
+### Por que as queries também precisam de testes
+
+`lib/queries/dashboard.ts` usa o padrão `IN + GROUP BY` com 4 queries para N meses. Bugs nessas queries só aparecem quando há dados reais em múltiplos meses e múltiplas categorias. Testes de query com banco real cobrem:
+- Filtro por `userId` (sem vazamento de dados entre usuários)
+- Filtro por `referenceMonth` (transações do mês anterior não entram no mês atual)
+- Aggregations corretas (soma de amounts, contagem de pendências)
+
+O padrão de setup é idêntico aos testes de schema (factories para dados, `createTestDb()` no `beforeAll`), mas sem mocks de auth — as queries recebem `userId` diretamente como parâmetro.
 
 ---
 
@@ -308,11 +483,11 @@ Criar pasta `__tests__/e2e/`.
 ## Ordem de execução recomendada
 
 ```
-Fase 1 → Fase 2 → Fase 3
-unitários → integração → E2E
+Fase 1 → Fase 2 → Fase 2.5 → Fase 3
+unitários → schema/constraints → actions/queries → E2E
 ```
 
-Cada fase entrega valor independentemente. É possível parar na Fase 2 e já ter cobertura significativa das regras de negócio críticas.
+Cada fase entrega valor independentemente. A Fase 2 (schema) está completa. A Fase 2.5 (actions) é a próxima fronteira — cobre a camada onde a maioria dos bugs de regressão acontece.
 
 ---
 
@@ -321,19 +496,30 @@ Cada fase entrega valor independentemente. É possível parar na Fase 2 e já te
 ```
 __tests__/
   unit/
-    date.test.ts
-    currency.test.ts
-    validations.test.ts
+    date.test.ts           ✅
+    currency.test.ts       ✅
+    validations.test.ts    ✅
   integration/
     helpers/
-      db.ts           # createTestDb()
-      factories.ts    # createUser, createPerson, createAccount, createCategory, createCharge, createPayment
-    env-setup.ts      # setupFiles: carrega .env.local via dotenv nos workers forks
-    setup.ts          # neonTestingSetup via makeNeonTesting
-    debtors.test.ts
-    transactions.test.ts
-    budgets.test.ts
-  e2e/
+      db.ts                # createTestDb()
+      factories.ts         # createUser, createPerson, createAccount, createCategory, ...
+    env-setup.ts           # setupFiles: carrega .env.local via dotenv nos workers forks
+    setup.ts               # neonTestingSetup via makeNeonTesting
+    # --- Fase 2: schema/constraints (✅ completo) ---
+    debtors.test.ts              ✅
+    transactions.test.ts         ✅
+    budgets.test.ts              ✅
+    investments.test.ts          ✅
+    categories.test.ts           ✅
+    payment-accounts.test.ts     ✅
+    installments-delete.test.ts  ✅
+    goals.test.ts                ✅
+    fatura.test.ts               ✅
+    # --- Fase 2.5: actions/queries (pendente) ---
+    actions-debtors.test.ts      ⬜ settleCharge, deleteDebtEntry, createDebtPayment
+    actions-transactions.test.ts ⬜ createInstallments, deleteInstallmentGroup
+    queries-dashboard.test.ts    ⬜ getDashboardData totals, filtro por userId/mês
+  e2e/                           # Fase 3
     login.spec.ts
     registro.spec.ts
     devedores.spec.ts
@@ -365,6 +551,32 @@ playwright.config.ts
 - [x] Criar `__tests__/integration/debtors.test.ts`
 - [x] Criar `__tests__/integration/transactions.test.ts`
 - [x] Criar `__tests__/integration/budgets.test.ts`
+- [x] Criar `__tests__/integration/investments.test.ts`
+- [x] Criar `__tests__/integration/categories.test.ts`
+- [x] Criar `__tests__/integration/payment-accounts.test.ts`
+- [x] Criar `__tests__/integration/installments-delete.test.ts`
+- [x] Criar `__tests__/integration/goals.test.ts`
+- [x] Criar `__tests__/integration/fatura.test.ts`
+
+#### Casos adicionais (arquivos existentes)
+- [x] `investments.test.ts` — restrict ao deletar `investmentType` com aportes vinculados
+- [x] `investments.test.ts` — restrict ao deletar `investmentType` com resgates vinculados
+- [x] `payment-accounts.test.ts` — restrict ao deletar conta com `installmentGroups` vinculados
+- [x] `categories.test.ts` — restrict ao deletar categoria com `installmentGroups` vinculados
+- [x] `debtors.test.ts` — `ON DELETE SET NULL` em `debtorEntries.sourceTransactionId`
+- [x] `debtors.test.ts` — `ON DELETE SET NULL` em `debtorEntries.incomeId`
+
+### Fase 2.5 — Actions e queries (pendente)
+- [ ] Criar `__tests__/integration/actions-debtors.test.ts`
+  - [ ] `settleCharge` — action real cria payment e marca charge como settled
+  - [ ] `deleteDebtEntry` com payment vinculado — action real executa UPDATE antes de DELETE
+  - [ ] `createDebtPayment` com `createIncome: true` — income criado e `incomeId` vinculado
+- [ ] Criar `__tests__/integration/actions-transactions.test.ts`
+  - [ ] `createInstallments` — N transações com nomes corretos e `installmentGroupId` compartilhado
+  - [ ] deleção de `installmentGroup` — transações ficam com `installmentGroupId = null`
+- [ ] Criar `__tests__/integration/queries-dashboard.test.ts`
+  - [ ] totais do summary somam apenas transações do `userId` e `referenceMonth` corretos
+  - [ ] transações de outro `userId` não contaminam os resultados
 
 ### Fase 3 — E2E
 - [ ] Instalar `@playwright/test` + browsers

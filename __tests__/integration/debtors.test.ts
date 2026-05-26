@@ -3,18 +3,33 @@ import { and, eq, inArray } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
-import { createUser, createPerson, createCharge, createPayment } from './helpers/factories'
+import {
+  createUser,
+  createPerson,
+  createCharge,
+  createPayment,
+  createAccount,
+  createCategoryGroup,
+  createCategory,
+  createTransaction,
+  createIncome,
+} from './helpers/factories'
 
 neonTestingSetup()
 
 let db: TestDb
 let userId: string
 let personId: string
+let accountId: string
+let categoryId: string
 
 beforeAll(async () => {
   db = createTestDb()
   ;({ id: userId } = await createUser(db, `debtors-${Date.now()}`))
   ;({ id: personId } = await createPerson(db, userId))
+  ;({ id: accountId } = await createAccount(db, userId))
+  const group = await createCategoryGroup(db, userId)
+  ;({ id: categoryId } = await createCategory(db, userId, group.id))
 })
 
 describe('pessoas', () => {
@@ -318,5 +333,49 @@ describe('createDebtPayment com createIncome', () => {
       where: eq(schema.incomes.id, income.id),
     })
     expect(deletedIncome).toBeUndefined()
+  })
+})
+
+describe('debtorEntries.sourceTransactionId — ON DELETE SET NULL', () => {
+  it('deletar transação vinculada nulifica sourceTransactionId sem deletar a entry', async () => {
+    const tx = await createTransaction(db, userId, accountId, { categoryId })
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Origem em transação',
+      amount: '60.00',
+      entryDate: '2025-09-01',
+      referenceMonth: '2025-09-01',
+      sourceTransactionId: tx.id,
+    })
+
+    await db.delete(schema.transactions).where(eq(schema.transactions.id, tx.id))
+
+    const entry = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, charge.id),
+    })
+
+    expect(entry).toBeDefined()
+    expect(entry?.sourceTransactionId).toBeNull()
+  })
+})
+
+describe('debtorEntries.incomeId — ON DELETE SET NULL', () => {
+  it('deletar income vinculado nulifica incomeId sem deletar a entry', async () => {
+    const income = await createIncome(db, userId, { referenceMonth: '2025-10-01' })
+    const payment = await createPayment(db, userId, personId, {
+      description: 'Pagamento com income vinculado',
+      amount: '90.00',
+      entryDate: '2025-10-05',
+      referenceMonth: '2025-10-01',
+      incomeId: income.id,
+    })
+
+    await db.delete(schema.incomes).where(eq(schema.incomes.id, income.id))
+
+    const entry = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, payment.id),
+    })
+
+    expect(entry).toBeDefined()
+    expect(entry?.incomeId).toBeNull()
   })
 })

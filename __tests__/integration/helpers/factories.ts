@@ -73,6 +73,48 @@ export async function createCharge(
   return entry
 }
 
+export async function createInvestmentType(
+  db: TestDb,
+  userId: string,
+  overrides: Partial<typeof schema.investmentTypes.$inferInsert> = {}
+) {
+  const [type] = await db
+    .insert(schema.investmentTypes)
+    .values({ userId, name: 'Tipo Teste', color: '#6366f1', bgColor: '#e0e7ff', ...overrides })
+    .returning({ id: schema.investmentTypes.id })
+  return type
+}
+
+export async function createGoal(
+  db: TestDb,
+  userId: string,
+  overrides: Partial<typeof schema.goals.$inferInsert> = {}
+) {
+  const [goal] = await db
+    .insert(schema.goals)
+    .values({ userId, name: 'Meta Teste', targetAmount: '10000.00', ...overrides })
+    .returning({ id: schema.goals.id })
+  return goal
+}
+
+export async function createIncome(
+  db: TestDb,
+  userId: string,
+  overrides: Partial<typeof schema.incomes.$inferInsert> = {}
+) {
+  const [income] = await db
+    .insert(schema.incomes)
+    .values({
+      userId,
+      source: 'Renda Teste',
+      amount: '1000.00',
+      referenceMonth: '2025-01-01',
+      ...overrides,
+    })
+    .returning({ id: schema.incomes.id })
+  return income
+}
+
 export async function createPayment(
   db: TestDb,
   userId: string,
@@ -93,4 +135,92 @@ export async function createPayment(
     })
     .returning({ id: schema.debtorEntries.id })
   return entry
+}
+
+export async function createGoalContribution(
+  db: TestDb,
+  userId: string,
+  goalId: string,
+  overrides: Partial<typeof schema.goalContributions.$inferInsert> = {}
+) {
+  const [contribution] = await db
+    .insert(schema.goalContributions)
+    .values({
+      userId,
+      goalId,
+      amount: '500.00',
+      referenceMonth: '2025-01-01',
+      source: 'manual',
+      ...overrides,
+    })
+    .returning({ id: schema.goalContributions.id })
+  return contribution
+}
+
+export async function createInstallmentGroup(
+  db: TestDb,
+  userId: string,
+  accountId: string,
+  categoryId: string,
+  overrides: Partial<typeof schema.installmentGroups.$inferInsert> = {}
+) {
+  const [group] = await db
+    .insert(schema.installmentGroups)
+    .values({
+      userId,
+      accountId,
+      categoryId,
+      name: 'Parcelamento Teste',
+      totalAmount: '300.00',
+      totalInstallments: 3,
+      startDate: '2025-01-01',
+      ...overrides,
+    })
+    .returning({ id: schema.installmentGroups.id })
+  return group
+}
+
+export async function createTransaction(
+  db: TestDb,
+  userId: string,
+  accountId: string,
+  overrides: Partial<typeof schema.transactions.$inferInsert> = {}
+) {
+  const [tx] = await db
+    .insert(schema.transactions)
+    .values({
+      userId,
+      accountId,
+      name: 'Transação Teste',
+      amount: '50.00',
+      date: '2025-01-10',
+      referenceMonth: '2025-01-01',
+      ...overrides,
+    })
+    .returning({ id: schema.transactions.id })
+  return tx
+}
+
+export async function createFixedExpense(
+  db: TestDb,
+  userId: string,
+  accountId: string,
+  categoryId: string,
+  overrides: Partial<typeof schema.fixedExpenses.$inferInsert> = {}
+) {
+  const [fe] = await db
+    .insert(schema.fixedExpenses)
+    .values({
+      userId,
+      accountId,
+      categoryId,
+      name: 'Gasto Fixo Teste',
+      amount: '200.00',
+      dueDay: 10,
+      paid: false,
+      referenceMonth: '2025-01-01',
+      ...overrides,
+    })
+    .returning({ id: schema.fixedExpenses.id })
+  return fe
 }

@@ -20,3 +20,59 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 
 - **`neonTestingSetup()` no escopo global do arquivo**: não chamar dentro de `describe` ou `beforeAll` — a função registra hooks do Vitest e precisa existir antes da coleta de testes; o hook do neon-testing roda antes do `beforeAll` local porque foi registrado primeiro
 - **`createTestDb()` dentro do `beforeAll`**: `lib/db/index.ts` executa `new Pool({ connectionString: process.env.DATABASE_URL })` no nível do módulo — captura a URL no momento do import, antes do `beforeAll` do neon-testing setar a URL do branch de teste; importar actions (que importam `lib/db`) em testes de integração conecta ao banco errado; solução: criar a conexão dentro do `beforeAll`, após o neon-testing setar `DATABASE_URL`
+- **Ao testar `onConflictDoUpdate`, sempre incluir um caso de insert raw sem o clause**: se o unique index não existir no banco, o `.onConflictDoUpdate` nunca dispara — simplesmente insere a linha duplicada sem erro; o caso de insert raw que lança constraint error é a única forma de confirmar que o índice realmente existe no banco de teste
+- **Testes não devem replicar lógica de action**: se o teste define uma função local que reproduz o que a action faz (ex: `deleteIfEmpty` em `debtors.test.ts`), a regressão na action real não é detectada; o objetivo dos testes de action é importar e chamar a função real, não reimplementar a lógica dela
+
+## Factory — gotchas
+
+- **`createTransaction` exige `categoryId` via overrides**: a factory não tem `categoryId` nos defaults; a check constraint `transactions_fatura_category_check` do banco rejeita qualquer `INSERT` sem `categoryId` e sem `faturaAccountId` — chamadas sem override falham com erro de constraint enigmático; sempre passar `categoryId` via overrides em testes que criam transações comuns
+- **Isolamento por ID, não por truncate**: os factories criam usuários com sufixo único (`Date.now()`); não confiar em isolamento por ordem de execução — filtrar sempre por ID específico; testes dentro do mesmo arquivo compartilham `userId`, o que é suficiente desde que cada teste crie suas próprias entidades
+
+## Testando actions com banco real
+
+O desafio: `lib/db/index.ts` cria o `Pool` no nível do módulo. Imports estáticos de actions capturam a `DATABASE_URL` antes do neon-testing setar a URL do branch.
+
+**Solução: dynamic import dentro do `beforeAll`**
+
+```ts
+// vi.mock é hoistado — pode ficar no topo
+vi.mock('@/lib/auth/require-user', () => ({
+  requireUserId: vi.fn(),
+}))
+vi.mock('@/lib/auth/ownership', () => ({
+  assertOwnsCategory: vi.fn(),
+  assertOwnsAccount: vi.fn(),
+  // ... outros que a action usar
+}))
+
+neonTestingSetup()
+
+let db: TestDb
+let userId: string
+
+beforeAll(async () => {
+  db = createTestDb()
+  ;({ id: userId } = await createUser(db, `actions-${Date.now()}`))
+
+  // Dynamic import: lib/db só é resolvido aqui, após neon-testing setar DATABASE_URL
+  const { requireUserId } = await import('@/lib/auth/require-user')
+  vi.mocked(requireUserId).mockResolvedValue(userId)
+
+  const { assertOwnsCategory } = await import('@/lib/auth/ownership')
+  vi.mocked(assertOwnsCategory).mockResolvedValue(undefined)
+})
+```
+
+Depois, no teste:
+```ts
+it('action cria entidade no banco', async () => {
+  const { createTransaction } = await import('@/lib/actions/transactions')
+  const result = await createTransaction(formData)
+  // verificar no banco via db.query...
+})
+```
+
+**Pontos de atenção:**
+- `revalidatePath` não precisa de mock — Next.js exporta um no-op em ambiente node
+- Cada `await import(...)` dentro de `it()` retorna o módulo já cacheado — performance OK
+- Mocks de ownership devem ser configurados antes dos imports de action no `beforeAll`; se a action chamar `assertOwns*` com um ID que não pertence ao usuário, o mock por padrão resolve sem erro — cobrir o caminho de erro com `vi.mocked(assertOwnsCategory).mockRejectedValueOnce(new Error('Forbidden'))`
