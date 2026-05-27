@@ -11,12 +11,11 @@ da suíte automatizada.
 | 2 | Integração de schema com Neon branch por arquivo | concluída |
 | 2.5 | Testes de actions e queries | parcial |
 | 3 | E2E com Playwright | pendente |
-| 4 | CI com integração Neon | pendente |
-| 5 | Hardening de infraestrutura de testes | pendente |
+| 4 | CI com integração Neon | concluída |
+| 5 | Hardening de infraestrutura de testes | parcial |
 
 **Próximo passo recomendado:** resolver a semântica de exclusão de
-`deleteInstallmentGroup`, adicionar preflight das variáveis Neon e colocar a
-suíte de integração no CI.
+`deleteInstallmentGroup` e avançar nos testes de action (P1).
 
 ---
 
