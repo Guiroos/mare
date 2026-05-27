@@ -348,13 +348,18 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
 export async function deleteInstallmentGroup(id: string) {
   const userId = await requireUserId()
 
-  await db
-    .delete(transactions)
-    .where(and(eq(transactions.installmentGroupId, id), eq(transactions.userId, userId)))
+  // Transações são deletadas antes do grupo na mesma transação atômica.
+  // O FK installmentGroupId tem onDelete: 'set null' no schema, mas a semântica
+  // de produto é excluir a compra inteira — grupo + parcelas.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(transactions)
+      .where(and(eq(transactions.installmentGroupId, id), eq(transactions.userId, userId)))
 
-  await db
-    .delete(installmentGroups)
-    .where(and(eq(installmentGroups.id, id), eq(installmentGroups.userId, userId)))
+    await tx
+      .delete(installmentGroups)
+      .where(and(eq(installmentGroups.id, id), eq(installmentGroups.userId, userId)))
+  })
 
   revalidatePath('/parcelas')
   revalidatePath('/dashboard')

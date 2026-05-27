@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, beforeAll } from 'vitest'
+import { vi, describe, it, expect, beforeAll, afterEach } from 'vitest'
 import { and, eq } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
@@ -38,6 +38,12 @@ beforeAll(async () => {
   const { assertOwnsPerson, assertOwnsDebtEntry } = await import('@/lib/auth/ownership')
   vi.mocked(assertOwnsPerson).mockResolvedValue(undefined)
   vi.mocked(assertOwnsDebtEntry).mockResolvedValue(undefined)
+})
+
+// Restaura o mock de requireUserId para o valor padrão após cada teste de auth
+afterEach(async () => {
+  const { requireUserId } = await import('@/lib/auth/require-user')
+  vi.mocked(requireUserId).mockResolvedValue(userId)
 })
 
 describe('settleCharge', () => {
@@ -282,5 +288,217 @@ describe('createDebtPayment', () => {
     expect(settled2?.status).toBe('settled')
     expect(untouched?.status).toBe('open')
     expect(untouched?.settledByPaymentId).toBeNull()
+  })
+})
+
+// ─── auth e ownership — rejeições ─────────────────────────────────────────────
+
+describe('auth — usuário não autenticado', () => {
+  it('settleCharge rejeita sem sessão ativa', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockRejectedValueOnce(new Error('Não autenticado'))
+
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Charge auth test',
+      entryDate: '2025-10-01',
+      referenceMonth: '2025-10-01',
+    })
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      settleCharge({ chargeId: charge.id, personId, entryDate: '2025-10-10', createIncome: false })
+    ).rejects.toThrow('Não autenticado')
+  })
+
+  it('createDebtCharge rejeita sem sessão ativa', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockRejectedValueOnce(new Error('Não autenticado'))
+
+    const { createDebtCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      createDebtCharge({
+        personId,
+        amount: '50.00',
+        description: 'Cobrança sem auth',
+        entryDate: '2025-10-01',
+      })
+    ).rejects.toThrow('Não autenticado')
+  })
+
+  it('deleteDebtEntry rejeita sem sessão ativa', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockRejectedValueOnce(new Error('Não autenticado'))
+
+    const { deleteDebtEntry } = await import('@/lib/actions/debtors')
+    await expect(deleteDebtEntry({ id: 'qualquer-id' })).rejects.toThrow('Não autenticado')
+  })
+})
+
+describe('ownership — acesso negado', () => {
+  it('settleCharge rejeita quando person não pertence ao usuário', async () => {
+    const { assertOwnsPerson } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsPerson).mockRejectedValueOnce(new Error('Forbidden'))
+
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Charge ownership test',
+      entryDate: '2025-11-01',
+      referenceMonth: '2025-11-01',
+    })
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      settleCharge({
+        chargeId: charge.id,
+        personId: 'person-de-outro-usuario',
+        entryDate: '2025-11-10',
+        createIncome: false,
+      })
+    ).rejects.toThrow('Forbidden')
+  })
+
+  it('settleCharge rejeita quando a charge não pertence ao usuário', async () => {
+    const { assertOwnsDebtEntry } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsDebtEntry).mockRejectedValueOnce(new Error('Forbidden'))
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      settleCharge({
+        chargeId: 'entry-de-outro-usuario',
+        personId,
+        entryDate: '2025-11-10',
+        createIncome: false,
+      })
+    ).rejects.toThrow('Forbidden')
+  })
+
+  it('createDebtPayment rejeita quando person não pertence ao usuário', async () => {
+    const { assertOwnsPerson } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsPerson).mockRejectedValueOnce(new Error('Forbidden'))
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await expect(
+      createDebtPayment({
+        personId: 'person-de-outro-usuario',
+        amount: '100.00',
+        description: 'Pagamento bloqueado',
+        entryDate: '2025-11-01',
+        createIncome: false,
+      })
+    ).rejects.toThrow('Forbidden')
+  })
+
+  it('deleteDebtEntry rejeita quando entry não pertence ao usuário', async () => {
+    const { assertOwnsDebtEntry } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsDebtEntry).mockRejectedValueOnce(new Error('Forbidden'))
+
+    const { deleteDebtEntry } = await import('@/lib/actions/debtors')
+    await expect(deleteDebtEntry({ id: 'entry-de-outro-usuario' })).rejects.toThrow('Forbidden')
+  })
+})
+
+describe('ownership — chamada com IDs corretos', () => {
+  it('settleCharge chama assertOwnsDebtEntry com userId e chargeId corretos', async () => {
+    const { assertOwnsDebtEntry } = await import('@/lib/auth/ownership')
+
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Charge IDs test',
+      entryDate: '2025-12-01',
+      referenceMonth: '2025-12-01',
+    })
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    await settleCharge({
+      chargeId: charge.id,
+      personId,
+      entryDate: '2025-12-10',
+      createIncome: false,
+    })
+
+    expect(vi.mocked(assertOwnsDebtEntry)).toHaveBeenCalledWith(userId, charge.id)
+  })
+
+  it('settleCharge chama assertOwnsPerson com userId e personId corretos', async () => {
+    const { assertOwnsPerson } = await import('@/lib/auth/ownership')
+
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Charge person IDs test',
+      entryDate: '2026-01-01',
+      referenceMonth: '2026-01-01',
+    })
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    await settleCharge({
+      chargeId: charge.id,
+      personId,
+      entryDate: '2026-01-10',
+      createIncome: false,
+    })
+
+    expect(vi.mocked(assertOwnsPerson)).toHaveBeenCalledWith(userId, personId)
+  })
+
+  it('createDebtCharge chama assertOwnsPerson com userId e personId corretos', async () => {
+    const { assertOwnsPerson } = await import('@/lib/auth/ownership')
+
+    const { createDebtCharge } = await import('@/lib/actions/debtors')
+    await createDebtCharge({
+      personId,
+      amount: '75.00',
+      description: 'Cobrança IDs test',
+      entryDate: '2026-02-01',
+    })
+
+    expect(vi.mocked(assertOwnsPerson)).toHaveBeenCalledWith(userId, personId)
+  })
+})
+
+describe('validação de input', () => {
+  it('createDebtCharge rejeita input inválido sem escrever no banco', async () => {
+    const countBefore = await db
+      .select({ id: schema.debtorEntries.id })
+      .from(schema.debtorEntries)
+      .where(eq(schema.debtorEntries.userId, userId))
+
+    const { createDebtCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      createDebtCharge({
+        personId,
+        amount: '-50',
+        description: '',
+        entryDate: 'data-invalida',
+      })
+    ).rejects.toThrow()
+
+    const countAfter = await db
+      .select({ id: schema.debtorEntries.id })
+      .from(schema.debtorEntries)
+      .where(eq(schema.debtorEntries.userId, userId))
+
+    expect(countAfter).toHaveLength(countBefore.length)
+  })
+
+  it('createDebtPayment rejeita amount negativo sem escrever no banco', async () => {
+    const countBefore = await db
+      .select({ id: schema.debtorEntries.id })
+      .from(schema.debtorEntries)
+      .where(eq(schema.debtorEntries.userId, userId))
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await expect(
+      createDebtPayment({
+        personId,
+        amount: '-100',
+        description: 'Pagamento inválido',
+        entryDate: '2026-03-01',
+        createIncome: false,
+      })
+    ).rejects.toThrow()
+
+    const countAfter = await db
+      .select({ id: schema.debtorEntries.id })
+      .from(schema.debtorEntries)
+      .where(eq(schema.debtorEntries.userId, userId))
+
+    expect(countAfter).toHaveLength(countBefore.length)
   })
 })

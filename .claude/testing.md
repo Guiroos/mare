@@ -78,3 +78,5 @@ it('action cria entidade no banco', async () => {
 - `revalidatePath` não precisa de mock — Next.js exporta um no-op em ambiente node
 - Cada `await import(...)` dentro de `it()` retorna o módulo já cacheado — performance OK
 - Mocks de ownership devem ser configurados antes dos imports de action no `beforeAll`; se a action chamar `assertOwns*` com um ID que não pertence ao usuário, o mock por padrão resolve sem erro — cobrir o caminho de erro com `vi.mocked(assertOwnsCategory).mockRejectedValueOnce(new Error('Forbidden'))`
+- Adicionar `toHaveBeenCalledWith(userId, entityId)` após chamar a action no caminho feliz — verifica que o check de ownership foi invocado com os IDs corretos, não só que foi chamado
+- `afterEach` para restaurar `vi.mocked(requireUserId).mockResolvedValue(userId)` em arquivos que testam rejeição de auth: `mockRejectedValueOnce` deixa o valor não consumido se a action lança antes de chegar ao mock (ex: falha de validação de schema), contaminando o próximo teste

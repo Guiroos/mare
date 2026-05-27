@@ -2,28 +2,22 @@
 
 ## A1 — Semântica divergente em `deleteInstallmentGroup`
 
-**Severidade:** alta
+**Severidade:** alta — **resolvido**
 
-O schema define `transactions.installmentGroupId` com `onDelete: 'set null'`.
-O teste de schema confirma que deletar `installment_groups` diretamente preserva
-as transações e apenas nulifica o vínculo.
+**Decisão:** excluir a compra parcelada inteira — grupo + todas as transações.
 
-A action real `deleteInstallmentGroup`, porém, apaga primeiro as transações do
-grupo e depois apaga o grupo.
+O schema mantém `onDelete: 'set null'` no FK `transactions.installmentGroupId`
+(comportamento do banco ao deletar o grupo diretamente), mas a semântica de
+produto é diferente: ao cancelar uma compra parcelada, nenhuma parcela deve
+sobrar no histórico.
 
-Impacto:
+A action `deleteInstallmentGroup` em `lib/actions/transactions.ts` agora envolve
+os dois `DELETE` em `db.transaction()`, garantindo atomicidade: se o segundo
+`DELETE` falhar, o primeiro faz rollback automaticamente.
 
-- o documento antigo sugere criar teste de action esperando transações órfãs;
-- esse teste falharia contra a action real;
-- a equipe ainda não tem uma decisão canônica de produto para esse fluxo.
-
-Recomendação:
-
-1. Decidir a semântica desejada:
-   - excluir a compra parcelada inteira, apagando as transações; ou
-   - excluir apenas o agrupamento, preservando transações órfãs.
-2. Atualizar `lib/actions/transactions.ts`, testes e docs para a mesma decisão.
-3. Só depois implementar `actions-transactions.test.ts`.
+`installments-delete.test.ts` documenta o comportamento do banco (FK `set null`);
+`actions-transactions.test.ts` documenta o comportamento da aplicação (cascade
+via action atômica).
 
 ## A2 — `NEON_PARENT_BRANCH_ID` é obrigatório no processo, mas opcional no código
 

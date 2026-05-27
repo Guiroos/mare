@@ -9,13 +9,13 @@ da suíte automatizada.
 | ---- | -------- | ------ |
 | 1 | Testes unitários com Vitest | concluída |
 | 2 | Integração de schema com Neon branch por arquivo | concluída |
-| 2.5 | Testes de actions e queries | parcial |
+| 2.5 | Testes de actions e queries | parcial — transactions concluído |
 | 3 | E2E com Playwright | pendente |
 | 4 | CI com integração Neon | concluída |
 | 5 | Hardening de infraestrutura de testes | parcial |
 
-**Próximo passo recomendado:** resolver a semântica de exclusão de
-`deleteInstallmentGroup` e avançar nos testes de action (P1).
+**Próximo passo recomendado:** criar `queries-dashboard.test.ts` (P1.6) — cobrir
+isolamento por `userId` e `referenceMonth`, orçamento padrão vs override.
 
 ---
 
