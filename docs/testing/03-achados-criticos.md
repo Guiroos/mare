@@ -34,24 +34,18 @@ validação de preflight.
 
 ## A3 — Coverage unitário é enganoso
 
-**Severidade:** média
+**Severidade:** média — **resolvido**
 
-`npm run test:coverage` roda a config unitária, mas inclui `lib/actions/**` e
-`lib/queries/**` no escopo de coverage. Como ações e queries são testadas pela
-config de integração, o relatório atual mostra `0%` nessas pastas mesmo quando
-existe teste em `__tests__/integration`.
+`vitest.config.ts` restringe o `include` de coverage a `lib/utils/**` e
+`lib/validations/**`. O relatório não inclui `lib/actions/**` nem
+`lib/queries/**`, que seriam mostrados como `0%`.
 
-Impacto:
+Todos os 12 arquivos do escopo estão em 100% (stmts/branch/funcs/lines) com
+threshold individual de 95% — regressão detectada arquivo a arquivo.
 
-- percentual global perde valor;
-- pode gerar sensação falsa de regressão ou progresso;
-- dificulta uso de thresholds.
-
-Recomendação:
-
-- renomear o relatório atual para `test:coverage:unit`; ou
-- restringir coverage unitário a `lib/utils/**` e `lib/validations/**`; e
-- criar depois uma estratégia separada para coverage de integração.
+Arquivos protegidos: `cn.ts`, `color.ts`, `currency.ts`, `date.ts` (utils) e
+`categories.ts`, `debtors.ts`, `fatura.ts`, `goals.ts`, `investments.ts`,
+`settings.ts`, `transactions.ts`, `utils.ts` (validations).
 
 ## A4 — Testes de action ainda cobrem pouco auth e ownership
 

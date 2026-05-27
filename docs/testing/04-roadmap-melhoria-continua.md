@@ -80,18 +80,11 @@ Critérios de aceite:
 
 ## P2 — Melhorar Arquitetura de Testes
 
-### 7. Separar coverage unitário e integração
+### 7. Separar coverage unitário e integração — **concluído**
 
-Opções:
-
-- restringir `test:coverage` a unitários reais; ou
-- criar `test:coverage:unit` e `test:coverage:integration`.
-
-Critérios de aceite:
-
-- relatório global não acusa `actions`/`queries` como zero por erro de escopo;
-- thresholds só entram quando o relatório estiver confiável;
-- README explica qual comando usar em cada situação.
+`test:coverage` (alias `test:coverage:unit`) cobre apenas `lib/utils/**` e
+`lib/validations/**`. Todos os 12 arquivos estão em 100% com threshold 95% por
+arquivo. Nenhum arquivo de action ou query aparece no relatório.
 
 ### 8. Reduzir fragilidade de imports dinâmicos
 
@@ -144,7 +137,7 @@ Critérios de aceite:
 | Actions de devedores | concluído |
 | Actions de transações | concluído |
 | Queries de dashboard | concluído |
-| Preflight Neon | pendente |
-| CI com integração | pendente |
-| Coverage confiável | pendente |
+| Preflight Neon | concluído |
+| CI com integração | concluído |
+| Coverage confiável | concluído |
 | Playwright | pendente |
