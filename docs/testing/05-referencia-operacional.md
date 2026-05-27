@@ -165,6 +165,60 @@ Boas práticas:
 - se a suíte falhar por branch leak, verificar branches temporários no console
   Neon antes de aumentar paralelismo.
 
+## Coverage Unitário
+
+```bash
+npm run test:coverage        # relatório no terminal
+npm run test:coverage:unit   # alias — mesma coisa, nome explícito
+```
+
+Escopo: `lib/utils/**` e `lib/validations/**`.
+
+O relatório mostra cobertura real dessas pastas. Arquivos sem testes ainda
+(`cn.ts`, `color.ts`, schemas de domínio em `lib/validations/`) aparecem com
+`0%` — isso é esperado e não indica regressão.
+
+Coverage de integração (actions e queries) não é medido automaticamente. Para
+verificar cobertura de uma action, rastrear pela suíte de integração
+manualmente.
+
+### Thresholds
+
+Threshold global não é usado — a média é distorcida por arquivos com 0% e
+mascara regressões pontuais em arquivos bem testados.
+
+O padrão adotado é `thresholds.perFile` em `vitest.config.ts`: cada arquivo
+entra individualmente quando atinge cobertura significativa.
+
+**Arquivos protegidos hoje:**
+
+| Arquivo | Threshold | Cobertura atual |
+| ------- | --------- | --------------- |
+| `lib/utils/cn.ts` | 95% | 100% |
+| `lib/utils/color.ts` | 95% | 100% |
+| `lib/utils/currency.ts` | 95% | 100% |
+| `lib/utils/date.ts` | 95% | 100% |
+| `lib/validations/categories.ts` | 95% | 100% |
+| `lib/validations/debtors.ts` | 95% | 100% |
+| `lib/validations/fatura.ts` | 95% | 100% |
+| `lib/validations/goals.ts` | 95% | 100% |
+| `lib/validations/investments.ts` | 95% | 100% |
+| `lib/validations/settings.ts` | 95% | 100% |
+| `lib/validations/transactions.ts` | 95% | 100% |
+| `lib/validations/utils.ts` | 95% | 100% |
+
+**Como adicionar um novo arquivo ao threshold:**
+
+1. Escrever testes até atingir >= 80% de cobertura no arquivo.
+2. Rodar `npm run test:coverage` e anotar o percentual exato.
+3. Adicionar entrada em `thresholds.perFile` com esse percentual — nunca
+   abaixo do que foi conquistado.
+4. Atualizar a tabela acima.
+
+O objetivo de longo prazo é que todos os arquivos em `lib/utils/` e
+`lib/validations/` tenham threshold ativo. O crescimento é incremental e
+deliberado — um arquivo por vez.
+
 ## O Que Entra no Pre-push
 
 ```bash

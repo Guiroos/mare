@@ -3,7 +3,7 @@
 Esta pasta organiza a estratégia de testes do Maré e o plano de melhoria contínua
 da suíte automatizada.
 
-## Status em 26/05/2026
+## Status em 27/05/2026
 
 | Fase | Objetivo | Status |
 | ---- | -------- | ------ |
@@ -12,9 +12,9 @@ da suíte automatizada.
 | 2.5 | Testes de actions e queries | concluída |
 | 3 | E2E com Playwright | pendente |
 | 4 | CI com integração Neon | concluída |
-| 5 | Hardening de infraestrutura de testes | parcial |
+| 5 | Hardening de infraestrutura de testes | concluída |
 
-**Próximo passo recomendado:** separar coverage unitário e integração (P2.7) ou adicionar Playwright (P3.9).
+**Próximo passo recomendado:** adicionar Playwright (P3.9).
 
 ---
 
@@ -24,12 +24,11 @@ A fundação atual é boa: `npm test` roda rápido, os testes unitários cobrem
 helpers sensíveis de dinheiro/data/validação, e a suíte de integração com
 `neon-testing` valida constraints reais do PostgreSQL em branches descartáveis.
 
-O maior risco hoje não é ferramenta, é cobertura de borda:
+O maior risco hoje é cobertura de borda em fluxos de UI:
 
-1. A cobertura unitária inclui `actions` e `queries` no escopo, mas essas pastas
-   só são validadas na suíte de integração — o relatório de coverage global é
-   pouco confiável até P2.7 ser implementado.
-2. Não há testes E2E cobrindo fluxos críticos no browser (P3 pendente).
+1. Não há testes E2E cobrindo fluxos críticos no browser (P3 pendente).
+2. O coverage unitário está em **100% em todos os 12 arquivos do escopo** (`lib/utils/**`
+   e `lib/validations/**`) — thresholds de 95% ativos como floor de regressão.
 
 ## Arquivos
 

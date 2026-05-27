@@ -16,7 +16,9 @@ npm run lint         # run ESLint (next lint)
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
 
-Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm test:coverage`. Testes de integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID` no `.env.local`). Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
+Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm run test:coverage`. Testes de integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID` no `.env.local`). Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
+
+**Coverage — regra de crescimento:** ao adicionar testes unitários para um arquivo em `lib/utils/` ou `lib/validations/` até atingir >= 80% de cobertura, adicionar entrada em `thresholds.perFile` no `vitest.config.ts` com o percentual atual do arquivo. Nunca definir threshold abaixo do percentual já conquistado. Threshold global não é usado — a média é distorcida por arquivos ainda sem testes.
 
 ## Environment
 
@@ -141,6 +143,8 @@ NEXTAUTH_URL=http://localhost:3000
 - `goalContributions.goalId` tem `ON DELETE CASCADE` — deletar um goal apaga todas as contribuições vinculadas; contrasta com `investmentTypes.goalId` (mesmo pai, `SET NULL`): a mesma deleção de goal tem efeitos assimétricos dependendo da tabela filha
 - `transactions` tem check constraint `transactions_fatura_category_check`: `(fatura_account_id IS NULL AND category_id IS NOT NULL) OR (fatura_account_id IS NOT NULL AND category_id IS NULL)` — inserção de transação comum sem `categoryId` lança violação de constraint; em testes de integração, sempre passar `categoryId` via overrides ao usar `createTransaction` para transações não-fatura
 - `installmentGroups` FK `onDelete: 'set null'` é o contrato do banco (deletar o grupo direto deixa transações com `installmentGroupId = null`, campos de parcela intactos) — mas a semântica de produto é excluir a compra inteira; `deleteInstallmentGroup` envolve os dois `DELETE` em `db.transaction()`: transactions primeiro, depois o grupo; `installments-delete.test.ts` cobre o contrato do banco, `actions-transactions.test.ts` cobre a semântica da action
+- Testes de funções time-dependent (`currentYearMonth`, `currentReferenceMonth`, `pastNMonths`, `futureNMonths`, `daysAgo` etc.): chamar `vi.useFakeTimers()` + `vi.setSystemTime(new Date('YYYY-MM-DDT12:00:00'))` dentro de cada `it()` e restaurar com `afterEach(() => vi.useRealTimers())` no describe — usar `T12:00:00` é consistente com o padrão de `parseDate`; não colocar `vi.useFakeTimers()` em `beforeEach` de describe que mistura testes com e sem timer fake
+- Testar Zod cross-field `.refine()` com `path: ['field']`: checar `result.error.flatten().fieldErrors.field` para confirmar que o erro caiu no campo correto — não basta checar `success === false`; aplicável em `debtPaymentSchema`, `settleChargeSchema` e `creditModeSchema`
 
 ### UI
 

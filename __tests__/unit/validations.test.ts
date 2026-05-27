@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { z } from 'zod'
 import {
   positiveAmountSchema,
   nonNegativeAmountSchema,
@@ -7,7 +8,15 @@ import {
   dateSchema,
   yearMonthSchema,
   referenceMonthSchema,
+  formatZodErrors,
+  uuidSchema,
 } from '@/lib/validations/utils'
+import {
+  transactionSchema,
+  fixedExpenseSchema,
+  installmentSchema,
+  incomeSchema,
+} from '@/lib/validations/transactions'
 
 describe('positiveAmountSchema', () => {
   it('accepts positive values', () => {
@@ -161,5 +170,223 @@ describe('referenceMonthSchema', () => {
 
   it('rejects empty string', () => {
     expect(referenceMonthSchema.safeParse('').success).toBe(false)
+  })
+})
+
+// ─── formatZodErrors ──────────────────────────────────────────────────────────
+
+describe('formatZodErrors', () => {
+  it('maps field errors to first message per field', () => {
+    const schema = z.object({
+      name: z.string().min(1, 'Nome obrigatório'),
+      amount: z.number().positive('Valor inválido'),
+    })
+    const result = schema.safeParse({ name: '', amount: -1 })
+    expect(result.success).toBe(false)
+    const errors = formatZodErrors((result as { success: false; error: z.ZodError }).error)
+    expect(errors.name).toBe('Nome obrigatório')
+    expect(errors.amount).toBe('Valor inválido')
+  })
+
+  it('uses _root key for errors with empty path (top-level schema)', () => {
+    const schema = z.string().min(1, 'Campo obrigatório')
+    const result = schema.safeParse('')
+    expect(result.success).toBe(false)
+    const errors = formatZodErrors((result as { success: false; error: z.ZodError }).error)
+    expect(errors['_root']).toBe('Campo obrigatório')
+  })
+
+  it('keeps only first error per field when multiple issues on same path', () => {
+    const schema = z.object({
+      val: z.string().superRefine((v, ctx) => {
+        if (!v) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Erro 1' })
+        if (!v) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Erro 2' })
+      }),
+    })
+    const result = schema.safeParse({ val: '' })
+    expect(result.success).toBe(false)
+    const errors = formatZodErrors((result as { success: false; error: z.ZodError }).error)
+    expect(errors.val).toBe('Erro 1')
+  })
+
+  it('returns empty object when there are no issues', () => {
+    const zodError = new z.ZodError([])
+    expect(formatZodErrors(zodError)).toEqual({})
+  })
+
+  it('handles multiple fields each with one error', () => {
+    const schema = z.object({
+      a: z.string().min(1, 'A obrigatório'),
+      b: z.number().min(0, 'B inválido'),
+    })
+    const result = schema.safeParse({ a: '', b: -1 })
+    expect(result.success).toBe(false)
+    const errors = formatZodErrors((result as { success: false; error: z.ZodError }).error)
+    expect(Object.keys(errors)).toHaveLength(2)
+    expect(errors.a).toBe('A obrigatório')
+    expect(errors.b).toBe('B inválido')
+  })
+})
+
+// ─── uuidSchema ──────────────────────────────────────────────────────────────
+
+describe('uuidSchema', () => {
+  it('accepts valid UUIDs', () => {
+    expect(uuidSchema.safeParse('550e8400-e29b-41d4-a716-446655440000').success).toBe(true)
+    expect(uuidSchema.safeParse('00000000-0000-0000-0000-000000000000').success).toBe(true)
+  })
+
+  it('rejects invalid UUIDs', () => {
+    expect(uuidSchema.safeParse('not-a-uuid').success).toBe(false)
+    expect(uuidSchema.safeParse('').success).toBe(false)
+    expect(uuidSchema.safeParse('123').success).toBe(false)
+  })
+})
+
+// ─── Transaction schemas ──────────────────────────────────────────────────────
+
+const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000'
+
+describe('transactionSchema', () => {
+  const base = {
+    name: 'Mercado',
+    amount: '150.00',
+    date: '2025-03-15',
+    categoryId: VALID_UUID,
+    accountId: VALID_UUID,
+  }
+
+  it('accepts valid transaction data', () => {
+    expect(transactionSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rejects empty name', () => {
+    expect(transactionSchema.safeParse({ ...base, name: '' }).success).toBe(false)
+  })
+
+  it('rejects name over 200 characters', () => {
+    expect(transactionSchema.safeParse({ ...base, name: 'a'.repeat(201) }).success).toBe(false)
+  })
+
+  it('rejects zero amount', () => {
+    expect(transactionSchema.safeParse({ ...base, amount: '0' }).success).toBe(false)
+  })
+
+  it('rejects invalid date format', () => {
+    expect(transactionSchema.safeParse({ ...base, date: '15/03/2025' }).success).toBe(false)
+  })
+
+  it('rejects invalid UUID for categoryId', () => {
+    expect(transactionSchema.safeParse({ ...base, categoryId: 'not-uuid' }).success).toBe(false)
+  })
+
+  it('rejects invalid UUID for accountId', () => {
+    expect(transactionSchema.safeParse({ ...base, accountId: 'not-uuid' }).success).toBe(false)
+  })
+})
+
+describe('fixedExpenseSchema — dueDay validation', () => {
+  const base = {
+    name: 'Aluguel',
+    amount: '1500.00',
+    dueDay: '5',
+    categoryId: VALID_UUID,
+    accountId: VALID_UUID,
+    referenceMonth: '2025-03',
+  }
+
+  it('accepts dueDay in range 1–31', () => {
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '1' }).success).toBe(true)
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '15' }).success).toBe(true)
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '31' }).success).toBe(true)
+  })
+
+  it('rejects dueDay = 0', () => {
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '0' }).success).toBe(false)
+  })
+
+  it('rejects dueDay = 32', () => {
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '32' }).success).toBe(false)
+  })
+
+  it('rejects empty dueDay', () => {
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: '' }).success).toBe(false)
+  })
+
+  it('rejects non-numeric dueDay', () => {
+    // Number('abc') is NaN; NaN >= 1 is false — rejects
+    expect(fixedExpenseSchema.safeParse({ ...base, dueDay: 'abc' }).success).toBe(false)
+  })
+
+  it('rejects referenceMonth in wrong format', () => {
+    expect(fixedExpenseSchema.safeParse({ ...base, referenceMonth: '2025-03-01' }).success).toBe(
+      false
+    )
+    expect(fixedExpenseSchema.safeParse({ ...base, referenceMonth: '03-2025' }).success).toBe(false)
+  })
+})
+
+describe('installmentSchema — totalInstallments validation', () => {
+  const base = {
+    name: 'Notebook',
+    totalAmount: '3000.00',
+    totalInstallments: '12',
+    startDate: '2025-03-15',
+    categoryId: VALID_UUID,
+    accountId: VALID_UUID,
+  }
+
+  it('accepts totalInstallments in range 2–60', () => {
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '2' }).success).toBe(true)
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '30' }).success).toBe(true)
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '60' }).success).toBe(true)
+  })
+
+  it('rejects totalInstallments = 1', () => {
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '1' }).success).toBe(false)
+  })
+
+  it('rejects totalInstallments = 61', () => {
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '61' }).success).toBe(false)
+  })
+
+  it('rejects empty totalInstallments', () => {
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: '' }).success).toBe(false)
+  })
+
+  it('rejects non-numeric totalInstallments', () => {
+    expect(installmentSchema.safeParse({ ...base, totalInstallments: 'doze' }).success).toBe(false)
+  })
+
+  it('rejects invalid startDate format', () => {
+    expect(installmentSchema.safeParse({ ...base, startDate: '15/03/2025' }).success).toBe(false)
+  })
+
+  it('rejects zero totalAmount', () => {
+    expect(installmentSchema.safeParse({ ...base, totalAmount: '0' }).success).toBe(false)
+  })
+})
+
+describe('incomeSchema', () => {
+  const base = {
+    source: 'Salário',
+    amount: '5000.00',
+    referenceMonth: '2025-03',
+  }
+
+  it('accepts valid income data', () => {
+    expect(incomeSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rejects empty source', () => {
+    expect(incomeSchema.safeParse({ ...base, source: '' }).success).toBe(false)
+  })
+
+  it('rejects zero amount', () => {
+    expect(incomeSchema.safeParse({ ...base, amount: '0' }).success).toBe(false)
+  })
+
+  it('rejects referenceMonth in wrong format', () => {
+    expect(incomeSchema.safeParse({ ...base, referenceMonth: '2025-03-01' }).success).toBe(false)
   })
 })
