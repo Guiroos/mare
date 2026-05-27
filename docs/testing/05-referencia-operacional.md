@@ -183,31 +183,43 @@ O que não entra:
 
 ## O Que Entra no CI
 
-Workflow mínimo:
+O workflow está em `.github/workflows/ci.yml` com dois jobs:
 
-```yaml
-name: CI
+**`validate`** — roda em todo PR e push para `main`:
 
-on:
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run test:integration
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
-          NEON_PARENT_BRANCH_ID: ${{ secrets.NEON_PARENT_BRANCH_ID }}
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
 ```
+
+**`integration`** — roda apenas em push para `main`, após `validate` passar:
+
+```bash
+npm run test:integration
+```
+
+Secrets necessários no repositório GitHub:
+
+```
+NEON_API_KEY
+NEON_PROJECT_ID
+NEON_PARENT_BRANCH_ID
+```
+
+### Configurar proteção de branch
+
+Em `github.com/<repo> → Settings → Branches → Add rule` para `main`:
+
+1. Marcar **"Require status checks to pass before merging"**
+2. Adicionar o check **`Lint, Typecheck & Unit Tests`**
+3. Marcar **"Require branches to be up to date before merging"**
+
+### Configurar Vercel Required Checks (opcional)
+
+Em `vercel.com/<projeto> → Settings → Git → Required Checks`:
+
+- Adicionar **`Lint, Typecheck & Unit Tests`**
+
+Isso bloqueia a promoção de deploys de preview até o check passar.

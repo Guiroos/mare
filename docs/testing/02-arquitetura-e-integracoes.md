@@ -124,9 +124,38 @@ npm run format:check && npm run lint && npm run typecheck && npm test
 Isso está correto para o fluxo local: integração Neon faz chamadas de rede e não
 deve bloquear push local.
 
-Lacuna atual: não há workflow versionado rodando `npm run test:integration` em
-pull requests. Sem CI, a suíte de integração mais valiosa depende de execução
-manual.
+`.github/workflows/ci.yml` define dois jobs:
+
+**`validate`** — roda em todo `pull_request` e `push` para `main`:
+
+- `npm run format:check`
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+
+**`integration`** — roda apenas em `push` para `main`, após `validate` passar:
+
+- `npm run test:integration`
+- Requer secrets `NEON_API_KEY`, `NEON_PROJECT_ID` e `NEON_PARENT_BRANCH_ID`
+  configurados no repositório GitHub.
+
+Essa divisão mantém PRs rápidos e a integração Neon como barreira antes de chegar
+em produção. O job `integration` não roda em PRs porque testes Neon são lentos e
+consomem branches do plano Hobby.
+
+### Bloqueio de deploy na Vercel
+
+Duas camadas protegem produção:
+
+**GitHub Branch Protection** (principal): em `Settings → Branches → main`, ativar
+"Require status checks to pass before merging" e adicionar o check
+`Lint, Typecheck & Unit Tests`. Impede merge de qualquer PR que falhe no
+`validate` — como a Vercel só sobe para produção via push na `main`, código
+inválido nunca chega ao deploy.
+
+**Vercel Required Checks** (complementar): em `Vercel → Settings → Git →
+Required Checks`, adicionar `Lint, Typecheck & Unit Tests`. Bloqueia promoção de
+deploys de preview até o check do GitHub passar.
 
 ## Playwright
 

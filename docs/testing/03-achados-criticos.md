@@ -27,24 +27,16 @@ Recomendação:
 
 ## A2 — `NEON_PARENT_BRANCH_ID` é obrigatório no processo, mas opcional no código
 
-**Severidade:** alta
+**Severidade:** alta — **resolvido**
 
-O setup atual aceita `process.env.NEON_PARENT_BRANCH_ID` ausente. A documentação
-corretamente trata essa variável como obrigatória para clonar o branch de
-desenvolvimento em vez do branch default do projeto.
+`__tests__/integration/env-setup.ts` agora valida `NEON_API_KEY`,
+`NEON_PROJECT_ID` e `NEON_PARENT_BRANCH_ID` logo após carregar o `.env.local`.
+Se qualquer variável estiver ausente, a suíte falha imediatamente com mensagem
+explícita indicando qual variável falta e lembrando que `NEON_PARENT_BRANCH_ID`
+deve apontar para o branch dev.
 
-Impacto:
-
-- risco de testes clonarem o branch errado;
-- falhas mais difíceis de diagnosticar;
-- risco operacional se o branch default for produção.
-
-Recomendação:
-
-- criar helper `getRequiredEnv(name)` em `__tests__/integration/setup.ts` ou
-  `env-setup.ts`;
-- falhar com mensagem explícita quando qualquer variável Neon estiver ausente;
-- manter `NEON_PARENT_BRANCH_ID` como requisito formal.
+`setup.ts` usa non-null assertion (`!`) em `parentBranchId`, alinhado com a
+validação de preflight.
 
 ## A3 — Coverage unitário é enganoso
 
@@ -137,23 +129,18 @@ Recomendação:
 
 ## A7 — Integração sem CI versionado
 
-**Severidade:** média
+**Severidade:** média — **resolvido**
 
-O pre-push local roda apenas validações rápidas, o que está correto. Mas a suíte
-Neon ainda não tem workflow versionado em `.github/workflows`.
+`.github/workflows/ci.yml` criado com dois jobs:
 
-Impacto:
+- `validate`: roda em todo PR (`format:check`, `lint`, `typecheck`, `npm test`)
+- `integration`: roda apenas em push para `main`, após `validate`, com secrets
+  Neon
 
-- testes mais importantes podem não rodar antes do merge;
-- regressões de schema/actions dependem de execução manual;
-- secrets Neon não ficam documentados operacionalmente no GitHub Actions.
+Para ativar a proteção completa, configurar no GitHub:
 
-Recomendação:
-
-- criar `ci.yml` para pull requests;
-- rodar `npm ci`, `lint`, `typecheck`, `npm test` e `npm run test:integration`;
-- configurar secrets Neon no repositório;
-- manter integração fora do Husky.
+- Branch protection em `main` com o check `Lint, Typecheck & Unit Tests`
+- (Opcional) Vercel Required Checks com o mesmo nome de job
 
 ## A8 — E2E ainda não existe como suíte formal
 
