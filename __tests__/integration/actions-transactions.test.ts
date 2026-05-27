@@ -5,6 +5,9 @@ import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
 import { createUser, createCategoryGroup, createCategory, createAccount } from './helpers/factories'
 
+// UUID válido que nunca existirá no banco — passa a validação Zod mas ownership rejeita
+const FOREIGN_UUID = '00000000-0000-0000-0000-000000000000'
+
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 vi.mock('@/lib/auth/require-user', () => ({
@@ -106,7 +109,7 @@ describe('createInstallmentPurchase', () => {
         totalAmount: '2000.00',
         totalInstallments: 2,
         startDate: '2025-01-01',
-        categoryId: 'id-de-outro-usuario',
+        categoryId: FOREIGN_UUID,
         accountId,
       })
     ).rejects.toThrow('Não autorizado')
@@ -125,7 +128,7 @@ describe('createInstallmentPurchase', () => {
         totalInstallments: 6,
         startDate: '2025-02-01',
         categoryId,
-        accountId: 'id-de-outro-usuario',
+        accountId: FOREIGN_UUID,
       })
     ).rejects.toThrow('Não autorizado')
   })

@@ -5,6 +5,9 @@ import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
 import { createUser, createPerson, createCharge } from './helpers/factories'
 
+// UUID válido que nunca existirá no banco — passa a validação Zod mas ownership rejeita
+const FOREIGN_UUID = '00000000-0000-0000-0000-000000000000'
+
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
 vi.mock('@/lib/auth/require-user', () => ({
@@ -349,7 +352,7 @@ describe('ownership — acesso negado', () => {
     await expect(
       settleCharge({
         chargeId: charge.id,
-        personId: 'person-de-outro-usuario',
+        personId: FOREIGN_UUID,
         entryDate: '2025-11-10',
         createIncome: false,
       })
@@ -363,7 +366,7 @@ describe('ownership — acesso negado', () => {
     const { settleCharge } = await import('@/lib/actions/debtors')
     await expect(
       settleCharge({
-        chargeId: 'entry-de-outro-usuario',
+        chargeId: FOREIGN_UUID,
         personId,
         entryDate: '2025-11-10',
         createIncome: false,
@@ -378,7 +381,7 @@ describe('ownership — acesso negado', () => {
     const { createDebtPayment } = await import('@/lib/actions/debtors')
     await expect(
       createDebtPayment({
-        personId: 'person-de-outro-usuario',
+        personId: FOREIGN_UUID,
         amount: '100.00',
         description: 'Pagamento bloqueado',
         entryDate: '2025-11-01',
@@ -392,7 +395,7 @@ describe('ownership — acesso negado', () => {
     vi.mocked(assertOwnsDebtEntry).mockRejectedValueOnce(new Error('Forbidden'))
 
     const { deleteDebtEntry } = await import('@/lib/actions/debtors')
-    await expect(deleteDebtEntry({ id: 'entry-de-outro-usuario' })).rejects.toThrow('Forbidden')
+    await expect(deleteDebtEntry({ id: FOREIGN_UUID })).rejects.toThrow('Forbidden')
   })
 })
 
