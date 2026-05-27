@@ -140,7 +140,7 @@ NEXTAUTH_URL=http://localhost:3000
 - `investmentTypes.goalId` tem `ON DELETE SET NULL` — deletar um goal nulifica `goalId` no tipo de investimento mas não deleta o tipo; o tipo persiste desvinculado (comportamento intencional); não confundir com cascade
 - `goalContributions.goalId` tem `ON DELETE CASCADE` — deletar um goal apaga todas as contribuições vinculadas; contrasta com `investmentTypes.goalId` (mesmo pai, `SET NULL`): a mesma deleção de goal tem efeitos assimétricos dependendo da tabela filha
 - `transactions` tem check constraint `transactions_fatura_category_check`: `(fatura_account_id IS NULL AND category_id IS NOT NULL) OR (fatura_account_id IS NOT NULL AND category_id IS NULL)` — inserção de transação comum sem `categoryId` lança violação de constraint; em testes de integração, sempre passar `categoryId` via overrides ao usar `createTransaction` para transações não-fatura
-- Deletar `installmentGroup` seta `installmentGroupId = null` nas transações filhas (FK `onDelete: 'set null'`), não as deleta em cascata — transações ficam órfãs com `installmentNumber` e `totalInstallments` intactos mas sem vínculo ao grupo; comportamento não-óbvio para quem espera cascade ou restrict
+- `installmentGroups` FK `onDelete: 'set null'` é o contrato do banco (deletar o grupo direto deixa transações com `installmentGroupId = null`, campos de parcela intactos) — mas a semântica de produto é excluir a compra inteira; `deleteInstallmentGroup` envolve os dois `DELETE` em `db.transaction()`: transactions primeiro, depois o grupo; `installments-delete.test.ts` cobre o contrato do banco, `actions-transactions.test.ts` cobre a semântica da action
 
 ### UI
 

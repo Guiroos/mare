@@ -9,13 +9,12 @@ da suíte automatizada.
 | ---- | -------- | ------ |
 | 1 | Testes unitários com Vitest | concluída |
 | 2 | Integração de schema com Neon branch por arquivo | concluída |
-| 2.5 | Testes de actions e queries | parcial |
+| 2.5 | Testes de actions e queries | concluída |
 | 3 | E2E com Playwright | pendente |
 | 4 | CI com integração Neon | concluída |
 | 5 | Hardening de infraestrutura de testes | parcial |
 
-**Próximo passo recomendado:** resolver a semântica de exclusão de
-`deleteInstallmentGroup` e avançar nos testes de action (P1).
+**Próximo passo recomendado:** separar coverage unitário e integração (P2.7) ou adicionar Playwright (P3.9).
 
 ---
 
@@ -25,16 +24,12 @@ A fundação atual é boa: `npm test` roda rápido, os testes unitários cobrem
 helpers sensíveis de dinheiro/data/validação, e a suíte de integração com
 `neon-testing` valida constraints reais do PostgreSQL em branches descartáveis.
 
-O maior risco hoje não é ferramenta, é arquitetura de garantia:
+O maior risco hoje não é ferramenta, é cobertura de borda:
 
-1. O documento antigo mistura blueprint, checklist e estado atual.
-2. A cobertura unitária inclui `actions` e `queries`, mas essas pastas não rodam
-   nessa suíte.
-3. Parte dos testes de integração replica lógica de action em vez de chamar a
-   action real.
-4. A suíte Neon depende de convenções manuais de import dinâmico e variáveis de
-   ambiente sem preflight forte.
-5. Não há CI versionado para executar integração em pull requests.
+1. A cobertura unitária inclui `actions` e `queries` no escopo, mas essas pastas
+   só são validadas na suíte de integração — o relatório de coverage global é
+   pouco confiável até P2.7 ser implementado.
+2. Não há testes E2E cobrindo fluxos críticos no browser (P3 pendente).
 
 ## Arquivos
 

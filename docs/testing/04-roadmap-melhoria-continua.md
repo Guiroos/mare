@@ -141,9 +141,9 @@ Critérios de aceite:
 | ---- | ------ |
 | Unitários básicos | concluído |
 | Integração de schema | concluído |
-| Actions de devedores | parcial |
-| Actions de transações | pendente |
-| Queries de dashboard | pendente |
+| Actions de devedores | concluído |
+| Actions de transações | concluído |
+| Queries de dashboard | concluído |
 | Preflight Neon | pendente |
 | CI com integração | pendente |
 | Coverage confiável | pendente |
