@@ -143,7 +143,7 @@ Critérios de aceite:
 | Integração de schema | concluído |
 | Actions de devedores | concluído |
 | Actions de transações | concluído |
-| Queries de dashboard | pendente |
+| Queries de dashboard | concluído |
 | Preflight Neon | pendente |
 | CI com integração | pendente |
 | Coverage confiável | pendente |

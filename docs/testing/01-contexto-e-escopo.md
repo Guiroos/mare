@@ -17,7 +17,7 @@ com integração em PostgreSQL real via `neon-testing`.
 | Unitária | Vitest | concluída | Funções puras, schemas Zod e helpers de domínio |
 | Integração de schema | Vitest + `neon-testing` | concluída | Constraints, FKs, cascades, restricts e upserts reais |
 | Integração de actions | Vitest + `neon-testing` | parcial | Server actions com auth mockado, validação e persistência real |
-| Integração de queries | Vitest + `neon-testing` | pendente | Aggregations, filtros por usuário/mês e vazamento entre usuários |
+| Integração de queries | Vitest + `neon-testing` | concluída | Aggregations, filtros por usuário/mês e vazamento entre usuários |
 | E2E | Playwright | pendente | Fluxos críticos no browser |
 | CI | GitHub Actions | pendente | Rodar lint, typecheck, unitários e integração em PR |
 
