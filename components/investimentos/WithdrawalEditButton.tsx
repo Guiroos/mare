@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
@@ -19,12 +20,14 @@ import { toast } from 'sonner'
 import { updateWithdrawal } from '@/lib/actions/investments'
 import { withdrawalEditSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { formatCurrency } from '@/lib/utils/currency'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Withdrawal = {
   id: string
   investmentTypeId: string
   amount: number | string
+  taxAmount: number | null
   date: string
   notes: string | null
 }
@@ -35,15 +38,30 @@ type Props = {
 }
 
 export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
+  const hasTaxInitial = withdrawal.taxAmount !== null
+  const grossInitial = hasTaxInitial ? Number(withdrawal.amount) + Number(withdrawal.taxAmount) : 0
+  const taxInitial = hasTaxInitial ? Number(withdrawal.taxAmount) : 0
+
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [typeId, setTypeId] = useState(withdrawal.investmentTypeId)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [hasTax, setHasTax] = useState(hasTaxInitial)
+  const [grossCents, setGrossCents] = useState(Math.round(grossInitial * 100))
+  const [taxCents, setTaxCents] = useState(Math.round(taxInitial * 100))
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  const netCents = grossCents - taxCents
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
-    if (!v) setErrors({})
+    if (!v) {
+      setErrors({})
+      setHasTax(hasTaxInitial)
+      setGrossCents(Math.round(grossInitial * 100))
+      setTaxCents(Math.round(taxInitial * 100))
+      setTypeId(withdrawal.investmentTypeId)
+    }
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -55,6 +73,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
       investmentTypeId: typeId,
       amount: str('amount'),
       date: str('date'),
+      taxAmount: hasTax ? str('taxAmount') || null : null,
     })
 
     if (!result.success) {
@@ -70,6 +89,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
           investmentTypeId: result.data.investmentTypeId,
           amount: result.data.amount,
           date: result.data.date,
+          taxAmount: result.data.taxAmount ?? null,
           notes: str('notes') || null,
         })
         setOpen(false)
@@ -96,14 +116,47 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         </Select>
       </Field>
 
-      <Field label="Valor (R$)" error={errors.amount}>
-        <CurrencyInput
-          name="amount"
-          defaultValue={withdrawal.amount}
-          error={!!errors.amount}
-          required
-        />
+      <Field label="Houve desconto de imposto?">
+        <Switch label="Sim, houve IR ou IOF" checked={hasTax} onChange={setHasTax} />
       </Field>
+
+      {hasTax ? (
+        <>
+          <Field label="Valor bruto (R$)" error={errors.amount}>
+            <CurrencyInput
+              name="_gross"
+              defaultValue={grossInitial}
+              onValueChange={setGrossCents}
+              error={!!errors.amount}
+              required
+            />
+          </Field>
+          <Field label="Imposto (IR/IOF) (R$)">
+            <CurrencyInput name="_tax" defaultValue={taxInitial} onValueChange={setTaxCents} />
+          </Field>
+          <p className="text-caption text-text-secondary">
+            Valor líquido:{' '}
+            <strong className="font-semibold tabular-nums text-text-primary">
+              {formatCurrency(netCents > 0 ? netCents / 100 : 0)}
+            </strong>
+          </p>
+          <input
+            type="hidden"
+            name="amount"
+            value={netCents > 0 ? (netCents / 100).toFixed(2) : ''}
+          />
+          <input type="hidden" name="taxAmount" value={(taxCents / 100).toFixed(2)} />
+        </>
+      ) : (
+        <Field label="Valor (R$)" error={errors.amount}>
+          <CurrencyInput
+            name="amount"
+            defaultValue={withdrawal.amount}
+            error={!!errors.amount}
+            required
+          />
+        </Field>
+      )}
 
       <Field label="Data do resgate" error={errors.date}>
         <Input
