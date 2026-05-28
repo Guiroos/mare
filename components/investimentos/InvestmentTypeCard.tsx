@@ -1,15 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { Archive, ArchiveRestore } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatMonthName, formatMonthAbbr, referenceMonthToYearMonth } from '@/lib/utils/date'
+import {
+  formatMonthName,
+  formatMonthAbbr,
+  referenceMonthToYearMonth,
+  daysUntil,
+} from '@/lib/utils/date'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RowActions } from '@/components/ui/row-actions'
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
-import { deleteInvestmentType, deleteInvestment } from '@/lib/actions/investments'
+import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
+import {
+  deleteInvestmentType,
+  deleteInvestment,
+  archiveInvestmentType,
+  restoreInvestmentType,
+} from '@/lib/actions/investments'
 import { DEFAULT_INVESTMENT_TYPE_BG_COLOR, DEFAULT_INVESTMENT_TYPE_COLOR } from '@/lib/utils/color'
+import { toast } from 'sonner'
 
 const INITIAL_MONTH_LIMIT = 3
 
@@ -33,6 +46,8 @@ type Balance = {
   name: string
   color: string | null
   bgColor: string | null
+  maturityDate: string | null
+  archived: boolean
   totalAmount: number
   totalYield: number
   totalWithdrawn: number
@@ -46,6 +61,34 @@ type Props = {
   balance: Balance
 }
 
+function MaturityBadge({
+  maturityDate,
+  currentBalance,
+}: {
+  maturityDate: string | null
+  currentBalance: number
+}) {
+  if (!maturityDate) return null
+  const days = daysUntil(maturityDate)
+  if (days > 30) return null
+  if (days < 0 && currentBalance <= 0) return null
+
+  if (days < 0) {
+    const abs = Math.abs(days)
+    return (
+      <Badge variant="negative">
+        Vencido há {abs} {abs === 1 ? 'dia' : 'dias'}
+      </Badge>
+    )
+  }
+  if (days === 0) return <Badge variant="warning">Vence hoje</Badge>
+  return (
+    <Badge variant="warning">
+      Vence em {days} {days === 1 ? 'dia' : 'dias'}
+    </Badge>
+  )
+}
+
 export function InvestmentTypeCard({ balance }: Props) {
   const color = {
     bg: balance.bgColor ?? DEFAULT_INVESTMENT_TYPE_BG_COLOR,
@@ -57,6 +100,11 @@ export function InvestmentTypeCard({ balance }: Props) {
   const [editTypeOpen, setEditTypeOpen] = useState(false)
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const [showAllMonths, setShowAllMonths] = useState(false)
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false)
+  const [, startTransition] = useTransition()
+
+  const maturityDays = balance.maturityDate ? daysUntil(balance.maturityDate) : null
+  const isExpired = maturityDays !== null && maturityDays < 0 && balance.currentBalance > 0
 
   const confirmedEntries = entries.filter((e) => e.amount !== null)
   const confirmedYieldEntries = entries.filter((e) => e.yieldAmount !== null)
@@ -78,13 +126,49 @@ export function InvestmentTypeCard({ balance }: Props) {
   const visibleEntries = showAllMonths ? latestEntries : latestEntries.slice(0, INITIAL_MONTH_LIMIT)
   const hiddenMonthsCount = latestEntries.length - visibleEntries.length
 
+  const handleArchive = () => {
+    startTransition(async () => {
+      try {
+        await archiveInvestmentType(balance.id)
+      } catch {
+        toast.error('Não é possível arquivar tipo com saldo.')
+      }
+    })
+  }
+
+  const handleRestore = () => {
+    startTransition(async () => {
+      try {
+        await restoreInvestmentType(balance.id)
+      } catch {
+        toast.error('Erro ao restaurar.')
+      }
+    })
+  }
+
+  const archiveAction = balance.archived
+    ? {
+        label: 'Restaurar',
+        icon: ArchiveRestore,
+        onClick: handleRestore,
+        variant: 'default' as const,
+      }
+    : balance.currentBalance === 0
+      ? {
+          label: 'Arquivar',
+          icon: Archive,
+          onClick: handleArchive,
+          variant: 'default' as const,
+        }
+      : undefined
+
   return (
     <article className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
       {/* Header */}
       <header className="group flex items-center gap-4 border-b border-border px-5 py-4">
         {/* Avatar */}
         <div
-          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-small font-semibold"
+          className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-small font-semibold ${balance.archived ? 'opacity-50' : ''}`}
           style={{ background: color.bg, color: color.fg }}
         >
           {initials}
@@ -92,12 +176,22 @@ export function InvestmentTypeCard({ balance }: Props) {
 
         {/* Name + sub-info */}
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-center gap-2.5 text-h3">
+          <div className="flex flex-wrap items-center gap-2.5 text-h3">
             {balance.name}
-            {balance.pendingYield && (
-              <Badge variant="warning">
-                Rendimento pendente{pendingMonthLabel ? ` · ${pendingMonthLabel}` : ''}
-              </Badge>
+            {balance.archived ? (
+              <Badge variant="muted">Arquivado</Badge>
+            ) : (
+              <>
+                {balance.pendingYield && (
+                  <Badge variant="warning">
+                    Rendimento pendente{pendingMonthLabel ? ` · ${pendingMonthLabel}` : ''}
+                  </Badge>
+                )}
+                <MaturityBadge
+                  maturityDate={balance.maturityDate}
+                  currentBalance={balance.currentBalance}
+                />
+              </>
             )}
           </div>
           <div className="flex items-center gap-4 text-caption text-text-tertiary">
@@ -136,10 +230,16 @@ export function InvestmentTypeCard({ balance }: Props) {
           onDelete={() => deleteInvestmentType(balance.id)}
           deleteTitle="Excluir tipo de investimento"
           deleteDescription="Todos os registros mensais serão removidos. Essa ação não pode ser desfeita."
+          additionalActions={archiveAction ? [archiveAction] : undefined}
         />
         <InvestmentTypeDialog
           mode="edit"
-          type={{ id: balance.id, name: balance.name, color: balance.color }}
+          type={{
+            id: balance.id,
+            name: balance.name,
+            color: balance.color,
+            maturityDate: balance.maturityDate,
+          }}
           open={editTypeOpen}
           onOpenChange={setEditTypeOpen}
         />
@@ -248,7 +348,28 @@ export function InvestmentTypeCard({ balance }: Props) {
 
       {/* Footer */}
       <div className="flex items-center justify-between px-5 py-3">
-        <InvestmentEntryDialog investmentTypeId={balance.id} />
+        <div className="flex items-center gap-2">
+          {!balance.archived && <InvestmentEntryDialog investmentTypeId={balance.id} />}
+          {isExpired && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setWithdrawalOpen(true)}
+              >
+                Registrar resgate
+              </Button>
+              <WithdrawalDialog
+                investmentTypes={[{ id: balance.id, name: balance.name }]}
+                initialTypeId={balance.id}
+                initialAmount={balance.currentBalance}
+                open={withdrawalOpen}
+                onOpenChange={setWithdrawalOpen}
+              />
+            </>
+          )}
+        </div>
         <div className="flex gap-4 text-caption text-text-tertiary">
           {avgAporte !== null && (
             <span>

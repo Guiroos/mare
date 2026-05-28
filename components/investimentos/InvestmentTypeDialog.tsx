@@ -23,7 +23,10 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Props =
   | { mode: 'create' }
-  | { mode: 'edit'; type: { id: string; name: string; color: string | null } }
+  | {
+      mode: 'edit'
+      type: { id: string; name: string; color: string | null; maturityDate?: string | null }
+    }
 
 type DialogProps = Props & {
   open?: boolean
@@ -63,6 +66,7 @@ export function InvestmentTypeDialog(props: DialogProps) {
     const raw = {
       name: (fd.get('name') as string).trim(),
       color: useAutomaticColor ? undefined : (fd.get('color') as string) || undefined,
+      maturityDate: (fd.get('maturityDate') as string) || undefined,
     }
 
     const result = investmentTypeSchema.safeParse(raw)
@@ -98,6 +102,18 @@ export function InvestmentTypeDialog(props: DialogProps) {
           placeholder="Ex: Reserva de emergência, Renda fixa..."
           error={!!errors.name}
           autoFocus
+        />
+      </Field>
+      <Field
+        label="Data de vencimento"
+        hint="Opcional – para investimentos com prazo"
+        error={errors.maturityDate}
+      >
+        <Input
+          name="maturityDate"
+          type="date"
+          defaultValue={props.mode === 'edit' ? (props.type.maturityDate ?? '') : ''}
+          error={!!errors.maturityDate}
         />
       </Field>
       <Field label="Cor" hint="A cor automática usa o azul principal da Maré." error={errors.color}>
