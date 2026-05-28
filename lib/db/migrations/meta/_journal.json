@@ -78,6 +78,13 @@
       "when": 1779653719370,
       "tag": "0010_huge_morph",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779982591504,
+      "tag": "0011_motionless_rictor",
+      "breakpoints": true
     }
   ]
 }
