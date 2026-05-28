@@ -15,6 +15,7 @@ export const investmentTypeSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Cor inválida')
     .optional()
     .or(z.literal('')),
+  maturityDate: dateSchema.optional().or(z.literal('')),
 })
 
 function hasPositiveInvestmentValue(value: string | null | undefined) {
@@ -45,6 +46,7 @@ const withdrawalBase = z.object({
   investmentTypeId: uuidSchema,
   amount: positiveAmountSchema,
   date: dateSchema,
+  taxAmount: nullishNonNegativeAmountSchema,
 })
 
 export const withdrawalEditSchema = withdrawalBase

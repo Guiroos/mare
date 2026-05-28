@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sum } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
 import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
 import { requireUserId } from '@/lib/auth/require-user'
@@ -20,6 +20,7 @@ import {
 export type InvestmentTypeInput = {
   name: string
   color?: string
+  maturityDate?: string | null
 }
 
 export async function createInvestmentType(data: InvestmentTypeInput) {
@@ -32,6 +33,7 @@ export async function createInvestmentType(data: InvestmentTypeInput) {
     name: data.name,
     color,
     bgColor: deriveBgColor(color),
+    maturityDate: data.maturityDate || null,
   })
   revalidatePath('/investimentos')
 }
@@ -47,6 +49,7 @@ export async function updateInvestmentType(id: string, data: InvestmentTypeInput
       name: data.name,
       color,
       bgColor: deriveBgColor(color),
+      maturityDate: data.maturityDate || null,
     })
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
@@ -57,6 +60,46 @@ export async function deleteInvestmentType(id: string) {
   await db
     .delete(investmentTypes)
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
+  revalidatePath('/investimentos')
+}
+
+export async function archiveInvestmentType(id: string) {
+  const userId = await requireUserId()
+  await assertOwnsInvestmentType(userId, id)
+
+  const [amountResult, withdrawalResult] = await Promise.all([
+    db
+      .select({ totalAmount: sum(investments.amount), totalYield: sum(investments.yieldAmount) })
+      .from(investments)
+      .where(and(eq(investments.userId, userId), eq(investments.investmentTypeId, id))),
+    db
+      .select({ totalWithdrawn: sum(investmentWithdrawals.amount) })
+      .from(investmentWithdrawals)
+      .where(
+        and(
+          eq(investmentWithdrawals.userId, userId),
+          eq(investmentWithdrawals.investmentTypeId, id)
+        )
+      ),
+  ])
+
+  const currentBalance =
+    Number(amountResult[0]?.totalAmount ?? 0) +
+    Number(amountResult[0]?.totalYield ?? 0) -
+    Number(withdrawalResult[0]?.totalWithdrawn ?? 0)
+
+  if (currentBalance > 0) {
+    throw new Error('Não é possível arquivar tipo com saldo.')
+  }
+
+  await db.update(investmentTypes).set({ archived: true }).where(eq(investmentTypes.id, id))
+  revalidatePath('/investimentos')
+}
+
+export async function restoreInvestmentType(id: string) {
+  const userId = await requireUserId()
+  await assertOwnsInvestmentType(userId, id)
+  await db.update(investmentTypes).set({ archived: false }).where(eq(investmentTypes.id, id))
   revalidatePath('/investimentos')
 }
 
@@ -116,6 +159,7 @@ export type CreateWithdrawalInput = {
   amount: string
   date: string
   destination: 'income' | 'transfer'
+  taxAmount?: string | null
   notes?: string | null
 }
 
@@ -145,6 +189,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
       userId,
       investmentTypeId: data.investmentTypeId,
       amount: data.amount,
+      taxAmount: data.taxAmount || null,
       date: data.date,
       destination: data.destination,
       incomeId,
@@ -161,6 +206,7 @@ export type UpdateWithdrawalInput = {
   investmentTypeId: string
   amount: string
   date: string
+  taxAmount?: string | null
   notes?: string | null
 }
 
@@ -186,6 +232,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
       .set({
         investmentTypeId: data.investmentTypeId,
         amount: data.amount,
+        taxAmount: data.taxAmount || null,
         date: data.date,
         notes: data.notes || null,
       })

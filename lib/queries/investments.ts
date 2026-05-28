@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
-import { eq, and, sum, asc, gte } from 'drizzle-orm'
-import { currentReferenceMonth, pastNMonths } from '@/lib/utils/date'
+import { eq, and, sum, asc, gte, count } from 'drizzle-orm'
+import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
 
 export async function getInvestmentTypes(userId: string) {
   return db.query.investmentTypes.findMany({
@@ -10,10 +10,13 @@ export async function getInvestmentTypes(userId: string) {
   })
 }
 
-export async function getInvestmentBalances(userId: string) {
+export async function getInvestmentBalances(
+  userId: string,
+  { showArchived = false }: { showArchived?: boolean } = {}
+) {
   const currentRefMonth = currentReferenceMonth()
   const types = await db.query.investmentTypes.findMany({
-    where: eq(investmentTypes.userId, userId),
+    where: and(eq(investmentTypes.userId, userId), eq(investmentTypes.archived, showArchived)),
     orderBy: asc(investmentTypes.name),
   })
 
@@ -59,6 +62,8 @@ export async function getInvestmentBalances(userId: string) {
         color: type.color,
         bgColor: type.bgColor,
         goalId: type.goalId,
+        maturityDate: type.maturityDate,
+        archived: type.archived,
         totalAmount,
         totalYield,
         totalWithdrawn,
@@ -80,6 +85,35 @@ export async function getInvestmentBalances(userId: string) {
   )
   return results.sort((a, b) => b.currentBalance - a.currentBalance)
 }
+
+export type InvestmentBalance = Awaited<ReturnType<typeof getInvestmentBalances>>[number]
+
+export async function getArchivedCount(userId: string): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(investmentTypes)
+    .where(and(eq(investmentTypes.userId, userId), eq(investmentTypes.archived, true)))
+  return result[0]?.count ?? 0
+}
+
+export async function getMaturityAlerts(userId: string) {
+  const balances = await getInvestmentBalances(userId, { showArchived: false })
+  return balances
+    .filter((b) => b.maturityDate !== null && b.currentBalance > 0)
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      color: b.color,
+      bgColor: b.bgColor,
+      maturityDate: b.maturityDate!,
+      currentBalance: b.currentBalance,
+      daysUntil: daysUntil(b.maturityDate!),
+    }))
+    .filter((b) => b.daysUntil <= 30)
+    .sort((a, b) => a.daysUntil - b.daysUntil)
+}
+
+export type MaturityAlert = Awaited<ReturnType<typeof getMaturityAlerts>>[number]
 
 export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
   const rows = await db.query.investments.findMany({
@@ -112,6 +146,7 @@ export async function getInvestmentWithdrawals(userId: string) {
     investmentTypeId: r.investmentTypeId,
     typeName: r.investmentType.name,
     amount: Number(r.amount),
+    taxAmount: r.taxAmount !== null ? Number(r.taxAmount) : null,
     date: r.date,
     destination: r.destination,
     notes: r.notes,
