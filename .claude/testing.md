@@ -75,7 +75,7 @@ it('action cria entidade no banco', async () => {
 ```
 
 **Pontos de atenção:**
-- `revalidatePath` não precisa de mock — Next.js exporta um no-op em ambiente node
+- `revalidatePath` **precisa** de mock — sem ele lança `"Invariant: static generation store missing in revalidatePath"` em ambiente de teste; adicionar `vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))` no topo de todo arquivo que chama actions reais
 - Cada `await import(...)` dentro de `it()` retorna o módulo já cacheado — performance OK
 - Mocks de ownership devem ser configurados antes dos imports de action no `beforeAll`; se a action chamar `assertOwns*` com um ID que não pertence ao usuário, o mock por padrão resolve sem erro — cobrir o caminho de erro com `vi.mocked(assertOwnsCategory).mockRejectedValueOnce(new Error('Forbidden'))`
 - Adicionar `toHaveBeenCalledWith(userId, entityId)` após chamar a action no caminho feliz — verifica que o check de ownership foi invocado com os IDs corretos, não só que foi chamado

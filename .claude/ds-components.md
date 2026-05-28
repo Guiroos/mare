@@ -44,7 +44,7 @@ Radix UI + primitivos.
 | `label.tsx`          | `Label`                         | Padrão: `text-caption font-medium text-text-secondary`                           |
 | `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário  |
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
-| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível                                                          |
+| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
 | `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
@@ -89,7 +89,7 @@ Radix UI + primitivos.
 - `Chip` aceita `className` para adaptar shape em toolbars: `rounded-md border text-caption h-8` transforma o pill padrão em chip retangular compacto; use `Chip` quando todos os itens têm a mesma cor active — para cores active variáveis por item, usar raw `<button>`
 - `transition` do Tailwind já inclui `border-color` e `box-shadow` no conjunto padrão — `transition-[border-color,box-shadow]` é valor arbitrário proibido; usar `transition` diretamente
 - `DrawerContent` não tem padding horizontal próprio: ao exibir formulário dentro de `Drawer`, envolver o conteúdo com `<div className="px-4 pb-6">` (horizontal padding + bottom padding)
-- Itens destrutivos em `DropdownMenu`: usar `text-negative` (vermelho vibrante, herda para ícones via `currentColor`) — não `text-negative-text`, que é para texto sobre fundo vermelho
+- `text-negative` vs `text-negative-text`: `text-negative` é vermelho vibrante para texto sobre fundo neutro (células de tabela, spans de valor, itens de dropdown) — `text-negative-text` é exclusivo para texto sobre fundo vermelho (ex: interior de `<Badge variant="negative">`); a nomeação `*-text` sempre indica "sobre fundo colorido"; usar `text-negative` em qualquer contexto de fundo neutro, inclusive `<td>` com valores de resgate/despesa
 - Gráficos Recharts com estado vazio: usar `h-56` (224px) no container do estado vazio e `height={224}` no `ResponsiveContainer` para alinhar sem valor arbitrário; `borderRadius` em `contentStyle` do `Tooltip` deve seguir tokens: `'10px'` = `rounded-md`, `'16px'` = `rounded-lg`
 - Listas de multi-select com checkboxes: usar `<input type="checkbox" className="accent-accent">` dentro de `<Label>` do DS (nunca `<label>` HTML — viola Regra 4 mesmo sem ser um campo `<Field>`); o DS não tem primitivo `Checkbox`; `<Switch>` não substitui checkbox em multi-select (Switch é toggle binário único)
 - Qualquer `tracking-*` acumulado sobre token tipográfico é proibido — a regra de `tracking-wide` aplica-se igualmente a `tracking-widest`, `tracking-wider` etc.; todos sobrescrevem o letter-spacing configurado no token; se o visual "caixa alta espaçada" for recorrente, criar token específico
