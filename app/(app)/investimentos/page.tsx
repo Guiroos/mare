@@ -2,8 +2,10 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import {
   getInvestmentBalances,
+  getInvestmentTypes,
   getInvestmentWithdrawals,
   getPatrimonyTimeline,
+  getArchivedCount,
 } from '@/lib/queries/investments'
 import { deleteWithdrawal } from '@/lib/actions/investments'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -27,20 +29,29 @@ import { InvestmentTypeCard } from '@/components/investimentos/InvestmentTypeCar
 import { InvestmentTypeAccordion } from '@/components/investimentos/InvestmentTypeAccordion'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
+import { ArchivedFilterChip } from '@/components/investimentos/ArchivedFilterChip'
 
-export default async function InvestimentosPage() {
+export default async function InvestimentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ archived?: string }>
+}) {
   const session = await auth()
   if (!session) redirect('/login')
 
   const userId = session.user.id
+  const params = await searchParams
+  const showArchived = params.archived === '1'
 
-  const [balances, withdrawals, timeline] = await Promise.all([
-    getInvestmentBalances(userId),
+  const [balances, allTypes, withdrawals, timeline, archivedCount] = await Promise.all([
+    getInvestmentBalances(userId, { showArchived }),
+    getInvestmentTypes(userId),
     getInvestmentWithdrawals(userId),
     getPatrimonyTimeline(userId),
+    getArchivedCount(userId),
   ])
 
-  const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
+  const investmentTypeOptions = allTypes.map((t) => ({ id: t.id, name: t.name }))
 
   // ── Hero stats ──────────────────────────────────────────────────────────────
   const totalPatrimony = balances.reduce((s, b) => s + b.currentBalance, 0)
@@ -94,8 +105,8 @@ export default async function InvestimentosPage() {
         </div>
       </div>
 
-      {/* Hero */}
-      {balances.length > 0 && (
+      {/* Hero — oculto na view arquivada (dados seriam apenas dos tipos arquivados) */}
+      {!showArchived && balances.length > 0 && (
         <PatrimonyHero
           total={totalPatrimony}
           totalAporte={totalAporte}
@@ -113,12 +124,21 @@ export default async function InvestimentosPage() {
         title="Patrimônio por tipo"
         action={
           <div className="flex items-center gap-2">
+            <ArchivedFilterChip count={archivedCount} active={showArchived} />
             <span className="whitespace-nowrap text-caption tabular-nums text-text-tertiary">
-              <strong className="font-semibold text-text-primary">{balances.length}</strong>{' '}
-              {balances.length === 1 ? 'tipo ativo' : 'tipos ativos'}
+              <strong className="font-semibold text-text-primary">
+                {showArchived ? archivedCount : balances.length}
+              </strong>{' '}
+              {showArchived
+                ? archivedCount === 1
+                  ? 'tipo arquivado'
+                  : 'tipos arquivados'
+                : balances.length === 1
+                  ? 'tipo ativo'
+                  : 'tipos ativos'}
               <span className="hidden md:inline"> · ordenados por valor</span>
             </span>
-            {balances.length > 0 && (
+            {!showArchived && balances.length > 0 && (
               <div className="lg:hidden">
                 <InvestmentTypeDialog mode="create" />
               </div>
@@ -128,11 +148,17 @@ export default async function InvestimentosPage() {
       >
         {balances.length === 0 ? (
           <div className="flex flex-col items-center gap-4 py-10">
-            <EmptyState
-              title="Nenhum tipo de investimento cadastrado."
-              description="Crie seu primeiro tipo para começar a registrar aportes e rendimentos."
-            />
-            <InvestmentTypeDialog mode="create" />
+            {showArchived ? (
+              <EmptyState title="Nenhum tipo arquivado." />
+            ) : (
+              <>
+                <EmptyState
+                  title="Nenhum tipo de investimento cadastrado."
+                  description="Crie seu primeiro tipo para começar a registrar aportes e rendimentos."
+                />
+                <InvestmentTypeDialog mode="create" />
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -152,7 +178,7 @@ export default async function InvestimentosPage() {
       </Section>
 
       {/* ── Evolução do patrimônio ─────────────────────────────────────────── */}
-      {timeline.length > 1 && (
+      {!showArchived && timeline.length > 1 && (
         <section className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
           <div className="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-0">
             <div>
@@ -219,8 +245,16 @@ export default async function InvestimentosPage() {
                     <td className="px-5 py-2.5 text-small text-text-secondary">
                       {formatDate(w.date)}
                     </td>
-                    <td className="px-5 py-2.5 text-right text-small font-semibold tabular-nums text-negative-text">
-                      − {formatCurrency(w.amount)}
+                    <td className="px-5 py-2.5 text-right">
+                      <span className="text-small font-semibold tabular-nums text-negative">
+                        − {formatCurrency(w.amount)}
+                      </span>
+                      {w.taxAmount !== null && (
+                        <span className="block text-caption tabular-nums text-text-tertiary">
+                          Bruto {formatCurrency(w.amount + w.taxAmount)} · IR{' '}
+                          {formatCurrency(w.taxAmount)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-2.5">
                       {w.destination === 'income' ? (

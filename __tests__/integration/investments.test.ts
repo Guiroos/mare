@@ -278,3 +278,72 @@ describe('investmentTypes.id — ON DELETE RESTRICT', () => {
     ).rejects.toThrow()
   })
 })
+
+describe('investmentTypes.maturityDate', () => {
+  it('persiste maturityDate quando fornecido', async () => {
+    const type = await createInvestmentType(db, userId, {
+      name: 'CDB com Vencimento',
+      maturityDate: '2027-06-30',
+    })
+
+    const saved = await db.query.investmentTypes.findFirst({
+      where: eq(schema.investmentTypes.id, type.id),
+    })
+
+    expect(saved?.maturityDate).toBe('2027-06-30')
+  })
+
+  it('maturityDate é null por padrão', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Sem Vencimento' })
+
+    const saved = await db.query.investmentTypes.findFirst({
+      where: eq(schema.investmentTypes.id, type.id),
+    })
+
+    expect(saved?.maturityDate).toBeNull()
+  })
+
+  it('archived é false por padrão', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Tipo Padrão' })
+
+    const saved = await db.query.investmentTypes.findFirst({
+      where: eq(schema.investmentTypes.id, type.id),
+    })
+
+    expect(saved?.archived).toBe(false)
+  })
+})
+
+describe('investmentWithdrawals.taxAmount', () => {
+  it('persiste taxAmount quando fornecido', async () => {
+    const [withdrawal] = await db
+      .insert(schema.investmentWithdrawals)
+      .values({
+        userId,
+        investmentTypeId,
+        amount: '4800.00',
+        taxAmount: '200.00',
+        date: '2025-10-01',
+        destination: 'transfer',
+      })
+      .returning()
+
+    expect(withdrawal.amount).toBe('4800.00')
+    expect(withdrawal.taxAmount).toBe('200.00')
+  })
+
+  it('taxAmount é null por padrão', async () => {
+    const [withdrawal] = await db
+      .insert(schema.investmentWithdrawals)
+      .values({
+        userId,
+        investmentTypeId,
+        amount: '1000.00',
+        date: '2025-10-15',
+        destination: 'transfer',
+      })
+      .returning()
+
+    expect(withdrawal.taxAmount).toBeNull()
+  })
+})

@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth'
 import { getDashboardData, getDashboardDataBillingCycle } from '@/lib/queries/dashboard'
 import { getCreditAccounts, getPaymentAccounts } from '@/lib/queries/categories'
 import { getUserCreditMode, getOpenFaturas } from '@/lib/queries/fatura'
+import { getMaturityAlerts } from '@/lib/queries/investments'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
@@ -11,6 +12,7 @@ import {
   todayParts,
   billingCycleDateRange,
 } from '@/lib/utils/date'
+import { MaturityAlerts } from '@/components/dashboard/MaturityAlerts'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
 import { SummaryCards } from '@/components/dashboard/SummaryCards'
 import { CategoryGroupProgress } from '@/components/dashboard/CategoryGroupProgress'
@@ -56,7 +58,7 @@ export default async function DashboardPage({
       }
     : undefined
 
-  const [data, openFaturas, allAccounts] = await Promise.all([
+  const [data, openFaturas, allAccounts, maturityAlerts] = await Promise.all([
     isCycleView
       ? getDashboardDataBillingCycle(
           userId,
@@ -68,7 +70,10 @@ export default async function DashboardPage({
       : getDashboardData(userId, referenceMonth, faturaCtx),
     isFaturaMode ? getOpenFaturas(userId, creditMode.faturaActiveFrom) : Promise.resolve([]),
     isFaturaMode ? getPaymentAccounts(userId) : Promise.resolve([]),
+    getMaturityAlerts(userId),
   ])
+
+  const maturityInvestmentTypes = maturityAlerts.map((a) => ({ id: a.id, name: a.name }))
 
   const debitAccounts = allAccounts.filter((a) => a.type !== 'credit')
   const unconfiguredCreditAccounts = isFaturaMode
@@ -180,6 +185,13 @@ export default async function DashboardPage({
           creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
         />
       </Section>
+
+      {/* Vencimentos próximos */}
+      {maturityAlerts.length > 0 && (
+        <Section title="Vencimentos próximos">
+          <MaturityAlerts alerts={maturityAlerts} investmentTypes={maturityInvestmentTypes} />
+        </Section>
+      )}
 
       {/* Row 2: Entradas + Investimentos */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">

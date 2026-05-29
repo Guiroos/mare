@@ -107,6 +107,11 @@ export function daysAgo(dateStr: string): number {
   return differenceInCalendarDays(new Date(), parseDate(dateStr))
 }
 
+/** Returns number of calendar days until dateStr (positive = future, negative = past). */
+export function daysUntil(dateStr: string): number {
+  return differenceInCalendarDays(parseDate(dateStr), new Date())
+}
+
 /** Returns an array of N past referenceMonths (YYYY-MM-01), oldest first, ending with current month. */
 export function pastNMonths(n: number): string[] {
   const start = startOfMonth(new Date())

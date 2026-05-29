@@ -313,8 +313,11 @@ export function TransactionForm({
       setErrors({})
       startTransition(async () => {
         try {
+          const typeName =
+            investmentTypes.find((t) => t.id === result.data.investmentTypeId)?.name ?? ''
           await createWithdrawal({
             investmentTypeId: result.data.investmentTypeId,
+            investmentTypeName: typeName,
             amount: result.data.amount,
             date: result.data.date,
             destination: result.data.destination,

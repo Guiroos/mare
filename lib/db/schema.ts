@@ -230,6 +230,8 @@ export const investmentTypes = pgTable('investment_types', {
   color: varchar('color', { length: 7 }),
   bgColor: varchar('bg_color', { length: 7 }),
   goalId: uuid('goal_id').references(() => goals.id, { onDelete: 'set null' }),
+  maturityDate: date('maturity_date'),
+  archived: boolean('archived').notNull().default(false),
 })
 
 export const investments = pgTable(
@@ -270,6 +272,7 @@ export const investmentWithdrawals = pgTable(
       .notNull()
       .references(() => investmentTypes.id, { onDelete: 'restrict' }),
     amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    taxAmount: decimal('tax_amount', { precision: 10, scale: 2 }),
     date: date('date').notNull(),
     destination: varchar('destination', { length: 20 }).notNull(), // income | transfer
     incomeId: uuid('income_id').references(() => incomes.id, {

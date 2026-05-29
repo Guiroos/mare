@@ -19,6 +19,35 @@ Esta pasta organiza a analise da tela `app/(app)/investimentos` em arquivos meno
 3. `P2` concluido:
    1. grafico de evolucao simplificado, sem legenda duplicada e com area de apoio sob o patrimonio.
 
+## Status em 28/05/2026 — vencimento, imposto e arquivamento (07-vencimento-e-imposto.md)
+
+### Fase 1 — Schema e migration: concluida
+
+- `investmentTypes`: adicionados `maturityDate` (date, nullable) e `archived` (boolean, NOT NULL DEFAULT false).
+- `investmentWithdrawals`: adicionado `taxAmount` (decimal 10,2, nullable).
+- Migration `0011_motionless_rictor.sql` gerada e aplicada.
+- `lib/utils/date.ts`: adicionado helper `daysUntil(dateStr)`.
+
+### Fase 2 — Backend: concluida (28/05/2026)
+
+- `lib/validations/investments.ts`: `maturityDate` em `investmentTypeSchema`; `taxAmount` em `withdrawalBase` (propagado para `withdrawalEditSchema`, `withdrawalSchema` e `updateWithdrawalActionSchema`).
+- `lib/actions/investments.ts`: `maturityDate` em create/update de tipo; `taxAmount` em create/update de resgate; novas actions `archiveInvestmentType` (valida saldo zero) e `restoreInvestmentType`.
+- `lib/queries/investments.ts`: `getInvestmentBalances` aceita `{ showArchived }`, retorna `maturityDate` e `archived`; `getInvestmentWithdrawals` retorna `taxAmount`; novas funcoes `getArchivedCount` e `getMaturityAlerts`; tipos exportados `InvestmentBalance` e `MaturityAlert`.
+
+### Fase 3 — UI de vencimento: pendente
+
+Badges nos cards, dialog de resgate pre-preenchido, widget no dashboard.
+
+### Fase 4 — UI de imposto: pendente
+
+Toggle de imposto no `WithdrawalDialog`, detalhamento na tabela de resgates.
+
+### Fase 5 — UI de arquivamento: pendente
+
+Visual atenuado, opcoes no `RowActions`, chip de filtro na Section.
+
+### Fase 6 — Testes e revisao: pendente
+
 ## Ordem sugerida de leitura
 
 1. [01-contexto-e-escopo.md](./01-contexto-e-escopo.md)
@@ -27,6 +56,7 @@ Esta pasta organiza a analise da tela `app/(app)/investimentos` em arquivos meno
 4. [04-requisitos-e-criterios-de-aceite.md](./04-requisitos-e-criterios-de-aceite.md)
 5. [05-roadmap-e-riscos.md](./05-roadmap-e-riscos.md)
 6. [06-code-review-pos-implementacao.md](./06-code-review-pos-implementacao.md)
+7. [07-vencimento-e-imposto.md](./07-vencimento-e-imposto.md)
 
 ## Como usar esta documentacao
 

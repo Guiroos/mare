@@ -495,6 +495,26 @@ describe('investmentTypeSchema', () => {
   it('rejects empty name', () => {
     expect(investmentTypeSchema.safeParse({ name: '' }).success).toBe(false)
   })
+
+  it('accepts valid maturityDate', () => {
+    expect(
+      investmentTypeSchema.safeParse({ name: 'CDB', maturityDate: '2026-12-31' }).success
+    ).toBe(true)
+  })
+
+  it('accepts empty string maturityDate (reset via input)', () => {
+    expect(investmentTypeSchema.safeParse({ name: 'CDB', maturityDate: '' }).success).toBe(true)
+  })
+
+  it('accepts undefined maturityDate', () => {
+    expect(investmentTypeSchema.safeParse({ name: 'CDB' }).success).toBe(true)
+  })
+
+  it('rejects invalid maturityDate format', () => {
+    expect(
+      investmentTypeSchema.safeParse({ name: 'CDB', maturityDate: '31/12/2026' }).success
+    ).toBe(false)
+  })
 })
 
 describe('investmentEntrySchema — at-least-one refine', () => {
@@ -567,6 +587,22 @@ describe('withdrawalSchema', () => {
 
   it('rejects invalid date format', () => {
     expect(withdrawalSchema.safeParse({ ...base, date: '15/03/2025' }).success).toBe(false)
+  })
+
+  it('accepts taxAmount null', () => {
+    expect(withdrawalSchema.safeParse({ ...base, taxAmount: null }).success).toBe(true)
+  })
+
+  it('accepts taxAmount zero', () => {
+    expect(withdrawalSchema.safeParse({ ...base, taxAmount: '0' }).success).toBe(true)
+  })
+
+  it('accepts taxAmount positive value', () => {
+    expect(withdrawalSchema.safeParse({ ...base, taxAmount: '200' }).success).toBe(true)
+  })
+
+  it('rejects negative taxAmount', () => {
+    expect(withdrawalSchema.safeParse({ ...base, taxAmount: '-1' }).success).toBe(false)
   })
 })
 
