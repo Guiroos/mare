@@ -12,7 +12,7 @@ export function ArchivedFilterChip({ count, active }: Props) {
   const router = useRouter()
   const pathname = usePathname()
 
-  if (count === 0) return null
+  if (count === 0 && !active) return null
 
   const handleClick = () => {
     if (active) {

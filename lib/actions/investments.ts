@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
-import { eq, and, sum } from 'drizzle-orm'
+import { eq, and, sum, sql } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
 import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
 import { requireUserId } from '@/lib/auth/require-user'
@@ -73,7 +73,9 @@ export async function archiveInvestmentType(id: string) {
       .from(investments)
       .where(and(eq(investments.userId, userId), eq(investments.investmentTypeId, id))),
     db
-      .select({ totalWithdrawn: sum(investmentWithdrawals.amount) })
+      .select({
+        totalWithdrawn: sql<string>`coalesce(sum(${investmentWithdrawals.amount} + coalesce(${investmentWithdrawals.taxAmount}, 0)), 0)`,
+      })
       .from(investmentWithdrawals)
       .where(
         and(
@@ -92,14 +94,20 @@ export async function archiveInvestmentType(id: string) {
     throw new Error('Não é possível arquivar tipo com saldo.')
   }
 
-  await db.update(investmentTypes).set({ archived: true }).where(eq(investmentTypes.id, id))
+  await db
+    .update(investmentTypes)
+    .set({ archived: true })
+    .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
 }
 
 export async function restoreInvestmentType(id: string) {
   const userId = await requireUserId()
   await assertOwnsInvestmentType(userId, id)
-  await db.update(investmentTypes).set({ archived: false }).where(eq(investmentTypes.id, id))
+  await db
+    .update(investmentTypes)
+    .set({ archived: false })
+    .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
 }
 
@@ -156,6 +164,7 @@ export async function deleteInvestment(id: string) {
 
 export type CreateWithdrawalInput = {
   investmentTypeId: string
+  investmentTypeName: string
   amount: string
   date: string
   destination: 'income' | 'transfer'
@@ -177,7 +186,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
         .insert(incomes)
         .values({
           userId,
-          source: 'Resgate de investimento',
+          source: `Resgate investimento ${data.investmentTypeName}`,
           amount: data.amount,
           referenceMonth: dateToReferenceMonth(data.date),
         })

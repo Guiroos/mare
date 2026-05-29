@@ -691,6 +691,220 @@ Resultado: 8 novos casos unitarios em `validations-domain.test.ts`; 5 novos caso
 `investments.test.ts`; arquivo `actions-investments.test.ts` criado com 5 casos de action com
 banco real. `vi.mock('next/cache', ...)` necessario — `revalidatePath` lanca sem contexto Next.js.
 
+## Bugs Identificados Na Revisao Pos-Implementacao
+
+### B1 — `investmentTypeOptions` filtrado por `showArchived` na page de investimentos
+
+**Arquivo:** `app/(app)/investimentos/page.tsx`
+**Gravidade:** funcional
+
+```typescript
+// atual — errado
+const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
+```
+
+`balances` já está filtrado pelo parâmetro `showArchived`. Quando o usuário está na view
+`?archived=1`, o `WithdrawalDialog` no header da seção "Resgates" recebe apenas tipos
+arquivados (saldo zero → dropdown vazio ou inútil). O `WithdrawalEditButton` sofre do
+mesmo problema ao editar resgates históricos nessa view.
+
+**Correção:** buscar tipos ativos separadamente, independente do filtro de view.
+Opção simples: adicionar `getInvestmentTypes(userId)` ao `Promise.all` e usar esse array
+para `investmentTypeOptions`.
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B2 — `initialAmount` ignorado quando o toggle de imposto é ativado
+
+**Arquivo:** `components/investimentos/WithdrawalDialog.tsx`
+**Gravidade:** UX (pré-preenchimento perdido)
+
+```typescript
+// atual — grossCents sempre começa em 0, ignora initialAmount
+const [grossCents, setGrossCents] = useState(0)
+```
+
+Quando o dialog abre pré-preenchido (card vencido ou widget do dashboard com
+`initialAmount`) e o usuário ativa o toggle de imposto, o campo "Valor bruto" começa em
+R$ 0,00. O pré-preenchimento só funciona no modo sem imposto.
+
+**Correção:**
+
+```typescript
+const [grossCents, setGrossCents] = useState(() =>
+  initialAmount ? Math.round(initialAmount * 100) : 0
+)
+```
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B3 — Accordion nao exibe badge de rendimento pendente quando há badge de vencimento
+
+**Arquivo:** `components/investimentos/InvestmentTypeAccordion.tsx`
+**Gravidade:** discrepância spec vs implementação
+
+No `InvestmentTypeCard` (desktop) ambos os badges aparecem juntos na linha do nome. No
+accordion, quando `pendingYield=true` e `maturityDate` está próxima/vencida, o header
+exibe apenas o badge de vencimento — o rendimento pendente fica como texto "pend." na
+coluna de valor (invisível no header fechado). A spec diz explicitamente "ao lado do
+badge de rendimento pendente quando ambos existem".
+
+```tsx
+// atual — falta badge de pendingYield
+{balance.archived ? (
+  <Badge variant="muted">Arquivado</Badge>
+) : (
+  <MaturityBadge ... />
+)}
+
+// deveria ser
+{balance.archived ? (
+  <Badge variant="muted">Arquivado</Badge>
+) : (
+  <>
+    {balance.pendingYield && (
+      <Badge variant="warning">
+        pend.{pendingMonthLabel ? ` ${pendingMonthLabel}` : ''}
+      </Badge>
+    )}
+    <MaturityBadge ... />
+  </>
+)}
+```
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B5 — `taxAmount` nao deduzido do saldo do investimento
+
+**Arquivos:** `lib/queries/investments.ts` (duas funções)
+**Gravidade:** crítico (saldo incorreto)
+
+Quando um resgate tem `taxAmount`, o `amount` persistido é o valor líquido (bruto − imposto).
+A query que calcula `currentBalance` soma apenas `amount` nos resgates, então o imposto pago
+**fica contabilizado como se ainda estivesse no investimento**.
+
+Exemplo: tipo com R$ 500 → resgate bruto R$ 500, IR R$ 50, líquido R$ 450.
+- `totalWithdrawn = 450` (amount salvo)
+- `currentBalance = 500 − 450 = 50` ← errado, deveria ser 0
+
+O mesmo problema afeta `getPatrimonyTimeline`:
+
+```typescript
+// getInvestmentBalances — linha 34
+db.select({ totalWithdrawn: sum(investmentWithdrawals.amount) })
+
+// getPatrimonyTimeline — linha 182
+monthMap.set(month, prev - Number(wd.amount))
+```
+
+Ambos deveriam usar o valor bruto (`amount + coalesce(taxAmount, 0)`).
+
+**Correção em `getInvestmentBalances`:** trocar a query de resgates para somar gross:
+
+```typescript
+db
+  .select({
+    totalWithdrawn: sql<string>`
+      coalesce(sum(${investmentWithdrawals.amount}
+        + coalesce(${investmentWithdrawals.taxAmount}, 0)), 0)
+    `,
+  })
+  .from(investmentWithdrawals)
+  ...
+```
+
+**Correção em `getPatrimonyTimeline`:**
+
+```typescript
+monthMap.set(month, prev - Number(wd.amount) - Number(wd.taxAmount ?? 0))
+```
+
+Atenção: `getMaturityAlerts` chama `getInvestmentBalances`, então é corrigido
+automaticamente. O critério `currentBalance > 0` para exibir badge "Vencido" também
+passa a ser calculado corretamente após a fix.
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B6 — Source do income criado no resgate é genérico
+
+**Arquivo:** `lib/actions/investments.ts`
+**Gravidade:** UX / rastreabilidade
+
+```typescript
+// atual
+source: 'Resgate de investimento',
+```
+
+Quando o destino do resgate é `'income'`, o income criado sempre recebe o source
+`"Resgate de investimento"`, sem identificar qual tipo. Com múltiplos investimentos, a
+lista de entradas no dashboard fica cheia de linhas idênticas.
+
+**Correção:** incluir o nome do tipo no source.
+
+Formato sugerido: `"Resgate investimento <nome do tipo>"` (sem o "de", para ficar mais
+compacto na lista de entradas).
+
+Implementação:
+- Adicionar `investmentTypeName: string` a `CreateWithdrawalInput`.
+- Buscar o nome a partir de `data.investmentTypeId` **ou** receber do caller.
+- Recomendação: receber do caller para evitar query extra. Os componentes que chamam
+  `createWithdrawal` já têm acesso ao nome (dropdown selecionado).
+- Atualizar `WithdrawalDialog` e `WithdrawalEditButton` para passar o nome.
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B4 — `archive`/`restoreInvestmentType` sem `userId` no WHERE da mutação
+
+**Arquivo:** `lib/actions/investments.ts`
+**Gravidade:** menor (defesa em profundidade)
+
+```typescript
+// atual — WHERE sem userId, depende exclusivamente do assert anterior
+await db.update(investmentTypes).set({ archived: true }).where(eq(investmentTypes.id, id))
+```
+
+`assertOwnsInvestmentType` garante a segurança antes da mutação, mas o `WHERE` não inclui
+`userId`. Se o assert for removido no futuro, o UPDATE fica desprotegido. Padrão consistente
+com o restante do projeto seria incluir `and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId))`.
+
+**Status:** resolvido (28/05/2026)
+
+---
+
+### B7 — `ArchivedFilterChip` some ao restaurar o último tipo arquivado
+
+**Arquivo:** `components/investimentos/ArchivedFilterChip.tsx`
+**Gravidade:** UX (usuário fica preso na view arquivada sem poder voltar)
+
+```typescript
+// atual — oculta o chip quando count = 0, mesmo na view ativa
+if (count === 0) return null
+```
+
+Quando o usuário restaura o último tipo arquivado, `archivedCount` vai a zero e o chip
+desaparece. Se o usuário ainda está em `?archived=1`, não há como navegar de volta à
+listagem normal.
+
+**Correção:** manter o chip visível quando `active = true`, independente de `count`:
+
+```typescript
+if (count === 0 && !active) return null
+```
+
+**Status:** resolvido (28/05/2026)
+
+---
+
 ## Questoes Para Decidir Durante A Implementacao
 
 1. O botao "Registrar resgate" no card vencido deve ser exibido no desktop e no mobile

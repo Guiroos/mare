@@ -44,7 +44,9 @@ export function WithdrawalDialog({
   const [typeId, setTypeId] = useState(initialTypeId ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasTax, setHasTax] = useState(false)
-  const [grossCents, setGrossCents] = useState(0)
+  const [grossCents, setGrossCents] = useState(() =>
+    initialAmount ? Math.round(initialAmount * 100) : 0
+  )
   const [taxCents, setTaxCents] = useState(0)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
@@ -90,8 +92,11 @@ export function WithdrawalDialog({
     setErrors({})
     startTransition(async () => {
       try {
+        const typeName =
+          investmentTypes.find((t) => t.id === result.data.investmentTypeId)?.name ?? ''
         await createWithdrawal({
           investmentTypeId: result.data.investmentTypeId,
+          investmentTypeName: typeName,
           amount: result.data.amount,
           date: result.data.date,
           destination: result.data.destination,

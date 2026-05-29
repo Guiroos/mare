@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
-import { eq, and, sum, asc, gte, count } from 'drizzle-orm'
+import { eq, and, sum, asc, gte, count, sql } from 'drizzle-orm'
 import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
 
 export async function getInvestmentTypes(userId: string) {
@@ -31,7 +31,9 @@ export async function getInvestmentBalances(
           .from(investments)
           .where(and(eq(investments.userId, userId), eq(investments.investmentTypeId, type.id))),
         db
-          .select({ totalWithdrawn: sum(investmentWithdrawals.amount) })
+          .select({
+            totalWithdrawn: sql<string>`coalesce(sum(${investmentWithdrawals.amount} + coalesce(${investmentWithdrawals.taxAmount}, 0)), 0)`,
+          })
           .from(investmentWithdrawals)
           .where(
             and(
@@ -179,7 +181,7 @@ export async function getPatrimonyTimeline(userId: string) {
   for (const wd of allWithdrawals) {
     const month = wd.date.slice(0, 7)
     const prev = monthMap.get(month) ?? 0
-    monthMap.set(month, prev - Number(wd.amount))
+    monthMap.set(month, prev - Number(wd.amount) - Number(wd.taxAmount ?? 0))
   }
 
   const sortedMonths = Array.from(monthMap.keys()).sort()

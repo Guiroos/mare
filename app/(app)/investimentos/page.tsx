@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import {
   getInvestmentBalances,
+  getInvestmentTypes,
   getInvestmentWithdrawals,
   getPatrimonyTimeline,
   getArchivedCount,
@@ -42,14 +43,15 @@ export default async function InvestimentosPage({
   const params = await searchParams
   const showArchived = params.archived === '1'
 
-  const [balances, withdrawals, timeline, archivedCount] = await Promise.all([
+  const [balances, allTypes, withdrawals, timeline, archivedCount] = await Promise.all([
     getInvestmentBalances(userId, { showArchived }),
+    getInvestmentTypes(userId),
     getInvestmentWithdrawals(userId),
     getPatrimonyTimeline(userId),
     getArchivedCount(userId),
   ])
 
-  const investmentTypeOptions = balances.map((b) => ({ id: b.id, name: b.name }))
+  const investmentTypeOptions = allTypes.map((t) => ({ id: t.id, name: t.name }))
 
   // ── Hero stats ──────────────────────────────────────────────────────────────
   const totalPatrimony = balances.reduce((s, b) => s + b.currentBalance, 0)

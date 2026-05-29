@@ -169,10 +169,17 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
             {balance.archived ? (
               <Badge variant="muted">Arquivado</Badge>
             ) : (
-              <MaturityBadge
-                maturityDate={balance.maturityDate}
-                currentBalance={balance.currentBalance}
-              />
+              <>
+                {balance.pendingYield && (
+                  <Badge variant="warning">
+                    pend.{pendingMonthLabel ? ` ${pendingMonthLabel}` : ''}
+                  </Badge>
+                )}
+                <MaturityBadge
+                  maturityDate={balance.maturityDate}
+                  currentBalance={balance.currentBalance}
+                />
+              </>
             )}
           </div>
           <div className="mt-1 flex items-center gap-1.5">
