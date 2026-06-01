@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { format } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   referenceMonthToYearMonth,
@@ -21,6 +22,8 @@ import {
   todayISOString,
   pastNMonths,
   futureNMonths,
+  calcBaseReferenceMonth,
+  calcInstallmentDate,
 } from '@/lib/utils/date'
 
 describe('yearMonthToReferenceMonth', () => {
@@ -382,5 +385,50 @@ describe('billingCycleDateRange', () => {
   it('returns a label string in expected format', () => {
     const result = billingCycleDateRange('2025-03', 8)
     expect(result!.label).toMatch(/\d{2}\/\w{3} → \d{2}\/\w{3}/)
+  })
+})
+
+const fmt = (d: Date) => format(d, 'yyyy-MM-dd')
+
+describe('calcBaseReferenceMonth', () => {
+  it('sem closingDay: retorna startOfMonth da data de compra', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-18'), null))).toBe('2025-01-01')
+  })
+
+  it('compra antes do fechamento (5 <= 16): retorna mês da compra', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-05'), 16))).toBe('2025-01-01')
+  })
+
+  it('compra no dia exato do fechamento (16 == 16): retorna mês da compra', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-16'), 16))).toBe('2025-01-01')
+  })
+
+  it('compra depois do fechamento (18 > 16): retorna mês seguinte', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-18'), 16))).toBe('2025-02-01')
+  })
+})
+
+describe('calcInstallmentDate', () => {
+  it('sem closingDay: retorna dia 1 do referenceMonth', () => {
+    expect(fmt(calcInstallmentDate(parseDate('2025-02-01'), null))).toBe('2025-02-01')
+  })
+
+  it('closingDay+1 existe no mês anterior: retorna esse dia', () => {
+    // referenceMonth fevereiro, closingDay 16 → dia 17 de janeiro existe
+    expect(fmt(calcInstallmentDate(parseDate('2025-02-01'), 16))).toBe('2025-01-17')
+  })
+
+  it('fallback fevereiro não-bissexto (closingDay = 28): dia 29 não existe em fev → dia 1 de março', () => {
+    // referenceMonth março, closingDay 28 → dia 29 de fevereiro não existe em 2025
+    expect(fmt(calcInstallmentDate(parseDate('2025-03-01'), 28))).toBe('2025-03-01')
+  })
+
+  it('fallback mês com 30 dias (closingDay = 30): dia 31 não existe em abril → dia 1 de maio', () => {
+    // referenceMonth maio, closingDay 30 → dia 31 de abril não existe
+    expect(fmt(calcInstallmentDate(parseDate('2025-05-01'), 30))).toBe('2025-05-01')
+  })
+
+  it('closingDay = 31: dia 32 nunca existe — retorna dia 1 do referenceMonth', () => {
+    expect(fmt(calcInstallmentDate(parseDate('2025-03-01'), 31))).toBe('2025-03-01')
   })
 })

@@ -7,6 +7,8 @@ import {
   getYear,
   getMonth,
   getDate,
+  getDaysInMonth,
+  setDate,
   differenceInCalendarDays,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -165,4 +167,31 @@ export function billingCycleDateRange(
   const label = `${format(parseISO(startStr), 'dd/MMM', { locale: ptBR })} → ${format(parseISO(endStr), 'dd/MMM', { locale: ptBR })}`
 
   return { start: startStr, end: endStr, label }
+}
+
+/**
+ * Returns the referenceMonth base for installment 1.
+ * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
+ */
+export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date {
+  if (closingDay !== null && getDate(purchaseDate) > closingDay) {
+    return startOfMonth(addMonths(purchaseDate, 1))
+  }
+  return startOfMonth(purchaseDate)
+}
+
+/**
+ * Returns the date for installments 2+ (i > 0).
+ * Uses closingDay + 1 of the previous month when that day exists; otherwise day 1 of referenceMonth.
+ */
+export function calcInstallmentDate(referenceMonth: Date, closingDay: number | null): Date {
+  if (closingDay === null) {
+    return setDate(referenceMonth, 1)
+  }
+  const prevMonth = subMonths(referenceMonth, 1)
+  const targetDay = closingDay + 1
+  if (targetDay <= getDaysInMonth(prevMonth)) {
+    return setDate(prevMonth, targetDay)
+  }
+  return setDate(referenceMonth, 1)
 }

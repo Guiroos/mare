@@ -75,6 +75,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Ao deletar um payment com charges vinculadas: `deleteDebtEntry` faz `UPDATE status='open', settledByPaymentId=null` **antes** de deletar o payment — a FK `ON DELETE SET NULL` limpa `settledByPaymentId` automaticamente mas **não** reseta `status`, por isso o UPDATE explícito é obrigatório
 - `createDebtPayment` com `createIncome: true` cria um registro em `incomes` além do `debtorEntry` — mutation cross-domain que revalida `/dashboard` e `/panorama`; ao deletar o entry correspondente, passar `alsoDeleteIncome: true` para limpar o income vinculado
 - `deletePersonIfEmpty` deleta pessoa somente se não houver `debtorEntries`; se houver histórico, usar `archivePerson` (seta `archived: true`) — regra de negócio explícita não refletida no schema
+- `createInstallmentPurchase` considera `closingDay` da conta ao calcular `referenceMonth`: se `getDate(purchaseDate) > closingDay`, a parcela 1 pertence ao mês seguinte (próxima fatura); helpers `calcBaseReferenceMonth(purchaseDate, closingDay)` e `calcInstallmentDate(referenceMonth, closingDay)` em `lib/utils/date.ts` implementam esse cálculo — qualquer toque futuro em parcelas deve usar esses helpers em vez de `addMonths` + `startOfMonth` direto
 
 ### Gotchas
 
@@ -150,6 +151,9 @@ NEXTAUTH_URL=http://localhost:3000
 - Chips de filtro de view toggle: a condição de visibilidade deve ser `count === 0 && !active`, nunca `count === 0` sozinho — quando o usuário está na view ativa (`active = true`) o chip precisa permanecer visível mesmo que a contagem caia a zero, para ele conseguir navegar de volta à listagem padrão
 - Dropdowns em Server Components não devem derivar da query já filtrada pela view ativa — usar query separada para garantir lista completa independente do search param de URL (ex: `getInvestmentTypes` separado de `getInvestmentBalances({ showArchived })` para popular `WithdrawalDialog`)
 - `investmentWithdrawals.amount` é o valor líquido (bruto − imposto); qualquer query que calcule saldo de investimento deve somar o valor bruto: `coalesce(sum(amount + coalesce(taxAmount, 0)), 0)` — usar só `sum(amount)` deixa o imposto contabilizado como saldo ainda no investimento
+- Em actions que precisam validar ownership E buscar dados adicionais da mesma entidade, encadear com `.then()` dentro do `Promise.all`: `assertOwnsPaymentAccount(userId, id).then(() => db.select({ closingDay: paymentAccounts.closingDay }).from(paymentAccounts).where(eq(paymentAccounts.id, id)).then(rows => rows[0]))` — mantém a paralelização sem query separada anterior ao `Promise.all`
+- Scripts em `scripts/` carregam env via `config({ path: '.env.local' })` de `dotenv` — `import 'dotenv/config'` carrega `.env` que não existe no projeto e faz o script correr sem `DATABASE_URL`
+- Testes de helpers que retornam `Date` via `startOfMonth`/`setDate` (date-fns): **não** usar `toEqual(parseDate('YYYY-MM-DD'))` — `parseDate` usa `T12:00:00` (noon) e `startOfMonth`/`setDate` usa meia-noite, causando falha de deep-equal por diferença de fuso; comparar com `format(result, 'yyyy-MM-dd')` string
 
 ### UI
 
