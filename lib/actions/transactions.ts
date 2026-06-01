@@ -2,10 +2,15 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { transactions, fixedExpenses, installmentGroups } from '@/lib/db/schema'
+import { transactions, fixedExpenses, installmentGroups, paymentAccounts } from '@/lib/db/schema'
 import { eq, and, asc } from 'drizzle-orm'
-import { addMonths, format, startOfMonth } from 'date-fns'
-import { parseDate, dateToReferenceMonth } from '@/lib/utils/date'
+import { addMonths, format } from 'date-fns'
+import {
+  parseDate,
+  dateToReferenceMonth,
+  calcBaseReferenceMonth,
+  calcInstallmentDate,
+} from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsCategory, assertOwnsPaymentAccount } from '@/lib/auth/ownership'
 import {
@@ -192,11 +197,20 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const userId = await requireUserId()
   createInstallmentActionSchema.parse(data)
 
-  await Promise.all([
+  const [, accountRow] = await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
-    assertOwnsPaymentAccount(userId, data.accountId),
+    assertOwnsPaymentAccount(userId, data.accountId).then(() =>
+      db
+        .select({ closingDay: paymentAccounts.closingDay })
+        .from(paymentAccounts)
+        .where(eq(paymentAccounts.id, data.accountId))
+        .then((rows) => rows[0])
+    ),
   ])
 
+  const closingDay = accountRow?.closingDay ?? null
+  const purchaseDate = parseDate(data.startDate)
+  const baseReferenceMonth = calcBaseReferenceMonth(purchaseDate, closingDay)
   const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
   const [group] = await db
@@ -213,14 +227,14 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
     .returning({ id: installmentGroups.id })
 
   const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
-    const installmentDate = addMonths(parseDate(data.startDate), i)
-    const dateStr = format(installmentDate, 'yyyy-MM-dd')
+    const refMonth = addMonths(baseReferenceMonth, i)
+    const date = i === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
     return {
       userId,
       name: `${data.name} (${i + 1}/${data.totalInstallments})`,
       amount: installmentAmount,
-      date: dateStr,
-      referenceMonth: format(startOfMonth(installmentDate), 'yyyy-MM-dd'),
+      date: format(date, 'yyyy-MM-dd'),
+      referenceMonth: format(refMonth, 'yyyy-MM-dd'),
       categoryId: data.categoryId,
       accountId: data.accountId,
       installmentGroupId: group.id,
