@@ -155,6 +155,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Scripts em `scripts/` carregam env via `config({ path: '.env.local' })` de `dotenv` — `import 'dotenv/config'` carrega `.env` que não existe no projeto e faz o script correr sem `DATABASE_URL`
 - Testes de helpers que retornam `Date` via `startOfMonth`/`setDate` (date-fns): **não** usar `toEqual(parseDate('YYYY-MM-DD'))` — `parseDate` usa `T12:00:00` (noon) e `startOfMonth`/`setDate` usa meia-noite, causando falha de deep-equal por diferença de fuso; comparar com `format(result, 'yyyy-MM-dd')` string
 - `closingDay <= 1` nos helpers de parcela (`calcBaseReferenceMonth`, `calcInstallmentDate`) é normalizado internamente para null — cartão com `closingDay = 1` tem ciclo dia 1→último dia do mês, idêntico ao calendário; passar `closingDay = 1` sem a normalização deslocaria o `referenceMonth` para o mês seguinte em qualquer compra após o dia 1
+- Saldo de investimento calculado em JS com `Number(sum_decimal)` acumula erro de ponto flutuante — `10000 + 2311.88 - 12311.88` produz `~2.84e-14` em vez de `0`; comparações de saldo contra zero devem usar `Math.round(balance * 100)` (centavos) tanto na UI (`=== 0`) quanto na action (`> 0`)
 
 ### UI
 

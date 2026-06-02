@@ -153,7 +153,7 @@ export function InvestmentTypeCard({ balance }: Props) {
         onClick: handleRestore,
         variant: 'default' as const,
       }
-    : balance.currentBalance === 0
+    : Math.round(balance.currentBalance * 100) <= 0
       ? {
           label: 'Arquivar',
           icon: Archive,
@@ -220,7 +220,7 @@ export function InvestmentTypeCard({ balance }: Props) {
 
         {/* Balance */}
         <div className="flex flex-col items-end gap-0.5">
-          <span className="text-label uppercase text-text-tertiary">Saldo atual</span>
+          <span className="text-label text-text-tertiary">Saldo atual</span>
           <span className="text-h2 tabular-nums">{formatCurrency(balance.currentBalance)}</span>
         </div>
 
@@ -257,14 +257,14 @@ export function InvestmentTypeCard({ balance }: Props) {
           </colgroup>
           <thead>
             <tr className="border-b border-border bg-bg-subtle">
-              <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">Mês</th>
-              <th className="whitespace-nowrap px-5 py-2 text-right text-label uppercase text-text-tertiary">
+              <th className="px-5 py-2 text-left text-label text-text-tertiary">Mês</th>
+              <th className="whitespace-nowrap px-5 py-2 text-right text-label text-text-tertiary">
                 Aporte
               </th>
-              <th className="whitespace-nowrap px-5 py-2 text-right text-label uppercase text-text-tertiary">
+              <th className="whitespace-nowrap px-5 py-2 text-right text-label text-text-tertiary">
                 Rendimento
               </th>
-              <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">Nota</th>
+              <th className="px-5 py-2 text-left text-label text-text-tertiary">Nota</th>
               <th className="px-5 py-2" />
             </tr>
           </thead>

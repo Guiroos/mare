@@ -90,7 +90,7 @@ export async function archiveInvestmentType(id: string) {
     Number(amountResult[0]?.totalYield ?? 0) -
     Number(withdrawalResult[0]?.totalWithdrawn ?? 0)
 
-  if (currentBalance > 0) {
+  if (Math.round(currentBalance * 100) > 0) {
     throw new Error('Não é possível arquivar tipo com saldo.')
   }
 
