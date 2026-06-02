@@ -13,9 +13,13 @@ O comportamento atual replica a data exata da compra para todas as parcelas futu
 
 | Fase | Objetivo | Status |
 | ---- | -------- | ------ |
-| 1 | Correção da action `createInstallmentPurchase` | pendente |
-| 2 | Script de migração de parcelas futuras existentes | pendente |
-| 3 | Testes unitários e de integração | pendente |
+| 1 | Correção da action `createInstallmentPurchase` | concluído |
+| 2 | Script de migração de parcelas futuras existentes | concluído |
+| 3 | Testes unitários e de integração | concluído |
+
+### Fix aplicado em 01/06/2026
+
+Os helpers `calcBaseReferenceMonth` e `calcInstallmentDate` tinham um bug: verificavam `closingDay !== null` mas não `closingDay > 1`. Um cartão com `closingDay = 1` deslocava incorretamente o `referenceMonth` para o mês seguinte em qualquer compra após o dia 1. A normalização `effectiveClosingDay = closingDay > 1 ? closingDay : null` foi adicionada a ambos os helpers.
 
 ## Arquivos
 

@@ -22,6 +22,7 @@
 
 export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date
 // Retorna o startOfMonth correto para a parcela 1, considerando closingDay.
+// closingDay <= 1 é tratado como null (comportamento de calendário).
 
 export function calcInstallmentDate(
   referenceMonth: Date,   // referenceMonth da parcela i (já calculado)
@@ -29,6 +30,7 @@ export function calcInstallmentDate(
 ): Date
 // Retorna a date para parcelas 2+.
 // closingDay + 1 do mês anterior se o dia existir; caso contrário dia 1 do referenceMonth.
+// closingDay <= 1 é tratado como null (retorna dia 1 do referenceMonth).
 ```
 
 ### Critérios de aceite — Fase 1
@@ -37,6 +39,7 @@ export function calcInstallmentDate(
 - Compra dia 18, `closingDay = 16` → parcela 1 com `referenceMonth` do mês seguinte; parcela 2 com data 17 do mês seguinte
 - Compra dia 30, `closingDay = 28` em janeiro → parcela 2 com fallback dia 1 de março, `referenceMonth` março
 - Compra sem `closingDay` (débito) → parcelas 2+ com dia 1 de cada mês, `referenceMonth` correto
+- Compra dia 18, `closingDay = 1` → comportamento idêntico a sem `closingDay` (ciclo calendário)
 
 ---
 
@@ -87,8 +90,8 @@ npx tsx scripts/fix-installment-dates.ts
 
 ### Testes unitários — helpers de data (`lib/utils/date.ts`)
 
-- [ ] `calcBaseReferenceMonth` — 4 casos: sem closingDay, com closingDay antes, com closingDay exato, com closingDay depois
-- [ ] `calcInstallmentDate` — 5 casos: sem closingDay, dia válido no mês anterior, fallback fevereiro não-bissexto (`closingDay = 28`), fallback mês com 30 dias (`closingDay = 30`), `closingDay = 31`
+- [ ] `calcBaseReferenceMonth` — 5 casos: sem closingDay, closingDay=1 (calendário), com closingDay antes, com closingDay exato, com closingDay depois
+- [ ] `calcInstallmentDate` — 6 casos: sem closingDay, closingDay=1 (calendário), dia válido no mês anterior, fallback fevereiro não-bissexto (`closingDay = 28`), fallback mês com 30 dias (`closingDay = 30`), `closingDay = 31`
 
 ### Testes de integração — action (`createInstallmentPurchase`)
 

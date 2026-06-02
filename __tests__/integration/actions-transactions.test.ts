@@ -159,6 +159,103 @@ describe('createInstallmentPurchase', () => {
 
     expect(countAfter).toHaveLength(countBefore.length)
   })
+
+  it('conta crédito: compra antes do fechamento → parcela 1 no mês da compra, parcelas 2+ com closingDay+1', async () => {
+    const creditAccount = await createAccount(db, userId, { type: 'credit', closingDay: 16 })
+    const { createInstallmentPurchase } = await import('@/lib/actions/transactions')
+
+    await createInstallmentPurchase({
+      name: 'TV antes fechamento',
+      totalAmount: '1200.00',
+      totalInstallments: 3,
+      startDate: '2025-01-05',
+      categoryId,
+      accountId: creditAccount.id,
+    })
+
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.name, 'TV antes fechamento')),
+    })
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+
+    // Parcela 1: data real da compra, referenceMonth no mês da compra (5 ≤ 16)
+    expect(txs[0].date).toBe('2025-01-05')
+    expect(txs[0].referenceMonth).toBe('2025-01-01')
+    // Parcelas 2+: dia 17 (closingDay+1) do mês anterior
+    expect(txs[1].date).toBe('2025-01-17')
+    expect(txs[1].referenceMonth).toBe('2025-02-01')
+    expect(txs[2].date).toBe('2025-02-17')
+    expect(txs[2].referenceMonth).toBe('2025-03-01')
+  })
+
+  it('conta crédito: compra depois do fechamento → parcela 1 no mês seguinte', async () => {
+    const creditAccount = await createAccount(db, userId, { type: 'credit', closingDay: 16 })
+    const { createInstallmentPurchase } = await import('@/lib/actions/transactions')
+
+    await createInstallmentPurchase({
+      name: 'TV depois fechamento',
+      totalAmount: '1200.00',
+      totalInstallments: 3,
+      startDate: '2025-01-18',
+      categoryId,
+      accountId: creditAccount.id,
+    })
+
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.name, 'TV depois fechamento')),
+    })
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+
+    // Parcela 1: data real da compra, referenceMonth no mês seguinte (18 > 16)
+    expect(txs[0].date).toBe('2025-01-18')
+    expect(txs[0].referenceMonth).toBe('2025-02-01')
+    // Parcelas 2+: dia 17 do mês anterior ao referenceMonth
+    expect(txs[1].date).toBe('2025-02-17')
+    expect(txs[1].referenceMonth).toBe('2025-03-01')
+    expect(txs[2].date).toBe('2025-03-17')
+    expect(txs[2].referenceMonth).toBe('2025-04-01')
+  })
+
+  it('conta crédito closingDay=28, compra em 30/jan → fallback dia 1 de março na parcela 2', async () => {
+    const creditAccount = await createAccount(db, userId, { type: 'credit', closingDay: 28 })
+    const { createInstallmentPurchase } = await import('@/lib/actions/transactions')
+
+    await createInstallmentPurchase({
+      name: 'Compra closingDay 28',
+      totalAmount: '600.00',
+      totalInstallments: 3,
+      startDate: '2025-01-30',
+      categoryId,
+      accountId: creditAccount.id,
+    })
+
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.name, 'Compra closingDay 28')),
+    })
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+
+    // Parcela 1: data real da compra, referenceMonth fevereiro (30 > 28)
+    expect(txs[0].date).toBe('2025-01-30')
+    expect(txs[0].referenceMonth).toBe('2025-02-01')
+    // Parcela 2: dia 29 de fev não existe em 2025 → fallback dia 1 de março
+    expect(txs[1].date).toBe('2025-03-01')
+    expect(txs[1].referenceMonth).toBe('2025-03-01')
+    // Parcela 3: dia 29 de março existe → retorna 29/mar
+    expect(txs[2].date).toBe('2025-03-29')
+    expect(txs[2].referenceMonth).toBe('2025-04-01')
+  })
 })
 
 // ─── deleteInstallmentGroup ───────────────────────────────────────────────────

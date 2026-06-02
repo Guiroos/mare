@@ -406,11 +406,19 @@ describe('calcBaseReferenceMonth', () => {
   it('compra depois do fechamento (18 > 16): retorna mês seguinte', () => {
     expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-18'), 16))).toBe('2025-02-01')
   })
+
+  it('closingDay = 1 — tratado como calendário: retorna mês da compra mesmo depois do dia 1', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-18'), 1))).toBe('2025-01-01')
+  })
 })
 
 describe('calcInstallmentDate', () => {
   it('sem closingDay: retorna dia 1 do referenceMonth', () => {
     expect(fmt(calcInstallmentDate(parseDate('2025-02-01'), null))).toBe('2025-02-01')
+  })
+
+  it('closingDay = 1 — tratado como calendário: retorna dia 1 do referenceMonth', () => {
+    expect(fmt(calcInstallmentDate(parseDate('2025-02-01'), 1))).toBe('2025-02-01')
   })
 
   it('closingDay+1 existe no mês anterior: retorna esse dia', () => {
