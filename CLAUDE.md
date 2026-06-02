@@ -75,7 +75,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Ao deletar um payment com charges vinculadas: `deleteDebtEntry` faz `UPDATE status='open', settledByPaymentId=null` **antes** de deletar o payment — a FK `ON DELETE SET NULL` limpa `settledByPaymentId` automaticamente mas **não** reseta `status`, por isso o UPDATE explícito é obrigatório
 - `createDebtPayment` com `createIncome: true` cria um registro em `incomes` além do `debtorEntry` — mutation cross-domain que revalida `/dashboard` e `/panorama`; ao deletar o entry correspondente, passar `alsoDeleteIncome: true` para limpar o income vinculado
 - `deletePersonIfEmpty` deleta pessoa somente se não houver `debtorEntries`; se houver histórico, usar `archivePerson` (seta `archived: true`) — regra de negócio explícita não refletida no schema
-- `createInstallmentPurchase` considera `closingDay` da conta ao calcular `referenceMonth`: se `getDate(purchaseDate) > closingDay`, a parcela 1 pertence ao mês seguinte (próxima fatura); helpers `calcBaseReferenceMonth(purchaseDate, closingDay)` e `calcInstallmentDate(referenceMonth, closingDay)` em `lib/utils/date.ts` implementam esse cálculo — qualquer toque futuro em parcelas deve usar esses helpers em vez de `addMonths` + `startOfMonth` direto
+- `createInstallmentPurchase` considera `closingDay` da conta ao calcular `referenceMonth`: se `getDate(purchaseDate) > effectiveClosingDay`, a parcela 1 pertence ao mês seguinte (próxima fatura); `effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null` — `closingDay <= 1` é tratado como calendário (equivalente a débito/pix); helpers `calcBaseReferenceMonth(purchaseDate, closingDay)` e `calcInstallmentDate(referenceMonth, closingDay)` em `lib/utils/date.ts` implementam esse cálculo — qualquer toque futuro em parcelas deve usar esses helpers em vez de `addMonths` + `startOfMonth` direto
 
 ### Gotchas
 
@@ -154,6 +154,7 @@ NEXTAUTH_URL=http://localhost:3000
 - Em actions que precisam validar ownership E buscar dados adicionais da mesma entidade, encadear com `.then()` dentro do `Promise.all`: `assertOwnsPaymentAccount(userId, id).then(() => db.select({ closingDay: paymentAccounts.closingDay }).from(paymentAccounts).where(eq(paymentAccounts.id, id)).then(rows => rows[0]))` — mantém a paralelização sem query separada anterior ao `Promise.all`
 - Scripts em `scripts/` carregam env via `config({ path: '.env.local' })` de `dotenv` — `import 'dotenv/config'` carrega `.env` que não existe no projeto e faz o script correr sem `DATABASE_URL`
 - Testes de helpers que retornam `Date` via `startOfMonth`/`setDate` (date-fns): **não** usar `toEqual(parseDate('YYYY-MM-DD'))` — `parseDate` usa `T12:00:00` (noon) e `startOfMonth`/`setDate` usa meia-noite, causando falha de deep-equal por diferença de fuso; comparar com `format(result, 'yyyy-MM-dd')` string
+- `closingDay <= 1` nos helpers de parcela (`calcBaseReferenceMonth`, `calcInstallmentDate`) é normalizado internamente para null — cartão com `closingDay = 1` tem ciclo dia 1→último dia do mês, idêntico ao calendário; passar `closingDay = 1` sem a normalização deslocaria o `referenceMonth` para o mês seguinte em qualquer compra após o dia 1
 
 ### UI
 
