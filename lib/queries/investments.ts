@@ -155,33 +155,30 @@ export async function getInvestmentWithdrawals(userId: string) {
   }))
 }
 
-export async function getPatrimonyTimeline(userId: string) {
-  const [allInvestments, allWithdrawals] = await Promise.all([
-    db.query.investments.findMany({
-      where: eq(investments.userId, userId),
-      orderBy: asc(investments.referenceMonth),
-    }),
-    db.query.investmentWithdrawals.findMany({
-      where: eq(investmentWithdrawals.userId, userId),
-      orderBy: asc(investmentWithdrawals.date),
-    }),
-  ])
+type InvestmentRow = { referenceMonth: string; amount: string | null; yieldAmount: string | null }
+type WithdrawalRow = { date: string; amount: string; taxAmount: string | null }
 
+export function buildPatrimonyTimeline(
+  allInvestments: InvestmentRow[],
+  allWithdrawals: WithdrawalRow[]
+): Array<{ month: string; total: number; aporte: number }> {
   const monthMap = new Map<string, number>()
   const aporteMonthMap = new Map<string, number>()
 
   for (const inv of allInvestments) {
     const month = inv.referenceMonth.slice(0, 7)
-    const prev = monthMap.get(month) ?? 0
-    const prevAporte = aporteMonthMap.get(month) ?? 0
-    monthMap.set(month, prev + Number(inv.amount ?? 0) + Number(inv.yieldAmount ?? 0))
-    aporteMonthMap.set(month, prevAporte + Number(inv.amount ?? 0))
+    monthMap.set(
+      month,
+      (monthMap.get(month) ?? 0) + Number(inv.amount ?? 0) + Number(inv.yieldAmount ?? 0)
+    )
+    aporteMonthMap.set(month, (aporteMonthMap.get(month) ?? 0) + Number(inv.amount ?? 0))
   }
 
   for (const wd of allWithdrawals) {
     const month = wd.date.slice(0, 7)
-    const prev = monthMap.get(month) ?? 0
-    monthMap.set(month, prev - Number(wd.amount) - Number(wd.taxAmount ?? 0))
+    const gross = Number(wd.amount) + Number(wd.taxAmount ?? 0)
+    monthMap.set(month, (monthMap.get(month) ?? 0) - gross)
+    aporteMonthMap.set(month, (aporteMonthMap.get(month) ?? 0) - gross)
   }
 
   const sortedMonths = Array.from(monthMap.keys()).sort()
@@ -193,4 +190,18 @@ export async function getPatrimonyTimeline(userId: string) {
     cumulativeAporte += aporteMonthMap.get(month) ?? 0
     return { month, total: cumulative, aporte: cumulativeAporte }
   })
+}
+
+export async function getPatrimonyTimeline(userId: string) {
+  const [allInvestments, allWithdrawals] = await Promise.all([
+    db.query.investments.findMany({
+      where: eq(investments.userId, userId),
+      orderBy: asc(investments.referenceMonth),
+    }),
+    db.query.investmentWithdrawals.findMany({
+      where: eq(investmentWithdrawals.userId, userId),
+      orderBy: asc(investmentWithdrawals.date),
+    }),
+  ])
+  return buildPatrimonyTimeline(allInvestments, allWithdrawals)
 }

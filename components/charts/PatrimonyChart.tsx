@@ -49,19 +49,22 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
           </linearGradient>
         </defs>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-        <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+        <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
         <YAxis
           tickFormatter={formatCurrencyShort}
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 12 }}
           tickLine={false}
           axisLine={false}
           width={56}
         />
         <Tooltip
-          formatter={(value: number, name: string) => [
-            formatCurrencyFull(value),
-            name === 'total' ? 'Patrimônio total' : 'Aporte acumulado',
-          ]}
+          formatter={(value: number, name: string) => {
+            if (name === '__fill__') return ['', '']
+            return [
+              formatCurrencyFull(value),
+              name === 'total' ? 'Patrimônio total' : 'Capital alocado',
+            ]
+          }}
           labelFormatter={(label) => `Mês: ${label}`}
         />
         {hasAporte && (
@@ -78,6 +81,7 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
         <Area
           type="monotone"
           dataKey="total"
+          name="__fill__"
           stroke="none"
           fill="url(#patrimonyAreaFill)"
           isAnimationActive={false}

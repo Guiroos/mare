@@ -194,7 +194,7 @@ export default async function InvestimentosPage({
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-0.5 w-2.5 rounded-sm border-t-2 border-dashed border-text-tertiary" />
-                Aporte acumulado
+                Capital alocado
               </span>
             </div>
           </div>
