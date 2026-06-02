@@ -40,10 +40,18 @@ Decorrência do Bug 1: se o `referenceMonth` base está errado, e as parcelas 2+
 
 ## Algoritmo Correto
 
+### Definição de `closingDay` efetivo
+
+`closingDay <= 1` é tratado como **sem fechamento** — equivalente a `null`. Isso é consistente com `billingCycleDateRange`, que retorna `null` para `closingDay <= 1` (ciclo calendário normal). Na prática, um cartão com `closingDay = 1` tem seu ciclo de dia 1 a dia 31, o que é idêntico ao comportamento de débito/pix.
+
+```
+closingDayEfetivo = (closingDay !== null && closingDay > 1) ? closingDay : null
+```
+
 ### Passo 1 — Calcular `baseReferenceMonth`
 
 ```
-se closingDay existe E getDate(purchaseDate) > closingDay:
+se closingDayEfetivo existe E getDate(purchaseDate) > closingDayEfetivo:
   baseReferenceMonth = startOfMonth(addMonths(purchaseDate, 1))
 senão:
   baseReferenceMonth = startOfMonth(purchaseDate)
@@ -56,12 +64,12 @@ referenceMonth[i] = addMonths(baseReferenceMonth, i)
 
 se i === 0:
   date[i] = purchaseDate  (data real da compra)
-senão se closingDay existe:
+senão se closingDayEfetivo existe:
   prevMonth = subMonths(referenceMonth[i], 1)
-  se (closingDay + 1) <= getDaysInMonth(prevMonth):
-    date[i] = setDate(prevMonth, closingDay + 1)  // primeiro dia do ciclo
+  se (closingDayEfetivo + 1) <= getDaysInMonth(prevMonth):
+    date[i] = setDate(prevMonth, closingDayEfetivo + 1)  // primeiro dia do ciclo
   senão:
-    date[i] = setDate(referenceMonth[i], 1)        // fallback: dia 1 do mês
+    date[i] = setDate(referenceMonth[i], 1)               // fallback: dia 1 do mês
 senão:
   date[i] = setDate(referenceMonth[i], 1)
 ```
@@ -113,6 +121,18 @@ senão:
 | 1 | 30/jan | — | Fevereiro ✅ |
 | 2 | 01/mar (fallback) | dia 29 não existe em fev não-bissexto → fallback dia 1 de março | Março ✅ |
 | 3 | 29/mar (closingDay+1) | dia 29 existe em março | Abril ✅ (29 > 28) |
+
+---
+
+### Crédito `closingDay = 1` — tratado como calendário
+
+`closingDay = 1` significa que o ciclo vai do dia 1 ao último dia do mês — idêntico ao mês calendário. `closingDayEfetivo` é `null`.
+
+| Parcela | Data | referenceMonth |
+| ------- | ---- | -------------- |
+| 1 | 18/jan | Janeiro ✅ |
+| 2 | 01/fev | Fevereiro ✅ |
+| 3 | 01/mar | Março ✅ |
 
 ---
 

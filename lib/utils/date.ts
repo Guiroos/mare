@@ -174,7 +174,8 @@ export function billingCycleDateRange(
  * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
  */
 export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date {
-  if (closingDay !== null && getDate(purchaseDate) > closingDay) {
+  const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
+  if (effectiveClosingDay !== null && getDate(purchaseDate) > effectiveClosingDay) {
     return startOfMonth(addMonths(purchaseDate, 1))
   }
   return startOfMonth(purchaseDate)
@@ -185,11 +186,12 @@ export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | 
  * Uses closingDay + 1 of the previous month when that day exists; otherwise day 1 of referenceMonth.
  */
 export function calcInstallmentDate(referenceMonth: Date, closingDay: number | null): Date {
-  if (closingDay === null) {
+  const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
+  if (effectiveClosingDay === null) {
     return setDate(referenceMonth, 1)
   }
   const prevMonth = subMonths(referenceMonth, 1)
-  const targetDay = closingDay + 1
+  const targetDay = effectiveClosingDay + 1
   if (targetDay <= getDaysInMonth(prevMonth)) {
     return setDate(prevMonth, targetDay)
   }
