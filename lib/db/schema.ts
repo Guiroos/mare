@@ -206,6 +206,10 @@ export const incomes = pgTable(
     source: varchar('source', { length: 200 }).notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
     referenceMonth: date('reference_month').notNull(),
+    investmentReturnCapital: decimal('investment_return_capital', {
+      precision: 12,
+      scale: 2,
+    }),
   },
   (t) => [index('incomes_user_month_idx').on(t.userId, t.referenceMonth)]
 )

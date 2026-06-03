@@ -61,7 +61,16 @@ export async function getAnnualOverview(userId: string, year: number, faturaCtx?
 
   const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows] = await Promise.all([
     db
-      .select({ referenceMonth: incomes.referenceMonth, total: sum(incomes.amount) })
+      .select({
+        referenceMonth: incomes.referenceMonth,
+        total: sql<string>`SUM(
+          CASE
+            WHEN ${incomes.investmentReturnCapital} IS NOT NULL
+            THEN ${incomes.amount} - ${incomes.investmentReturnCapital}
+            ELSE ${incomes.amount}
+          END
+        )`,
+      })
       .from(incomes)
       .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months)))
       .groupBy(incomes.referenceMonth),

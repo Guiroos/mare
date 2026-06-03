@@ -10,7 +10,7 @@ import { getPatrimonyTimeline } from '@/lib/queries/investments'
 import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getCreditAccounts } from '@/lib/queries/categories'
 import { formatCurrency } from '@/lib/utils/currency'
-import { currentYear, formatMonthAbbr } from '@/lib/utils/date'
+import { currentYear, currentYearMonth, formatMonthAbbr } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -57,10 +57,13 @@ export default async function PanoramaPage({
       getPatrimonyTimeline(userId),
     ])
 
+  const nowYM = currentYearMonth()
+  const activeOverview = overview.filter((m) => m.month <= nowYM)
+
   const totalIncomes = overview.reduce((sum, m) => sum + m.totalIncomes, 0)
-  const totalExpenses = overview.reduce((sum, m) => sum + m.totalExpenses, 0)
+  const totalExpensesYTD = activeOverview.reduce((sum, m) => sum + m.totalExpenses, 0)
   const totalInvested = overview.reduce((sum, m) => sum + m.totalInvested, 0)
-  const finalBalance = totalIncomes - totalExpenses - totalInvested
+  const finalBalance = totalIncomes - totalExpensesYTD - totalInvested
 
   const allGroupNames = Array.from(
     new Set(expensesByGroup.flatMap((m) => m.groups.map((g) => g.groupName)))
@@ -154,7 +157,7 @@ export default async function PanoramaPage({
                   {formatCurrency(totalIncomes)}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-negative-text">
-                  {formatCurrency(totalExpenses)}
+                  {formatCurrency(totalExpensesYTD)}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-accent-text">
                   {formatCurrency(totalInvested)}
@@ -235,7 +238,7 @@ export default async function PanoramaPage({
               <div>
                 <span className="block">Gastos</span>
                 <span className="font-semibold tabular-nums text-negative-text">
-                  {formatCurrency(totalExpenses)}
+                  {formatCurrency(totalExpensesYTD)}
                 </span>
               </div>
               <div>

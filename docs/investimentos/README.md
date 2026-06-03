@@ -57,6 +57,7 @@ Visual atenuado, opcoes no `RowActions`, chip de filtro na Section.
 5. [05-roadmap-e-riscos.md](./05-roadmap-e-riscos.md)
 6. [06-code-review-pos-implementacao.md](./06-code-review-pos-implementacao.md)
 7. [07-vencimento-e-imposto.md](./07-vencimento-e-imposto.md)
+8. [08-retorno-capital-panorama.md](./08-retorno-capital-panorama.md)
 
 ## Como usar esta documentacao
 
