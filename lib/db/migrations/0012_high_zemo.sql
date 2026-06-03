@@ -1,0 +1,1 @@
+ALTER TABLE "incomes" ADD COLUMN "investment_return_capital" numeric(12, 2);

@@ -180,6 +180,18 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
 
   let incomeId: string | null = null
 
+  let investmentReturnCapital: string | null = null
+
+  if (data.destination === 'income') {
+    const [capitalRow] = await db
+      .select({ total: sum(investments.amount) })
+      .from(investments)
+      .where(
+        and(eq(investments.userId, userId), eq(investments.investmentTypeId, data.investmentTypeId))
+      )
+    investmentReturnCapital = String(Number(capitalRow?.total ?? 0))
+  }
+
   await db.transaction(async (tx) => {
     if (data.destination === 'income') {
       const [income] = await tx
@@ -189,6 +201,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
           source: `Resgate investimento ${data.investmentTypeName}`,
           amount: data.amount,
           referenceMonth: dateToReferenceMonth(data.date),
+          investmentReturnCapital,
         })
         .returning({ id: incomes.id })
       incomeId = income.id

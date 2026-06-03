@@ -21,6 +21,7 @@ import {
   isNotNull,
   ne,
   notInArray,
+  sql,
 } from 'drizzle-orm'
 import { pastNMonths, yearMonthToReferenceMonth, prevMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
@@ -200,7 +201,13 @@ export async function getDashboardData(
     ? fixedExpenseList.filter((e) => !creditIdSet.has(e.accountId))
     : fixedExpenseList
 
-  const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
+  const totalIncomes = incomeList.reduce(
+    (s, i) =>
+      s +
+      toAmount(i.amount) -
+      (i.investmentReturnCapital ? toAmount(i.investmentReturnCapital) : 0),
+    0
+  )
   const totalExpenses =
     expenseTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
     expenseFixedExpenses.reduce((s, e) => s + toAmount(e.amount), 0)
@@ -292,7 +299,13 @@ export async function getDashboardDataBillingCycle(
   const totalExpenses =
     cycleTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
     cycleFixedExpenses.reduce((s, e) => s + toAmount(e.amount), 0)
-  const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
+  const totalIncomes = incomeList.reduce(
+    (s, i) =>
+      s +
+      toAmount(i.amount) -
+      (i.investmentReturnCapital ? toAmount(i.investmentReturnCapital) : 0),
+    0
+  )
   const totalInvested = investmentList
     .filter((i) => !i.excludeFromCashFlow)
     .reduce((s, i) => s + toAmount(i.amount), 0)
@@ -330,7 +343,16 @@ export async function getMonthlyEvolution(
 
   const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows] = await Promise.all([
     db
-      .select({ referenceMonth: incomes.referenceMonth, total: sum(incomes.amount) })
+      .select({
+        referenceMonth: incomes.referenceMonth,
+        total: sql<string>`SUM(
+          CASE
+            WHEN ${incomes.investmentReturnCapital} IS NOT NULL
+            THEN ${incomes.amount} - ${incomes.investmentReturnCapital}
+            ELSE ${incomes.amount}
+          END
+        )`,
+      })
       .from(incomes)
       .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months)))
       .groupBy(incomes.referenceMonth),
