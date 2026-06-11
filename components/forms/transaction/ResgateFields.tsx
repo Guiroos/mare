@@ -27,7 +27,8 @@ export function ResgateFields({ errors, today, destination, onDestinationChange 
             <SelectValue placeholder="Selecione..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
+            <SelectItem value="income">Caixa (uso pessoal / emergência)</SelectItem>
+            <SelectItem value="reinvest">Reinvestimento (mostrar só rendimento)</SelectItem>
             <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
           </SelectContent>
         </Select>

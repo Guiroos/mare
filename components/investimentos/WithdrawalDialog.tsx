@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, SyntheticEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
@@ -27,6 +27,7 @@ type Props = {
   investmentTypes: { id: string; name: string }[]
   initialTypeId?: string
   initialAmount?: number
+  initialDestination?: 'income' | 'reinvest'
   open?: boolean
   onOpenChange?: (v: boolean) => void
 }
@@ -35,12 +36,15 @@ export function WithdrawalDialog({
   investmentTypes,
   initialTypeId,
   initialAmount,
+  initialDestination,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [destination, setDestination] = useState<'income' | 'transfer'>('income')
+  const [destination, setDestination] = useState<'income' | 'reinvest'>(
+    initialDestination ?? 'income'
+  )
   const [typeId, setTypeId] = useState(initialTypeId ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasTax, setHasTax] = useState(false)
@@ -72,7 +76,7 @@ export function WithdrawalDialog({
     }
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
 
@@ -175,17 +179,25 @@ export function WithdrawalDialog({
       <Field label="Destino">
         <Select
           value={destination}
-          onValueChange={(v) => setDestination(v as 'income' | 'transfer')}
+          onValueChange={(v) => setDestination(v as 'income' | 'reinvest')}
         >
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="income">Caixa (lançar como entrada)</SelectItem>
-            <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
+            <SelectItem value="income">Caixa (uso pessoal / emergência)</SelectItem>
+            <SelectItem value="reinvest">Reinvestimento (mostrar só rendimento)</SelectItem>
           </SelectContent>
         </Select>
       </Field>
+
+      {destination === 'reinvest' && (
+        <p className="text-caption text-text-secondary">
+          Ao criar o novo aporte, marque{' '}
+          <strong className="font-medium text-text-primary">&quot;Já tinha o valor&quot;</strong>{' '}
+          para que o capital não seja contabilizado como saída do caixa novamente.
+        </p>
+      )}
 
       <Field label="Observações" hint="Opcional">
         <Input name="notes" />

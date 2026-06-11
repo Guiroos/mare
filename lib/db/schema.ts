@@ -278,7 +278,7 @@ export const investmentWithdrawals = pgTable(
     amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
     taxAmount: decimal('tax_amount', { precision: 10, scale: 2 }),
     date: date('date').notNull(),
-    destination: varchar('destination', { length: 20 }).notNull(), // income | transfer
+    destination: varchar('destination', { length: 20 }).notNull(), // income | reinvest | transfer
     incomeId: uuid('income_id').references(() => incomes.id, {
       onDelete: 'set null',
     }),

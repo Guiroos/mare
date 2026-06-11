@@ -52,7 +52,7 @@ const withdrawalBase = z.object({
 export const withdrawalEditSchema = withdrawalBase
 
 export const withdrawalSchema = withdrawalBase.extend({
-  destination: z.enum(['income', 'transfer']),
+  destination: z.enum(['income', 'reinvest', 'transfer']),
 })
 
 // ─── Action schemas ───────────────────────────────────────────────────────────

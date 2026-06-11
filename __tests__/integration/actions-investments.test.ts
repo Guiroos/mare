@@ -228,4 +228,154 @@ describe('createWithdrawal', () => {
     expect(withdrawals).toHaveLength(1)
     expect(withdrawals[0].incomeId).toBeNull()
   })
+
+  it('destination=reinvest cria income com investmentReturnCapital = min(resgate, capital)', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'CDB Reinvest' })
+
+    await db.insert(schema.investments).values([
+      {
+        userId,
+        investmentTypeId: type.id,
+        referenceMonth: '2025-01-01',
+        amount: '2000.00',
+        yieldAmount: null,
+        excludeFromCashFlow: false,
+      },
+      {
+        userId,
+        investmentTypeId: type.id,
+        referenceMonth: '2025-02-01',
+        amount: '1000.00',
+        yieldAmount: null,
+        excludeFromCashFlow: false,
+      },
+    ])
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'CDB Reinvest',
+      amount: '3450.00',
+      date: '2025-06-01',
+      destination: 'reinvest',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: and(eq(schema.incomes.userId, userId), eq(schema.incomes.amount, '3450.00')),
+    })
+
+    expect(income).toBeDefined()
+    expect(income?.investmentReturnCapital).toBe('3000.00')
+  })
+
+  it('destination=reinvest com resgate menor que capital usa o valor do resgate', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'CDB Parcial' })
+
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: type.id,
+      referenceMonth: '2025-01-01',
+      amount: '3000.00',
+      yieldAmount: null,
+      excludeFromCashFlow: false,
+    })
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'CDB Parcial',
+      amount: '50.00',
+      date: '2025-06-01',
+      destination: 'reinvest',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: and(eq(schema.incomes.userId, userId), eq(schema.incomes.amount, '50.00')),
+    })
+
+    expect(income?.investmentReturnCapital).toBe('50.00')
+  })
+
+  it('destination=income NÃO seta investmentReturnCapital (emergência)', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'CDB Emergencia' })
+
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: type.id,
+      referenceMonth: '2025-01-01',
+      amount: '3000.00',
+      yieldAmount: null,
+      excludeFromCashFlow: false,
+    })
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'CDB Emergencia',
+      amount: '75.00',
+      date: '2025-06-02',
+      destination: 'income',
+    })
+
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: and(
+        eq(schema.investmentWithdrawals.userId, userId),
+        eq(schema.investmentWithdrawals.investmentTypeId, type.id)
+      ),
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    expect(income?.investmentReturnCapital).toBeNull()
+  })
+})
+
+describe('updateWithdrawal', () => {
+  it('destination=reinvest recalcula investmentReturnCapital ao editar amount', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'CDB Update' })
+
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: type.id,
+      referenceMonth: '2025-01-01',
+      amount: '3000.00',
+      yieldAmount: null,
+      excludeFromCashFlow: false,
+    })
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'CDB Update',
+      amount: '3450.00',
+      date: '2025-06-01',
+      destination: 'reinvest',
+    })
+
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: and(
+        eq(schema.investmentWithdrawals.userId, userId),
+        eq(schema.investmentWithdrawals.investmentTypeId, type.id)
+      ),
+    })
+    expect(withdrawal).toBeDefined()
+
+    await updateWithdrawal({
+      id: withdrawal!.id,
+      investmentTypeId: type.id,
+      amount: '200.00',
+      date: '2025-06-01',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    // min(200, 3000) = 200
+    expect(income?.amount).toBe('200.00')
+    expect(income?.investmentReturnCapital).toBe('200.00')
+  })
 })
