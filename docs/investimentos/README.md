@@ -48,6 +48,13 @@ Visual atenuado, opcoes no `RowActions`, chip de filtro na Section.
 
 ### Fase 6 — Testes e revisao: pendente
 
+## Status em 11/06/2026 — revisão do fluxo de destino de resgate (09-fluxo-destino-resgate.md)
+
+Planejado. Bug identificado em produção: `destination = 'income'` aplicava
+`investmentReturnCapital = total_capital` para todos os resgates, incluindo emergências
+parciais, derrubando o totalIncomes do dashboard. Solução: novo valor `'reinvest'` para
+o campo `destination`, com `investmentReturnCapital` calculado só nesse caso.
+
 ## Ordem sugerida de leitura
 
 1. [01-contexto-e-escopo.md](./01-contexto-e-escopo.md)
@@ -58,6 +65,7 @@ Visual atenuado, opcoes no `RowActions`, chip de filtro na Section.
 6. [06-code-review-pos-implementacao.md](./06-code-review-pos-implementacao.md)
 7. [07-vencimento-e-imposto.md](./07-vencimento-e-imposto.md)
 8. [08-retorno-capital-panorama.md](./08-retorno-capital-panorama.md)
+9. [09-fluxo-destino-resgate.md](./09-fluxo-destino-resgate.md)
 
 ## Como usar esta documentacao
 

@@ -577,6 +577,10 @@ describe('withdrawalSchema', () => {
     expect(withdrawalSchema.safeParse({ ...base, destination: 'transfer' }).success).toBe(true)
   })
 
+  it('accepts destination=reinvest', () => {
+    expect(withdrawalSchema.safeParse({ ...base, destination: 'reinvest' }).success).toBe(true)
+  })
+
   it('rejects invalid destination', () => {
     expect(withdrawalSchema.safeParse({ ...base, destination: 'cash' }).success).toBe(false)
   })

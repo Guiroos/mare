@@ -69,6 +69,10 @@
       }
     ]
   },
+  "enabledPlugins": {
+    "neon@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true
+  },
   "mcpServers": {
     "playwright": {
       "command": "npx",
@@ -78,8 +82,5 @@
         "--output-dir=.playwright-screenshots"
       ]
     }
-  },
-  "enabledPlugins": {
-    "neon@claude-plugins-official": true
   }
 }

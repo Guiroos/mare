@@ -167,7 +167,7 @@ export type CreateWithdrawalInput = {
   investmentTypeName: string
   amount: string
   date: string
-  destination: 'income' | 'transfer'
+  destination: 'income' | 'reinvest' | 'transfer'
   taxAmount?: string | null
   notes?: string | null
 }
@@ -179,21 +179,20 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
   await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
   let incomeId: string | null = null
-
   let investmentReturnCapital: string | null = null
 
-  if (data.destination === 'income') {
+  if (data.destination === 'reinvest') {
     const [capitalRow] = await db
       .select({ total: sum(investments.amount) })
       .from(investments)
       .where(
         and(eq(investments.userId, userId), eq(investments.investmentTypeId, data.investmentTypeId))
       )
-    investmentReturnCapital = String(Number(capitalRow?.total ?? 0))
+    investmentReturnCapital = String(Math.min(Number(data.amount), Number(capitalRow?.total ?? 0)))
   }
 
   await db.transaction(async (tx) => {
-    if (data.destination === 'income') {
+    if (data.destination === 'income' || data.destination === 'reinvest') {
       const [income] = await tx
         .insert(incomes)
         .values({
@@ -261,10 +260,37 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
       .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)))
 
     if (withdrawal.incomeId) {
-      await tx
-        .update(incomes)
-        .set({ amount: data.amount, referenceMonth: dateToReferenceMonth(data.date) })
-        .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
+      if (withdrawal.destination === 'reinvest') {
+        const [capitalRow] = await tx
+          .select({ total: sum(investments.amount) })
+          .from(investments)
+          .where(
+            and(
+              eq(investments.userId, userId),
+              eq(investments.investmentTypeId, data.investmentTypeId)
+            )
+          )
+        const newReturnCapital = String(
+          Math.min(Number(data.amount), Number(capitalRow?.total ?? 0))
+        )
+        await tx
+          .update(incomes)
+          .set({
+            amount: data.amount,
+            referenceMonth: dateToReferenceMonth(data.date),
+            investmentReturnCapital: newReturnCapital,
+          })
+          .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
+      } else {
+        await tx
+          .update(incomes)
+          .set({
+            amount: data.amount,
+            referenceMonth: dateToReferenceMonth(data.date),
+            investmentReturnCapital: null,
+          })
+          .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
+      }
     }
   })
 
