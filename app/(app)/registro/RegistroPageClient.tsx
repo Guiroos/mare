@@ -216,8 +216,9 @@ export function RegistroPageClient({ formData }: { formData: FormDataType }) {
             categoryGroups={formData.categoryGroups}
             accounts={formData.accounts}
             investmentTypes={formData.investmentTypes}
+            people={formData.people}
             onFormChange={setPreviewState}
-            categoryVariant="grid"
+            categoryVariant="combobox"
           />
         </Card>
       </div>

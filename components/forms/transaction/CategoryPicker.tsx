@@ -1,4 +1,7 @@
+'use client'
+
 import { Chip } from '@/components/ui/chip'
+import { Combobox } from '@/components/ui/combobox'
 import { Field } from '@/components/ui/field'
 import {
   Select,
@@ -34,7 +37,7 @@ type Props = {
   categoryId: string
   onCategoryChange: (id: string) => void
   error?: string
-  variant: 'grid' | 'select'
+  variant: 'grid' | 'select' | 'combobox'
 }
 
 export function CategoryPicker({
@@ -45,6 +48,26 @@ export function CategoryPicker({
   variant,
 }: Props) {
   const allCategories = categoryGroups.flatMap((g) => g.categories)
+
+  if (variant === 'combobox') {
+    const groups = categoryGroups.map((g) => ({
+      id: g.id,
+      label: g.name,
+      options: g.categories.map((c) => ({ value: c.id, label: c.name })),
+    }))
+
+    return (
+      <Field label="Categoria" error={error}>
+        <Combobox
+          groups={groups}
+          value={categoryId}
+          onValueChange={onCategoryChange}
+          placeholder="Buscar categoria..."
+          error={!!error}
+        />
+      </Field>
+    )
+  }
 
   return (
     <Field label="Categoria" error={error}>

@@ -38,6 +38,7 @@ import { EntradaFields } from './transaction/EntradaFields'
 import { InvestimentoFields } from './transaction/InvestimentoFields'
 import { ResgateFields } from './transaction/ResgateFields'
 import { CategoryPicker } from './transaction/CategoryPicker'
+import { SplitSection } from './transaction/SplitSection'
 import type {
   Account,
   CategoryGroup,
@@ -45,18 +46,22 @@ import type {
   PrimaryType,
   SaidaSubType,
 } from './transaction/types'
+import type { TransactionSplit } from '@/lib/actions/transactions'
 
 type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate'
+
+type Person = { id: string; name: string }
 
 type Props = {
   categoryGroups: CategoryGroup[]
   accounts: Account[]
   investmentTypes?: InvestmentType[]
+  people?: Person[]
   defaultMonth?: string
   defaultDate?: string
   onSuccess?: () => void
   onFormChange?: (state: import('./transaction/types').PreviewState) => void
-  categoryVariant?: 'grid' | 'select'
+  categoryVariant?: 'grid' | 'select' | 'combobox'
 }
 
 const PRIMARY_TYPES: { value: PrimaryType; label: string; icon?: LucideIcon }[] = [
@@ -84,11 +89,12 @@ export function TransactionForm({
   categoryGroups,
   accounts,
   investmentTypes = [],
+  people = [],
   defaultMonth,
   defaultDate,
   onSuccess,
   onFormChange,
-  categoryVariant = 'grid',
+  categoryVariant = 'combobox',
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
   const today = defaultDate ?? todayISOString()
@@ -107,6 +113,14 @@ export function TransactionForm({
   const [installments, setInstallments] = useState(2)
   const [isPaid, setIsPaid] = useState(false)
   const [excludeFromCashFlow, setExcludeFromCashFlow] = useState(false)
+  const [splits, setSplits] = useState<TransactionSplit[]>([])
+  const [splitIntegral, setSplitIntegral] = useState(false)
+
+  const totalCents = Math.round(parseFloat(previewAmount || '0') * 100)
+  const totalSplitCents = splits.reduce((s, e) => s + Math.round(parseFloat(e.amount) * 100), 0)
+  const yourShareCents = Math.max(0, totalCents - totalSplitCents)
+  const effectivePreviewAmount =
+    splitIntegral && splits.length > 0 ? (yourShareCents / 100).toFixed(2) : previewAmount
 
   const resetForm = () => {
     setKey((k) => k + 1)
@@ -120,6 +134,8 @@ export function TransactionForm({
     setInstallments(2)
     setIsPaid(false)
     setExcludeFromCashFlow(false)
+    setSplits([])
+    setSplitIntegral(false)
   }
 
   useEffect(() => {
@@ -130,7 +146,7 @@ export function TransactionForm({
       primaryType,
       subType,
       name: previewName,
-      amount: previewAmount,
+      amount: effectivePreviewAmount,
       categoryId,
       categoryName: cat?.name ?? '',
       accountId,
@@ -144,6 +160,7 @@ export function TransactionForm({
     accountId,
     previewName,
     previewAmount,
+    effectivePreviewAmount,
     excludeFromCashFlow,
     onFormChange,
     categoryGroups,
@@ -166,9 +183,11 @@ export function TransactionForm({
     const type = resolvedFormType()
 
     if (type === 'avulso') {
+      const amountToUse =
+        splitIntegral && splits.length > 0 ? effectivePreviewAmount : str('amount')
       const result = transactionSchema.safeParse({
         name: str('name'),
-        amount: str('amount'),
+        amount: amountToUse,
         date: str('date'),
         categoryId,
         accountId,
@@ -180,7 +199,10 @@ export function TransactionForm({
       setErrors({})
       startTransition(async () => {
         try {
-          await createTransaction(result.data)
+          await createTransaction({
+            ...result.data,
+            splits: splits.length > 0 ? splits : undefined,
+          })
           resetForm()
           onSuccess?.()
         } catch {
@@ -218,9 +240,11 @@ export function TransactionForm({
         }
       })
     } else if (type === 'parcelado') {
+      const totalAmountToUse =
+        splitIntegral && splits.length > 0 ? effectivePreviewAmount : str('totalAmount')
       const result = installmentSchema.safeParse({
         name: str('name'),
-        totalAmount: str('totalAmount'),
+        totalAmount: totalAmountToUse,
         totalInstallments: String(installments),
         startDate: str('startDate'),
         categoryId,
@@ -240,6 +264,7 @@ export function TransactionForm({
             startDate: result.data.startDate,
             categoryId: result.data.categoryId,
             accountId: result.data.accountId,
+            splits: splits.length > 0 ? splits : undefined,
           })
           resetForm()
           onSuccess?.()
@@ -414,6 +439,22 @@ export function TransactionForm({
             previewAmount={previewAmount}
             isPaid={isPaid}
             onIsPaidChange={setIsPaid}
+            accountField={
+              <Field label="Conta / Cartão" error={errors.accountId}>
+                <Select value={accountId} onValueChange={setAccountId}>
+                  <SelectTrigger error={!!errors.accountId}>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accounts.map((acc) => (
+                      <SelectItem key={acc.id} value={acc.id}>
+                        {acc.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            }
           />
         )}
         {resolvedType === 'entrada' && <EntradaFields errors={errors} month={month} />}
@@ -445,23 +486,17 @@ export function TransactionForm({
           />
         )}
 
-        {/* Conta — apenas Saída */}
-        {primaryType === 'saida' && (
-          <Field label="Conta / Cartão" error={errors.accountId}>
-            <Select value={accountId} onValueChange={setAccountId}>
-              <SelectTrigger error={!!errors.accountId}>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    {acc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-        )}
+        {/* Dividir com devedores — apenas saída avulsa e parcelada */}
+        {primaryType === 'saida' &&
+          (resolvedType === 'avulso' || resolvedType === 'parcelado') &&
+          people.length > 0 && (
+            <SplitSection
+              people={people}
+              totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
+              onChange={setSplits}
+              onIntegralChange={setSplitIntegral}
+            />
+          )}
 
         <div className="pt-1">
           <Button type="submit" className="w-full" loading={isPending}>
