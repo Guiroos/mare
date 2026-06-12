@@ -24,6 +24,11 @@ type InvestmentType = {
   name: string
 }
 
+type Person = {
+  id: string
+  name: string
+}
+
 type RegistrationDialogCtx = {
   open: (month?: string, date?: string) => void
 }
@@ -45,11 +50,12 @@ function FormContent({
     categoryGroups: CategoryGroup[]
     accounts: Account[]
     investmentTypes: InvestmentType[]
+    people: Person[]
   } | null
   month: string | undefined
   date: string | undefined
   onSuccess: () => void
-  categoryVariant: 'grid' | 'select'
+  categoryVariant: 'grid' | 'select' | 'combobox'
 }) {
   if (!formData) {
     return (
@@ -63,6 +69,7 @@ function FormContent({
       categoryGroups={formData.categoryGroups}
       accounts={formData.accounts}
       investmentTypes={formData.investmentTypes}
+      people={formData.people}
       defaultMonth={month}
       defaultDate={date}
       onSuccess={onSuccess}
@@ -79,6 +86,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
     categoryGroups: CategoryGroup[]
     accounts: Account[]
     investmentTypes: InvestmentType[]
+    people: Person[]
   } | null>(null)
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -111,7 +119,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
                 month={month}
                 date={date}
                 onSuccess={() => setIsOpen(false)}
-                categoryVariant="grid"
+                categoryVariant="combobox"
               />
             </div>
           </DialogContent>
@@ -128,7 +136,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
                 month={month}
                 date={date}
                 onSuccess={() => setIsOpen(false)}
-                categoryVariant="select"
+                categoryVariant="combobox"
               />
             </div>
           </DrawerContent>

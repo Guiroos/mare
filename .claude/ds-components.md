@@ -18,6 +18,7 @@ Importam e usam primitivos da Camada 1.
 
 - `Field` → usa `<Label>`
 - `CurrencyInput` → compartilha `inputBase` e `inputErrorCls` de `input.tsx`
+- `Combobox` → usa `<Input>` + `<Button>`
 - `Segment` `BudgetBar` `EmptyState` `SummaryCard` `BalanceCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
 
 ### Camada 3 — Modal / Complexo
@@ -58,6 +59,7 @@ Radix UI + primitivos.
 | `section.tsx`        | `Section`                       | Props: `title` `action` — wrapper de seção com heading padronizado               |
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
 | `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página                                    |
+| `combobox.tsx`       | `Combobox`                      | Props: `groups?` (agrupado) ou `options?` (flat), `value`, `onValueChange`, `placeholder`, `error?` — lista filtrada inline (sem dropdown flutuante); exporta `ComboboxOption` e `ComboboxGroup` |
 | `delete-button.tsx`  | `DeleteButton`                  | Confirmação inline responsiva. **Nunca** criar botão de delete ad-hoc            |
 | `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮). Props: `onEdit?` `onDelete?` (omitir remove o item do menu); `additionalActions?: Array<{label, icon?, onClick, variant?}>` renderizadas antes do separador Editar/Excluir; `triggerClassName` para override do hover em fundo colorido; requer `group` na div pai |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
@@ -83,7 +85,7 @@ Radix UI + primitivos.
 - `select-none` em componentes de navegação (`BottomNav`, `Sidebar`) previne seleção de texto acidental ao clicar em itens de nav
 - `uppercase tracking-wide` sobrescreve o `letter-spacing` configurado nos tokens tipográficos — `text-label` e `text-caption` já têm tracking próprio no `tailwind.config.ts`; não acumular `uppercase tracking-wide` sobre eles; se o visual "caixa alta espaçada" for recorrente, criar token específico
 - Seletores de filho `[&>svg]:h-N [&>svg]:w-N [&>svg]:text-*` para estilizar SVGs filhos sem exigir que callers os estilizem — aceitos como funcionais (mesmo padrão de `[&>span]:line-clamp-1`); não são violação da Regra 3
-- `SelectTrigger` em contextos compactos (toolbar, pill): usar `h-7`/`h-8` + `w-auto` via `className` — nunca `h-auto`, que não é altura válida de controle interativo (Regra 3)
+- `SelectTrigger` em contextos compactos (toolbar, pill): usar `h-7`/`h-8` + `w-auto` via `className` — nunca `h-auto`, que não é altura válida de controle interativo (Regra 3); a proibição de `h-auto` estende-se a qualquer `<Button>` — itens de lista ghost usam `h-9 justify-start` sem padding vertical extra
 - `SelectContent` do DS já encapsula `SelectPrimitive.Portal` internamente — não adicionar `Portal` separado ao usar o DS `Select`; props `sideOffset` e `align` passam via `...props` para `SelectPrimitive.Content`
 - Sub-grid de espaçamento permitido termina em `p-2.5` (10px): `p-3.5` (14px) é inválido — não está no grid de 4px nem na lista de sub-grid `p-0.5`/`p-1.5`/`p-2.5`
 - `Chip` aceita `className` para adaptar shape em toolbars: `rounded-md border text-caption h-8` transforma o pill padrão em chip retangular compacto; use `Chip` quando todos os itens têm a mesma cor active — para cores active variáveis por item, usar raw `<button>`
@@ -105,3 +107,5 @@ Radix UI + primitivos.
 - Recharts dual Y-axis para combo fluxo+estoque (ex: barras mensais + linha acumulada): usar `yAxisId="left"` nas barras e `yAxisId="right"` na linha; colorir os ticks do eixo direito com `tick={{ fill: COLOR }}` para associação visual sem precisar de label textual rotacionado
 - Recharts `tick={{ fontSize: N }}` inline: usar `fontSize: 12` para alinhar com o token `text-caption` (12px) — `fontSize: 11` é valor arbitrário fora do DS
 - `.toUpperCase()` em string passada como prop equivale à classe CSS `uppercase` — aplica-se a mesma restrição sobre `text-caption`/`text-label`; o ds-reviewer não detecta automaticamente por ser JS e não CSS, então a verificação deve ser feita manualmente
+- `Combobox` usa lista inline (não `position: absolute` nem portal) para evitar clipping em containers `overflow-y-auto` como Dialog/Drawer — se dropdown flutuante for necessário, instalar `@radix-ui/react-popover` (perguntar antes) ou usar `createPortal` com posicionamento fixed via `getBoundingClientRect`
+- `onMouseDown={(e) => { e.preventDefault(); handler() }}` em itens de lista de dropdown custom: `preventDefault()` impede o `onBlur` do input pai de fechar a lista antes do click ser processado — padrão obrigatório em qualquer dropdown sem Radix

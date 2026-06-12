@@ -2,8 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { transactions, fixedExpenses, installmentGroups, paymentAccounts } from '@/lib/db/schema'
-import { eq, and, asc } from 'drizzle-orm'
+import {
+  transactions,
+  fixedExpenses,
+  installmentGroups,
+  paymentAccounts,
+  debtorEntries,
+} from '@/lib/db/schema'
+import { eq, and, asc, inArray } from 'drizzle-orm'
 import { addMonths, format } from 'date-fns'
 import {
   parseDate,
@@ -12,7 +18,11 @@ import {
   calcInstallmentDate,
 } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
-import { assertOwnsCategory, assertOwnsPaymentAccount } from '@/lib/auth/ownership'
+import {
+  assertOwnsCategory,
+  assertOwnsPaymentAccount,
+  assertOwnsPerson,
+} from '@/lib/auth/ownership'
 import {
   transactionSchema,
   updateTransactionActionSchema,
@@ -23,6 +33,11 @@ import {
 } from '@/lib/validations/transactions'
 import { referenceMonthSchema } from '@/lib/validations/utils'
 
+export type TransactionSplit = {
+  personId: string
+  amount: string
+}
+
 // ─── Gasto avulso ─────────────────────────────────────────────────────────────
 
 export type CreateTransactionInput = {
@@ -31,6 +46,7 @@ export type CreateTransactionInput = {
   date: string
   categoryId: string
   accountId: string
+  splits?: TransactionSplit[]
 }
 
 export async function createTransaction(data: CreateTransactionInput) {
@@ -40,19 +56,42 @@ export async function createTransaction(data: CreateTransactionInput) {
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
     assertOwnsPaymentAccount(userId, data.accountId),
+    ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
-  await db.insert(transactions).values({
-    userId,
-    name: data.name,
-    amount: data.amount,
-    date: data.date,
-    referenceMonth: dateToReferenceMonth(data.date),
-    categoryId: data.categoryId,
-    accountId: data.accountId,
+  await db.transaction(async (tx) => {
+    const [txRow] = await tx
+      .insert(transactions)
+      .values({
+        userId,
+        name: data.name,
+        amount: data.amount,
+        date: data.date,
+        referenceMonth: dateToReferenceMonth(data.date),
+        categoryId: data.categoryId,
+        accountId: data.accountId,
+      })
+      .returning({ id: transactions.id })
+
+    if (data.splits && data.splits.length > 0) {
+      await tx.insert(debtorEntries).values(
+        data.splits.map((s) => ({
+          userId,
+          personId: s.personId,
+          type: 'charge' as const,
+          status: 'open' as const,
+          amount: s.amount,
+          description: data.name,
+          entryDate: data.date,
+          referenceMonth: dateToReferenceMonth(data.date),
+          sourceTransactionId: txRow.id,
+        }))
+      )
+    }
   })
 
   revalidatePath('/dashboard')
+  if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
 // ─── Gasto fixo ───────────────────────────────────────────────────────────────
@@ -191,6 +230,7 @@ export type CreateInstallmentInput = {
   startDate: string
   categoryId: string
   accountId: string
+  splits?: TransactionSplit[]
 }
 
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
@@ -206,6 +246,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
         .where(eq(paymentAccounts.id, data.accountId))
         .then((rows) => rows[0])
     ),
+    ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
   const closingDay = accountRow?.closingDay ?? null
@@ -213,39 +254,77 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const baseReferenceMonth = calcBaseReferenceMonth(purchaseDate, closingDay)
   const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
-  const [group] = await db
-    .insert(installmentGroups)
-    .values({
-      userId,
-      name: data.name,
-      totalAmount: data.totalAmount,
-      totalInstallments: data.totalInstallments,
-      startDate: data.startDate,
-      categoryId: data.categoryId,
-      accountId: data.accountId,
-    })
-    .returning({ id: installmentGroups.id })
+  await db.transaction(async (tx) => {
+    const [group] = await tx
+      .insert(installmentGroups)
+      .values({
+        userId,
+        name: data.name,
+        totalAmount: data.totalAmount,
+        totalInstallments: data.totalInstallments,
+        startDate: data.startDate,
+        categoryId: data.categoryId,
+        accountId: data.accountId,
+      })
+      .returning({ id: installmentGroups.id })
 
-  const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
-    const refMonth = addMonths(baseReferenceMonth, i)
-    const date = i === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
-    return {
-      userId,
-      name: `${data.name} (${i + 1}/${data.totalInstallments})`,
-      amount: installmentAmount,
-      date: format(date, 'yyyy-MM-dd'),
-      referenceMonth: format(refMonth, 'yyyy-MM-dd'),
-      categoryId: data.categoryId,
-      accountId: data.accountId,
-      installmentGroupId: group.id,
-      installmentNumber: i + 1,
-      totalInstallments: data.totalInstallments,
+    const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
+      const refMonth = addMonths(baseReferenceMonth, i)
+      const date = i === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
+      return {
+        userId,
+        name: `${data.name} (${i + 1}/${data.totalInstallments})`,
+        amount: installmentAmount,
+        date: format(date, 'yyyy-MM-dd'),
+        referenceMonth: format(refMonth, 'yyyy-MM-dd'),
+        categoryId: data.categoryId,
+        accountId: data.accountId,
+        installmentGroupId: group.id,
+        installmentNumber: i + 1,
+        totalInstallments: data.totalInstallments,
+      }
+    })
+
+    const txRows = await tx
+      .insert(transactions)
+      .values(installmentRows)
+      .returning({ id: transactions.id, installmentNumber: transactions.installmentNumber })
+
+    if (data.splits && data.splits.length > 0) {
+      const splits = data.splits
+      // Pre-compute per-installment amounts with last-installment rounding compensation
+      const splitAmounts = splits.map((s) => {
+        const total = parseFloat(s.amount)
+        const perInstallment = parseFloat((total / data.totalInstallments).toFixed(2))
+        const last = parseFloat((total - perInstallment * (data.totalInstallments - 1)).toFixed(2))
+        return { s, perInstallment: perInstallment.toFixed(2), last: last.toFixed(2) }
+      })
+      const lastInstallmentNumber = data.totalInstallments
+      const chargeRows = txRows.flatMap((txRow) => {
+        const offset = (txRow.installmentNumber ?? 1) - 1
+        const refMonth = addMonths(baseReferenceMonth, offset)
+        const date = offset === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
+        const entryDate = format(date, 'yyyy-MM-dd')
+        const referenceMonth = format(refMonth, 'yyyy-MM-dd')
+        const isLast = txRow.installmentNumber === lastInstallmentNumber
+        return splitAmounts.map(({ s, perInstallment, last }) => ({
+          userId,
+          personId: s.personId,
+          type: 'charge' as const,
+          status: 'open' as const,
+          amount: isLast ? last : perInstallment,
+          description: `${data.name} (${txRow.installmentNumber}/${data.totalInstallments})`,
+          entryDate,
+          referenceMonth,
+          sourceTransactionId: txRow.id,
+        }))
+      })
+      await tx.insert(debtorEntries).values(chargeRows)
     }
   })
 
-  await db.insert(transactions).values(installmentRows)
-
   revalidatePath('/dashboard')
+  if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
 // ─── Edição de transação avulsa ───────────────────────────────────────────────
@@ -366,6 +445,20 @@ export async function deleteInstallmentGroup(id: string) {
   // O FK installmentGroupId tem onDelete: 'set null' no schema, mas a semântica
   // de produto é excluir a compra inteira — grupo + parcelas.
   await db.transaction(async (tx) => {
+    const txIds = await tx
+      .select({ id: transactions.id })
+      .from(transactions)
+      .where(and(eq(transactions.installmentGroupId, id), eq(transactions.userId, userId)))
+
+    if (txIds.length > 0) {
+      await tx.delete(debtorEntries).where(
+        inArray(
+          debtorEntries.sourceTransactionId,
+          txIds.map((r) => r.id)
+        )
+      )
+    }
+
     await tx
       .delete(transactions)
       .where(and(eq(transactions.installmentGroupId, id), eq(transactions.userId, userId)))
@@ -377,6 +470,7 @@ export async function deleteInstallmentGroup(id: string) {
 
   revalidatePath('/parcelas')
   revalidatePath('/dashboard')
+  revalidatePath('/devedores')
 }
 
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────
@@ -384,7 +478,13 @@ export async function deleteInstallmentGroup(id: string) {
 export async function deleteTransaction(id: string) {
   const userId = await requireUserId()
 
-  await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+  await db.transaction(async (tx) => {
+    await tx.delete(debtorEntries).where(eq(debtorEntries.sourceTransactionId, id))
+    await tx
+      .delete(transactions)
+      .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))
+  })
 
   revalidatePath('/dashboard')
+  revalidatePath('/devedores')
 }

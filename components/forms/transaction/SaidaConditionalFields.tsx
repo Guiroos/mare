@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,7 @@ type Props = {
   previewAmount: string
   isPaid: boolean
   onIsPaidChange: (v: boolean) => void
+  accountField?: ReactNode
 }
 
 export function SaidaConditionalFields({
@@ -25,12 +27,16 @@ export function SaidaConditionalFields({
   previewAmount,
   isPaid,
   onIsPaidChange,
+  accountField,
 }: Props) {
   if (resolvedType === 'avulso') {
     return (
-      <Field label="Data" error={errors.date}>
-        <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
-      </Field>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Field label="Data" error={errors.date}>
+          <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
+        </Field>
+        {accountField}
+      </div>
     )
   }
 
@@ -59,6 +65,7 @@ export function SaidaConditionalFields({
             />
           </Field>
         </div>
+        {accountField}
         <Switch label="Marcar como pago" checked={isPaid} onChange={onIsPaidChange} />
         <input type="hidden" name="isPaid" value={isPaid ? 'true' : 'false'} />
       </>
@@ -104,15 +111,18 @@ export function SaidaConditionalFields({
             </div>
           )}
         </div>
-        <Field label="Data da 1ª parcela" error={errors.startDate}>
-          <Input
-            name="startDate"
-            type="date"
-            defaultValue={today}
-            error={!!errors.startDate}
-            required
-          />
-        </Field>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Data da 1ª parcela" error={errors.startDate}>
+            <Input
+              name="startDate"
+              type="date"
+              defaultValue={today}
+              error={!!errors.startDate}
+              required
+            />
+          </Field>
+          {accountField}
+        </div>
       </>
     )
   }
