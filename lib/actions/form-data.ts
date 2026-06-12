@@ -7,6 +7,7 @@ import {
   getMonthIncomes,
   getMonthInvestments,
 } from '@/lib/queries/dashboard'
+import { getActivePeople } from '@/lib/queries/debtors'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { requireUserId } from '@/lib/auth/require-user'
@@ -15,15 +16,23 @@ export async function getRegistrationFormData() {
   const userId = await requireUserId()
   const month = yearMonthToReferenceMonth(currentYearMonth())
 
-  const [categoryGroups, accounts, investmentTypes, groupProgress, incomeList, investmentList] =
-    await Promise.all([
-      getCategoriesWithGroups(userId),
-      getPaymentAccounts(userId),
-      getInvestmentTypes(userId),
-      getCategoryGroupProgress(userId, month),
-      getMonthIncomes(userId, month),
-      getMonthInvestments(userId, month),
-    ])
+  const [
+    categoryGroups,
+    accounts,
+    investmentTypes,
+    groupProgress,
+    incomeList,
+    investmentList,
+    people,
+  ] = await Promise.all([
+    getCategoriesWithGroups(userId),
+    getPaymentAccounts(userId),
+    getInvestmentTypes(userId),
+    getCategoryGroupProgress(userId, month),
+    getMonthIncomes(userId, month),
+    getMonthInvestments(userId, month),
+    getActivePeople(userId),
+  ])
 
   const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
   const totalExpenses = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
@@ -38,5 +47,5 @@ export async function getRegistrationFormData() {
     )
   )
 
-  return { categoryGroups, accounts, investmentTypes, categorySpends, currentBalance }
+  return { categoryGroups, accounts, investmentTypes, categorySpends, currentBalance, people }
 }

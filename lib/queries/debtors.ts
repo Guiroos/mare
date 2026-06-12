@@ -60,6 +60,16 @@ export async function getPeopleWithBalances(userId: string): Promise<PersonWithB
   }))
 }
 
+export type ActivePerson = { id: string; name: string }
+
+export async function getActivePeople(userId: string): Promise<ActivePerson[]> {
+  return db
+    .select({ id: people.id, name: people.name })
+    .from(people)
+    .where(and(eq(people.userId, userId), eq(people.archived, false)))
+    .orderBy(asc(people.name))
+}
+
 export type DebtEntryDetail = {
   id: string
   type: 'charge' | 'payment' | 'adjustment'
