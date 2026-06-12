@@ -92,6 +92,13 @@
       "when": 1780450473697,
       "tag": "0012_high_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1781226502072,
+      "tag": "0013_lovely_leper_queen",
+      "breakpoints": true
     }
   ]
 }

@@ -32,6 +32,7 @@ export const userSettings = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     creditMode: varchar('credit_mode', { length: 20 }).notNull().default('accrual'), // accrual | fatura
     faturaActiveFrom: date('fatura_active_from'),
+    autoRolloverFixedExpenses: boolean('auto_rollover_fixed_expenses').notNull().default(false),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (t) => [index('user_settings_user_idx').on(t.userId)]
