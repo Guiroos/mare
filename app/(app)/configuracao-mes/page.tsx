@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getCategoriesWithBudgets } from '@/lib/queries/categories'
 import { getMonthFixedExpenses, getMonthTransactions } from '@/lib/queries/dashboard'
+import { getUserAutoRollover } from '@/lib/queries/settings'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
@@ -14,6 +15,7 @@ import { FixedExpenseList } from '@/components/dashboard/FixedExpenseList'
 import { BudgetOverrideDialog } from '@/components/configuracao-mes/BudgetOverrideDialog'
 import { CopyPrevMonthButton } from '@/components/configuracao-mes/CopyPrevMonthButton'
 import { CopyFixedExpensesButton } from '@/components/configuracao-mes/CopyFixedExpensesButton'
+import { AutoRolloverSwitch } from '@/components/configuracao-mes/AutoRolloverSwitch'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
@@ -40,10 +42,11 @@ export default async function ConfiguracaoMesPage({
   const referenceMonth = yearMonthToReferenceMonth(month)
   const prevReferenceMonth = yearMonthToReferenceMonth(prevMonth(month))
 
-  const [categoriesWithBudgets, fixedExpenses, allTransactions] = await Promise.all([
+  const [categoriesWithBudgets, fixedExpenses, allTransactions, autoRollover] = await Promise.all([
     getCategoriesWithBudgets(userId, referenceMonth),
     getMonthFixedExpenses(userId, referenceMonth),
     getMonthTransactions(userId, referenceMonth),
+    getUserAutoRollover(userId),
   ])
 
   const installments = allTransactions.filter((t) => t.installmentGroupId)
@@ -147,6 +150,13 @@ export default async function ConfiguracaoMesPage({
           isPastMonth={isPastMonth}
           todayDay={todayDay}
         />
+      </Section>
+
+      {/* ─── Automação ──────────────────────────────────────────────────── */}
+      <Section title="Automação">
+        <div className="rounded-xl border bg-bg-surface px-4 py-4">
+          <AutoRolloverSwitch initialEnabled={autoRollover} />
+        </div>
       </Section>
 
       {/* ─── Parcelas neste mês ─────────────────────────────────────────── */}

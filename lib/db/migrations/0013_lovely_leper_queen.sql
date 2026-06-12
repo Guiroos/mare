@@ -1,0 +1,1 @@
+ALTER TABLE "user_settings" ADD COLUMN "auto_rollover_fixed_expenses" boolean DEFAULT false NOT NULL;
