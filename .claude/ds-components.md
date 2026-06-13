@@ -4,6 +4,25 @@
 
 ---
 
+## Regras obrigatórias
+
+1. **Um componente por arquivo** — nunca juntar dois primitivos independentes no mesmo arquivo
+2. **Compostos usam primitivos do DS** — `Field` usa `<Label>`, `DeleteButton` usa `<Button>`, nunca HTML cru
+3. **Zero valores arbitrários** — proibido `[...]` para tokens já existentes; usar apenas tokens de tipografia, cor, espaçamento, radius e sombra do `tailwind.config.ts`; `style={{}}` com `oklch(...)` é aceito só em painéis decorativos sem token equivalente
+4. **Formulários usam `<Field>`** — nunca `<div> + <Label>` manual; `<Field>` já inclui label, hint e error
+
+**Tokens rápidos:**
+- Tipografia: `text-hero` `text-display` `text-h1`–`text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
+- Cores: `bg-bg-base` `bg-bg-surface` `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` / `accent` `positive` `negative` `warning` / `border` `border-strong`
+- Radius: `rounded-sm`(6) `rounded-md`(10) `rounded-lg`(16) `rounded-xl`(20) `rounded-full`
+- Alturas interativas: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`
+- Transições: `duration-fast`(120ms) `duration-base`(200ms)
+- Focus ring: `focus:shadow-[0_0_0_3px_var(--ring-accent)]`
+
+**Formulários complexos:** extrair sub-componentes em `components/forms/<form>/` com `types.ts` para tipos compartilhados. Re-exports são proibidos — mover para `components/ui/` e atualizar imports.
+
+---
+
 ## Hierarquia de camadas
 
 Um componente que pertence a uma camada mais alta não pode "pular" uma camada inferior para usar HTML cru.

@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Commands
 
 ```bash
@@ -14,15 +12,13 @@ npm run lint         # run ESLint (next lint)
 ```
 
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
-- `npm run build` compila apenas o Next.js — **não** executa migrations; `vercel.json` define `buildCommand` com `npm run db:migrate && npm run build` para que o deploy na Vercel rode a migration automaticamente
+- `npm run build` não executa migrations; Vercel usa `npm run db:migrate && npm run build` via `vercel.json`
 
-Testes unitários com Vitest em `__tests__/unit/`: `npm test` (run), `npm test:watch`, `npm run test:coverage`. Testes de integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID` no `.env.local`). Playwright MCP está disponível para desenvolvimento de UI em tempo real: inicie o dev server e use o MCP do Playwright para inspecionar e iterar nas telas no browser.
+Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`). Playwright MCP disponível para iteração de UI em tempo real.
 
-**Coverage — regra de crescimento:** ao adicionar testes unitários para um arquivo em `lib/utils/` ou `lib/validations/` até atingir >= 80% de cobertura, adicionar entrada em `thresholds.perFile` no `vitest.config.ts` com o percentual atual do arquivo. Nunca definir threshold abaixo do percentual já conquistado. Threshold global não é usado — a média é distorcida por arquivos ainda sem testes.
+**Coverage:** ao cobrir arquivo em `lib/utils/` ou `lib/validations/` com >= 80%, adicionar entrada em `thresholds.perFile` no `vitest.config.ts`. Nunca definir abaixo do já conquistado.
 
 ## Environment
-
-Required in `.env.local`:
 
 ```
 DATABASE_URL=          # Neon connection string
@@ -34,350 +30,102 @@ NEXTAUTH_URL=http://localhost:3000
 
 ## Architecture
 
-**Maré** is a personal finance app (Next.js 14, App Router) that tracks transactions, fixed expenses, installments, investments, and budgets per reference month.
+**Maré** é um app de finanças pessoais (Next.js 14, App Router) que rastreia transações, gastos fixos, parcelas, investimentos e orçamentos por mês de referência.
 
-### Route structure
+### Routes
 
-- `app/(auth)/login` — unauthenticated entry point (Google OAuth via NextAuth)
-- `app/(app)/` — authenticated shell; `layout.tsx` enforces session and renders `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
+- `app/(auth)/login` — entry point (Google OAuth via NextAuth)
+- `app/(app)/` — shell autenticado; `layout.tsx` renderiza `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
 - Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`
 
 ### Data layer
 
-- **Database**: Neon (PostgreSQL serverless), accessed via `lib/db/index.ts`
-- **ORM**: Drizzle ORM — schema in `lib/db/schema.ts`, migrations in `lib/db/migrations/`
-- **Queries** (`lib/queries/`): server-side read functions, called directly from async Server Components
-- **Actions** (`lib/actions/`): `"use server"` functions for mutations; each calls `auth()` to get `userId`, performs the DB operation, then calls `revalidatePath`
-- **Dashboard queries** (`lib/queries/dashboard.ts`): `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries para N meses — não voltar ao padrão N×4); totais do summary são calculados em JS a partir dos dados já buscados, sem queries `SUM` separadas; mesmo padrão aplicado em `panorama.ts` (`getAnnualOverview`)
-- **`toAmount(val)`** em `lib/utils/currency.ts` — use em vez de `Number(x.amount)` em queries; centraliza a conversão de campos `decimal` do Drizzle (retornados como string)
-- Indexes no schema Drizzle: terceiro parâmetro é função de array — `pgTable('t', { cols }, (t) => [index('name').on(t.col1, t.col2)])` — **não** usar sintaxe de objeto
-- Unique indexes no schema: usar `uniqueIndex('name').on(t.col1, t.col2)` no mesmo array; na action correspondente, usar `.onConflictDoUpdate({ target: [table.col1, ...], set: { ... } })` — elimina o anti-padrão `existingId ? UPDATE : INSERT`; `.onConflictDoUpdate` retorna 500 em runtime se o unique index não existe no banco — rodar `npm run db:migrate` sempre que houver migrations pendentes antes de testar mutations
+- **DB**: Neon PostgreSQL via `lib/db/index.ts`. ORM: Drizzle — schema em `lib/db/schema.ts`, migrations em `lib/db/migrations/`
+- **Queries** (`lib/queries/`): lidas direto em Server Components. **Actions** (`lib/actions/`): `"use server"`, mutam e chamam `revalidatePath`
+- `toAmount(val)` em `lib/utils/currency.ts` — sempre usar em vez de `Number(x.amount)`; campos `decimal` do Drizzle retornam string
+- Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas; `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries fixas — não N×4)
+- Gotchas de schema, migrations e Drizzle: **@.claude/db.md**
 
 ### Auth
 
-`lib/auth.ts` — NextAuth v4 with Google provider and Drizzle adapter. JWT strategy. `session.user.id` is populated from `token.sub` in the session callback. Use `auth()` helper to get the session in Server Components and actions.
+NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownership: **@.claude/auth.md**
 
-### Key domain concepts
+### Domain concepts
 
-- All financial data is scoped per `userId` and per `referenceMonth` (always stored as `YYYY-MM-01`)
-- Month params in URLs are `YYYY-MM`; use `lib/utils/date.ts` helpers (`currentYearMonth`, `yearMonthToReferenceMonth`, `referenceMonthToYearMonth`, `prevMonth`, `nextMonth`, `billingCycleDateRange`) — never construct month strings manually
-- `<input type="month">` retorna `YYYY-MM` — schemas de formulário com campo de mês devem usar `yearMonthSchema` de `lib/validations/utils.ts`; o formulário converte para `YYYY-MM-01` com `+ '-01'` ou `yearMonthToReferenceMonth()` antes de chamar a action, que usa `referenceMonthSchema`
-- Budget for a category is `category.defaultBudget` unless overridden by a `monthlyBudgetOverride` for that month
-- An installment purchase creates one `installmentGroup` row and N `transaction` rows (one per month), named `"<name> (i/N)"`
-- `paymentAccounts` has a `type` of `credit | debit | pix` and an optional `closingDay`; when `closingDay > 1`, the dashboard shows a cycle select (`?cycleAccount=<uuid>`) that filters transactions and fixed expenses by that account's billing cycle — `closingDay` is derived from the account via `getCreditAccounts()`
-- Payment accounts are managed under `/contas` (dedicated route); `/categorias` covers only category groups and categories
-- Feature **regime-fatura**: `userSettings` armazena `creditMode` (`'accrual'` | `'fatura'`) e `faturaActiveFrom` (`YYYY-MM-01`); configurado em `/contas` via `CreditModeSection`; contas de crédito precisam de `closingDay > 1` para participar — contas sem `closingDay` ou com `closingDay <= 1` são "não configuradas" e recebem warning card no dashboard (distinto do cycle view, que é opt-in por URL); pagamento de fatura é registrado como `transaction` com `faturaAccountId` (FK para a conta de crédito) e `faturaCycleMonth` (reference month do ciclo pago)
-- `FaturaContext` (`{ creditMode, faturaActiveFrom, creditAccountIds }`) é passado como terceiro argumento opcional para `getDashboardData`, `getAnnualOverview` e `getAnnualExpensesByGroup` quando `creditMode === 'fatura'`; sem ele, transações de cartão de crédito entram nos totais como despesas diretas (regime accrual); construir `faturaCtx` no page level e propagar para todas as queries financeiras relevantes
-- Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`; `app/(app)/layout.tsx` computa `isAdmin` e passa ao `<Sidebar>` para exibir o link condicionalmente
-- Feature **devedores** usa duas tabelas: `people` (cadastro) + `debtorEntries` (lançamentos); `debtorEntries.type`: `charge` (débito, soma ao saldo) | `payment` (pagamento, subtrai) | `adjustment` (ajuste, também soma — nunca negativo por tipo); `balance > 0` = pessoa deve a você; `balance < 0` = você deve à pessoa (crédito)
-- `debtorEntries.status`: `null` ou `'open'` = cobrança aberta; `'settled'` = quitada; `null`/`'open'` são equivalentes para toda lógica de UI e queries — charges pré-migration ficaram com `null`; `settledByPaymentId` aponta para o `debtor_entry` de `type='payment'` que quitou a charge
-- `settleCharge` (Fluxo A) cria um payment com o valor exato da charge e marca `status='settled'` atomicamente via `db.transaction` — não permite quitação parcial; `createDebtPayment` aceita `settleChargeIds?: string[]` (Fluxo B) para vincular cobranças abertas no mesmo ato de registrar um pagamento manual
-- Ao deletar um payment com charges vinculadas: `deleteDebtEntry` faz `UPDATE status='open', settledByPaymentId=null` **antes** de deletar o payment — a FK `ON DELETE SET NULL` limpa `settledByPaymentId` automaticamente mas **não** reseta `status`, por isso o UPDATE explícito é obrigatório
-- `createDebtPayment` com `createIncome: true` cria um registro em `incomes` além do `debtorEntry` — mutation cross-domain que revalida `/dashboard` e `/panorama`; ao deletar o entry correspondente, passar `alsoDeleteIncome: true` para limpar o income vinculado
-- `deletePersonIfEmpty` deleta pessoa somente se não houver `debtorEntries`; se houver histórico, usar `archivePerson` (seta `archived: true`) — regra de negócio explícita não refletida no schema
-- `createInstallmentPurchase` considera `closingDay` da conta ao calcular `referenceMonth`: se `getDate(purchaseDate) > effectiveClosingDay`, a parcela 1 pertence ao mês seguinte (próxima fatura); `effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null` — `closingDay <= 1` é tratado como calendário (equivalente a débito/pix); helpers `calcBaseReferenceMonth(purchaseDate, closingDay)` e `calcInstallmentDate(referenceMonth, closingDay)` em `lib/utils/date.ts` implementam esse cálculo — qualquer toque futuro em parcelas deve usar esses helpers em vez de `addMonths` + `startOfMonth` direto
+- Todos os dados financeiros escopados por `userId` + `referenceMonth` (sempre `YYYY-MM-01`)
+- Meses em URLs são `YYYY-MM`; usar helpers de `lib/utils/date.ts` — nunca construir strings de mês manualmente
+- `<input type="month">` retorna `YYYY-MM` — schemas de formulário usam `yearMonthSchema`; converter para `YYYY-MM-01` antes de chamar a action (`referenceMonthSchema`)
+- Budget por categoria: `category.defaultBudget` ou override via `monthlyBudgetOverride` para o mês
+- Parcela: 1 `installmentGroup` + N `transaction` rows (`"<name> (i/N)"`); `closingDay` da conta define se a 1ª parcela pertence ao mês atual ou seguinte — usar `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts`; `closingDay <= 1` é tratado como calendário
+- `paymentAccounts.type`: `credit | debit | pix`; quando `closingDay > 1`, dashboard exibe cycle select (`?cycleAccount=`)
+- Contas gerenciadas em `/contas`; `/categorias` cobre apenas grupos e categorias
+- Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`
+
+**Regime fatura:**
+- `userSettings.creditMode` (`'accrual'` | `'fatura'`); `faturaActiveFrom` (`YYYY-MM-01`)
+- Contas de crédito precisam de `closingDay > 1`; pagamento de fatura é `transaction` com `faturaAccountId` + `faturaCycleMonth`
+- `FaturaContext` (`{ creditMode, faturaActiveFrom, creditAccountIds }`) é 3º argumento de `getDashboardData`, `getAnnualOverview`, `getAnnualExpensesByGroup` — construir no page level
+- `isFaturaMode` e `isCycleView` são mutuamente exclusivos: `isFaturaMode = !isCycleView && creditMode === 'fatura'`
+- Em fatura mode, `fixedForPendency` exclui gastos fixos de crédito das pendências; `unpaidFixedCount` e `pendingFixed` derivam de `fixedForPendency`
+- `getUserCreditMode(userId)` nunca retorna null — default `{ creditMode: 'accrual', faturaActiveFrom: null }`
+
+**Devedores:**
+- `people` (cadastro) + `debtorEntries` (lançamentos); `type`: `charge` | `payment` | `adjustment`
+- `balance > 0` = pessoa deve a você; `status` `null`/`'open'` são equivalentes (pré-migration ficaram como `null`)
+- `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
+- Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
+- `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)
+- `createDebtPayment` com `createIncome: true` cria income — ao deletar, passar `alsoDeleteIncome: true`
+
+**Investimentos:**
+- `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
+- `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
+- `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`, `getMonthlyEvolution`
+- `investmentTypes.goalId`: `ON DELETE SET NULL`; `goalContributions.goalId`: `ON DELETE CASCADE` (assimétrico)
+- Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
+- `getPatrimonyTimeline` — `aporte` é capital líquido: desconta resgates brutos (`amount + taxAmount`); `PatrimonyHero` exibe `totalYield` só de tipos ativos
+
+**Cron:**
+- Neon não suporta `pg_cron`; jobs em `vercel.json` (`"crons": [{ "path": "...", "schedule": "..." }]`); autenticação via `Authorization: Bearer ${CRON_SECRET}`
+- Rotas de cron não têm sessão — operam direto no `db`; usar `Promise.allSettled` por usuário
+- `autoRolloverFixedExpenses` (cron, dia 1): pula se já há gastos fixos no mês; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo
 
 ### Gotchas
 
-- Dates are parsed with `T12:00:00` suffix (e.g. `new Date(dateStr + 'T12:00:00')`) to avoid UTC offset shifting the day when converting to `referenceMonth`
-- `session.user.id` é tipado diretamente — `types/next-auth.d.ts` faz module augmentation do NextAuth; **nunca** usar `(session.user as { id: string }).id`
-- Em actions, usar `const userId = await requireUserId()` de `@/lib/auth/require-user` — **não** criar `requireUserId` local em novos arquivos de action
-- Ownership de IDs relacionados: importar `assertOwns*` de `@/lib/auth/ownership` antes de qualquer insert/update que referencie `categoryId`, `accountId`, `groupId`, `investmentTypeId`, `goalId`, `personId` ou `debtEntryId` vindo do cliente; quando a action já faz um SELECT antes de mutar, paralelizar os checks no mesmo `Promise.all`
-- Ordem obrigatória em toda action com mutação: `requireUserId()` → `schema.parse(data)` → `assertOwns*` → query
-- Schemas de amount em `lib/validations/utils.ts`: `positiveAmountSchema` (> 0) para transações/entradas/resgates/contribuições; `nonNegativeAmountSchema` (>= 0, obrigatório) para overrides de orçamento; `nullishNonNegativeAmountSchema` (>= 0, nullish) para aportes/rendimentos de investimento que aceitam zero
-- Schemas de action vs formulário: quando o tipo do input da action tem campos `number` (ex: `dueDay`, `totalInstallments`) usar o schema `xxxActionSchema` definido no mesmo arquivo de validação — schemas sem sufixo são os de formulário com strings de FormData
-- Hook `PostToolUse:Edit` do ESLint bloqueia edits com imports não usados (max-warnings 0); ao fazer múltiplas mudanças relacionadas num arquivo, usar `Write` para reescrever o arquivo inteiro em vez de encadear `Edit` calls
-- Playwright `browser_take_screenshot` pode travar com timeout de fonte; solução: `browser_close` + `browser_navigate` para resetar o browser
-- Após `db:generate`, rodar `npx prettier --write lib/db/migrations/meta/` antes de commitar — o pre-push hook rejeita a formatação gerada pelo Drizzle Kit
-- Ao adicionar `uniqueIndex` em tabela existente: inserir `DELETE ... WHERE id NOT IN (SELECT DISTINCT ON (col1, col2) id FROM "tabela" ORDER BY col1, col2, id)` **antes** do `CREATE UNIQUE INDEX` na migration — evita falha se houver duplicatas (é no-op se não houver)
-- Ao adicionar coluna de status/discriminador em tabela existente: `db:generate` não cria backfill — adicionar manualmente `UPDATE "tabela" SET "col" = 'valor' WHERE "condição"` após o último `statement-breakpoint` na migration gerada; backfills com IDs de registros de produção específicos **não devem ir para o arquivo de migration** (ficam no git history) — aplicar via Neon console separadamente
-- FK self-referente no Drizzle: importar `AnyPgColumn` de `drizzle-orm/pg-core` **sem** o modifier `type` (ESLint reporta false "unused" com `import { type AnyPgColumn }`) e usar função lazy: `settledByPaymentId: uuid('...').references((): AnyPgColumn => table.id, { onDelete: 'set null' })`
-- `inArray(col, ids)` no Drizzle gera SQL inválido (`IN ()`) se `ids` for array vazio — sempre guardar com `if (ids.length > 0)` antes de chamar `inArray`
-- `import { type X }` causa falso positivo "defined but never used" no ESLint (max-warnings 0) mesmo quando `X` é usada em anotação de tipo — importar sem o modifier `type`
-- Mutações que escrevem em múltiplas tabelas ou linhas relacionadas devem usar `db.transaction(async (tx) => { ... })` — substituir `db` por `tx` dentro do callback; garante rollback atômico se qualquer step falhar
-- Queries `findFirst` dentro de `db.transaction` retornam `null` silenciosamente — sempre verificar null e lançar erro explícito; nunca usar `?.` quando o dado é obrigatório para o passo seguinte (ex: person?.name produz string vazia e o insert prossegue corrompido)
-- Condições `OR … IS NULL` no Drizzle: usar `or(eq(col, val), isNull(col))` de `drizzle-orm` em vez de `sql` template literal — helpers tipados, sem risco de interpolação errada
-- Dialogs de mutação: fechar somente no caminho feliz (`try`), nunca no `catch` — `onOpenChange(false)` no catch faz o usuário perder contexto e ter que reabrir o dialog para tentar novamente
-- Em dialogs com estado acumulado (selectedIds, amounts), o botão "Cancelar" deve chamar `handleOpenChange(false)`, não `setOpen(false)` direto — `handleOpenChange` é responsável pelo cleanup de estado; chamar `setOpen` diretamente pula o reset
-- A tela de login renderiza `<LoginButton>` duas vezes (layout mobile + desktop); ao clicar via Playwright, usar `browser_evaluate` com filtro `offsetParent !== null` para acertar o visível
-- O botão `+` do bottom nav (`aria-label="Novo lançamento"`) trava com `browser_click`; usar `browser_evaluate` com `querySelector`+`click()` para abrir o drawer de registro
-- Segmented controls onde cada opção tem cor active diferente por tipo semântico (ex: negative/positive/accent): usar raw `<button>` em vez de `Chip`/`Segment` — os primitivos do DS não suportam active color variável por item
-- `Segment` com muitas tabs em mobile: envolver com `<div className="overflow-x-auto">`, passar `className="flex w-full min-w-max"` ao Segment e chamar `e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' })` no `onClick` de cada botão
-- Para testar a tela de login, faça logout via `GET /api/auth/signout` (cookies NextAuth são HttpOnly, não limpam via JS)
-- Playwright — múltiplos `button[aria-label="Ações"]` numa lista causam strict mode violation; usar `button[aria-label="Ações"] >> nth=0` ou `.nth(0)` para selecionar o kebab de uma linha específica
-- Playwright — `browser_evaluate` com `element.click()` **não** abre Radix dropdowns (Radix intercepta eventos sintéticos); usar `browser_click` com seletor específico
-- Playwright — múltiplos elementos com o mesmo texto visível em formulários (ex: "Registrar" aparece no dialog e nos botões do fundo): usar `button[type="submit"]` para atingir o botão de submit sem strict mode violation
-- `incomes` não tem `categoryId` — categorias são exclusivas de despesas (saída); não exibir `CategoryPicker` para outros tipos de transação
-- Radix `<Select>` não popula `FormData` — leia o valor via `onValueChange` + `useState`, nunca via `e.target` ou `FormData`
-- `RadixSelect.Item` não aceita `value=""` (runtime error) — usar string sentinel não-vazia (ex: `"month"`) para opção padrão/limpar e checar por ela no `onValueChange`
-- Padrão responsivo para dialogs de confirmação/entrada: `<Dialog>` em desktop (`lg+`) + `<Drawer>` em mobile — ver `DeleteButton` e `InvestmentEntryDialog` como referência; ao converter: remover `DialogTrigger` e usar botão standalone com `onClick={() => setOpen(true)}`; extrair JSX do formulário em `const form = (...)` compartilhado entre os dois branches
-- `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog`, `WithdrawalDialog` aceitam `open`/`onOpenChange` opcionais para controle externo — quando fornecidos, não renderizam o botão trigger; `WithdrawalDialog` aceita também `initialTypeId`, `initialAmount` e `initialDestination?: 'income' | 'reinvest'` para pré-preencher tipo, valor e destino
-- Subtítulo de linha de lista (categoria + conta): usar `flex min-w-0 items-center gap-1.5 overflow-hidden` na div e `truncate` no último span para evitar quebra em múltiplas linhas
-- Layout padrão de linha de lista: `icon/avatar | body (flex-1 min-w-0) | value (flex-shrink-0) | RowActions` — ações sempre na última coluna
-- `signOut({ callbackUrl: '/login' })` redireciona para `NEXTAUTH_URL + callbackUrl` — em dev com porta alternativa (ex: 3001), vai para a porta do `NEXTAUTH_URL` (3000); comportamento esperado
-- `@radix-ui/react-dropdown-menu` já está instalado (usado em `row-actions.tsx`); para dropdowns que abrem para cima, usar `side="top"` no `DropdownMenu.Content`
-- `CurrencyInput` e `NumericInput` submetem `''` no hidden input quando o valor é 0; para permitir 0 como entrada legítima, passar `preserveExplicitZero` ao componente — campos de orçamento e aportes que aceitam zero devem sempre incluir essa prop
-- `app/(app)/layout.tsx` aplica `px-4 py-6 lg:px-8 lg:py-7` + `pb-20 lg:pb-0` — páginas **não** devem adicionar wrapper próprio com padding; usar `PageLayout` diretamente
-- Header de página com botões de ação: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + div de ações, como primeiro filho de `<PageLayout>`
-- `RowActions` aceita `onEdit` e `onDelete` opcionais — quando omitidos, "Editar" e "Excluir" não aparecem no dropdown respectivamente; aceita também `triggerClassName` para sobrescrever o hover do botão kebab quando está sobre fundo colorido (ex: `hover:bg-warning-subtle` em linhas pendentes); aceita `additionalActions?: Array<{ label: string; icon?: LucideIcon; onClick: () => void; variant?: 'default' | 'destructive' }>` para ações extras renderizadas antes do separador de Editar/Excluir — o componente controla a renderização para manter coerência visual; quando o dialog de confirmação precisa de UI customizada (ex: toggle "excluir income vinculado"), usar `additionalActions` com `variant: 'destructive'` em vez de `onDelete` — o `onClick` abre o dialog externo e o `RowActions` não renderiza confirmação built-in
-- `RowActions` requer `group` na div da row pai — sem ele o botão kebab fica `opacity-0` no desktop e nunca aparece (`lg:group-hover:opacity-100` depende do ancestral com `group`)
-- Para abrir dialog via `RowActions`: adicionar `open`/`onOpenChange` ao dialog e controlar com `useState` no pai; server components com inline `'use server'` que precisam de state devem ser convertidos para `'use client'` (importar server actions de `lib/actions/` normalmente)
-- `drizzle-orm/neon-http` não suporta `db.transaction()` — trocar para `drizzle-orm/neon-serverless` com `Pool` de `@neondatabase/serverless` (já instalado); Node.js 18+ tem WebSocket nativo, sem precisar configurar `neonConfig`; verificar que nenhuma rota usa `export const runtime = 'edge'` antes de trocar
-- `nextjs-toploader` instalado no root layout (`app/layout.tsx`) para feedback imediato de navegação; links dentro de `Dialog`/`Drawer` de menu não são prefetchados pelo Next.js porque ficam fora do viewport — navegações via menu sempre buscam RSC fresh e mostram `loading.tsx` após o threshold do `startTransition`
-- `formatCurrencyShort(value)` em `lib/utils/currency.ts` — produz "R$ 42,9k" / "R$ 1,2M"; usar em footers de card, chips e projeções onde o valor completo (`formatCurrency`) não cabe
-- Comparações YTD no panorama: ao calcular percentuais de variação vs. ano anterior, filtrar `prevOverview` pelos meses ativos do ano atual — comparar Jan–Mai do ano atual com Jan–Mai do anterior, nunca com o ano inteiro anterior; usar `.slice(5)` para extrair só o `MM` antes de montar o Set: `new Set(active.map((m) => m.month.slice(5)))` e `prevOverview.filter((m) => activeMonthKeys.has(m.month.slice(5)))` — strings `"YYYY-MM"` de anos diferentes nunca casam num Set lookup cruzado (`"2025-01"` não bate com `"2024-01"`)
-- `getAnnualOverview` retorna todos os 12 meses inclusive futuros; parcelas criam `totalExpenses > 0` em meses ainda não ocorridos — ao derivar `activeMonths` (meses já ocorridos), usar comparação de data: `overview.filter((m) => m.month <= currentYearMonth())` — **nunca** usar `m.totalIncomes > 0` como filtro, pois quebra quando não há receitas no ano (cenário real: só parcelas); métricas de proporção (ex: `% da receita`) são imunes ao problema por serem razão entre somas
-- Panorama `page.tsx` tfoot deve usar `totalExpensesYTD` (meses `<= currentYearMonth()`) — não a soma de todos os 12 meses — para coincidir com o `balance` calculado em `AnnualSummaryCards`; despesas fixas existem em meses futuros e a divergência fica visível como dois valores de "Saldo" diferentes na mesma tela
-- Média mensal de investimentos no panorama: usar `monthsWithInvestment` (`overview.filter(m => m.totalInvested > 0).length`) como divisor — não `monthsElapsed`; meses sem aporte não devem deflacionar a média
-- Seletor de anos disponíveis no Drizzle: usar `sql<number>\`EXTRACT(YEAR FROM ${col})::int\`` com `selectDistinct` em cada tabela relevante, juntar os arrays, deduplicar com `new Set(...)` e ordenar — retornar `[currentYear()]` como fallback se não houver dados; ver `getAvailableYears` em `lib/queries/panorama.ts`
-- Cards de resumo do panorama anual devem cobrir o mesmo período — misturar all-time com período anual quebra a consistência de leitura (ex: 3 cards do ano + 1 card all-time confunde o usuário ao comparar valores)
-- Saldo do panorama (`balance` e `prevBalance` em `AnnualSummaryCards`): sempre subtrair investimentos — `income - expenses - invested`; omitir infla o saldo visível (usuário vê R$ 10k mas R$ 7k já foram para investimentos); `taxaPoupanca` deriva de `balance` e portanto representa caixa real após tudo, não "tudo que não foi gasto em despesas"
-- Tipo de retorno de query Drizzle sem export explícito: usar `export type X = Awaited<ReturnType<typeof fn>>[number]` logo após a função — evita redefinir interface no componente e mantém tipos sincronizados automaticamente quando a query muda de shape
-- ESLint `react-hooks/immutability` dispara para `let` reassignment dentro de callbacks (`.map()`, `.reduce()`, `.filter()`) com erro "Cannot reassign variable after render completes" — solução: usar `for` loop + `push` ou `reduce` sem mutação de variável externa ao callback; não confundir com `const` mutation (arrays/objects)
-- `isFaturaMode` e `isCycleView` são mutuamente exclusivos no dashboard: `isFaturaMode = !isCycleView && creditMode === 'fatura'` — quando o usuário navega pelo cycle view de uma conta (`?cycleAccount=`), o regime de fatura é desligado; não aplicar `faturaCtx` dentro do branch de `isCycleView`
-- Em fatura mode, `fixedForPendency` exclui gastos fixos vinculados a contas de crédito do count de pendências no dashboard — esses itens são gerenciados via `FaturaCard`, não marcados individualmente como pago; `unpaidFixedCount` e `pendingFixed` derivam de `fixedForPendency`, não de `data.fixedExpenses`
-- `getUserCreditMode(userId)` nunca retorna null — retorna `{ creditMode: 'accrual', faturaActiveFrom: null }` por default para usuários sem row em `userSettings`; não precisa de null check
-- Em Next.js 16, `params` e `searchParams` em pages são `Promise<>` e exigem `await`; em páginas dinâmicas que precisam de `auth()`, paralelizar com `const [session, { id }] = await Promise.all([auth(), params])` — os dois são independentes e podem ser resolvidos em paralelo
-- `@serwist/next` injeta webpack config no Next.js; como o v16 usa Turbopack por padrão no build, o `next build` aborta com "This build is using Turbopack, with a webpack config and no turbopack config" — solução: adicionar `turbopack: {}` vazio ao `next.config.mjs` para sinalizar coexistência intencional
-- `dateSchema` (`lib/validations/utils.ts`) valida formato via regex E executa `Date.parse(v + 'T12:00:00')`, mas `Date.parse` faz overflow silencioso em datas inválidas de calendário (ex: 29/02 em ano não-bissexto vira 01/03) em vez de retornar NaN — o schema aceita essas datas; apenas componentes impossíveis como mês 13 são rejeitados; não confiar no schema para validar precisão de calendário
-- `deleteWithdrawal` remove o income vinculado via `db.transaction` (se `destination === 'income'` **ou** `=== 'reinvest'` — ambos criam income); mas `deleteIncome` não tem conhecimento de `investmentWithdrawals` — deletar um income diretamente deixa o withdrawal com `incomeId = null` (via `ON DELETE SET NULL`) sem nenhuma guarda cruzada; nunca deletar incomes de resgate sem passar pelo `deleteWithdrawal`
-- Rolagem de investimento (resgate + reinvestimento): usar `destination = 'reinvest'` no resgate — cria income com `investmentReturnCapital = Math.min(resgate, totalCapital)` para separar capital de rendimento (o excedente acima do capital total é rendimento); no novo aporte, ativar `excludeFromCashFlow = true` ("já tinha o valor") para que o capital reciclado não entre em `totalInvested`; **não** usar `destination = 'transfer'` — esconde o rendimento junto com o capital; **não** usar `destination = 'income'` para rolagem — não seta `investmentReturnCapital` e infla `totalIncomes`
-- `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em **todos** os pontos de cálculo: `getAnnualOverview` (panorama), `getDashboardData` (summary card, ambos os paths normal e cycle), e `getMonthlyEvolution` (gráfico de 6 meses) — omitir qualquer um cria inconsistência visível entre panorama e dashboard
-- `investmentTypes.goalId` tem `ON DELETE SET NULL` — deletar um goal nulifica `goalId` no tipo de investimento mas não deleta o tipo; o tipo persiste desvinculado (comportamento intencional); não confundir com cascade
-- `goalContributions.goalId` tem `ON DELETE CASCADE` — deletar um goal apaga todas as contribuições vinculadas; contrasta com `investmentTypes.goalId` (mesmo pai, `SET NULL`): a mesma deleção de goal tem efeitos assimétricos dependendo da tabela filha
-- `transactions` tem check constraint `transactions_fatura_category_check`: `(fatura_account_id IS NULL AND category_id IS NOT NULL) OR (fatura_account_id IS NOT NULL AND category_id IS NULL)` — inserção de transação comum sem `categoryId` lança violação de constraint; em testes de integração, sempre passar `categoryId` via overrides ao usar `createTransaction` para transações não-fatura
-- `installmentGroups` FK `onDelete: 'set null'` é o contrato do banco (deletar o grupo direto deixa transações com `installmentGroupId = null`, campos de parcela intactos) — mas a semântica de produto é excluir a compra inteira; `deleteInstallmentGroup` envolve os dois `DELETE` em `db.transaction()`: transactions primeiro, depois o grupo; `installments-delete.test.ts` cobre o contrato do banco, `actions-transactions.test.ts` cobre a semântica da action
-- Testes de funções time-dependent (`currentYearMonth`, `currentReferenceMonth`, `pastNMonths`, `futureNMonths`, `daysAgo` etc.): chamar `vi.useFakeTimers()` + `vi.setSystemTime(new Date('YYYY-MM-DDT12:00:00'))` dentro de cada `it()` e restaurar com `afterEach(() => vi.useRealTimers())` no describe — usar `T12:00:00` é consistente com o padrão de `parseDate`; não colocar `vi.useFakeTimers()` em `beforeEach` de describe que mistura testes com e sem timer fake
-- Testar Zod cross-field `.refine()` com `path: ['field']`: checar `result.error.flatten().fieldErrors.field` para confirmar que o erro caiu no campo correto — não basta checar `success === false`; aplicável em `debtPaymentSchema`, `settleChargeSchema` e `creditModeSchema`
-- Campos de data opcionais em schemas Zod: `dateSchema.optional()` sozinho **não** aceita string vazia — `<input type="date">` envia `''` quando limpo, e a regex de `dateSchema` rejeita `''` antes de chegar no `.optional()`; usar `dateSchema.optional().or(z.literal(''))` para aceitar reset; na action, converter com `data.field || null` para persistir `null`
-- Filtro booleano via URL em SC page: extrair um `'use client'` chip/button com `useRouter`/`usePathname` para alternar `?param=1`; a SC page lê `searchParams: Promise<{ param?: string }>` e deriva o boolean; query de contagem fica **separada** da query principal (evitar poluir o shape de retorno — ex: `getArchivedCount` separado de `getInvestmentBalances`); seções derivadas do dado filtrado (`<Hero>`, gráficos, summaries) devem ser ocultadas com `!showFilter` para não exibir dados parciais enganosos
-- Chips de filtro de view toggle: a condição de visibilidade deve ser `count === 0 && !active`, nunca `count === 0` sozinho — quando o usuário está na view ativa (`active = true`) o chip precisa permanecer visível mesmo que a contagem caia a zero, para ele conseguir navegar de volta à listagem padrão
-- Dropdowns em Server Components não devem derivar da query já filtrada pela view ativa — usar query separada para garantir lista completa independente do search param de URL (ex: `getInvestmentTypes` separado de `getInvestmentBalances({ showArchived })` para popular `WithdrawalDialog`)
-- `investmentWithdrawals.amount` é o valor líquido (bruto − imposto); qualquer query que calcule saldo de investimento deve somar o valor bruto: `coalesce(sum(amount + coalesce(taxAmount, 0)), 0)` — usar só `sum(amount)` deixa o imposto contabilizado como saldo ainda no investimento
-- Em actions que precisam validar ownership E buscar dados adicionais da mesma entidade, encadear com `.then()` dentro do `Promise.all`: `assertOwnsPaymentAccount(userId, id).then(() => db.select({ closingDay: paymentAccounts.closingDay }).from(paymentAccounts).where(eq(paymentAccounts.id, id)).then(rows => rows[0]))` — mantém a paralelização sem query separada anterior ao `Promise.all`
-- Scripts em `scripts/` carregam env via `config({ path: '.env.local' })` de `dotenv` — `import 'dotenv/config'` carrega `.env` que não existe no projeto e faz o script correr sem `DATABASE_URL`
-- Testes de helpers que retornam `Date` via `startOfMonth`/`setDate` (date-fns): **não** usar `toEqual(parseDate('YYYY-MM-DD'))` — `parseDate` usa `T12:00:00` (noon) e `startOfMonth`/`setDate` usa meia-noite, causando falha de deep-equal por diferença de fuso; comparar com `format(result, 'yyyy-MM-dd')` string
-- `closingDay <= 1` nos helpers de parcela (`calcBaseReferenceMonth`, `calcInstallmentDate`) é normalizado internamente para null — cartão com `closingDay = 1` tem ciclo dia 1→último dia do mês, idêntico ao calendário; passar `closingDay = 1` sem a normalização deslocaria o `referenceMonth` para o mês seguinte em qualquer compra após o dia 1
-- Saldo de investimento calculado em JS com `Number(sum_decimal)` acumula erro de ponto flutuante — `10000 + 2311.88 - 12311.88` produz `~2.84e-14` em vez de `0`; comparações de saldo contra zero devem usar `Math.round(balance * 100)` (centavos) tanto na UI (`=== 0`) quanto na action (`> 0`)
-- `getPatrimonyTimeline` — o campo `aporte` representa **capital líquido alocado** (não aportes brutos): desconta o valor bruto de cada resgate (`amount + taxAmount`) tanto de `monthMap` quanto de `aporteMonthMap`; isso evita que reinvestimentos de tipos arquivados inflem a linha de aporte no gráfico (ex: resgatar R$12k e reinvestir R$10k não deve contabilizar R$22k de aportes); o gap entre `total` e `aporte` no gráfico sempre equivale ao rendimento real retido
-- Recharts `<Area>` + `<Line>` com o mesmo `dataKey` ambos aparecem no Tooltip — a `Area` é puramente decorativa (degradê sob a linha) e não deve ser exibida; solução: adicionar `name="__fill__"` na `<Area>` e retornar `['', '']` no `formatter` do `<Tooltip>` quando `name === '__fill__'`
-- `PatrimonyHero` exibe `totalYield` apenas de tipos **ativos** — yields de tipos arquivados foram realizados via resgate e saíram do sistema de investimentos; não é gap, é comportamento intencional: o hero representa rendimento ainda trabalhando dentro dos investimentos, não o histórico all-time
-- Semântica dos valores de `destination` em `investmentWithdrawals`: `'income'` = caixa/emergência (cria income sem `investmentReturnCapital`); `'reinvest'` = rolagem (cria income com `investmentReturnCapital = min(resgate, totalCapital)`); `'transfer'` = transferência entre tipos (não cria income); usar `'income'` para rolagem cria o income mas não marca o capital de retorno, inflando `totalIncomes` no dashboard e panorama
-- Neon não suporta `pg_cron` (serverless — sem background worker persistente); jobs agendados vão em `vercel.json` como `"crons": [{ "path": "/api/cron/...", "schedule": "0 6 1 * *" }]` + rota GET autenticada via `Authorization: Bearer ${CRON_SECRET}`; `CRON_SECRET` precisa estar no `.env.local` **e** no painel do Vercel em Environment Variables
-- Rotas de cron não usam `requireUserId()` nem são server actions — não há sessão; operam diretamente sobre `db` iterando `userSettings`; usar `Promise.allSettled` para processar múltiplos usuários com isolamento de falhas por usuário (uma falha não aborta os outros)
-- Feature **auto-rollover de gastos fixos**: `userSettings.autoRolloverFixedExpenses` (boolean, default `false`) habilita cópia automática via cron todo dia 1; toggle em `/configuracao-mes` via `AutoRolloverSwitch`; cron (`/api/cron/rollover-fixed-expenses`) pula usuários que já têm qualquer gasto fixo no mês atual — nunca sobrescreve; `copyFixedExpensesFromPrevMonth` em `lib/actions/transactions.ts` é a versão manual (DELETE + INSERT total) — semânticas distintas: manual substitui tudo, cron é conservador
+- Datas: `new Date(dateStr + 'T12:00:00')` evita UTC shift ao converter para `referenceMonth`
+- `dateSchema` faz overflow silencioso em datas inválidas (ex: 29/02 em não-bissexto) — não usar para validar precisão de calendário
+- `transactions` tem check constraint: `(faturaAccountId IS NULL AND categoryId IS NOT NULL) OR vice-versa` — sempre passar `categoryId` em transações comuns
+- `installmentGroups` FK é `set null`, mas semântica de produto é excluir tudo — `deleteInstallmentGroup` usa `db.transaction()`: transactions primeiro, depois o grupo
+- **Panorama — activeMonths**: `overview.filter(m => m.month <= currentYearMonth())` — nunca `m.totalIncomes > 0`; tfoot usa `totalExpensesYTD`; saldo: `income - expenses - invested`; média de investimentos usa `monthsWithInvestment` como divisor
+- Comparações YTD: filtrar `prevOverview` pelos meses ativos do ano atual (`.slice(5)` para extrair `MM` antes de montar o Set)
+- `ESLint react-hooks/immutability`: `let` reassignment em callbacks — usar `for` loop ou `reduce` sem mutação de variável externa
+- Next.js 16: `params`/`searchParams` são `Promise<>` — `await`; paralelizar com `auth()` via `Promise.all`
+- `@serwist/next`: adicionar `turbopack: {}` vazio ao `next.config.mjs` (Turbopack + webpack coexistência)
+- Hook `PostToolUse:Edit` bloqueia edits com imports não usados — usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças
 
-### UI
+**UI:**
+- `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
+- `app/(app)/layout.tsx` aplica padding global — páginas não adicionam wrapper próprio; usar `PageLayout` diretamente
+- Header de página com ações: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + ações
+- Dialogs de mutação: fechar só no `try`, nunca no `catch`; botão "Cancelar" chama `handleOpenChange(false)`, não `setOpen(false)` (handleOpenChange faz cleanup de estado)
+- Padrão responsivo: `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; ver `DeleteButton`/`InvestmentEntryDialog`
+- `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog`, `WithdrawalDialog` aceitam `open`/`onOpenChange` para controle externo
+- `CurrencyInput`/`NumericInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
+- Radix `<Select>`: não popula `FormData` — usar `onValueChange` + state; `value=""` dá runtime error — usar sentinel não-vazio
+- Filtro booleano via URL: chip/button `'use client'` com `useRouter`; chip de toggle permanece visível quando `active = true` mesmo com `count === 0`
+- `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
+- `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
 
-- Maré Design System em `components/ui/` — **não** é mais shadcn/ui genérico
-- Recharts para charts (`components/charts/`)
-- Custom React hooks em `hooks/`
-- `.ds/` — pasta local (não versionada) com arquivos de referência visuais usados ao criar novas telas
-- Tailwind CSS; tokens em `tailwind.config.ts` + CSS vars em `app/globals.css`
-- Responsive layout: sidebar em `lg`, bottom nav em mobile
+**Playwright MCP:**
+- `<LoginButton>` renderiza duas vezes (mobile + desktop) — filtrar com `offsetParent !== null` no `browser_evaluate`
+- Botão `+` do bottom nav trava com `browser_click` — usar `browser_evaluate` + `querySelector`+`click()`
+- `browser_evaluate` com `element.click()` não abre Radix dropdowns — usar `browser_click` com seletor específico
+- Múltiplos `button[aria-label="Ações"]` — usar `>> nth=0`; múltiplos elementos com mesmo texto — usar `button[type="submit"]`
+- `browser_take_screenshot` pode travar — `browser_close` + `browser_navigate` para resetar
+- Logout para testar tela de login: `GET /api/auth/signout` (cookies são HttpOnly)
 
-### Design System — Regras obrigatórias
+### UI / Design System
 
-**Antes de qualquer implementação de componente, leia estas regras.**
+Componentes em `components/ui/` — DS Maré (não shadcn genérico). Recharts em `components/charts/`. Tokens em `tailwind.config.ts` + `app/globals.css`. Responsive: sidebar em `lg`, bottom nav em mobile.
 
-#### 1. Um componente por arquivo
-
-Cada primitivo vai no seu próprio arquivo. Nunca juntar dois componentes independentes no mesmo arquivo.
-
-- `badge.tsx` → só Badge
-- `chip.tsx` → só Chip
-- `input.tsx` → só Input
-- `textarea.tsx` → só Textarea
-
-#### 2. Componentes compostos usam os primitivos do DS
-
-Componentes avançados que combinam primitivos **devem importar e usar os componentes do DS**, não duplicar HTML/classes.
-
-- `field.tsx` usa `<Label>` — não `<label>` HTML direto
-- `currency-input.tsx` compartilha `inputBase`/`inputErrorCls` de `input.tsx` — não duplica strings
-- `delete-button.tsx` usa `<Button>` — não `<button>` HTML direto
-
-#### 3. Apenas tokens nomeados — zero valores arbitrários
-
-Proibido usar valores entre colchetes (`[...]`) para tokens que já existem no sistema.
-
-**Tipografia** — usar apenas tokens do `tailwind.config.ts`:
-`text-hero` (40px) `text-display` `text-h1` `text-h2` `text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
-
-**Espaçamento** — grid de 4px do Tailwind: `p-1` (4px) `p-2` (8px) `p-3` (12px) etc.
-Sub-grid de 2px permitido para elementos compactos: `p-0.5` (2px) `p-1.5` (6px) `p-2.5` (10px)
-
-**Cores** — tokens semânticos do DS:
-`bg-bg-base` `bg-bg-surface` `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` `text-text-inverse` / `accent` `accent-hover` `accent-subtle` `accent-text` / `positive` `negative` `warning` / `border` `border-strong`
-
-**Sombras** — `shadow-sm` `shadow-md` `shadow-lg` (mapeados para CSS vars)
-
-**Bordas** — `border` (1px) ou `border-2` (2px). Não usar `border-[1.5px]`.
-
-**Focus ring** — `focus:shadow-[0_0_0_3px_var(--ring-accent)]` ou `focus:shadow-[0_0_0_3px_var(--ring-negative)]` (CSS vars definidas em globals.css)
-
-**Transições** — `duration-fast` (120ms) ou `duration-base` (200ms)
-
-**Border radius** — `rounded-sm` (6px) `rounded-md` (10px) `rounded-lg` (16px) `rounded-xl` (20px) `rounded-full`
-
-**Alturas de controles interativos** — `h-7` (28px) `h-8` (32px) `h-9` (36px) `h-11` (44px) `h-12` (48px) `h-14` (56px)
-
-Se um valor não existir como token, **parar e discutir** antes de usar `[valor-arbitrário]`.
-
-`style={{}}` com gradientes `oklch(...)` complexos é aceitável em painéis de brand/decorativos quando não existe token equivalente — não é violação da Regra 3.
-
-#### 4. Componentes de formulário — padrão obrigatório
-
-- Sempre usar `<Field label="...">` em vez de `<div> + <Label>` manual
-- `<Field>` já inclui label, hint e error — não recriar essa estrutura
-- Nunca usar `<label>` HTML direto em componentes de formulário
-
-#### 5. Shared UI components — inventário atual
-
-@.claude/ds-components.md
-
-**Ao adicionar um componente a `components/ui/`, atualize `.claude/ds-components.md`** — não edite o inventário aqui.
-
-Re-exports são proibidos: se um componente precisa ser compartilhado, mova para `components/ui/` e atualize todos os imports.
-
-- Formulários complexos: extrair sub-componentes de apresentação em `components/forms/<form>/` com `types.ts` para tipos compartilhados; consumidores importam os tipos direto de `types.ts`, não re-exportar pelo componente principal
-- `Section` (DS) aceita `action?: ReactNode` — passar `<Badge variant="..." size="sm">` ou span de texto para contagens/totais; nunca criar `Section` local com prop `count`; blocos com `rounded-lg border bg-bg-surface shadow-sm` próprio são cards, não seções — manter como `<section>` HTML
-
-<!-- rtk-instructions v2 -->
-# RTK (Rust Token Killer) - Token-Optimized Commands
-
-## Golden Rule
-
-**Always prefix commands with `rtk`**. If RTK has a dedicated filter, it uses it. If not, it passes through unchanged. This means RTK is always safe to use.
-
-**Important**: Even in command chains with `&&`, use `rtk`:
-```bash
-# ❌ Wrong
-git add . && git commit -m "msg" && git push
-
-# ✅ Correct
-rtk git add . && rtk git commit -m "msg" && rtk git push
-```
-
-## RTK Commands by Workflow
-
-### Build & Compile (80-90% savings)
-```bash
-rtk cargo build         # Cargo build output
-rtk cargo check         # Cargo check output
-rtk cargo clippy        # Clippy warnings grouped by file (80%)
-rtk tsc                 # TypeScript errors grouped by file/code (83%)
-rtk lint                # ESLint/Biome violations grouped (84%)
-rtk prettier --check    # Files needing format only (70%)
-rtk next build          # Next.js build with route metrics (87%)
-```
-
-### Test (60-99% savings)
-```bash
-rtk cargo test          # Cargo test failures only (90%)
-rtk go test             # Go test failures only (90%)
-rtk jest                # Jest failures only (99.5%)
-rtk vitest              # Vitest failures only (99.5%)
-rtk playwright test     # Playwright failures only (94%)
-rtk pytest              # Python test failures only (90%)
-rtk rake test           # Ruby test failures only (90%)
-rtk rspec               # RSpec test failures only (60%)
-rtk test <cmd>          # Generic test wrapper - failures only
-```
-
-### Git (59-80% savings)
-```bash
-rtk git status          # Compact status
-rtk git log             # Compact log (works with all git flags)
-rtk git diff            # Compact diff (80%)
-rtk git show            # Compact show (80%)
-rtk git add             # Ultra-compact confirmations (59%)
-rtk git commit          # Ultra-compact confirmations (59%)
-rtk git push            # Ultra-compact confirmations
-rtk git pull            # Ultra-compact confirmations
-rtk git branch          # Compact branch list
-rtk git fetch           # Compact fetch
-rtk git stash           # Compact stash
-rtk git worktree        # Compact worktree
-```
-
-Note: Git passthrough works for ALL subcommands, even those not explicitly listed.
-
-### GitHub (26-87% savings)
-```bash
-rtk gh pr view <num>    # Compact PR view (87%)
-rtk gh pr checks        # Compact PR checks (79%)
-rtk gh run list         # Compact workflow runs (82%)
-rtk gh issue list       # Compact issue list (80%)
-rtk gh api              # Compact API responses (26%)
-```
-
-### JavaScript/TypeScript Tooling (70-90% savings)
-```bash
-rtk pnpm list           # Compact dependency tree (70%)
-rtk pnpm outdated       # Compact outdated packages (80%)
-rtk pnpm install        # Compact install output (90%)
-rtk npm run <script>    # Compact npm script output
-rtk npx <cmd>           # Compact npx command output
-rtk prisma              # Prisma without ASCII art (88%)
-```
-
-### Files & Search (60-75% savings)
-```bash
-rtk ls <path>           # Tree format, compact (65%)
-rtk read <file>         # Code reading with filtering (60%)
-rtk grep <pattern>      # Search grouped by file (75%). Format flags (-c, -l, -L, -o, -Z) run raw.
-rtk find <pattern>      # Find grouped by directory (70%)
-```
-
-### Analysis & Debug (70-90% savings)
-```bash
-rtk err <cmd>           # Filter errors only from any command
-rtk log <file>          # Deduplicated logs with counts
-rtk json <file>         # JSON structure without values
-rtk deps                # Dependency overview
-rtk env                 # Environment variables compact
-rtk summary <cmd>       # Smart summary of command output
-rtk diff                # Ultra-compact diffs
-```
-
-### Infrastructure (85% savings)
-```bash
-rtk docker ps           # Compact container list
-rtk docker images       # Compact image list
-rtk docker logs <c>     # Deduplicated logs
-rtk kubectl get         # Compact resource list
-rtk kubectl logs        # Deduplicated pod logs
-```
-
-### Network (65-70% savings)
-```bash
-rtk curl <url>          # Compact HTTP responses (70%)
-rtk wget <url>          # Compact download output (65%)
-```
-
-### Meta Commands
-```bash
-rtk gain                # View token savings statistics
-rtk gain --history      # View command history with savings
-rtk discover            # Analyze Claude Code sessions for missed RTK usage
-rtk proxy <cmd>         # Run command without filtering (for debugging)
-rtk init                # Add RTK instructions to CLAUDE.md
-rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
-```
-
-## Token Savings Overview
-
-| Category | Commands | Typical Savings |
-|----------|----------|-----------------|
-| Tests | vitest, playwright, cargo test | 90-99% |
-| Build | next, tsc, lint, prettier | 70-87% |
-| Git | status, log, diff, add, commit | 59-80% |
-| GitHub | gh pr, gh run, gh issue | 26-87% |
-| Package Managers | pnpm, npm, npx | 70-90% |
-| Files | ls, read, grep, find | 60-75% |
-| Infrastructure | docker, kubectl | 85% |
-| Network | curl, wget | 65-70% |
-
-Overall average: **60-90% token reduction** on common development operations.
-<!-- /rtk-instructions -->
+Regras, tokens e inventário completo: **@.claude/ds-components.md**
