@@ -19,21 +19,18 @@ Nenhuma ocorrência pendente.
 | `lib/actions/investments.ts` — `createWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — income + withdrawal num único bloco atômico. |
 | `lib/actions/investments.ts` — `updateWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — update do withdrawal + update do income vinculado num único bloco atômico. |
 | `lib/actions/investments.ts` — `deleteWithdrawal` | Consolidação de transações | Migrado para `db.transaction()` — delete do withdrawal + delete do income vinculado num único bloco atômico. |
+| `lib/actions/transactions.ts` — `copyFixedExpensesFromPrevMonth` | Consolidação de transações | Migrado para `db.transaction()` — DELETE + INSERT atômicos; falha no insert não deixa o mês sem gastos fixos. |
+| `lib/actions/transactions.ts` — `updateInstallmentGroup` | Consolidação de transações | Migrado para `db.transaction()` — UPDATE do grupo + fetch + UPDATE das parcelas filhas num único bloco atômico. |
+| `lib/actions/debtors.ts` — `deleteDebtEntry` (charge/adjustment) | Consolidação de transações | Migrado para `db.transaction()` — DELETE do income vinculado + DELETE do entry num único bloco atômico. |
 
 ## Por que não resolvemos agora
 
-O risco de falha parcial num insert simples contra Neon serverless é baixo na prática.
-Introduzir `db.transaction()` em apenas um lugar criaria inconsistência de estilo com
-o restante do código. A decisão foi manter o padrão existente e resolver numa iniciativa
-única que cubra todos os casos.
+N/A — todas as ocorrências identificadas foram resolvidas.
 
 ## Critério para revisitar
 
-- Quando houver um terceiro caso ou quando um incidente real de inconsistência for
-  reportado.
-- Implementação: `db.transaction(async (tx) => { ... })` — Drizzle suporta transações
-  com Neon via o driver `neon-http`. Todos os inserts da action devem usar `tx` em vez
-  de `db` dentro do callback.
+Qualquer nova action que escreva em duas ou mais tabelas em sequência deve usar
+`db.transaction()` desde o início.
 
 ## Exemplo de correção
 

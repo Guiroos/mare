@@ -359,15 +359,17 @@ export async function deleteDebtEntry(data: DeleteDebtEntryInput) {
         .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
     })
   } else {
-    if (data.alsoDeleteIncome && entry.incomeId) {
-      await db
-        .delete(incomes)
-        .where(and(eq(incomes.id, entry.incomeId), eq(incomes.userId, userId)))
-    }
+    await db.transaction(async (tx) => {
+      if (data.alsoDeleteIncome && entry.incomeId) {
+        await tx
+          .delete(incomes)
+          .where(and(eq(incomes.id, entry.incomeId), eq(incomes.userId, userId)))
+      }
 
-    await db
-      .delete(debtorEntries)
-      .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+      await tx
+        .delete(debtorEntries)
+        .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+    })
   }
 
   revalidatePath('/devedores')

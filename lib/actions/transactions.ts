@@ -199,22 +199,26 @@ export async function copyFixedExpensesFromPrevMonth(
 
   if (prevExpenses.length === 0) return { copied: 0 }
 
-  await db
-    .delete(fixedExpenses)
-    .where(and(eq(fixedExpenses.userId, userId), eq(fixedExpenses.referenceMonth, referenceMonth)))
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(fixedExpenses)
+      .where(
+        and(eq(fixedExpenses.userId, userId), eq(fixedExpenses.referenceMonth, referenceMonth))
+      )
 
-  await db.insert(fixedExpenses).values(
-    prevExpenses.map((e) => ({
-      userId,
-      name: e.name,
-      amount: e.amount,
-      dueDay: e.dueDay,
-      categoryId: e.categoryId,
-      accountId: e.accountId,
-      referenceMonth,
-      paid: false,
-    }))
-  )
+    await tx.insert(fixedExpenses).values(
+      prevExpenses.map((e) => ({
+        userId,
+        name: e.name,
+        amount: e.amount,
+        dueDay: e.dueDay,
+        categoryId: e.categoryId,
+        accountId: e.accountId,
+        referenceMonth,
+        paid: false,
+      }))
+    )
+  })
 
   revalidatePath('/configuracao-mes')
   revalidatePath('/dashboard')
@@ -396,43 +400,45 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   }
   if (data.newTotalAmount) groupUpdate.totalAmount = data.newTotalAmount
 
-  await db
-    .update(installmentGroups)
-    .set(groupUpdate)
-    .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
+  await db.transaction(async (tx) => {
+    await tx
+      .update(installmentGroups)
+      .set(groupUpdate)
+      .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId)))
 
-  const childTransactions = await db
-    .select({ id: transactions.id, installmentNumber: transactions.installmentNumber })
-    .from(transactions)
-    .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)))
-    .orderBy(asc(transactions.installmentNumber))
+    const childTransactions = await tx
+      .select({ id: transactions.id, installmentNumber: transactions.installmentNumber })
+      .from(transactions)
+      .where(and(eq(transactions.installmentGroupId, data.id), eq(transactions.userId, userId)))
+      .orderBy(asc(transactions.installmentNumber))
 
-  // Recalculate amounts for all installments, last one absorbs rounding
-  const amountUpdates: Record<string, string> = {}
-  if (data.newTotalAmount) {
-    const totalCents = Math.round(parseFloat(data.newTotalAmount) * 100)
-    const n = childTransactions.length
-    const baseCents = Math.floor(totalCents / n)
-    const remainderCents = totalCents - baseCents * n
-    childTransactions.forEach((t, i) => {
-      const cents = baseCents + (i === n - 1 ? remainderCents : 0)
-      amountUpdates[t.id] = (cents / 100).toFixed(2)
-    })
-  }
+    // Recalculate amounts for all installments, last one absorbs rounding
+    const amountUpdates: Record<string, string> = {}
+    if (data.newTotalAmount) {
+      const totalCents = Math.round(parseFloat(data.newTotalAmount) * 100)
+      const n = childTransactions.length
+      const baseCents = Math.floor(totalCents / n)
+      const remainderCents = totalCents - baseCents * n
+      childTransactions.forEach((t, i) => {
+        const cents = baseCents + (i === n - 1 ? remainderCents : 0)
+        amountUpdates[t.id] = (cents / 100).toFixed(2)
+      })
+    }
 
-  await Promise.all(
-    childTransactions.map((t) =>
-      db
-        .update(transactions)
-        .set({
-          name: `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
-          categoryId: data.categoryId,
-          accountId: data.accountId,
-          ...(amountUpdates[t.id] ? { amount: amountUpdates[t.id] } : {}),
-        })
-        .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
+    await Promise.all(
+      childTransactions.map((t) =>
+        tx
+          .update(transactions)
+          .set({
+            name: `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
+            categoryId: data.categoryId,
+            accountId: data.accountId,
+            ...(amountUpdates[t.id] ? { amount: amountUpdates[t.id] } : {}),
+          })
+          .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
+      )
     )
-  )
+  })
 
   revalidatePath('/dashboard')
   revalidatePath('/parcelas')
