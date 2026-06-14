@@ -74,7 +74,7 @@ Radix UI + primitivos.
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
 | `summary-card.tsx`   | `SummaryCard`                   | Props: `variant` (`balance`/`positive`/`negative`) `label` `amount` `footer` `icon` |
 | `balance-card.tsx`   | `BalanceCard`                   | Props: `label` `amount` `income` `expense` — card de destaque com fundo accent   |
-| `empty-state.tsx`    | `EmptyState`                    | Props: `icon` `title` `description` `action` `boxed`                             |
+| `empty-state.tsx`    | `EmptyState`                    | Props: `icon` `title` `description` `action` `boxed`; `action?: ReactNode` — sempre passar `<Button>` diretamente (nunca objeto `{ label, onClick }`) |
 | `section.tsx`        | `Section`                       | Props: `title` `action` — wrapper de seção com heading padronizado               |
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
 | `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página                                    |

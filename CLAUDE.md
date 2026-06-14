@@ -103,6 +103,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `@serwist/next`: adicionar `turbopack: {}` vazio ao `next.config.mjs` (Turbopack + webpack coexistência)
 - Hook `PostToolUse:Edit` bloqueia edits com imports não usados — usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças
 - Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
+- `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
