@@ -102,6 +102,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Next.js 16: `params`/`searchParams` são `Promise<>` — `await`; paralelizar com `auth()` via `Promise.all`
 - `@serwist/next`: adicionar `turbopack: {}` vazio ao `next.config.mjs` (Turbopack + webpack coexistência)
 - Hook `PostToolUse:Edit` bloqueia edits com imports não usados — usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças
+- Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
