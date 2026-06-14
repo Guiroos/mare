@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and, sum, asc, gte, count, sql } from 'drizzle-orm'
 import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
+import { toAmount } from '@/lib/utils/currency'
 
 export async function getInvestmentTypes(userId: string) {
   return db.query.investmentTypes.findMany({
@@ -147,7 +148,7 @@ export async function getInvestmentWithdrawals(userId: string) {
     id: r.id,
     investmentTypeId: r.investmentTypeId,
     typeName: r.investmentType.name,
-    amount: Number(r.amount),
+    amount: toAmount(r.amount),
     taxAmount: r.taxAmount !== null ? Number(r.taxAmount) : null,
     date: r.date,
     destination: r.destination,
@@ -169,14 +170,14 @@ export function buildPatrimonyTimeline(
     const month = inv.referenceMonth.slice(0, 7)
     monthMap.set(
       month,
-      (monthMap.get(month) ?? 0) + Number(inv.amount ?? 0) + Number(inv.yieldAmount ?? 0)
+      (monthMap.get(month) ?? 0) + toAmount(inv.amount) + toAmount(inv.yieldAmount)
     )
-    aporteMonthMap.set(month, (aporteMonthMap.get(month) ?? 0) + Number(inv.amount ?? 0))
+    aporteMonthMap.set(month, (aporteMonthMap.get(month) ?? 0) + toAmount(inv.amount))
   }
 
   for (const wd of allWithdrawals) {
     const month = wd.date.slice(0, 7)
-    const gross = Number(wd.amount) + Number(wd.taxAmount ?? 0)
+    const gross = toAmount(wd.amount) + toAmount(wd.taxAmount)
     monthMap.set(month, (monthMap.get(month) ?? 0) - gross)
     aporteMonthMap.set(month, (aporteMonthMap.get(month) ?? 0) - gross)
   }

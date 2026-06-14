@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/schema'
 import { eq, and, sum, gte, lte, inArray, sql, ne, lt, or } from 'drizzle-orm'
 import { currentYear } from '@/lib/utils/date'
+import { toAmount } from '@/lib/utils/currency'
 import { FaturaContext } from '@/lib/queries/fatura'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -254,7 +255,7 @@ export async function getAnnualExpensesByGroup(
       groupName: groupInfo.groupName,
       total: 0,
     }
-    existing.total += Number(t.amount)
+    existing.total += toAmount(t.amount)
     groupMap.set(groupInfo.groupId, existing)
   }
 

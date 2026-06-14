@@ -5,6 +5,7 @@ import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
 import { eq, and, sum, sql } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
+import { toAmount } from '@/lib/utils/currency'
 import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
@@ -86,9 +87,9 @@ export async function archiveInvestmentType(id: string) {
   ])
 
   const currentBalance =
-    Number(amountResult[0]?.totalAmount ?? 0) +
-    Number(amountResult[0]?.totalYield ?? 0) -
-    Number(withdrawalResult[0]?.totalWithdrawn ?? 0)
+    toAmount(amountResult[0]?.totalAmount) +
+    toAmount(amountResult[0]?.totalYield) -
+    toAmount(withdrawalResult[0]?.totalWithdrawn)
 
   if (Math.round(currentBalance * 100) > 0) {
     throw new Error('Não é possível arquivar tipo com saldo.')
@@ -188,7 +189,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
       .where(
         and(eq(investments.userId, userId), eq(investments.investmentTypeId, data.investmentTypeId))
       )
-    investmentReturnCapital = String(Math.min(Number(data.amount), Number(capitalRow?.total ?? 0)))
+    investmentReturnCapital = String(Math.min(Number(data.amount), toAmount(capitalRow?.total)))
   }
 
   await db.transaction(async (tx) => {
@@ -270,9 +271,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
               eq(investments.investmentTypeId, data.investmentTypeId)
             )
           )
-        const newReturnCapital = String(
-          Math.min(Number(data.amount), Number(capitalRow?.total ?? 0))
-        )
+        const newReturnCapital = String(Math.min(Number(data.amount), toAmount(capitalRow?.total)))
         await tx
           .update(incomes)
           .set({

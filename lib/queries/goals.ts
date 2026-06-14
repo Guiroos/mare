@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { goals, investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and, sum, asc, inArray } from 'drizzle-orm'
 import { addMonths, format } from 'date-fns'
+import { toAmount } from '@/lib/utils/currency'
 
 export type GoalWithProgress = {
   id: string
@@ -91,7 +92,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
   }
 
   return allGoals.map((goal) => {
-    const targetAmount = Number(goal.targetAmount)
+    const targetAmount = toAmount(goal.targetAmount)
     let currentBalance = 0
     let recentMonthlyAmounts: number[] = []
 
@@ -99,15 +100,15 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
       const s = sumsMap.get(goal.investmentTypeId)
       const w = withdrawalsMap.get(goal.investmentTypeId)
       const last3 = recentByType.get(goal.investmentTypeId) ?? []
-      const totalAmount = Number(s?.totalAmount ?? 0)
-      const totalYield = Number(s?.totalYield ?? 0)
-      const totalWithdrawn = Number(w?.totalWithdrawn ?? 0)
+      const totalAmount = toAmount(s?.totalAmount)
+      const totalYield = toAmount(s?.totalYield)
+      const totalWithdrawn = toAmount(w?.totalWithdrawn)
       currentBalance = totalAmount + totalYield - totalWithdrawn
-      recentMonthlyAmounts = last3.map((i) => Number(i.amount ?? 0) + Number(i.yieldAmount ?? 0))
+      recentMonthlyAmounts = last3.map((i) => toAmount(i.amount) + toAmount(i.yieldAmount))
     } else {
       // contributions are already fetched — compute in JS, no extra queries
-      currentBalance = goal.contributions.reduce((sum, c) => sum + Number(c.amount), 0)
-      recentMonthlyAmounts = goal.contributions.slice(0, 3).map((c) => Number(c.amount))
+      currentBalance = goal.contributions.reduce((sum, c) => sum + toAmount(c.amount), 0)
+      recentMonthlyAmounts = goal.contributions.slice(0, 3).map((c) => toAmount(c.amount))
     }
 
     const progress = targetAmount > 0 ? Math.min(100, (currentBalance / targetAmount) * 100) : 0
@@ -135,7 +136,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
       projectedCompletionYearMonth,
       contributions: goal.contributions.map((c) => ({
         id: c.id,
-        amount: Number(c.amount),
+        amount: toAmount(c.amount),
         referenceMonth: c.referenceMonth,
         source: c.source,
       })),

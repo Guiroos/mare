@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { transactions, installmentGroups } from '@/lib/db/schema'
 import { eq, and, isNotNull } from 'drizzle-orm'
 import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
+import { toAmount } from '@/lib/utils/currency'
 
 // ─── Parcelas ativas (ainda com saldo futuro) ─────────────────────────────────
 
@@ -19,7 +20,7 @@ export async function getActiveInstallmentGroups(userId: string) {
 
   return groups
     .map((group) => {
-      const totalAmount = Number(group.totalAmount)
+      const totalAmount = toAmount(group.totalAmount)
       const totalInstallments = group.totalInstallments
       const installmentAmount = totalAmount / totalInstallments
 
@@ -81,7 +82,7 @@ export async function getInstallmentTimeline(userId: string) {
     const list = monthMap.get(month) ?? []
     list.push({
       name: t.installmentGroup?.name ?? t.name,
-      amount: Number(t.amount),
+      amount: toAmount(t.amount),
     })
     monthMap.set(month, list)
   }
