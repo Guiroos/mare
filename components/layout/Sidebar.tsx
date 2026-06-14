@@ -22,6 +22,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -79,6 +80,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
   const pathname = usePathname()
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // If pathname already matches pendingHref, navigation settled — ignore pending
   const isActive = (href: string) => {
@@ -206,6 +208,16 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
                 <MessageSquare className="h-4 w-4 shrink-0" />
                 Enviar feedback
               </DropdownMenu.Item>
+              <DropdownMenu.Item
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setSettingsOpen(true)
+                }}
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                Configurações
+              </DropdownMenu.Item>
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
               <DropdownMenu.Item
                 className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
@@ -220,6 +232,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
       </div>
 
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </aside>
   )
 }
