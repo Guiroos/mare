@@ -174,23 +174,25 @@ export async function copyBudgetOverridesFromPrevMonth(
 
   if (prevOverrides.length === 0) return { copied: 0 }
 
-  await db
-    .delete(monthlyBudgetOverrides)
-    .where(
-      and(
-        eq(monthlyBudgetOverrides.userId, userId),
-        eq(monthlyBudgetOverrides.referenceMonth, referenceMonth)
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(monthlyBudgetOverrides)
+      .where(
+        and(
+          eq(monthlyBudgetOverrides.userId, userId),
+          eq(monthlyBudgetOverrides.referenceMonth, referenceMonth)
+        )
       )
-    )
 
-  await db.insert(monthlyBudgetOverrides).values(
-    prevOverrides.map((o) => ({
-      userId,
-      categoryId: o.categoryId,
-      referenceMonth,
-      amount: o.amount,
-    }))
-  )
+    await tx.insert(monthlyBudgetOverrides).values(
+      prevOverrides.map((o) => ({
+        userId,
+        categoryId: o.categoryId,
+        referenceMonth,
+        amount: o.amount,
+      }))
+    )
+  })
 
   revalidatePath('/configuracao-mes')
   revalidatePath('/dashboard')
