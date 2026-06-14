@@ -69,7 +69,7 @@ describe('resetAccount', () => {
       amount: '500.00',
       referenceMonth: '2025-01-01',
     })
-    await createGoalContribution(db, userId, goal.id, { investmentTypeId: investType.id })
+    await createGoalContribution(db, userId, goal.id)
 
     const person = await createPerson(db, userId)
     await createCharge(db, userId, person.id)
