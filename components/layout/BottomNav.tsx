@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
+import { SettingsDialog } from '@/components/settings/SettingsDialog'
 
 const primaryNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -88,6 +89,7 @@ export function BottomNav() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const { open } = useRegistrationDialog()
 
@@ -211,6 +213,17 @@ export function BottomNav() {
           </Button>
           <Button
             variant="ghost"
+            onClick={() => {
+              setMenuOpen(false)
+              setSettingsOpen(true)
+            }}
+            className="w-full justify-start gap-3 border border-border"
+          >
+            <Settings className="h-4 w-4 shrink-0" />
+            Configurações
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => signOut({ callbackUrl: '/login' })}
             className="w-full justify-start gap-3 border border-border"
           >
@@ -221,6 +234,7 @@ export function BottomNav() {
       </Dialog>
 
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </>
   )
 }
