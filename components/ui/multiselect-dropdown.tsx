@@ -3,6 +3,8 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 
 export type MultiselectOption = {
   value: string
@@ -27,7 +29,6 @@ export function MultiselectDropdown({ label, options, selected, onChange, classN
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
   }
 
-  // Group options by optional group label
   const groups: { group: string | null; items: MultiselectOption[] }[] = []
   for (const opt of options) {
     const key = opt.group ?? null
@@ -39,23 +40,25 @@ export function MultiselectDropdown({ label, options, selected, onChange, classN
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           className={cn(
-            'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption transition-colors duration-fast',
+            'rounded-full border hover:bg-transparent',
             isPartial
-              ? 'border-accent text-accent-text'
-              : 'border-border text-text-secondary hover:border-border-strong',
+              ? 'border-accent text-accent-text hover:border-accent hover:text-accent-text'
+              : 'border-border text-text-secondary hover:border-border-strong hover:text-text-secondary',
             className
           )}
         >
           {label}
           {isPartial && (
-            <span className="rounded-full bg-accent px-1.5 text-label font-bold text-white">
+            <span className="rounded-full bg-accent px-1.5 text-label font-bold tabular-nums text-text-inverse">
               {activeCount}
             </span>
           )}
           <ChevronDown className="h-3 w-3 text-text-tertiary" />
-        </button>
+        </Button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
@@ -68,47 +71,47 @@ export function MultiselectDropdown({ label, options, selected, onChange, classN
             <div key={group ?? '__root'}>
               {gi > 0 && <DropdownMenu.Separator className="my-1 h-px bg-border" />}
               {group && (
-                <DropdownMenu.Label className="px-2 py-1 text-label uppercase text-text-tertiary">
+                <DropdownMenu.Label className="px-2 py-1 text-label text-text-tertiary">
                   {group}
                 </DropdownMenu.Label>
               )}
-              {items.map((opt) => (
-                <DropdownMenu.CheckboxItem
-                  key={opt.value}
-                  checked={selected.includes(opt.value)}
-                  onCheckedChange={() => toggle(opt.value)}
-                  className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <DropdownMenu.ItemIndicator>
-                    <span className="block h-3.5 w-3.5 rounded-sm border border-accent bg-accent" />
-                  </DropdownMenu.ItemIndicator>
-                  <span
-                    className={cn(
-                      'flex h-3.5 w-3.5 items-center justify-center rounded-sm border',
-                      selected.includes(opt.value) ? 'hidden' : 'border-border'
-                    )}
-                  />
-                  {opt.label}
-                </DropdownMenu.CheckboxItem>
-              ))}
+              {items.map((opt) => {
+                const checked = selected.includes(opt.value)
+                return (
+                  <DropdownMenu.Item key={opt.value} asChild onSelect={(e) => e.preventDefault()}>
+                    <Label className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-text-primary outline-none transition duration-fast hover:bg-bg-subtle">
+                      <input
+                        type="checkbox"
+                        className="accent-accent"
+                        checked={checked}
+                        onChange={() => toggle(opt.value)}
+                      />
+                      {opt.label}
+                    </Label>
+                  </DropdownMenu.Item>
+                )
+              })}
             </div>
           ))}
 
           <DropdownMenu.Separator className="my-1 h-px bg-border" />
           <div className="flex justify-between px-2 py-1">
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => onChange([])}
-              className="text-caption text-text-tertiary hover:text-text-secondary"
+              className="text-text-tertiary hover:bg-transparent hover:text-text-secondary"
             >
               Limpar
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={() => onChange(allValues)}
-              className="text-caption text-accent-text hover:opacity-80"
+              className="text-accent-text hover:bg-transparent hover:opacity-80"
             >
               Todos
-            </button>
+            </Button>
           </div>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
