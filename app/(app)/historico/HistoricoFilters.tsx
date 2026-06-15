@@ -1,9 +1,12 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useCallback, useState, useTransition } from 'react'
+import { useCallback, useRef, useState, useTransition } from 'react'
+import { X } from 'lucide-react'
 import { MultiselectDropdown } from '@/components/ui/multiselect-dropdown'
 import { Input } from '@/components/ui/input'
+import { Field } from '@/components/ui/field'
+import { Button } from '@/components/ui/button'
 import { buildHistoricoUrl, ALL_TIPOS } from '@/lib/utils/historico-params'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
 import { cn } from '@/lib/utils/cn'
@@ -30,6 +33,7 @@ export function HistoricoFilters({ params, categoryOptions, accountOptions }: Pr
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [localQ, setLocalQ] = useState(params.q)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
 
   const navigate = useCallback(
     (next: Partial<HistoricoParams>) => {
@@ -45,42 +49,41 @@ export function HistoricoFilters({ params, categoryOptions, accountOptions }: Pr
     params.contas.length > 0 ||
     params.q !== ''
 
-  let searchTimeout: ReturnType<typeof setTimeout>
   const handleSearchChange = (value: string) => {
     setLocalQ(value)
-    clearTimeout(searchTimeout)
-    searchTimeout = setTimeout(() => navigate({ q: value }), 400)
+    clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => navigate({ q: value }), 400)
   }
 
   return (
-    <div className={cn('space-y-2', isPending && 'opacity-60 transition-opacity')}>
+    <div className={cn('space-y-2', isPending && 'opacity-60 transition duration-fast')}>
       {/* Linha 1: datas + busca */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-bg-input px-3 py-2">
-          <span className="text-caption text-text-tertiary">De</span>
-          <input
+      <div className="flex flex-wrap items-end gap-2">
+        <Field label="De">
+          <Input
             type="date"
             value={params.de}
             onChange={(e) => navigate({ de: e.target.value })}
-            className="bg-transparent text-small text-text-primary outline-none"
+            className="w-auto"
           />
-        </div>
-        <span className="text-text-tertiary">→</span>
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-bg-input px-3 py-2">
-          <span className="text-caption text-text-tertiary">Até</span>
-          <input
+        </Field>
+        <span className="mb-3 text-text-tertiary">→</span>
+        <Field label="Até">
+          <Input
             type="date"
             value={params.ate}
             onChange={(e) => navigate({ ate: e.target.value })}
-            className="bg-transparent text-small text-text-primary outline-none"
+            className="w-auto"
           />
-        </div>
-        <Input
-          placeholder="Buscar por descrição..."
-          value={localQ}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="min-w-40 flex-1"
-        />
+        </Field>
+        <Field label="Busca" className="flex-1">
+          <Input
+            placeholder="Buscar por descrição..."
+            value={localQ}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="min-w-40"
+          />
+        </Field>
       </div>
 
       {/* Linha 2: filtros de tipo, categoria, conta */}
@@ -108,7 +111,9 @@ export function HistoricoFilters({ params, categoryOptions, accountOptions }: Pr
           />
         )}
         {hasActiveFilters && (
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             onClick={() =>
               navigate({
                 tipos: [...ALL_TIPOS],
@@ -117,10 +122,11 @@ export function HistoricoFilters({ params, categoryOptions, accountOptions }: Pr
                 q: '',
               })
             }
-            className="ml-auto text-caption text-negative hover:opacity-80"
+            className="ml-auto gap-1 text-negative hover:bg-transparent hover:opacity-80"
           >
-            ✕ Limpar filtros
-          </button>
+            <X className="h-3 w-3" />
+            Limpar filtros
+          </Button>
         )}
       </div>
     </div>
