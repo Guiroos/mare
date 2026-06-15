@@ -91,6 +91,7 @@ export async function createTransaction(data: CreateTransactionInput) {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
@@ -126,6 +127,7 @@ export async function createFixedExpense(data: CreateFixedExpenseInput) {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export type UpdateFixedExpenseInput = {
@@ -158,6 +160,7 @@ export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
     .where(and(eq(fixedExpenses.id, data.id), eq(fixedExpenses.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export async function toggleFixedExpensePaid(id: string, paid: boolean) {
@@ -169,6 +172,7 @@ export async function toggleFixedExpensePaid(id: string, paid: boolean) {
     .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   revalidatePath('/configuracao-mes')
 }
 
@@ -180,6 +184,7 @@ export async function deleteFixedExpense(id: string) {
     .where(and(eq(fixedExpenses.id, id), eq(fixedExpenses.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export async function copyFixedExpensesFromPrevMonth(
@@ -222,6 +227,7 @@ export async function copyFixedExpensesFromPrevMonth(
 
   revalidatePath('/configuracao-mes')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   return { copied: prevExpenses.length }
 }
 
@@ -328,6 +334,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
@@ -364,6 +371,7 @@ export async function updateTransaction(data: UpdateTransactionInput) {
     .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 // ─── Edição de compra parcelada ───────────────────────────────────────────────
@@ -441,6 +449,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   revalidatePath('/parcelas')
 }
 
@@ -476,6 +485,7 @@ export async function deleteInstallmentGroup(id: string) {
 
   revalidatePath('/parcelas')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   revalidatePath('/devedores')
 }
 
@@ -492,5 +502,6 @@ export async function deleteTransaction(id: string) {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
   revalidatePath('/devedores')
 }

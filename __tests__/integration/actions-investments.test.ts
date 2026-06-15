@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { revalidatePath } from 'next/cache'
 import { eq, and } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
@@ -191,6 +192,7 @@ describe('createWithdrawal', () => {
     const type = await createInvestmentType(db, userId, { name: 'CDB Banco Inter' })
 
     const { createWithdrawal } = await import('@/lib/actions/investments')
+    vi.mocked(revalidatePath).mockClear()
     await createWithdrawal({
       investmentTypeId: type.id,
       investmentTypeName: 'CDB Banco Inter',
@@ -204,6 +206,7 @@ describe('createWithdrawal', () => {
     })
 
     expect(income?.source).toBe('Resgate investimento CDB Banco Inter')
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
   it('destination=transfer não cria income', async () => {

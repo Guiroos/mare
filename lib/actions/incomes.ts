@@ -25,6 +25,7 @@ export async function createIncome(data: CreateIncomeInput) {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export type UpdateIncomeInput = {
@@ -43,6 +44,7 @@ export async function updateIncome(data: UpdateIncomeInput) {
     .where(and(eq(incomes.id, data.id), eq(incomes.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export async function deleteIncome(id: string) {
@@ -51,4 +53,5 @@ export async function deleteIncome(id: string) {
   await db.delete(incomes).where(and(eq(incomes.id, id), eq(incomes.userId, userId)))
 
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }

@@ -1,4 +1,5 @@
 import { vi, describe, it, expect, beforeAll } from 'vitest'
+import { revalidatePath } from 'next/cache'
 import { eq } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
@@ -58,6 +59,7 @@ describe('createInstallmentPurchase', () => {
   it('cria o grupo e N transações com nomes, valores e referenceMonth corretos', async () => {
     const { createInstallmentPurchase } = await import('@/lib/actions/transactions')
 
+    vi.mocked(revalidatePath).mockClear()
     await createInstallmentPurchase({
       name: 'Notebook',
       totalAmount: '3000.00',
@@ -106,6 +108,8 @@ describe('createInstallmentPurchase', () => {
     expect(txs.every((t) => t.userId === userId)).toBe(true)
     expect(txs.every((t) => t.categoryId === categoryId)).toBe(true)
     expect(txs.every((t) => t.accountId === accountId)).toBe(true)
+
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
   it('rejeita quando categoria não pertence ao usuário', async () => {
@@ -297,6 +301,7 @@ describe('deleteInstallmentGroup', () => {
     })
     expect(txsBefore).toHaveLength(4)
 
+    vi.mocked(revalidatePath).mockClear()
     await deleteInstallmentGroup(group!.id)
 
     // Grupo não existe mais
@@ -310,6 +315,8 @@ describe('deleteInstallmentGroup', () => {
       where: eq(schema.transactions.installmentGroupId, group!.id),
     })
     expect(remainingTxs).toHaveLength(0)
+
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
   it('não afeta transações de outros grupos do mesmo usuário', async () => {
@@ -358,6 +365,7 @@ describe('createTransaction com splits', () => {
     const person2 = await createPerson(db, userId, 'Segunda Pessoa Split')
     const { createTransaction } = await import('@/lib/actions/transactions')
 
+    vi.mocked(revalidatePath).mockClear()
     await createTransaction({
       name: 'Presente da mãe',
       amount: '300.00',
@@ -391,6 +399,8 @@ describe('createTransaction com splits', () => {
     expect(charges[0].entryDate).toBe('2025-06-10')
     expect(charges[0].referenceMonth).toBe('2025-06-01')
     expect(charges[1].personId).toBe(person2.id)
+
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
   it('não cria cobranças quando splits é omitido', async () => {

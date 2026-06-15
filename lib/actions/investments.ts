@@ -152,6 +152,7 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export async function deleteInvestment(id: string) {
@@ -159,6 +160,7 @@ export async function deleteInvestment(id: string) {
   await db.delete(investments).where(and(eq(investments.id, id), eq(investments.userId, userId)))
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 // ─── Resgates ─────────────────────────────────────────────────────────────────
@@ -221,6 +223,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export type UpdateWithdrawalInput = {
@@ -295,6 +298,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
 
 export async function deleteWithdrawal(id: string) {
@@ -321,4 +325,5 @@ export async function deleteWithdrawal(id: string) {
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
+  revalidatePath('/panorama')
 }
