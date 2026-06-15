@@ -17,6 +17,7 @@ import {
   CreditCard,
   ShieldCheck,
   HandCoins,
+  History,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
@@ -26,6 +27,7 @@ import { SettingsDialog } from '@/components/settings/SettingsDialog'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/historico', label: 'Histórico', icon: History },
   { href: '/registro', label: 'Lançamento', icon: ReceiptText },
   { href: '/parcelas', label: 'Parcelas Futuras', icon: CalendarDays },
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },

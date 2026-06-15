@@ -16,6 +16,7 @@ import {
   MessageSquare,
   CreditCard,
   HandCoins,
+  History,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -33,6 +34,7 @@ const primaryNav = [
 ] as const
 
 const menuItems = [
+  { href: '/historico', label: 'Histórico', icon: History },
   { href: '/metas', label: 'Metas', icon: Target },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
   { href: '/devedores', label: 'Devedores', icon: HandCoins },
