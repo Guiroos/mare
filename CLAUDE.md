@@ -76,6 +76,8 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
 - `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)
 - `createDebtPayment` com `createIncome: true` cria income — ao deletar, passar `alsoDeleteIncome: true`
+- `pixKey` em `userSettings.pixKey`; `getUserPixKey(userId)` / `updatePixKey(pixKey | null)` (upsert por userId); exibido via `PixKeyCard` em `/devedores`
+- `getOpenChargesForPeople(userId, personIds)` — variante batch de `getOpenChargesForPerson`; retorna `Record<string, OpenChargeForLinking[]>`; usar em list pages para evitar N queries por pessoa
 
 **Investimentos:**
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
