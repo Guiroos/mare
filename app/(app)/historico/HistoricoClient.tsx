@@ -97,7 +97,7 @@ function FeedRow({ item }: { item: HistoricoFeedItem }) {
   const debit = isDebit(item.kind)
 
   return (
-    <div className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-bg-subtle">
+    <div className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors duration-fast last:border-0 hover:bg-bg-subtle">
       <div
         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-bg-subtle text-small font-semibold text-text-secondary"
         style={
