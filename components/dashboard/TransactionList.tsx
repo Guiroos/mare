@@ -2,8 +2,9 @@
 
 import { Fragment, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import Link from 'next/link'
 import { formatCurrency, toAmount } from '@/lib/utils/currency'
-import { parseDate, daysAgo, formatDisplayDate } from '@/lib/utils/date'
+import { parseDate, daysAgo, formatDisplayDate, currentYearMonth } from '@/lib/utils/date'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { deleteTransaction } from '@/lib/actions/transactions'
@@ -13,6 +14,9 @@ import { Chip } from '@/components/ui/chip'
 import { Badge, BadgeVariant } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
 import { RowActions } from '@/components/ui/row-actions'
+import { Input } from '@/components/ui/input'
+import { MultiselectDropdown } from '@/components/ui/multiselect-dropdown'
+import { buildHistoricoUrl } from '@/lib/utils/historico-params'
 
 const INITIAL_LIMIT = 5
 
@@ -168,8 +172,12 @@ function TransactionRow({
         </div>
       </div>
 
+      <span className="flex-shrink-0 rounded-sm bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
+        {t.installmentGroup !== null ? 'Parcelada' : 'Avulsa'}
+      </span>
+
       <div className="flex-shrink-0">
-        <span className="text-body font-semibold tabular-nums text-negative-text">
+        <span className="text-body font-semibold tabular-nums text-negative">
           − {formatCurrency(Number(t.amount))}
         </span>
       </div>
@@ -294,7 +302,7 @@ function AccountGroupedView({
                   {breakdownParts.join(' · ')}
                 </span>
               </div>
-              <span className="shrink-0 text-body font-semibold tabular-nums text-negative-text">
+              <span className="shrink-0 text-body font-semibold tabular-nums text-negative">
                 − {formatCurrency(g.total)}
               </span>
             </AccordionHeader>
@@ -341,7 +349,7 @@ function TypeGroupedView({
                   {count} {count === 1 ? 'transação' : 'transações'}
                 </span>
               </div>
-              <span className="shrink-0 text-body font-semibold tabular-nums text-negative-text">
+              <span className="shrink-0 text-body font-semibold tabular-nums text-negative">
                 − {formatCurrency(total)}
               </span>
             </AccordionHeader>
@@ -362,13 +370,23 @@ function TypeGroupedView({
 export function TransactionList({
   transactions,
   creditAccountIds: creditAccountIdsProp,
+  accountOptions = [],
+  yearMonth,
 }: {
   transactions: Transaction[]
   creditAccountIds?: string[]
+  accountOptions?: { value: string; label: string }[]
+  yearMonth?: string
 }) {
   const [groupBy, setGroupBy] = useState<GroupBy>('date')
   const [showAll, setShowAll] = useState(false)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [search, setSearch] = useState('')
+  const [selectedContas, setSelectedContas] = useState<string[]>([])
+  const [selectedSubtipos, setSelectedSubtipos] = useState<('avulsa' | 'parcelada')[]>([
+    'avulsa',
+    'parcelada',
+  ])
 
   const creditAccountIds = new Set(creditAccountIdsProp ?? [])
 
@@ -386,13 +404,74 @@ export function TransactionList({
       return next
     })
 
+  const filtered = transactions.filter((t) => {
+    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false
+    if (selectedContas.length > 0 && t.accountId && !selectedContas.includes(t.accountId))
+      return false
+    const subtype = t.installmentGroup !== null ? 'parcelada' : 'avulsa'
+    if (!selectedSubtipos.includes(subtype)) return false
+    return true
+  })
+
+  const ym = yearMonth ?? currentYearMonth()
+  const historicoUrl = buildHistoricoUrl({
+    de: `${ym}-01`,
+    ate: `${ym}-31`,
+    tipos: ['saida_avulsa', 'saida_parcelada'],
+    categorias: [],
+    contas: [],
+    q: '',
+    cursor: null,
+  })
+
   if (transactions.length === 0) {
     return <EmptyState title="Nenhuma transação registrada neste mês." />
   }
 
   return (
     <TxList>
-      <div className="flex gap-2 border-b border-border px-4 py-3">
+      {/* Header com link para histórico */}
+      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <span className="text-body font-semibold text-text-primary">Transações</span>
+        <Link href={historicoUrl} className="text-caption text-accent-text hover:opacity-80">
+          Ver histórico →
+        </Link>
+      </div>
+
+      {/* Linha 1: busca + conta */}
+      <div className="flex gap-2 border-b border-border px-4 py-2">
+        <Input
+          placeholder="Buscar..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-8 flex-1 text-small"
+        />
+        {accountOptions.length > 0 && (
+          <MultiselectDropdown
+            label="Conta"
+            options={accountOptions}
+            selected={selectedContas}
+            onChange={(v) => setSelectedContas(v)}
+          />
+        )}
+      </div>
+
+      {/* Linha 2: subtipo + agrupamento */}
+      <div className="flex gap-2 border-b border-border px-4 py-2">
+        {(['avulsa', 'parcelada'] as const).map((sub) => (
+          <Chip
+            key={sub}
+            active={selectedSubtipos.includes(sub)}
+            onClick={() =>
+              setSelectedSubtipos((prev) =>
+                prev.includes(sub) ? prev.filter((s) => s !== sub) : [...prev, sub]
+              )
+            }
+          >
+            {sub === 'avulsa' ? 'Avulsas' : 'Parceladas'}
+          </Chip>
+        ))}
+        <div className="mx-1 w-px self-stretch bg-border" />
         {(['date', 'account', 'type'] as const).map((mode) => (
           <Chip key={mode} active={groupBy === mode} onClick={() => handleGroupBy(mode)}>
             {CHIP_LABELS[mode]}
@@ -400,29 +479,37 @@ export function TransactionList({
         ))}
       </div>
 
-      {groupBy === 'date' && (
-        <DateGroupedView
-          transactions={transactions}
-          showAll={showAll}
-          onShowAll={() => setShowAll(true)}
-          creditAccountIds={creditAccountIds}
-        />
-      )}
-      {groupBy === 'account' && (
-        <AccountGroupedView
-          transactions={transactions}
-          expanded={expanded}
-          onToggle={toggleExpanded}
-          creditAccountIds={creditAccountIds}
-        />
-      )}
-      {groupBy === 'type' && (
-        <TypeGroupedView
-          transactions={transactions}
-          expanded={expanded}
-          onToggle={toggleExpanded}
-          creditAccountIds={creditAccountIds}
-        />
+      {filtered.length === 0 ? (
+        <div className="px-4 py-8 text-center text-small text-text-tertiary">
+          Nenhuma transação corresponde aos filtros.
+        </div>
+      ) : (
+        <>
+          {groupBy === 'date' && (
+            <DateGroupedView
+              transactions={filtered}
+              showAll={showAll}
+              onShowAll={() => setShowAll(true)}
+              creditAccountIds={creditAccountIds}
+            />
+          )}
+          {groupBy === 'account' && (
+            <AccountGroupedView
+              transactions={filtered}
+              expanded={expanded}
+              onToggle={toggleExpanded}
+              creditAccountIds={creditAccountIds}
+            />
+          )}
+          {groupBy === 'type' && (
+            <TypeGroupedView
+              transactions={filtered}
+              expanded={expanded}
+              onToggle={toggleExpanded}
+              creditAccountIds={creditAccountIds}
+            />
+          )}
+        </>
       )}
     </TxList>
   )

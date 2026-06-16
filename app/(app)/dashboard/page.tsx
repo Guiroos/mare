@@ -86,6 +86,14 @@ export default async function DashboardPage({
   const isPastMonth =
     displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
 
+  const accountOptions = [
+    ...new Map(
+      data.transactions
+        .filter((t) => t.account)
+        .map((t) => [t.accountId, { value: t.accountId!, label: t.account!.name }])
+    ).values(),
+  ]
+
   const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
   const fixedForPendency =
     faturaCtx && creditIdSet.size > 0
@@ -183,6 +191,8 @@ export default async function DashboardPage({
         <TransactionList
           transactions={data.transactions}
           creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+          accountOptions={accountOptions}
+          yearMonth={month}
         />
       </Section>
 
