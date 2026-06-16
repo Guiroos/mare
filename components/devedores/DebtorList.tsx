@@ -3,24 +3,28 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Eye, MessageCircle, Users } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
-import { PersonWithBalance } from '@/lib/queries/debtors'
+import { PersonWithBalance, OpenChargeForLinking } from '@/lib/queries/debtors'
 import { deletePersonIfEmpty } from '@/lib/actions/debtors'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Badge } from '@/components/ui/badge'
 import { RowActions } from '@/components/ui/row-actions'
 import { PersonDialog } from '@/components/devedores/PersonDialog'
-import { Eye, Users } from 'lucide-react'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils/cn'
+import { CobrancaDialog } from '@/components/devedores/CobrancaDialog'
 
 type Props = {
   people: PersonWithBalance[]
+  openChargesByPerson: Record<string, OpenChargeForLinking[]>
+  pixKey: string | null
 }
 
-export function DebtorList({ people }: Props) {
+export function DebtorList({ people, openChargesByPerson, pixKey }: Props) {
   const [editTarget, setEditTarget] = useState<PersonWithBalance | null>(null)
+  const [cobrancaTarget, setCobrancaTarget] = useState<PersonWithBalance | null>(null)
   const router = useRouter()
 
   if (people.length === 0) {
@@ -92,6 +96,11 @@ export function DebtorList({ people }: Props) {
               onDelete={person.balance === 0 ? () => handleDelete(person) : undefined}
               additionalActions={[
                 {
+                  label: 'Cobrar via WhatsApp',
+                  icon: MessageCircle,
+                  onClick: () => setCobrancaTarget(person),
+                },
+                {
                   label: 'Visualizar',
                   icon: Eye,
                   onClick: () => router.push(`/devedores/${person.id}`),
@@ -110,6 +119,23 @@ export function DebtorList({ people }: Props) {
           open
           onOpenChange={(v) => {
             if (!v) setEditTarget(null)
+          }}
+        />
+      )}
+
+      {cobrancaTarget && (
+        <CobrancaDialog
+          person={cobrancaTarget}
+          openCharges={openChargesByPerson[cobrancaTarget.id] ?? []}
+          pixKey={pixKey}
+          open
+          onOpenChange={(v) => {
+            if (!v) setCobrancaTarget(null)
+          }}
+          onEditPhone={() => {
+            const target = cobrancaTarget
+            setCobrancaTarget(null)
+            setEditTarget(target)
           }}
         />
       )}
