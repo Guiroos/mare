@@ -53,3 +53,6 @@ next-env.d.ts
 .playwright-mcp/
 .playwright-screenshots/
 *.png
+
+# brainstorm mockups
+.superpowers/

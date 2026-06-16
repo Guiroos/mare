@@ -105,6 +105,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 - Panorama e dashboard compartilham as mesmas fontes: `getAnnualOverview` soma `transactions` **e** `fixedExpenses` para despesas mensais — toda action com `revalidatePath('/dashboard')` por dado financeiro (incomes, transactions, fixedExpenses, investments, withdrawals) deve também chamar `revalidatePath('/panorama')`; exceção: budget overrides em `categories.ts` (panorama exibe amounts, não orçamentos)
+- Feed cross-table por data: `fixedExpenses` não têm coluna `date` — buscar por `inArray(referenceMonth, referenceMonthsInRange(de, ate))` e JS-filtrar o date computado (`referenceMonth + dueDay - 1`) para excluir itens cujo `dueDay` os coloca fora do range exato
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
@@ -116,6 +117,8 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `CurrencyInput`/`NumericInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
 - Radix `<Select>`: não popula `FormData` — usar `onValueChange` + state; `value=""` dá runtime error — usar sentinel não-vazio
 - Filtro booleano via URL: chip/button `'use client'` com `useRouter`; chip de toggle permanece visível quando `active = true` mesmo com `count === 0`
+- Client Component com paginação acumulada (load-more) em página com server nav: passar `key={filterCombo}` concatenando todos os filtros — força React a desmontar/remontar e resetar `useState` de items/cursor quando filtros mudam; sem isso, `initialItems` do server são ignorados e a lista acumulada permanece
+- Input de busca que dispara `router.push`: usar `localQ` state para responsividade imediata + `useRef<ReturnType<typeof setTimeout>>` + `clearTimeout` + delay 400ms antes de chamar `navigate({ q: value })` — evita roundtrips excessivos ao servidor
 - `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
 - `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
 
