@@ -9,3 +9,11 @@ export async function getUserAutoRollover(userId: string): Promise<boolean> {
   })
   return row?.autoRolloverFixedExpenses ?? false
 }
+
+export async function getUserPixKey(userId: string): Promise<string | null> {
+  const row = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, userId),
+    columns: { pixKey: true },
+  })
+  return row?.pixKey ?? null
+}
