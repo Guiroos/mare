@@ -33,7 +33,7 @@ export function HistoricoFilters({ params, categoryOptions, accountOptions }: Pr
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [localQ, setLocalQ] = useState(params.q)
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const navigate = useCallback(
     (next: Partial<HistoricoParams>) => {
