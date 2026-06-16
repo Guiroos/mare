@@ -99,6 +99,13 @@
       "when": 1781226502072,
       "tag": "0013_lovely_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1781648997410,
+      "tag": "0014_exotic_zodiak",
+      "breakpoints": true
     }
   ]
 }
