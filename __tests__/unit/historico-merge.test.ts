@@ -1,6 +1,10 @@
 // __tests__/unit/historico-merge.test.ts
 import { describe, it, expect } from 'vitest'
-import { mergeAndSortFeedItems } from '@/lib/queries/historico'
+import {
+  mergeAndSortFeedItems,
+  fixedExpenseDate,
+  referenceMonthsInRange,
+} from '@/lib/queries/historico'
 import type { HistoricoFeedItem } from '@/lib/queries/historico'
 
 function makeItem(overrides: Partial<HistoricoFeedItem>): HistoricoFeedItem {
@@ -53,5 +57,53 @@ describe('mergeAndSortFeedItems', () => {
 
   it('retorna array vazio para inputs vazios', () => {
     expect(mergeAndSortFeedItems([[], [], []])).toEqual([])
+  })
+})
+
+describe('fixedExpenseDate', () => {
+  it('dueDay=1 retorna o próprio referenceMonth', () => {
+    expect(fixedExpenseDate('2025-06-01', 1)).toBe('2025-06-01')
+  })
+
+  it('dueDay=15 retorna o dia 15 do mês', () => {
+    expect(fixedExpenseDate('2025-06-01', 15)).toBe('2025-06-15')
+  })
+
+  it('dueDay=31 em mês com 31 dias retorna o último dia', () => {
+    expect(fixedExpenseDate('2025-01-01', 31)).toBe('2025-01-31')
+  })
+
+  it('dueDay=31 em fevereiro transborda para março (caso capturado pelo filtro JS)', () => {
+    expect(fixedExpenseDate('2025-02-01', 31)).toBe('2025-03-03')
+  })
+
+  it('dueDay=28 em fevereiro retorna 28/fev', () => {
+    expect(fixedExpenseDate('2025-02-01', 28)).toBe('2025-02-28')
+  })
+})
+
+describe('referenceMonthsInRange', () => {
+  it('mesmo mês retorna um único elemento', () => {
+    expect(referenceMonthsInRange('2025-06-10', '2025-06-20')).toEqual(['2025-06-01'])
+  })
+
+  it('dois meses consecutivos', () => {
+    expect(referenceMonthsInRange('2025-05-15', '2025-06-10')).toEqual(['2025-05-01', '2025-06-01'])
+  })
+
+  it('três meses', () => {
+    expect(referenceMonthsInRange('2025-05-01', '2025-07-31')).toEqual([
+      '2025-05-01',
+      '2025-06-01',
+      '2025-07-01',
+    ])
+  })
+
+  it('virada de ano', () => {
+    expect(referenceMonthsInRange('2024-12-15', '2025-01-10')).toEqual(['2024-12-01', '2025-01-01'])
+  })
+
+  it('de e ate no mesmo dia retorna um mês', () => {
+    expect(referenceMonthsInRange('2025-03-15', '2025-03-15')).toEqual(['2025-03-01'])
   })
 })

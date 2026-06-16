@@ -79,4 +79,17 @@ describe('buildHistoricoUrl', () => {
     })
     expect(url).not.toContain('tipos=')
   })
+
+  it('inclui cursor quando presente', () => {
+    const url = buildHistoricoUrl({
+      de: '2025-01-15',
+      ate: '2025-06-14',
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: '2025-03-10_uuid-abc',
+    })
+    expect(url).toContain('cursor=2025-03-10_uuid-abc')
+  })
 })

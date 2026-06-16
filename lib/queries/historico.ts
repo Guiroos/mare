@@ -39,14 +39,14 @@ export function mergeAndSortFeedItems(arrays: HistoricoFeedItem[][]): HistoricoF
 }
 
 // Computa a data de exibição de um gasto fixo: referenceMonth + (dueDay - 1) dias
-function fixedExpenseDate(referenceMonth: string, dueDay: number): string {
+export function fixedExpenseDate(referenceMonth: string, dueDay: number): string {
   const base = new Date(referenceMonth + 'T12:00:00')
   base.setDate(base.getDate() + dueDay - 1)
   return base.toISOString().slice(0, 10)
 }
 
 // Months whose window overlaps the de..ate range (YYYY-MM-01 format)
-function referenceMonthsInRange(de: string, ate: string): string[] {
+export function referenceMonthsInRange(de: string, ate: string): string[] {
   const result: string[] = []
   const start = new Date(de.slice(0, 7) + '-01T12:00:00')
   const end = new Date(ate.slice(0, 7) + '-01T12:00:00')
