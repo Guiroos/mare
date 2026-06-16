@@ -48,6 +48,7 @@ export default async function HistoricoPage({
         accountOptions={accountOptions}
       />
       <HistoricoClient
+        key={`${params.de}_${params.ate}_${params.tipos.join(',')}_${params.categorias.join(',')}_${params.contas.join(',')}_${params.q}`}
         initialItems={feedResult.items}
         initialHasMore={feedResult.hasMore}
         initialNextCursor={feedResult.nextCursor}

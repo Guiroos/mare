@@ -248,13 +248,17 @@ export async function getHistoricoFeed(
   const fxItemsFiltered = fxItems.filter((f) => f.date >= de && f.date <= ate)
 
   // Merge and sort
-  const sorted = mergeAndSortFeedItems([
+  const merged = mergeAndSortFeedItems([
     txItems,
     fxItemsFiltered,
     incomeItems,
     investItems,
     withdrawItems,
   ])
+
+  // Apply q filter to investment/withdrawal items not filtered at DB level
+  const qLower = q ? q.toLowerCase() : null
+  const sorted = qLower ? merged.filter((item) => item.name.toLowerCase().includes(qLower)) : merged
 
   // Cursor-based pagination
   let startIdx = 0
