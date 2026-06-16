@@ -351,3 +351,41 @@ export async function getOpenChargesForPerson(
     entryDate: r.entryDate,
   }))
 }
+
+export async function getOpenChargesForPeople(
+  userId: string,
+  personIds: string[]
+): Promise<Record<string, OpenChargeForLinking[]>> {
+  if (personIds.length === 0) return {}
+
+  const rows = await db
+    .select({
+      id: debtorEntries.id,
+      personId: debtorEntries.personId,
+      description: debtorEntries.description,
+      amount: debtorEntries.amount,
+      entryDate: debtorEntries.entryDate,
+    })
+    .from(debtorEntries)
+    .where(
+      and(
+        eq(debtorEntries.userId, userId),
+        inArray(debtorEntries.personId, personIds),
+        eq(debtorEntries.type, 'charge'),
+        or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+      )
+    )
+    .orderBy(asc(debtorEntries.entryDate))
+
+  const result: Record<string, OpenChargeForLinking[]> = {}
+  for (const row of rows) {
+    if (!result[row.personId]) result[row.personId] = []
+    result[row.personId].push({
+      id: row.id,
+      description: row.description,
+      amount: toAmount(row.amount),
+      entryDate: row.entryDate,
+    })
+  }
+  return result
+}
