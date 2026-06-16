@@ -154,11 +154,7 @@ function FeedRow({ item }: { item: HistoricoFeedItem }) {
       <span
         className={cn(
           'flex-shrink-0 text-body font-semibold tabular-nums',
-          debit
-            ? 'text-negative-text'
-            : item.kind === 'entrada'
-              ? 'text-positive-text'
-              : 'text-accent-text'
+          debit ? 'text-negative' : item.kind === 'entrada' ? 'text-positive' : 'text-accent'
         )}
       >
         {debit ? '−' : '+'} {formatCurrency(toAmount(item.amount))}
