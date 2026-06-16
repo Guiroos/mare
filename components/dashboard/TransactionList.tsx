@@ -5,7 +5,7 @@ import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, toAmount } from '@/lib/utils/currency'
 import { parseDate, daysAgo, formatDisplayDate, currentYearMonth } from '@/lib/utils/date'
-import { format } from 'date-fns'
+import { format, getDaysInMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { deleteTransaction } from '@/lib/actions/transactions'
 import { TransactionEditButton } from './TransactionEditDialog'
@@ -414,9 +414,10 @@ export function TransactionList({
   })
 
   const ym = yearMonth ?? currentYearMonth()
+  const lastDay = getDaysInMonth(new Date(`${ym}-01T12:00:00`))
   const historicoUrl = buildHistoricoUrl({
     de: `${ym}-01`,
-    ate: `${ym}-31`,
+    ate: `${ym}-${String(lastDay).padStart(2, '0')}`,
     tipos: ['saida_avulsa', 'saida_parcelada'],
     categorias: [],
     contas: [],
