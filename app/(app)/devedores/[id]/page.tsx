@@ -5,25 +5,28 @@ import {
   getTransactionsForDebtLink,
   getOpenChargesForPerson,
 } from '@/lib/queries/debtors'
+import { getUserPixKey } from '@/lib/queries/settings'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 import { Section } from '@/components/ui/section'
-import { PersonDialog } from '@/components/devedores/PersonDialog'
 import { DebtChargeDialog } from '@/components/devedores/DebtChargeDialog'
 import { DebtPaymentDialog } from '@/components/devedores/DebtPaymentDialog'
 import { DebtEntryList } from '@/components/devedores/DebtEntryList'
 import { DebtorDetailSummary } from '@/components/devedores/DebtorDetailSummary'
 import { DebtBalanceEvolutionChart } from '@/components/devedores/DebtBalanceEvolutionChart'
+import { DevedorDetailActions } from '@/components/devedores/DevedorDetailActions'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function DevedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [session, { id }] = await Promise.all([auth(), params])
   if (!session) redirect('/login')
-  const [data, txForLink, openCharges] = await Promise.all([
+
+  const [data, txForLink, openCharges, pixKey] = await Promise.all([
     getPersonDebtDetails(session.user.id, id),
     getTransactionsForDebtLink(session.user.id),
     getOpenChargesForPerson(session.user.id, id),
+    getUserPixKey(session.user.id),
   ])
   if (!data) notFound()
 
@@ -41,7 +44,12 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
 
       <div className="flex items-start justify-between gap-4">
         <PageHeader title={person.name} description={person.email ?? person.phone ?? undefined} />
-        <PersonDialog mode="edit" person={person} balance={summary.balance} />
+        <DevedorDetailActions
+          person={person}
+          balance={summary.balance}
+          openCharges={openCharges}
+          pixKey={pixKey}
+        />
       </div>
 
       <DebtorDetailSummary summary={summary} hasEntries={entries.length > 0} />
