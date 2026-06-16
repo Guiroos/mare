@@ -18,3 +18,17 @@ export async function updateAutoRollover(enabled: boolean) {
 
   revalidatePath('/configuracao-mes')
 }
+
+export async function updatePixKey(pixKey: string | null) {
+  const userId = await requireUserId()
+
+  await db
+    .insert(userSettings)
+    .values({ userId, pixKey })
+    .onConflictDoUpdate({
+      target: userSettings.userId,
+      set: { pixKey, updatedAt: new Date() },
+    })
+
+  revalidatePath('/devedores')
+}
