@@ -108,6 +108,20 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/utils/phone.ts — formatPhoneForWhatsApp; 100% atingido.
+        'lib/utils/phone.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
+        // lib/utils/debtMessage.ts — buildDebtMessage; 100% atingido.
+        'lib/utils/debtMessage.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
       },
     },
   },
