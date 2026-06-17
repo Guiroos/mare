@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
+import { Segment, SegmentOption } from '@/components/ui/segment'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { resetAccount } from '@/lib/actions/reset-account'
 
@@ -15,8 +17,15 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+const THEME_OPTIONS: SegmentOption[] = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+  { value: 'system', label: 'Sistema' },
+]
+
 function SettingsContent({ onClose }: { onClose: () => void }) {
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const [confirming, setConfirming] = useState(false)
 
@@ -36,6 +45,17 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
   return (
     <div className="space-y-6">
       <div>
+        <p className="mb-1 text-small font-semibold text-text-primary">Aparência</p>
+        <p className="mb-3 text-small text-text-secondary">Escolha como o app deve aparecer.</p>
+        <Segment
+          options={THEME_OPTIONS}
+          value={theme ?? 'system'}
+          onChange={(v) => setTheme(v)}
+          className="w-full"
+        />
+      </div>
+
+      <div>
         <p className="mb-1 text-small font-semibold text-text-primary">Zona de perigo</p>
         <p className="mb-4 text-small text-text-secondary">
           Apaga todos os dados e restaura a conta ao estado inicial, mantendo as categorias padrão e
@@ -52,7 +72,7 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
         </Button>
 
         {confirming && (
-          <div className="border-negative/30 bg-negative/5 mt-4 space-y-3 rounded-lg border p-4">
+          <div className="mt-4 space-y-3 rounded-lg border border-negative bg-bg-subtle p-4">
             <div className="flex gap-2">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-negative" />
               <div>
