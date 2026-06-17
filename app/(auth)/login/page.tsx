@@ -2,9 +2,15 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { LoginButton } from '@/components/auth/LoginButton'
 
-export default async function LoginPage() {
-  const session = await auth()
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const [session, { error }] = await Promise.all([auth(), searchParams])
   if (session) redirect('/dashboard')
+
+  const registrationClosed = error === 'RegistrationClosed'
 
   return (
     <div className="flex min-h-screen bg-bg-base">
@@ -167,6 +173,11 @@ export default async function LoginPage() {
 
           {/* Bottom: button + note */}
           <div className="flex flex-col gap-4">
+            {registrationClosed && (
+              <div className="rounded-md border border-negative bg-bg-subtle px-4 py-3 text-center text-small text-negative">
+                Novos cadastros estão desativados no momento.
+              </div>
+            )}
             <LoginButton />
             <p className="mx-auto max-w-[280px] text-pretty text-center text-caption text-text-tertiary">
               Aplicação de uso pessoal · Acesso restrito ao proprietário cadastrado.
@@ -188,6 +199,11 @@ export default async function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-4">
+              {registrationClosed && (
+                <div className="rounded-md border border-negative bg-bg-subtle px-4 py-3 text-center text-small text-negative">
+                  Novos cadastros estão desativados no momento.
+                </div>
+              )}
               <LoginButton />
               <p className="text-pretty text-center text-caption text-text-tertiary">
                 Aplicação de uso pessoal · Acesso restrito ao proprietário cadastrado.

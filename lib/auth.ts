@@ -45,8 +45,14 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === 'dev') return true
-      const allowed = (process.env.ALLOWED_EMAILS ?? '').split(',').map((e) => e.trim())
-      return allowed.includes(user.email ?? '')
+      if (account?.provider !== 'google') return false
+      if (process.env.BLOCK_SIGNIN !== 'true') return true
+      const existing = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, user.email ?? ''))
+        .limit(1)
+      return existing.length > 0 ? true : '/login?error=RegistrationClosed'
     },
     async session({ session, token }) {
       if (session.user && token.sub) {

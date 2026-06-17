@@ -1,6 +1,6 @@
 /**
  * Dev seed script — populates 6 months of realistic financial data (Dec/2025 → May/2026)
- * for the first user found with the ALLOWED_EMAILS address.
+ * for the first user in the database.
  *
  * Usage: npx tsx lib/db/seed-dev.ts
  *
