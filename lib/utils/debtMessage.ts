@@ -11,12 +11,7 @@ export function buildDebtMessage(
   charges: ChargeForMessage[],
   pixKey: string | null
 ): string {
-  const lines: string[] = [
-    `Olá ${name}! 👋`,
-    '',
-    'Passando para lembrar dos valores em aberto:',
-    '',
-  ]
+  const lines: string[] = [`Olá ${name}!`, '', 'Passando para lembrar dos valores em aberto:', '']
 
   let total = 0
   for (const charge of charges) {

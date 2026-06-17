@@ -98,7 +98,7 @@ function CobrancaContent({
 
       <div>
         <p className="mb-2 text-caption font-medium text-text-tertiary">Cobranças em aberto</p>
-        <div className="space-y-0.5">
+        <div className="max-h-48 space-y-0.5 overflow-y-auto">
           {openCharges.map((charge) => (
             <Label
               key={charge.id}
@@ -127,7 +127,7 @@ function CobrancaContent({
 
       <div>
         <p className="mb-2 text-caption font-medium text-text-tertiary">Preview da mensagem</p>
-        <div className="whitespace-pre-wrap rounded-lg bg-bg-subtle p-3 text-small leading-relaxed text-text-secondary">
+        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-bg-subtle p-3 text-small leading-relaxed text-text-secondary">
           {hasSelection ? (
             message
           ) : (

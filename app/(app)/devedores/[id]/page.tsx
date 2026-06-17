@@ -42,7 +42,7 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
         Devedores
       </Link>
 
-      <div className="flex items-start justify-between gap-4">
+      <div className="group flex items-start justify-between gap-4">
         <PageHeader title={person.name} description={person.email ?? person.phone ?? undefined} />
         <DevedorDetailActions
           person={person}

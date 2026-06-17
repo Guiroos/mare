@@ -9,7 +9,7 @@ const charges = [
 describe('buildDebtMessage', () => {
   it('includes greeting with person name', () => {
     const msg = buildDebtMessage('João', charges, null)
-    expect(msg).toContain('Olá João! 👋')
+    expect(msg).toContain('Olá João!')
   })
 
   it('formats date as DD/MM/AAAA', () => {
@@ -47,7 +47,7 @@ describe('buildDebtMessage', () => {
 
   it('handles empty charges list', () => {
     const msg = buildDebtMessage('Maria', [], null)
-    expect(msg).toContain('Olá Maria! 👋')
+    expect(msg).toContain('Olá Maria!')
     expect(msg).toContain('Total:')
     expect(msg).toContain('0,00')
   })
