@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
 import NextTopLoader from 'nextjs-toploader'
 import { Toaster } from 'sonner'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -25,12 +26,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={dmSans.className}>
-        <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
-        {children}
-        <Toaster richColors position="top-center" />
-        <SpeedInsights />
+        <ThemeProvider>
+          <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
+          {children}
+          <Toaster richColors position="top-center" />
+          <SpeedInsights />
+        </ThemeProvider>
       </body>
     </html>
   )
