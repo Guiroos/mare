@@ -158,7 +158,7 @@ Pendências:
 
 ## S4. Autenticação depende de configuração correta
 
-Severidade: média
+Severidade: baixa
 
 Arquivos afetados:
 
@@ -168,7 +168,7 @@ Arquivos afetados:
 
 Observações:
 
-- O login Google é bloqueado quando email não está em `ALLOWED_EMAILS`.
+- Cadastro aberto: qualquer conta Google válida pode criar uma conta no app.
 - O provider `dev` só autoriza em `NODE_ENV=development`.
 - `NEXTAUTH_SECRET` é obrigatório e documentado, mas não há validação explícita
   de configuração na inicialização.
@@ -176,15 +176,10 @@ Observações:
 Risco:
 
 - Deploy com variáveis ausentes pode quebrar login de forma pouco clara.
-- `ALLOWED_EMAILS` com espaços, caixa diferente ou email não normalizado pode
-  causar bloqueios inesperados.
 
 Recomendação:
 
 - Criar módulo `lib/env.ts` com validação das variáveis obrigatórias.
-- Normalizar emails para lowercase tanto em `ALLOWED_EMAILS` quanto no email do
-  usuário.
-- Documentar que `ADMIN_EMAIL` também deve estar contido em `ALLOWED_EMAILS`.
 
 ---
 

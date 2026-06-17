@@ -82,15 +82,13 @@ Responsabilidades:
 - estratégia de sessão JWT;
 - preenchimento de `session.user.id` a partir de `token.sub`;
 - criação de categorias padrão no evento `createUser`;
-- bloqueio de emails fora de `ALLOWED_EMAILS`;
 - proteção do layout autenticado com redirect para `/login`.
 
 Observações:
 
 - O provider `dev` retorna `null` fora de desenvolvimento, o que reduz o risco
   de login local em produção.
-- Se `ALLOWED_EMAILS` estiver vazio em produção, todo login Google será bloqueado.
-  Isso é seguro por padrão, mas precisa estar bem documentado para deploy.
+- Qualquer conta Google válida pode criar uma conta no app (cadastro aberto).
 
 ### Categorias, grupos e orçamento
 

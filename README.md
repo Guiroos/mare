@@ -50,8 +50,6 @@ GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=        # string aleatória (ex: openssl rand -base64 32)
 NEXTAUTH_URL=http://localhost:3000
 
-# Whitelist de emails autorizados (separados por vírgula)
-ALLOWED_EMAILS=email1@exemplo.com,email2@exemplo.com
 ```
 
 ### Como obter cada variável
@@ -60,13 +58,13 @@ ALLOWED_EMAILS=email1@exemplo.com,email2@exemplo.com
 
 **GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET** — No [Google Cloud Console](https://console.cloud.google.com/), crie um projeto, habilite a _Google+ API_, vá em _Credenciais > Criar credencial > ID do cliente OAuth_ e adicione `http://localhost:3000/api/auth/callback/google` como URI de redirecionamento autorizado.
 
-**ALLOWED_EMAILS** — Lista de emails separados por vírgula que têm acesso ao app. Qualquer conta Google que não esteja na lista será bloqueada no login.
-
 **NEXTAUTH_SECRET** — Gere com:
 
 ```bash
 openssl rand -base64 32
 ```
+
+**BLOCK_SIGNIN** — Opcional. Quando `true`, bloqueia novos cadastros: apenas usuários que já existem no banco conseguem entrar. Útil para fechar o acesso sem precisar manter uma lista de emails.
 
 ## Comandos disponíveis
 
