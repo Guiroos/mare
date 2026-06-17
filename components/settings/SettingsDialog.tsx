@@ -47,7 +47,12 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
       <div>
         <p className="mb-1 text-small font-semibold text-text-primary">Aparência</p>
         <p className="mb-3 text-small text-text-secondary">Escolha como o app deve aparecer.</p>
-        <Segment options={THEME_OPTIONS} value={theme ?? 'system'} onChange={(v) => setTheme(v)} />
+        <Segment
+          options={THEME_OPTIONS}
+          value={theme ?? 'system'}
+          onChange={(v) => setTheme(v)}
+          className="w-full"
+        />
       </div>
 
       <div>
@@ -67,7 +72,7 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
         </Button>
 
         {confirming && (
-          <div className="border-negative/30 bg-negative/5 mt-4 space-y-3 rounded-lg border p-4">
+          <div className="mt-4 space-y-3 rounded-lg border border-negative bg-bg-subtle p-4">
             <div className="flex gap-2">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-negative" />
               <div>
