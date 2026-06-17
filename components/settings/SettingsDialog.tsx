@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { RotateCcw, TriangleAlert } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
+import { Segment, SegmentOption } from '@/components/ui/segment'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { resetAccount } from '@/lib/actions/reset-account'
 
@@ -15,8 +17,15 @@ interface SettingsDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+const THEME_OPTIONS: SegmentOption[] = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+  { value: 'system', label: 'Sistema' },
+]
+
 function SettingsContent({ onClose }: { onClose: () => void }) {
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [isPending, startTransition] = useTransition()
   const [confirming, setConfirming] = useState(false)
 
@@ -35,6 +44,12 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="space-y-6">
+      <div>
+        <p className="mb-1 text-small font-semibold text-text-primary">Aparência</p>
+        <p className="mb-3 text-small text-text-secondary">Escolha como o app deve aparecer.</p>
+        <Segment options={THEME_OPTIONS} value={theme ?? 'system'} onChange={(v) => setTheme(v)} />
+      </div>
+
       <div>
         <p className="mb-1 text-small font-semibold text-text-primary">Zona de perigo</p>
         <p className="mb-4 text-small text-text-secondary">
