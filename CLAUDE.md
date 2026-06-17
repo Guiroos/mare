@@ -78,6 +78,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `createDebtPayment` com `createIncome: true` cria income — ao deletar, passar `alsoDeleteIncome: true`
 - `pixKey` em `userSettings.pixKey`; `getUserPixKey(userId)` / `updatePixKey(pixKey | null)` (upsert por userId); exibido via `PixKeyCard` em `/devedores`
 - `getOpenChargesForPeople(userId, personIds)` — variante batch de `getOpenChargesForPerson`; retorna `Record<string, OpenChargeForLinking[]>`; usar em list pages para evitar N queries por pessoa
+- `CobrancaDialog` (`components/devedores/CobrancaDialog.tsx`): recebe `openCharges: OpenChargeForLinking[]` + `pixKey: string | null` + `onEditPhone?`; quando `person.phone` é null exibe botão "Copiar mensagem" em vez de "Abrir WhatsApp"; usa `buildDebtMessage(name, charges, pixKey)` e `formatPhoneForWhatsApp(phone)` de `lib/utils/`
 
 **Investimentos:**
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
