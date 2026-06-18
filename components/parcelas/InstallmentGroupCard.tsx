@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { RowActions } from '@/components/ui/row-actions'
 import { formatCurrency } from '@/lib/utils/currency'
+import { cn } from '@/lib/utils/cn'
 import { deleteInstallmentGroup } from '@/lib/actions/transactions'
 import { InstallmentGroupEditButton } from './InstallmentGroupEditDialog'
 
@@ -78,17 +79,22 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
       {/* Segmented progress */}
       <div className="space-y-1.5">
         <div className="flex items-baseline justify-between">
-          <p className="text-caption font-medium text-text-secondary">
-            Parcela {group.paidInstallments} de {group.totalInstallments}
+          <p className="text-caption font-medium tabular-nums text-text-secondary">
+            {group.paidInstallments === 0
+              ? `0 de ${group.totalInstallments} pagas`
+              : `Parcela ${group.paidInstallments} de ${group.totalInstallments}`}
           </p>
-          <p className="text-caption font-semibold text-text-primary">{pct}%</p>
+          <p className="text-caption font-semibold tabular-nums text-text-primary">{pct}%</p>
         </div>
         {useSegments ? (
           <div className="flex gap-0.5">
             {Array.from({ length: group.totalInstallments }).map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 flex-1 rounded-full ${i < group.paidInstallments ? 'bg-accent' : 'bg-bg-muted'}`}
+                className={cn(
+                  'h-1.5 flex-1 rounded-full',
+                  i < group.paidInstallments ? 'bg-accent' : 'bg-bg-muted'
+                )}
               />
             ))}
           </div>
@@ -104,26 +110,26 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
       {/* Numbers */}
       <div className="grid grid-cols-4 gap-3 pt-0.5">
         <div className="space-y-0.5">
-          <p className="text-label uppercase text-text-tertiary">por mês</p>
+          <p className="text-label text-text-tertiary">por mês</p>
           <p className="text-small font-semibold tabular-nums text-accent-text">
             {formatCurrency(group.installmentAmount)}
           </p>
         </div>
         <div className="space-y-0.5">
-          <p className="text-label uppercase text-text-tertiary">restante</p>
+          <p className="text-label text-text-tertiary">restante</p>
           <p className="text-small font-semibold tabular-nums">
             {formatCurrency(group.remainingAmount)}
           </p>
         </div>
         <div className="space-y-0.5">
-          <p className="text-label uppercase text-text-tertiary">total</p>
+          <p className="text-label text-text-tertiary">total</p>
           <p className="text-small tabular-nums text-text-secondary">
             {formatCurrency(group.totalAmount)}
           </p>
         </div>
         {group.endLabel && (
           <div className="space-y-0.5">
-            <p className="text-label uppercase text-text-tertiary">termina</p>
+            <p className="text-label text-text-tertiary">termina</p>
             <p className="text-small tabular-nums text-text-secondary">{group.endLabel}</p>
           </div>
         )}

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { transactions, installmentGroups } from '@/lib/db/schema'
-import { eq, and, isNotNull } from 'drizzle-orm'
+import { eq, and, isNotNull, gte, lte } from 'drizzle-orm'
 import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 
@@ -25,14 +25,14 @@ export async function getActiveInstallmentGroups(userId: string) {
       const installmentAmount = totalAmount / totalInstallments
 
       const paidInstallments = group.transactions.filter(
-        (t) => t.referenceMonth <= currentMonthStr
+        (t) => t.referenceMonth < currentMonthStr
       ).length
 
       const remainingInstallments = totalInstallments - paidInstallments
       const remainingAmount = remainingInstallments * installmentAmount
 
       const nextTx = group.transactions
-        .filter((t) => t.referenceMonth > currentMonthStr)
+        .filter((t) => t.referenceMonth >= currentMonthStr)
         .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))[0]
 
       return {
@@ -45,6 +45,7 @@ export async function getActiveInstallmentGroups(userId: string) {
         categoryColor: group.category.color ?? undefined,
         startDate: group.startDate,
         nextChargeMonth: nextTx ? nextTx.referenceMonth.slice(0, 7) : null,
+        nextChargeDate: nextTx?.date ?? null,
         totalAmount,
         totalInstallments,
         paidInstallments,
@@ -63,25 +64,31 @@ export async function getInstallmentTimeline(userId: string) {
   const currentMonthStr = months[0]
   const lastMonthStr = months[months.length - 1]
 
-  const rows = await db.query.transactions.findMany({
-    where: and(eq(transactions.userId, userId), isNotNull(transactions.installmentGroupId)),
-    with: {
-      installmentGroup: true,
-    },
-  })
-
-  // Filter to transactions within the 12-month window
-  const filtered = rows.filter(
-    (t) => t.referenceMonth >= currentMonthStr && t.referenceMonth <= lastMonthStr
-  )
+  const rows = await db
+    .select({
+      referenceMonth: transactions.referenceMonth,
+      amount: transactions.amount,
+      groupName: installmentGroups.name,
+      txName: transactions.name,
+    })
+    .from(transactions)
+    .leftJoin(installmentGroups, eq(transactions.installmentGroupId, installmentGroups.id))
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        isNotNull(transactions.installmentGroupId),
+        gte(transactions.referenceMonth, currentMonthStr),
+        lte(transactions.referenceMonth, lastMonthStr)
+      )
+    )
 
   // Group by referenceMonth
   const monthMap = new Map<string, { name: string; amount: number }[]>()
-  for (const t of filtered) {
+  for (const t of rows) {
     const month = t.referenceMonth.slice(0, 7) // YYYY-MM
     const list = monthMap.get(month) ?? []
     list.push({
-      name: t.installmentGroup?.name ?? t.name,
+      name: t.groupName ?? t.txName,
       amount: toAmount(t.amount),
     })
     monthMap.set(month, list)
