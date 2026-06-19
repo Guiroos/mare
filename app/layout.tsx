@@ -15,6 +15,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'Maré',
   description: 'Controle financeiro pessoal',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Maré',
+  },
 }
 
 export const viewport: Viewport = {
