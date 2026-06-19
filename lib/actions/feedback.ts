@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { db } from '@/lib/db'
 import { feedback } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField } from '@/lib/crypto/fields'
 
 const feedbackSchema = z.object({
   category: z.enum(['melhoria', 'implementacao', 'outros']),
@@ -18,11 +20,12 @@ export async function submitFeedback(data: {
 }) {
   const userId = await requireUserId()
   feedbackSchema.parse(data)
+  const dek = await getDekForUser(userId)
 
   await db.insert(feedback).values({
     userId,
     category: data.category,
-    message: data.message,
+    message: encryptField(data.message, dek),
     page: data.page,
   })
 }
