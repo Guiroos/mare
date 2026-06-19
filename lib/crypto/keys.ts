@@ -13,7 +13,9 @@ const PREFIX = 'enc:'
 function getMek(): Buffer {
   const hex = process.env.ENCRYPTION_MASTER_KEY
   if (!hex) throw new Error('ENCRYPTION_MASTER_KEY não definida')
-  return Buffer.from(hex, 'hex')
+  const buf = Buffer.from(hex, 'hex')
+  if (buf.length !== 32) throw new Error('ENCRYPTION_MASTER_KEY deve ter 64 hex chars (32 bytes)')
+  return buf
 }
 
 export function generateDek(): Buffer {
@@ -30,6 +32,7 @@ export function encryptDek(dek: Buffer): string {
 }
 
 export function decryptDek(encrypted: string): Buffer {
+  if (!encrypted.startsWith(PREFIX)) throw new Error('DEK inválido: falta prefixo enc:')
   const mek = getMek()
   const raw = Buffer.from(encrypted.slice(PREFIX.length), 'base64')
   const iv = raw.subarray(0, IV_LEN)
@@ -43,21 +46,25 @@ export function decryptDek(encrypted: string): Buffer {
 // cache() deduplica chamadas dentro do mesmo request (RSC e Server Actions)
 export const getDekForUser = cache(async (userId: string): Promise<Buffer> => {
   const newDek = generateDek()
-  // newEncryptedDek will be used in Task 2 when encryptedDek column is added
-  // const newEncryptedDek = encryptDek(newDek)
+  const newEncryptedDek = encryptDek(newDek)
 
-  // Atomic upsert: COALESCE garante que nunca sobrescreve DEK existente
   // encryptedDek column added in Task 2 migration
-  // Using raw SQL for now to avoid TypeScript errors with missing schema column
-  const [row] = await db
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [row] = (await db
     .insert(userSettings)
-    .values({ userId })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .values({ userId, encryptedDek: newEncryptedDek } as any)
     .onConflictDoUpdate({
       target: userSettings.userId,
-      set: { updatedAt: sql`now()` },
+      set: {
+        // @ts-expect-error – encryptedDek not yet in schema
+        encryptedDek: sql`COALESCE(user_settings.encrypted_dek, EXCLUDED.encrypted_dek)`,
+      },
     })
-    .returning()
+    // @ts-expect-error – encryptedDek not yet in schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .returning({ encryptedDek: userSettings.encryptedDek })) as any
 
-  if (!row) throw new Error(`DEK não encontrado para userId=${userId}`)
-  return newDek
+  if (!row?.encryptedDek) throw new Error(`DEK não encontrado para userId=${userId}`)
+  return decryptDek(row.encryptedDek)
 })
