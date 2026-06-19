@@ -7,7 +7,7 @@ import {
   investments,
   investmentWithdrawals,
 } from '@/lib/db/schema'
-import { and, eq, between, inArray, ilike } from 'drizzle-orm'
+import { and, eq, between, inArray } from 'drizzle-orm'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField } from '@/lib/crypto/fields'
@@ -80,8 +80,7 @@ export async function getHistoricoFeed(
     eq(transactions.userId, userId),
     between(transactions.date, de, ate),
     categorias.length > 0 ? inArray(transactions.categoryId, categorias) : undefined,
-    contas.length > 0 ? inArray(transactions.accountId, contas) : undefined,
-    q ? ilike(transactions.name, `%${q}%`) : undefined
+    contas.length > 0 ? inArray(transactions.accountId, contas) : undefined
   )
 
   const fxWhere =
@@ -90,18 +89,13 @@ export async function getHistoricoFeed(
           eq(fixedExpenses.userId, userId),
           inArray(fixedExpenses.referenceMonth, refMonths),
           categorias.length > 0 ? inArray(fixedExpenses.categoryId, categorias) : undefined,
-          contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined,
-          q ? ilike(fixedExpenses.name, `%${q}%`) : undefined
+          contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined
         )
       : undefined
 
   const incomesWhere =
     refMonths.length > 0
-      ? and(
-          eq(incomes.userId, userId),
-          inArray(incomes.referenceMonth, refMonths),
-          q ? ilike(incomes.source, `%${q}%`) : undefined
-        )
+      ? and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, refMonths))
       : undefined
 
   const investWhere =
