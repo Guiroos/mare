@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Archive, ArchiveRestore, ChevronDown } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import {
   formatMonthAbbr,
   formatMonthName,
@@ -199,7 +199,7 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
         {/* Balance */}
         <div className="flex-shrink-0 text-right">
           <div className="text-body font-semibold tabular-nums">
-            {formatCurrency(balance.currentBalance)}
+            <SensitiveAmount value={balance.currentBalance} />
           </div>
           {balance.archived ? null : balance.pendingYield ? (
             <div className="text-caption font-semibold text-warning-text">
@@ -224,13 +224,13 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
           <div className="inline-flex items-center gap-1.5 rounded-md bg-bg-subtle px-2 py-1 text-caption text-text-secondary">
             Aportes{' '}
             <strong className="font-semibold tabular-nums text-text-primary">
-              {formatCurrency(balance.totalAmount)}
+              <SensitiveAmount value={balance.totalAmount} />
             </strong>
           </div>
           <div className="inline-flex items-center gap-1.5 rounded-md bg-positive-subtle px-2 py-1 text-caption text-positive-text">
             Rendimentos{' '}
             <strong className="font-semibold tabular-nums">
-              {formatCurrency(balance.totalYield)}
+              <SensitiveAmount value={balance.totalYield} />
             </strong>
           </div>
           {yieldPct !== null && (
@@ -267,7 +267,7 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
                     <span className="text-label uppercase text-text-tertiary">A</span>
                     <span className="tabular-nums text-text-primary">
                       {entry.amount !== null ? (
-                        formatCurrency(entry.amount)
+                        <SensitiveAmount value={entry.amount} />
                       ) : (
                         <span className="text-text-tertiary">—</span>
                       )}
@@ -277,7 +277,7 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
                     <span className="text-label uppercase text-text-tertiary">R</span>
                     {entry.yieldAmount !== null ? (
                       <span className="font-semibold tabular-nums text-positive-text">
-                        + {formatCurrency(entry.yieldAmount)}
+                        + <SensitiveAmount value={entry.yieldAmount} />
                       </span>
                     ) : isPending ? (
                       <span className="font-semibold text-warning-text">pendente</span>
