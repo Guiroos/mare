@@ -11,6 +11,8 @@ import { faturaPaymentActionSchema } from '@/lib/validations/fatura'
 import { dateToReferenceMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { getFaturaState } from '@/lib/queries/fatura'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField } from '@/lib/crypto/fields'
 
 export async function updateCreditMode(data: unknown) {
   const userId = await requireUserId()
@@ -142,6 +144,8 @@ export async function createFaturaPayment(data: unknown) {
   }
 
   const referenceMonth = dateToReferenceMonth(parsed.date)
+  const dek = await getDekForUser(userId)
+  const paymentName = `Pagamento fatura ${cycleState.account.name}`
 
   await db.insert(transactions).values({
     userId,
@@ -149,8 +153,8 @@ export async function createFaturaPayment(data: unknown) {
     faturaAccountId: parsed.faturaAccountId,
     faturaCycleMonth: parsed.faturaCycleMonth,
     categoryId: null,
-    name: `Pagamento fatura ${cycleState.account.name}`,
-    amount: parsed.amount.toString(),
+    name: encryptField(paymentName, dek),
+    amount: encryptField(parsed.amount.toString(), dek),
     date: parsed.date,
     referenceMonth,
   })

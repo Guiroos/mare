@@ -3,6 +3,8 @@ import { transactions, installmentGroups } from '@/lib/db/schema'
 import { eq, and, isNotNull, gte, lte } from 'drizzle-orm'
 import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField } from '@/lib/crypto/fields'
 
 // ─── Parcelas ativas (ainda com saldo futuro) ─────────────────────────────────
 
@@ -18,9 +20,12 @@ export async function getActiveInstallmentGroups(userId: string) {
     },
   })
 
+  const dek = await getDekForUser(userId)
+
   return groups
     .map((group) => {
-      const totalAmount = toAmount(group.totalAmount)
+      const decryptedTotalAmount = decryptField(group.totalAmount, dek)
+      const totalAmount = toAmount(decryptedTotalAmount)
       const totalInstallments = group.totalInstallments
       const installmentAmount = totalAmount / totalInstallments
 
@@ -37,7 +42,7 @@ export async function getActiveInstallmentGroups(userId: string) {
 
       return {
         id: group.id,
-        name: group.name,
+        name: decryptField(group.name, dek),
         categoryId: group.categoryId,
         accountId: group.accountId,
         accountName: group.account.name,
@@ -82,14 +87,19 @@ export async function getInstallmentTimeline(userId: string) {
       )
     )
 
+  const dek = await getDekForUser(userId)
+
   // Group by referenceMonth
   const monthMap = new Map<string, { name: string; amount: number }[]>()
   for (const t of rows) {
     const month = t.referenceMonth.slice(0, 7) // YYYY-MM
     const list = monthMap.get(month) ?? []
+    const decryptedAmount = decryptField(t.amount, dek)
+    const rawGroupName = t.groupName ? decryptField(t.groupName, dek) : null
+    const rawTxName = decryptField(t.txName, dek)
     list.push({
-      name: t.groupName ?? t.txName,
-      amount: toAmount(t.amount),
+      name: rawGroupName ?? rawTxName,
+      amount: toAmount(decryptedAmount),
     })
     monthMap.set(month, list)
   }

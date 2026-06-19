@@ -32,6 +32,8 @@ import {
   updateInstallmentGroupActionSchema,
 } from '@/lib/validations/transactions'
 import { referenceMonthSchema } from '@/lib/validations/utils'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField } from '@/lib/crypto/fields'
 
 export type TransactionSplit = {
   personId: string
@@ -59,13 +61,15 @@ export async function createTransaction(data: CreateTransactionInput) {
     ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
+  const dek = await getDekForUser(userId)
+
   await db.transaction(async (tx) => {
     const [txRow] = await tx
       .insert(transactions)
       .values({
         userId,
-        name: data.name,
-        amount: data.amount,
+        name: encryptField(data.name, dek),
+        amount: encryptField(data.amount, dek),
         date: data.date,
         referenceMonth: dateToReferenceMonth(data.date),
         categoryId: data.categoryId,
@@ -115,10 +119,12 @@ export async function createFixedExpense(data: CreateFixedExpenseInput) {
     assertOwnsPaymentAccount(userId, data.accountId),
   ])
 
+  const dek = await getDekForUser(userId)
+
   await db.insert(fixedExpenses).values({
     userId,
-    name: data.name,
-    amount: data.amount,
+    name: encryptField(data.name, dek),
+    amount: encryptField(data.amount, dek),
     dueDay: data.dueDay,
     categoryId: data.categoryId,
     accountId: data.accountId,
@@ -148,11 +154,13 @@ export async function updateFixedExpense(data: UpdateFixedExpenseInput) {
     assertOwnsPaymentAccount(userId, data.accountId),
   ])
 
+  const dek = await getDekForUser(userId)
+
   await db
     .update(fixedExpenses)
     .set({
-      name: data.name,
-      amount: data.amount,
+      name: encryptField(data.name, dek),
+      amount: encryptField(data.amount, dek),
       dueDay: data.dueDay,
       categoryId: data.categoryId,
       accountId: data.accountId,
@@ -264,13 +272,15 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const baseReferenceMonth = calcBaseReferenceMonth(purchaseDate, closingDay)
   const installmentAmount = (parseFloat(data.totalAmount) / data.totalInstallments).toFixed(2)
 
+  const dek = await getDekForUser(userId)
+
   await db.transaction(async (tx) => {
     const [group] = await tx
       .insert(installmentGroups)
       .values({
         userId,
-        name: data.name,
-        totalAmount: data.totalAmount,
+        name: encryptField(data.name, dek),
+        totalAmount: encryptField(data.totalAmount, dek),
         totalInstallments: data.totalInstallments,
         startDate: data.startDate,
         categoryId: data.categoryId,
@@ -281,10 +291,11 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
     const installmentRows = Array.from({ length: data.totalInstallments }, (_, i) => {
       const refMonth = addMonths(baseReferenceMonth, i)
       const date = i === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
+      const installmentName = `${data.name} (${i + 1}/${data.totalInstallments})`
       return {
         userId,
-        name: `${data.name} (${i + 1}/${data.totalInstallments})`,
-        amount: installmentAmount,
+        name: encryptField(installmentName, dek),
+        amount: encryptField(installmentAmount, dek),
         date: format(date, 'yyyy-MM-dd'),
         referenceMonth: format(refMonth, 'yyyy-MM-dd'),
         categoryId: data.categoryId,
@@ -358,11 +369,13 @@ export async function updateTransaction(data: UpdateTransactionInput) {
     assertOwnsPaymentAccount(userId, data.accountId),
   ])
 
+  const dek = await getDekForUser(userId)
+
   await db
     .update(transactions)
     .set({
-      name: data.name,
-      amount: data.amount,
+      name: encryptField(data.name, dek),
+      amount: encryptField(data.amount, dek),
       date: data.date,
       referenceMonth: dateToReferenceMonth(data.date),
       categoryId: data.categoryId,
@@ -401,12 +414,14 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   const group = rows[0]
   if (!group) throw new Error('Grupo não encontrado')
 
+  const dek = await getDekForUser(userId)
+
   const groupUpdate: Record<string, unknown> = {
-    name: data.name,
+    name: encryptField(data.name, dek),
     categoryId: data.categoryId,
     accountId: data.accountId,
   }
-  if (data.newTotalAmount) groupUpdate.totalAmount = data.newTotalAmount
+  if (data.newTotalAmount) groupUpdate.totalAmount = encryptField(data.newTotalAmount, dek)
 
   await db.transaction(async (tx) => {
     await tx
@@ -438,10 +453,13 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
         tx
           .update(transactions)
           .set({
-            name: `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
+            name: encryptField(
+              `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
+              dek
+            ),
             categoryId: data.categoryId,
             accountId: data.accountId,
-            ...(amountUpdates[t.id] ? { amount: amountUpdates[t.id] } : {}),
+            ...(amountUpdates[t.id] ? { amount: encryptField(amountUpdates[t.id], dek) } : {}),
           })
           .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
       )
