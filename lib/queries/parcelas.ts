@@ -4,7 +4,7 @@ import { eq, and, isNotNull, gte, lte } from 'drizzle-orm'
 import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
-import { decryptField } from '@/lib/crypto/fields'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 // ─── Parcelas ativas (ainda com saldo futuro) ─────────────────────────────────
 
@@ -95,7 +95,7 @@ export async function getInstallmentTimeline(userId: string) {
     const month = t.referenceMonth.slice(0, 7) // YYYY-MM
     const list = monthMap.get(month) ?? []
     const decryptedAmount = decryptField(t.amount, dek)
-    const rawGroupName = t.groupName ? decryptField(t.groupName, dek) : null
+    const rawGroupName = decryptOptional(t.groupName, dek)
     const rawTxName = decryptField(t.txName, dek)
     list.push({
       name: rawGroupName ?? rawTxName,
