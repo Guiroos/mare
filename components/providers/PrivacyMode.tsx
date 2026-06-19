@@ -5,6 +5,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils/currency'
+import { cn } from '@/lib/utils/cn'
 
 const STORAGE_KEY = 'mare:privacy-mode'
 
@@ -53,7 +54,7 @@ export function PrivacyModeProvider({ children }: { children: ReactNode }) {
 
 export function SensitiveAmount({ value, className }: { value: number; className?: string }) {
   const { isPrivate } = useContext(ctx)
-  return <span className={className}>{maskValue(value, isPrivate)}</span>
+  return <span className={cn('tabular-nums', className)}>{maskValue(value, isPrivate)}</span>
 }
 
 export function SensitiveMoneyBadge({
