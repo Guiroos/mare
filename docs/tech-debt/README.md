@@ -17,3 +17,4 @@ o motivo da decisão de não resolver agora, e o critério para revisitar.
 | 8 | [revalidatepath-panorama-ausente.md](./revalidatepath-panorama-ausente.md) | Cache / UX | média |
 | 9 | ✅ [error-boundaries-ausentes.md](./error-boundaries-ausentes.md) | UX / resiliência | resolvida |
 | 10 | [number-amount-em-vez-de-toamount.md](./number-amount-em-vez-de-toamount.md) | Convenção de código | baixa |
+| 11 | [vitest-incompativel-com-vite-7.md](./vitest-incompativel-com-vite-7.md) | Tooling / testes | alta |

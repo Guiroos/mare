@@ -1,4 +1,6 @@
-import { formatCurrency } from '@/lib/utils/currency'
+'use client'
+
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 
 type Props = {
   total: number
@@ -70,7 +72,7 @@ export function PatrimonyHero({
         <div className="flex flex-col gap-1.5 xl:pr-5 2xl:pr-8">
           <span className="text-label uppercase opacity-80">Patrimônio total</span>
           <span className="text-hero tabular-nums xl:text-h1 2xl:text-hero">
-            {formatCurrency(total)}
+            <SensitiveAmount value={total} />
           </span>
           {delta !== null && prevMonthLabel && (
             <span className="mt-1 flex flex-col gap-0.5 opacity-80">
@@ -90,7 +92,7 @@ export function PatrimonyHero({
                   <polyline points="6 9 12 3 18 9" />
                 </svg>
                 {delta >= 0 ? '+ ' : '− '}
-                {formatCurrency(Math.abs(delta))}
+                <SensitiveAmount value={Math.abs(delta)} />
               </span>
               <span className="text-caption">
                 vs. {prevMonthLabel}
@@ -106,7 +108,7 @@ export function PatrimonyHero({
         <div className="flex flex-col gap-1 xl:justify-center xl:border-l xl:border-white/20 xl:pl-5 2xl:pl-8">
           <span className="text-label uppercase opacity-70">Aporte acumulado</span>
           <span className="whitespace-nowrap text-h2 tabular-nums">
-            {formatCurrency(totalAporte)}
+            <SensitiveAmount value={totalAporte} />
           </span>
           <span className="text-caption opacity-70">{aportePercent.toFixed(1)}% do patrimônio</span>
         </div>
@@ -115,7 +117,7 @@ export function PatrimonyHero({
         <div className="flex flex-col gap-1 xl:justify-center xl:border-l xl:border-white/20 xl:pl-5 2xl:pl-8">
           <span className="text-label uppercase opacity-70">Rendimento acumulado</span>
           <span className="whitespace-nowrap text-h2 tabular-nums">
-            {formatCurrency(totalYield)}
+            <SensitiveAmount value={totalYield} />
           </span>
           <span className="text-caption opacity-70">{yieldPercent.toFixed(1)}% do patrimônio</span>
         </div>
@@ -124,10 +126,17 @@ export function PatrimonyHero({
         <div className="flex flex-col gap-1 xl:justify-center xl:border-l xl:border-white/20 xl:pl-5 2xl:pl-8">
           <span className="text-label uppercase opacity-70">Este mês</span>
           <span className="whitespace-nowrap text-h2 tabular-nums">
-            {thisMonthNet > 0 ? `+ ${formatCurrency(thisMonthNet)}` : formatCurrency(0)}
+            {thisMonthNet > 0 ? (
+              <>
+                + <SensitiveAmount value={thisMonthNet} />
+              </>
+            ) : (
+              <SensitiveAmount value={0} />
+            )}
           </span>
           <span className="whitespace-nowrap text-caption opacity-70">
-            aporte {formatCurrency(thisMonthAporte)} · rend. {formatCurrency(thisMonthYield)}
+            aporte <SensitiveAmount value={thisMonthAporte} /> · rend.{' '}
+            <SensitiveAmount value={thisMonthYield} />
           </span>
         </div>
       </div>

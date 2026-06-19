@@ -7,29 +7,21 @@ import {
   getPatrimonyTimeline,
   getArchivedCount,
 } from '@/lib/queries/investments'
-import { deleteWithdrawal } from '@/lib/actions/investments'
-import { formatCurrency } from '@/lib/utils/currency'
-import {
-  formatMonthAbbr,
-  currentReferenceMonth,
-  referenceMonthToYearMonth,
-  formatDate,
-} from '@/lib/utils/date'
-import { Badge } from '@/components/ui/badge'
+import { formatMonthAbbr, currentReferenceMonth, referenceMonthToYearMonth } from '@/lib/utils/date'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Section } from '@/components/ui/section'
 import { InvestmentTypeDialog } from '@/components/investimentos/InvestmentTypeDialog'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
 import { WithdrawalDialog } from '@/components/investimentos/WithdrawalDialog'
-import { WithdrawalEditButton } from '@/components/investimentos/WithdrawalEditButton'
-import { DeleteButton } from '@/components/ui/delete-button'
 import { PatrimonyChart } from '@/components/charts/PatrimonyChart'
 import { PatrimonyHero } from '@/components/investimentos/PatrimonyHero'
 import { InvestmentTypeCard } from '@/components/investimentos/InvestmentTypeCard'
 import { InvestmentTypeAccordion } from '@/components/investimentos/InvestmentTypeAccordion'
+import { WithdrawalTable } from '@/components/investimentos/WithdrawalTable'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { ArchivedFilterChip } from '@/components/investimentos/ArchivedFilterChip'
+import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 
 export default async function InvestimentosPage({
   searchParams,
@@ -100,6 +92,7 @@ export default async function InvestimentosPage({
           description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
         />
         <div className="hidden items-center gap-2 lg:flex">
+          <PrivacyToggle />
           <InvestmentTypeDialog mode="create" triggerSize="md" />
           <InvestmentEntryDialog investmentTypes={investmentTypeOptions} />
         </div>
@@ -216,75 +209,10 @@ export default async function InvestimentosPage({
         {withdrawals.length === 0 ? (
           <EmptyState title="Sem resgates nos últimos 6 meses." className="px-5 py-8" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] border-collapse">
-              <thead>
-                <tr className="border-b border-border bg-bg-subtle">
-                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
-                    Tipo
-                  </th>
-                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
-                    Data
-                  </th>
-                  <th className="px-5 py-2 text-right text-label uppercase text-text-tertiary">
-                    Valor
-                  </th>
-                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
-                    Destino
-                  </th>
-                  <th className="px-5 py-2 text-left text-label uppercase text-text-tertiary">
-                    Notas
-                  </th>
-                  <th className="px-5 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {withdrawals.map((w) => (
-                  <tr key={w.id} className="border-t border-border hover:bg-bg-subtle">
-                    <td className="px-5 py-2.5 text-small">{w.typeName}</td>
-                    <td className="px-5 py-2.5 text-small text-text-secondary">
-                      {formatDate(w.date)}
-                    </td>
-                    <td className="px-5 py-2.5 text-right">
-                      <span className="text-small font-semibold tabular-nums text-negative">
-                        − {formatCurrency(w.amount)}
-                      </span>
-                      {w.taxAmount !== null && (
-                        <span className="block text-caption tabular-nums text-text-tertiary">
-                          Bruto {formatCurrency(w.amount + w.taxAmount)} · IR{' '}
-                          {formatCurrency(w.taxAmount)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-2.5">
-                      {w.destination === 'income' ? (
-                        <Badge variant="muted">Caixa</Badge>
-                      ) : (
-                        <Badge variant="muted">Transferência</Badge>
-                      )}
-                    </td>
-                    <td className="max-w-32 truncate px-5 py-2.5 text-caption text-text-secondary">
-                      {w.notes ?? ''}
-                    </td>
-                    <td className="px-5 py-2.5">
-                      <div className="flex items-center gap-1">
-                        <WithdrawalEditButton
-                          withdrawal={w}
-                          investmentTypes={investmentTypeOptions}
-                        />
-                        <DeleteButton
-                          onDelete={async () => {
-                            'use server'
-                            await deleteWithdrawal(w.id)
-                          }}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <WithdrawalTable
+            withdrawals={withdrawals}
+            investmentTypeOptions={investmentTypeOptions}
+          />
         )}
       </section>
     </PageLayout>

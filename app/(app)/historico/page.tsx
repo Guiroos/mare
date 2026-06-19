@@ -10,6 +10,7 @@ import { categoryGroups, paymentAccounts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { HistoricoFilters } from './HistoricoFilters'
 import { HistoricoClient } from './HistoricoClient'
+import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 
 export default async function HistoricoPage({
   searchParams,
@@ -41,7 +42,10 @@ export default async function HistoricoPage({
 
   return (
     <PageLayout>
-      <PageHeader title="Histórico" description="Todas as movimentações" />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title="Histórico" description="Todas as movimentações" />
+        <PrivacyToggle />
+      </div>
       <HistoricoFilters
         params={params}
         categoryOptions={categoryOptions}

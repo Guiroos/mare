@@ -9,9 +9,7 @@ import {
 import { getPatrimonyTimeline } from '@/lib/queries/investments'
 import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getCreditAccounts } from '@/lib/queries/categories'
-import { formatCurrency } from '@/lib/utils/currency'
-import { currentYear, currentYearMonth, formatMonthAbbr } from '@/lib/utils/date'
-import { cn } from '@/lib/utils/cn'
+import { currentYear, currentYearMonth } from '@/lib/utils/date'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
@@ -20,6 +18,8 @@ import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 import { YearSelector } from '@/components/panorama/YearSelector'
 import { AnnualSummaryCards } from '@/components/panorama/AnnualSummaryCards'
+import { PanoramaTable } from '@/components/panorama/PanoramaTable'
+import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 
 export default async function PanoramaPage({
   searchParams,
@@ -81,6 +81,7 @@ export default async function PanoramaPage({
           description="Como o seu ano financeiro está se desenhando — receitas, despesas e patrimônio mês a mês."
         />
         <div className="flex flex-shrink-0 items-center gap-2">
+          <PrivacyToggle />
           <YearSelector years={years} selected={year} />
           <Button variant="outline" size="sm" disabled leftIcon={<Download className="h-4 w-4" />}>
             <span className="hidden sm:inline">Exportar</span>
@@ -109,147 +110,13 @@ export default async function PanoramaPage({
         <div className="px-5 py-4">
           <h2 className="text-body font-semibold text-text-primary">Tabela mensal</h2>
         </div>
-        {/* Desktop table */}
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-small">
-            <thead>
-              <tr className="border-b bg-bg-muted">
-                <th className="px-4 py-3 text-left font-medium text-text-secondary">Mês</th>
-                <th className="px-4 py-3 text-right font-medium text-text-secondary">Entradas</th>
-                <th className="px-4 py-3 text-right font-medium text-text-secondary">Gastos</th>
-                <th className="px-4 py-3 text-right font-medium text-text-secondary">
-                  Investimentos
-                </th>
-                <th className="px-4 py-3 text-right font-medium text-text-secondary">Saldo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overview.map((row) => {
-                const monthLabel = formatMonthAbbr(row.month)
-                return (
-                  <tr key={row.month} className="border-b last:border-0 hover:bg-bg-muted">
-                    <td className="px-4 py-3 font-medium">{monthLabel}</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-positive-text">
-                      {formatCurrency(row.totalIncomes)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-negative-text">
-                      {formatCurrency(row.totalExpenses)}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums text-accent-text">
-                      {formatCurrency(row.totalInvested)}
-                    </td>
-                    <td
-                      className={cn(
-                        'px-4 py-3 text-right font-medium tabular-nums',
-                        row.balance >= 0 ? 'text-positive-text' : 'text-negative-text'
-                      )}
-                    >
-                      {formatCurrency(row.balance)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t bg-bg-muted font-semibold">
-                <td className="px-4 py-3">Total</td>
-                <td className="px-4 py-3 text-right tabular-nums text-positive-text">
-                  {formatCurrency(totalIncomes)}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-negative-text">
-                  {formatCurrency(totalExpensesYTD)}
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums text-accent-text">
-                  {formatCurrency(totalInvested)}
-                </td>
-                <td
-                  className={cn(
-                    'px-4 py-3 text-right tabular-nums',
-                    finalBalance >= 0 ? 'text-positive-text' : 'text-negative-text'
-                  )}
-                >
-                  {formatCurrency(finalBalance)}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        {/* Mobile card list */}
-        <div className="divide-y md:hidden">
-          {overview.map((row) => {
-            const monthLabel = formatMonthAbbr(row.month)
-            return (
-              <div key={row.month} className="px-4 py-3">
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-small font-semibold">{monthLabel}</span>
-                  <span
-                    className={cn(
-                      'text-small font-medium tabular-nums',
-                      row.balance >= 0 ? 'text-positive-text' : 'text-negative-text'
-                    )}
-                  >
-                    {formatCurrency(row.balance)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-1 text-caption text-text-secondary">
-                  <div>
-                    <span className="block">Entradas</span>
-                    <span className="font-medium tabular-nums text-positive-text">
-                      {formatCurrency(row.totalIncomes)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block">Gastos</span>
-                    <span className="font-medium tabular-nums text-negative-text">
-                      {formatCurrency(row.totalExpenses)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="block">Investido</span>
-                    <span className="font-medium tabular-nums text-accent-text">
-                      {formatCurrency(row.totalInvested)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-          {/* Summary row on mobile */}
-          <div className="bg-bg-muted px-4 py-3">
-            <div className="mb-1 flex items-center justify-between">
-              <span className="text-small font-bold">Total</span>
-              <span
-                className={cn(
-                  'text-small font-bold tabular-nums',
-                  finalBalance >= 0 ? 'text-positive-text' : 'text-negative-text'
-                )}
-              >
-                {formatCurrency(finalBalance)}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-1 text-caption text-text-secondary">
-              <div>
-                <span className="block">Entradas</span>
-                <span className="font-semibold tabular-nums text-positive-text">
-                  {formatCurrency(totalIncomes)}
-                </span>
-              </div>
-              <div>
-                <span className="block">Gastos</span>
-                <span className="font-semibold tabular-nums text-negative-text">
-                  {formatCurrency(totalExpensesYTD)}
-                </span>
-              </div>
-              <div>
-                <span className="block">Investido</span>
-                <span className="font-semibold tabular-nums text-accent-text">
-                  {formatCurrency(totalInvested)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PanoramaTable
+          overview={overview}
+          totalIncomes={totalIncomes}
+          totalExpensesYTD={totalExpensesYTD}
+          totalInvested={totalInvested}
+          finalBalance={finalBalance}
+        />
       </Card>
 
       {/* Section 2 — Expenses by group chart */}

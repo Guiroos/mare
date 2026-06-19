@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import { toggleFixedExpensePaid, deleteFixedExpense } from '@/lib/actions/transactions'
 import { FixedExpenseEditButton } from './FixedExpenseEditDialog'
 import { TxList } from '@/components/ui/tx-list'
@@ -153,7 +153,7 @@ function FixedExpenseRow({
             e.paid ? 'text-text-tertiary' : 'text-negative-text'
           )}
         >
-          {formatCurrency(Number(e.amount))}
+          <SensitiveAmount value={Number(e.amount)} />
         </span>
         {!isViaFatura && (
           <DueBadge

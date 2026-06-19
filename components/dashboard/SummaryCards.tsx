@@ -1,4 +1,6 @@
-import { formatCurrency } from '@/lib/utils/currency'
+'use client'
+
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 
 type Summary = {
   totalIncomes: number
@@ -23,7 +25,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
     >
       {/* Watermark waves */}
       <svg
-        className="pointer-events-none absolute bottom-[-24px] right-[-24px] h-24 w-40 opacity-10"
+        className="pointer-events-none absolute -bottom-6 -right-6 h-24 w-40 opacity-10"
         viewBox="0 0 160 100"
         fill="none"
         aria-hidden
@@ -33,29 +35,31 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       </svg>
 
       {/* Label */}
-      <p className="text-label uppercase opacity-70">Saldo do Mês</p>
+      <p className="text-label opacity-70">Saldo do Mês</p>
 
       {/* Balance amount */}
-      <p className="mb-5 mt-1.5 text-hero tabular-nums">{formatCurrency(balance)}</p>
+      <p className="mb-5 mt-1.5 text-hero tabular-nums">
+        <SensitiveAmount value={balance} />
+      </p>
 
       {/* Incomes / Expenses / Invested */}
       <div className="flex flex-wrap gap-x-8 gap-y-0 border-t border-white/15 pt-4 lg:flex-nowrap">
         <div className="flex flex-col gap-0.5">
-          <span className="text-label uppercase opacity-60">Entradas</span>
+          <span className="text-label opacity-60">Entradas</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
-            + {formatCurrency(totalIncomes)}
+            + <SensitiveAmount value={totalIncomes} />
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-label uppercase opacity-60">Gastos</span>
+          <span className="text-label opacity-60">Gastos</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
-            − {formatCurrency(totalExpenses)}
+            − <SensitiveAmount value={totalExpenses} />
           </span>
         </div>
         <div className="mt-3 flex w-full items-center justify-between border-t border-white/10 pt-3 lg:ml-auto lg:mt-0 lg:w-auto lg:flex-col lg:items-end lg:justify-start lg:border-0 lg:pt-0">
-          <span className="text-label uppercase opacity-60">Investido</span>
+          <span className="text-label opacity-60">Investido</span>
           <span className="text-body font-semibold tabular-nums tracking-tight opacity-85">
-            {formatCurrency(totalInvested)}
+            <SensitiveAmount value={totalInvested} />
           </span>
         </div>
       </div>
@@ -64,14 +68,14 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       {totalBudget > 0 && (
         <div className="mt-4">
           <div className="mb-1.5 flex items-start justify-between gap-2">
-            <span className="text-label uppercase opacity-65">Orçamento utilizado</span>
+            <span className="text-label opacity-65">Orçamento utilizado</span>
             <div className="flex-shrink-0 text-right">
               <span className="text-caption font-semibold tabular-nums opacity-90">
                 {Math.round(budgetPct)}%
               </span>
               <span className="block text-caption tabular-nums opacity-70 lg:inline">
                 {' '}
-                · {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
+                · <SensitiveAmount value={totalSpent} /> / <SensitiveAmount value={totalBudget} />
               </span>
             </div>
           </div>

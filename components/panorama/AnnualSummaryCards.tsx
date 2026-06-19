@@ -1,8 +1,11 @@
+'use client'
+
 import { ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils/cn'
-import { formatCurrency, formatCurrencyShort } from '@/lib/utils/currency'
+import { formatCurrencyShort } from '@/lib/utils/currency'
 import { currentYearMonth } from '@/lib/utils/date'
+import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import { OverviewMonth } from '@/lib/queries/panorama'
 
 interface Props {
@@ -24,6 +27,7 @@ interface MetricCardProps {
 }
 
 function MetricCard({ label, value, pct, variant, accentClass, year, footer }: MetricCardProps) {
+  const { isPrivate } = usePrivacyMode()
   return (
     <div
       className={cn(
@@ -32,7 +36,9 @@ function MetricCard({ label, value, pct, variant, accentClass, year, footer }: M
       )}
     >
       <p className="text-caption text-text-secondary">{label}</p>
-      <p className="mt-2 text-amount tabular-nums">{formatCurrency(value)}</p>
+      <p className="mt-2 text-amount tabular-nums">
+        <SensitiveAmount value={value} />
+      </p>
       {pct !== null && (
         <div className="mt-3 flex items-center gap-2">
           <Badge variant={variant} size="sm" className="tabular-nums">
@@ -42,7 +48,7 @@ function MetricCard({ label, value, pct, variant, accentClass, year, footer }: M
           <span className="text-caption text-text-tertiary">vs. {year - 1}</span>
         </div>
       )}
-      <p className="mt-3 text-caption text-text-tertiary">{footer}</p>
+      <p className="mt-3 text-caption text-text-tertiary">{isPrivate ? '—' : footer}</p>
     </div>
   )
 }
@@ -59,6 +65,8 @@ export function AnnualSummaryCards({
   totalIncomes,
   totalInvested,
 }: Props) {
+  const { isPrivate } = usePrivacyMode()
+
   // Meses já ocorridos: determina por data, não por presença de receita.
   // Filtrar por totalIncomes > 0 quebra quando não há receitas no ano (só parcelas).
   const nowYearMonth = currentYearMonth()
@@ -122,7 +130,9 @@ export function AnnualSummaryCards({
         </svg>
         <div className="relative p-5">
           <p className="text-label opacity-70">Saldo do Ano</p>
-          <p className="mt-2 text-hero tabular-nums">{formatCurrency(balance)}</p>
+          <p className="mt-2 text-hero tabular-nums">
+            <SensitiveAmount value={balance} />
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {balanceChangePct !== null && (
               <span
@@ -136,7 +146,9 @@ export function AnnualSummaryCards({
                 {Math.abs(Math.round(balanceChangePct))}% vs. {year - 1}
               </span>
             )}
-            <span className="text-label tabular-nums opacity-70">{taxaPoupanca}% poupado</span>
+            <span className="text-label tabular-nums opacity-70">
+              {isPrivate ? '—' : `${taxaPoupanca}% poupado`}
+            </span>
           </div>
         </div>
       </div>

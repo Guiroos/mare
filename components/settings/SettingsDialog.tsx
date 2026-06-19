@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Segment, SegmentOption } from '@/components/ui/segment'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { resetAccount } from '@/lib/actions/reset-account'
+import { usePrivacyMode } from '@/components/providers/PrivacyMode'
+import { Switch } from '@/components/ui/switch'
 
 interface SettingsDialogProps {
   open: boolean
@@ -26,6 +28,7 @@ const THEME_OPTIONS: SegmentOption[] = [
 function SettingsContent({ onClose }: { onClose: () => void }) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const { isPrivate, toggle } = usePrivacyMode()
   const [isPending, startTransition] = useTransition()
   const [confirming, setConfirming] = useState(false)
 
@@ -53,6 +56,14 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
           onChange={(v) => setTheme(v)}
           className="w-full"
         />
+      </div>
+
+      <div>
+        <p className="mb-1 text-small font-semibold text-text-primary">Privacidade</p>
+        <p className="mb-3 text-small text-text-secondary">
+          Oculta valores monetários nas páginas financeiras.
+        </p>
+        <Switch label="Modo privado" checked={isPrivate} onChange={toggle} />
       </div>
 
       <div>

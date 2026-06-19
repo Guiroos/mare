@@ -110,6 +110,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 - Panorama e dashboard compartilham as mesmas fontes: `getAnnualOverview` soma `transactions` **e** `fixedExpenses` para despesas mensais — toda action com `revalidatePath('/dashboard')` por dado financeiro (incomes, transactions, fixedExpenses, investments, withdrawals) deve também chamar `revalidatePath('/panorama')`; exceção: budget overrides em `categories.ts` (panorama exibe amounts, não orçamentos)
 - Feed cross-table por data: `fixedExpenses` não têm coluna `date` — buscar por `inArray(referenceMonth, referenceMonthsInRange(de, ate))` e JS-filtrar o date computado (`referenceMonth + dueDay - 1`) para excluir itens cujo `dueDay` os coloca fora do range exato
+- `'use server'` inline em body de função dentro de arquivo `'use client'` é inválido — Next.js não suporta server actions definidas inline em Client Components; definir em arquivo separado com `'use server'` no topo e importar
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
@@ -125,6 +126,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Input de busca que dispara `router.push`: usar `localQ` state para responsividade imediata + `useRef<ReturnType<typeof setTimeout>>` + `clearTimeout` + delay 400ms antes de chamar `navigate({ q: value })` — evita roundtrips excessivos ao servidor
 - `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
 - `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
+- Privacy mode: `SensitiveAmount` (mascara valor), `PrivacyToggle` (botão de olho) e `usePrivacyMode()` (hook com `mask(value)`) estão em `@/components/providers/PrivacyMode` — importar os três ao adicionar privacy a qualquer nova página
 
 **Playwright MCP:**
 - `<LoginButton>` renderiza duas vezes (mobile + desktop) — filtrar com `offsetParent !== null` no `browser_evaluate`

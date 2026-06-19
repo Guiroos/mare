@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import { deleteIncome } from '@/lib/actions/incomes'
 import { IncomeEditButton } from './IncomeEditDialog'
 import { TxList } from '@/components/ui/tx-list'
@@ -30,7 +30,7 @@ function IncomeRow({ income }: { income: Income }) {
 
       {/* Amount */}
       <span className="flex-shrink-0 text-body font-semibold tabular-nums text-positive-text">
-        + {formatCurrency(Number(income.amount))}
+        + <SensitiveAmount value={Number(income.amount)} />
       </span>
 
       <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteIncome(income.id)} />

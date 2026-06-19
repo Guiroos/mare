@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Archive, ArchiveRestore } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import {
   formatMonthName,
   formatMonthAbbr,
@@ -198,13 +198,13 @@ export function InvestmentTypeCard({ balance }: Props) {
             <span>
               Aportes{' '}
               <strong className="font-semibold tabular-nums text-text-primary">
-                {formatCurrency(totalAmount)}
+                <SensitiveAmount value={totalAmount} />
               </strong>
             </span>
             <span>
               Rendimentos{' '}
               <strong className="font-semibold tabular-nums text-text-primary">
-                {formatCurrency(totalYield)}
+                <SensitiveAmount value={totalYield} />
               </strong>
             </span>
             {yieldPct !== null && (
@@ -221,7 +221,9 @@ export function InvestmentTypeCard({ balance }: Props) {
         {/* Balance */}
         <div className="flex flex-col items-end gap-0.5">
           <span className="text-label text-text-tertiary">Saldo atual</span>
-          <span className="text-h2 tabular-nums">{formatCurrency(balance.currentBalance)}</span>
+          <span className="text-h2 tabular-nums">
+            <SensitiveAmount value={balance.currentBalance} />
+          </span>
         </div>
 
         {/* Actions */}
@@ -285,7 +287,7 @@ export function InvestmentTypeCard({ balance }: Props) {
                   </td>
                   <td className="whitespace-nowrap px-5 py-2.5 text-right text-small tabular-nums">
                     {entry.amount !== null ? (
-                      formatCurrency(entry.amount)
+                      <SensitiveAmount value={entry.amount} />
                     ) : (
                       <span className="text-text-tertiary">—</span>
                     )}
@@ -293,7 +295,7 @@ export function InvestmentTypeCard({ balance }: Props) {
                   <td className="whitespace-nowrap px-5 py-2.5 text-right text-small tabular-nums">
                     {entry.yieldAmount !== null ? (
                       <span className="font-semibold text-positive-text">
-                        + {formatCurrency(entry.yieldAmount)}
+                        + <SensitiveAmount value={entry.yieldAmount} />
                       </span>
                     ) : isPending ? (
                       <span className="font-semibold text-warning-text">pendente</span>
@@ -375,7 +377,7 @@ export function InvestmentTypeCard({ balance }: Props) {
             <span>
               Média aporte{' '}
               <strong className="font-semibold tabular-nums text-text-primary">
-                {formatCurrency(avgAporte)}
+                <SensitiveAmount value={avgAporte} />
               </strong>
             </span>
           )}
@@ -383,7 +385,7 @@ export function InvestmentTypeCard({ balance }: Props) {
             <span>
               Média rendim.{' '}
               <strong className="font-semibold tabular-nums text-text-primary">
-                {formatCurrency(avgYield)}
+                <SensitiveAmount value={avgYield} />
               </strong>
             </span>
           )}
