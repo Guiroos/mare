@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
-import { eq, and, sum, asc, gte, count, sql } from 'drizzle-orm'
+import { eq, and, asc, gte, count } from 'drizzle-orm'
 import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 export async function getInvestmentTypes(userId: string) {
   return db.query.investmentTypes.findMany({
@@ -16,6 +18,8 @@ export async function getInvestmentBalances(
   { showArchived = false }: { showArchived?: boolean } = {}
 ) {
   const currentRefMonth = currentReferenceMonth()
+  const dek = await getDekForUser(userId)
+
   const types = await db.query.investmentTypes.findMany({
     where: and(eq(investmentTypes.userId, userId), eq(investmentTypes.archived, showArchived)),
     orderBy: asc(investmentTypes.name),
@@ -23,35 +27,34 @@ export async function getInvestmentBalances(
 
   const results = await Promise.all(
     types.map(async (type) => {
-      const [amountResult, withdrawalResult, allEntries] = await Promise.all([
-        db
-          .select({
-            totalAmount: sum(investments.amount),
-            totalYield: sum(investments.yieldAmount),
-          })
-          .from(investments)
-          .where(and(eq(investments.userId, userId), eq(investments.investmentTypeId, type.id))),
-        db
-          .select({
-            totalWithdrawn: sql<string>`coalesce(sum(${investmentWithdrawals.amount} + coalesce(${investmentWithdrawals.taxAmount}, 0)), 0)`,
-          })
-          .from(investmentWithdrawals)
-          .where(
-            and(
-              eq(investmentWithdrawals.userId, userId),
-              eq(investmentWithdrawals.investmentTypeId, type.id)
-            )
-          ),
+      const [investmentRows, withdrawalRows] = await Promise.all([
         db.query.investments.findMany({
           where: and(eq(investments.userId, userId), eq(investments.investmentTypeId, type.id)),
         }),
+        db.query.investmentWithdrawals.findMany({
+          where: and(
+            eq(investmentWithdrawals.userId, userId),
+            eq(investmentWithdrawals.investmentTypeId, type.id)
+          ),
+        }),
       ])
 
-      const totalAmount = Number(amountResult[0]?.totalAmount ?? 0)
-      const totalYield = Number(amountResult[0]?.totalYield ?? 0)
-      const totalWithdrawn = Number(withdrawalResult[0]?.totalWithdrawn ?? 0)
+      const totalAmount = investmentRows.reduce(
+        (acc, r) => acc + toAmount(decryptOptional(r.amount, dek)),
+        0
+      )
+      const totalYield = investmentRows.reduce(
+        (acc, r) => acc + toAmount(decryptOptional(r.yieldAmount, dek)),
+        0
+      )
+      const totalWithdrawn = withdrawalRows.reduce(
+        (acc, r) =>
+          acc + toAmount(decryptField(r.amount, dek)) + toAmount(decryptOptional(r.taxAmount, dek)),
+        0
+      )
       const currentBalance = totalAmount + totalYield - totalWithdrawn
-      const pendingEntry = allEntries.find(
+
+      const pendingEntry = investmentRows.find(
         (entry) =>
           entry.referenceMonth === currentRefMonth &&
           entry.amount !== null &&
@@ -73,14 +76,15 @@ export async function getInvestmentBalances(
         currentBalance,
         pendingYield,
         pendingReferenceMonth: pendingEntry?.referenceMonth ?? null,
-        entries: allEntries
+        entries: investmentRows
           .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))
           .map((e) => ({
             id: e.id,
             referenceMonth: e.referenceMonth,
-            amount: e.amount !== null ? Number(e.amount) : null,
-            yieldAmount: e.yieldAmount !== null ? Number(e.yieldAmount) : null,
-            notes: e.notes,
+            amount: e.amount !== null ? toAmount(decryptOptional(e.amount, dek)) : null,
+            yieldAmount:
+              e.yieldAmount !== null ? toAmount(decryptOptional(e.yieldAmount, dek)) : null,
+            notes: e.notes !== null ? decryptOptional(e.notes, dek) : null,
             excludeFromCashFlow: e.excludeFromCashFlow,
           })),
       }
@@ -119,6 +123,7 @@ export async function getMaturityAlerts(userId: string) {
 export type MaturityAlert = Awaited<ReturnType<typeof getMaturityAlerts>>[number]
 
 export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
+  const dek = await getDekForUser(userId)
   const rows = await db.query.investments.findMany({
     where: and(eq(investments.userId, userId), eq(investments.investmentTypeId, investmentTypeId)),
     orderBy: asc(investments.referenceMonth),
@@ -127,14 +132,15 @@ export async function getInvestmentHistory(userId: string, investmentTypeId: str
   return rows.map((r) => ({
     id: r.id,
     referenceMonth: r.referenceMonth,
-    amount: r.amount !== null ? Number(r.amount) : null,
-    yieldAmount: r.yieldAmount !== null ? Number(r.yieldAmount) : null,
-    notes: r.notes,
+    amount: r.amount !== null ? toAmount(decryptOptional(r.amount, dek)) : null,
+    yieldAmount: r.yieldAmount !== null ? toAmount(decryptOptional(r.yieldAmount, dek)) : null,
+    notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
   }))
 }
 
 export async function getInvestmentWithdrawals(userId: string) {
   const firstVisibleMonth = pastNMonths(6)[0]
+  const dek = await getDekForUser(userId)
   const rows = await db.query.investmentWithdrawals.findMany({
     where: and(
       eq(investmentWithdrawals.userId, userId),
@@ -148,11 +154,11 @@ export async function getInvestmentWithdrawals(userId: string) {
     id: r.id,
     investmentTypeId: r.investmentTypeId,
     typeName: r.investmentType.name,
-    amount: toAmount(r.amount),
-    taxAmount: r.taxAmount !== null ? Number(r.taxAmount) : null,
+    amount: toAmount(decryptField(r.amount, dek)),
+    taxAmount: r.taxAmount !== null ? toAmount(decryptOptional(r.taxAmount, dek)) : null,
     date: r.date,
     destination: r.destination,
-    notes: r.notes,
+    notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
   }))
 }
 
@@ -194,6 +200,7 @@ export function buildPatrimonyTimeline(
 }
 
 export async function getPatrimonyTimeline(userId: string) {
+  const dek = await getDekForUser(userId)
   const [allInvestments, allWithdrawals] = await Promise.all([
     db.query.investments.findMany({
       where: eq(investments.userId, userId),
@@ -204,5 +211,19 @@ export async function getPatrimonyTimeline(userId: string) {
       orderBy: asc(investmentWithdrawals.date),
     }),
   ])
-  return buildPatrimonyTimeline(allInvestments, allWithdrawals)
+
+  // Decrypt before passing to buildPatrimonyTimeline
+  const decryptedInvestments = allInvestments.map((inv) => ({
+    referenceMonth: inv.referenceMonth,
+    amount: inv.amount !== null ? decryptOptional(inv.amount, dek) : null,
+    yieldAmount: inv.yieldAmount !== null ? decryptOptional(inv.yieldAmount, dek) : null,
+  }))
+
+  const decryptedWithdrawals = allWithdrawals.map((wd) => ({
+    date: wd.date,
+    amount: decryptField(wd.amount, dek),
+    taxAmount: wd.taxAmount !== null ? decryptOptional(wd.taxAmount, dek) : null,
+  }))
+
+  return buildPatrimonyTimeline(decryptedInvestments, decryptedWithdrawals)
 }

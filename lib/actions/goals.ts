@@ -11,6 +11,8 @@ import {
   addContributionActionSchema,
   updateContributionActionSchema,
 } from '@/lib/validations/goals'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField } from '@/lib/crypto/fields'
 
 export type UpsertGoalInput = {
   name: string
@@ -65,10 +67,12 @@ export async function addGoalContribution(data: AddContributionInput) {
 
   await assertOwnsGoal(userId, data.goalId)
 
+  const dek = await getDekForUser(userId)
+
   await db.insert(goalContributions).values({
     goalId: data.goalId,
     userId,
-    amount: data.amount,
+    amount: encryptField(data.amount, dek),
     referenceMonth: data.referenceMonth,
     source: 'manual',
   })
@@ -85,9 +89,11 @@ export async function updateGoalContribution(data: UpdateContributionInput) {
   const userId = await requireUserId()
   updateContributionActionSchema.parse(data)
 
+  const dek = await getDekForUser(userId)
+
   await db
     .update(goalContributions)
-    .set({ amount: data.amount, referenceMonth: data.referenceMonth })
+    .set({ amount: encryptField(data.amount, dek), referenceMonth: data.referenceMonth })
     .where(and(eq(goalContributions.id, data.id), eq(goalContributions.userId, userId)))
 
   revalidatePath('/metas')

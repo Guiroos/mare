@@ -1,8 +1,10 @@
 import { db } from '@/lib/db'
 import { goals, investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
-import { eq, and, sum, asc, inArray } from 'drizzle-orm'
+import { eq, and, asc, inArray } from 'drizzle-orm'
 import { addMonths, format } from 'date-fns'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 export type GoalWithProgress = {
   id: string
@@ -23,6 +25,8 @@ export type GoalWithProgress = {
 }
 
 export async function getGoalsWithProgress(userId: string): Promise<GoalWithProgress[]> {
+  const dek = await getDekForUser(userId)
+
   const allGoals = await db.query.goals.findMany({
     where: eq(goals.userId, userId),
     with: {
@@ -36,41 +40,26 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
 
   if (allGoals.length === 0) return []
 
-  // Bulk-fetch investment data for all goals that reference an investmentType (3 queries total)
+  // Bulk-fetch investment data for all goals that reference an investmentType
   const investmentTypeIds = allGoals
     .map((g) => g.investmentTypeId)
     .filter((id): id is string => id !== null)
 
-  const [bulkSums, bulkWithdrawals, bulkRecent] =
+  const [bulkInvestments, bulkWithdrawals, bulkRecent] =
     investmentTypeIds.length > 0
       ? await Promise.all([
-          db
-            .select({
-              typeId: investments.investmentTypeId,
-              totalAmount: sum(investments.amount),
-              totalYield: sum(investments.yieldAmount),
-            })
-            .from(investments)
-            .where(
-              and(
-                eq(investments.userId, userId),
-                inArray(investments.investmentTypeId, investmentTypeIds)
-              )
-            )
-            .groupBy(investments.investmentTypeId),
-          db
-            .select({
-              typeId: investmentWithdrawals.investmentTypeId,
-              totalWithdrawn: sum(investmentWithdrawals.amount),
-            })
-            .from(investmentWithdrawals)
-            .where(
-              and(
-                eq(investmentWithdrawals.userId, userId),
-                inArray(investmentWithdrawals.investmentTypeId, investmentTypeIds)
-              )
-            )
-            .groupBy(investmentWithdrawals.investmentTypeId),
+          db.query.investments.findMany({
+            where: and(
+              eq(investments.userId, userId),
+              inArray(investments.investmentTypeId, investmentTypeIds)
+            ),
+          }),
+          db.query.investmentWithdrawals.findMany({
+            where: and(
+              eq(investmentWithdrawals.userId, userId),
+              inArray(investmentWithdrawals.investmentTypeId, investmentTypeIds)
+            ),
+          }),
           db.query.investments.findMany({
             where: and(
               eq(investments.userId, userId),
@@ -81,9 +70,25 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
         ])
       : [[], [], []]
 
-  // Build lookup maps for O(1) access per goal
-  const sumsMap = new Map(bulkSums.map((r) => [r.typeId, r]))
-  const withdrawalsMap = new Map(bulkWithdrawals.map((r) => [r.typeId, r]))
+  // Build per-type totals in JS after decryption
+  const amountsByType = new Map<string, { totalAmount: number; totalYield: number }>()
+  for (const inv of bulkInvestments) {
+    const prev = amountsByType.get(inv.investmentTypeId) ?? { totalAmount: 0, totalYield: 0 }
+    amountsByType.set(inv.investmentTypeId, {
+      totalAmount: prev.totalAmount + toAmount(decryptOptional(inv.amount, dek)),
+      totalYield: prev.totalYield + toAmount(decryptOptional(inv.yieldAmount, dek)),
+    })
+  }
+
+  const withdrawnByType = new Map<string, number>()
+  for (const wd of bulkWithdrawals) {
+    const prev = withdrawnByType.get(wd.investmentTypeId) ?? 0
+    withdrawnByType.set(
+      wd.investmentTypeId,
+      prev + toAmount(decryptField(wd.amount, dek)) + toAmount(decryptOptional(wd.taxAmount, dek))
+    )
+  }
+
   const recentByType = new Map<string, typeof bulkRecent>()
   for (const entry of bulkRecent) {
     const list = recentByType.get(entry.investmentTypeId) ?? []
@@ -97,18 +102,23 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
     let recentMonthlyAmounts: number[] = []
 
     if (goal.investmentTypeId) {
-      const s = sumsMap.get(goal.investmentTypeId)
-      const w = withdrawalsMap.get(goal.investmentTypeId)
+      const s = amountsByType.get(goal.investmentTypeId) ?? { totalAmount: 0, totalYield: 0 }
+      const totalWithdrawn = withdrawnByType.get(goal.investmentTypeId) ?? 0
       const last3 = recentByType.get(goal.investmentTypeId) ?? []
-      const totalAmount = toAmount(s?.totalAmount)
-      const totalYield = toAmount(s?.totalYield)
-      const totalWithdrawn = toAmount(w?.totalWithdrawn)
-      currentBalance = totalAmount + totalYield - totalWithdrawn
-      recentMonthlyAmounts = last3.map((i) => toAmount(i.amount) + toAmount(i.yieldAmount))
+      currentBalance = s.totalAmount + s.totalYield - totalWithdrawn
+      recentMonthlyAmounts = last3.map(
+        (i) =>
+          toAmount(decryptOptional(i.amount, dek)) + toAmount(decryptOptional(i.yieldAmount, dek))
+      )
     } else {
       // contributions are already fetched — compute in JS, no extra queries
-      currentBalance = goal.contributions.reduce((sum, c) => sum + toAmount(c.amount), 0)
-      recentMonthlyAmounts = goal.contributions.slice(0, 3).map((c) => toAmount(c.amount))
+      currentBalance = goal.contributions.reduce(
+        (sum, c) => sum + toAmount(decryptField(c.amount, dek)),
+        0
+      )
+      recentMonthlyAmounts = goal.contributions
+        .slice(0, 3)
+        .map((c) => toAmount(decryptField(c.amount, dek)))
     }
 
     const progress = targetAmount > 0 ? Math.min(100, (currentBalance / targetAmount) * 100) : 0
@@ -136,7 +146,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
       projectedCompletionYearMonth,
       contributions: goal.contributions.map((c) => ({
         id: c.id,
-        amount: toAmount(c.amount),
+        amount: toAmount(decryptField(c.amount, dek)),
         referenceMonth: c.referenceMonth,
         source: c.source,
       })),
