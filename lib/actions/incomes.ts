@@ -6,6 +6,8 @@ import { incomes } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { createIncomeActionSchema, updateIncomeActionSchema } from '@/lib/validations/transactions'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional } from '@/lib/crypto/fields'
 
 export type CreateIncomeInput = {
   source: string
@@ -15,13 +17,15 @@ export type CreateIncomeInput = {
 
 export async function createIncome(data: CreateIncomeInput) {
   const userId = await requireUserId()
-  createIncomeActionSchema.parse(data)
+  const parsed = createIncomeActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
 
   await db.insert(incomes).values({
     userId,
-    source: data.source,
-    amount: data.amount,
-    referenceMonth: data.referenceMonth,
+    referenceMonth: parsed.referenceMonth,
+    source: encryptField(parsed.source, dek),
+    amount: encryptField(parsed.amount, dek),
+    investmentReturnCapital: encryptOptional(null, dek),
   })
 
   revalidatePath('/dashboard')
@@ -36,12 +40,16 @@ export type UpdateIncomeInput = {
 
 export async function updateIncome(data: UpdateIncomeInput) {
   const userId = await requireUserId()
-  updateIncomeActionSchema.parse(data)
+  const parsed = updateIncomeActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
 
   await db
     .update(incomes)
-    .set({ source: data.source, amount: data.amount })
-    .where(and(eq(incomes.id, data.id), eq(incomes.userId, userId)))
+    .set({
+      source: encryptField(parsed.source, dek),
+      amount: encryptField(parsed.amount, dek),
+    })
+    .where(and(eq(incomes.id, parsed.id), eq(incomes.userId, userId)))
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
