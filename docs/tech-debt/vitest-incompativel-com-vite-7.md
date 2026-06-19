@@ -1,58 +1,45 @@
-# Vitest incompatível com Vite 7 (ESM)
+# Vitest incompatível com Vite 7 (ESM) — RESOLVIDO
 
-## Problema
+## Problema original
 
-O Vitest 3.2.4 não consegue carregar o `vitest.config.ts` quando o Vite 7 está instalado,
-porque o `vitest/dist/config.cjs` tenta fazer `require()` de
-`vite/dist/node/index.js` — que no Vite 7 é um módulo ESM puro:
+O Vitest 3.2.4 não conseguia carregar o `vitest.config.ts` quando o Vite 7 está instalado,
+porque o `vitest/dist/config.cjs` tentava fazer `require()` de
+`vite/dist/node/index.js` — que no Vite 7 é um módulo ESM puro.
 
-```
-Error [ERR_REQUIRE_ESM]: require() of ES Module
-/node_modules/vite/dist/node/index.js from
-/node_modules/vitest/dist/config.cjs not supported.
-```
+O Vite 7.x foi introduzido como dependência transitiva do Next.js 16.
 
-O Vite 7.x foi introduzido como dependência transitiva do Next.js 16. O `package.json` do
-projeto não tem `"type": "module"`, o que impede a resolução automática do ESM.
+## Solução aplicada
 
-## Impacto
+**Problema raiz em camadas:**
 
-- `npm test` falha com startup error antes de executar qualquer teste.
-- O hook de pre-push do Husky bloqueia `git push` (workaround: `--no-verify`).
-- Cobertura de testes unitários fica desabilitada no ambiente local.
+1. `vitest/dist/config.cjs` usa `require()` internamente para carregar dependências (ex: `std-env`).
+2. No Vitest 4.1.9, `std-env@4.1.0` é ESM-only — o `require()` falha.
+3. Vite 7 carrega `vitest.config.ts` em modo CJS quando não há `"type": "module"` no projeto.
 
-## Ocorrências conhecidas
+**Fix:**
 
-| Arquivo | Contexto |
-| ------- | -------- |
-| `vitest.config.ts` | Configuração do Vitest — falha ao ser bundleada pelo Vite 7 em modo CJS |
-| `.husky/pre-push` | Executa `npm test` antes do push — falha em cascata |
+- Renomear os arquivos de config para `.mts`: força Vite 7 a usar `import()` ESM ao
+  carregar a config, evitando o `require()` de módulos ESM.
+- `__dirname` não existe em ESM — substituído por `import.meta.dirname` (Node >=21.2).
+- `vi.useFakeTimers()` sem parâmetros no Vitest 4.x faz fake de `setTimeout`/`setImmediate`
+  internos do Vitest, travando `afterEach`. Corrigido com `{ toFake: ['Date'] }` nos testes
+  que precisam somente de controle de `Date`.
 
-## Por que não resolvemos agora
+**Pacotes atualizados (versões fixas):**
 
-O problema apareceu ao final de uma sessão de desenvolvimento sem tempo para investigar
-a combinação correta de versões. Os testes unitários existentes são poucos (apenas
-`privacy-mode.test.ts` e afins em `__tests__/unit/`) e a verificação pode ser feita via
-lint + typecheck no curto prazo.
+| Pacote | Antes | Depois |
+| ------ | ----- | ------ |
+| `vitest` | 3.2.4 | 4.1.9 |
+| `@vitest/coverage-v8` | 3.2.4 | 4.1.9 |
+| `@vitejs/plugin-react` | 4.7.0 | 5.2.0 |
 
-## Critério para revisitar
+**Arquivos alterados:**
 
-Antes de adicionar novos testes unitários ou quando o hook de pre-push voltar a atrapalhar
-o fluxo de trabalho.
+- `vitest.config.ts` → `vitest.config.mts`
+- `vitest.integration.config.ts` → `vitest.integration.config.mts`
+- `package.json`: script `test:integration` aponta para `.mts`; versões fixas das devDeps acima
+- `__tests__/unit/date.test.ts`: todos os `vi.useFakeTimers()` → `vi.useFakeTimers({ toFake: ['Date'] })`
 
-## Solução provável
+## Status
 
-Atualizar o Vitest para a versão que adiciona suporte explícito ao Vite 7 (verificar
-`vitest` changelog por release com `peerDependency: vite >= 7`), ou fixar a versão do Vite
-em `package.json` para a última 6.x compatível com Vitest 3.2.x:
-
-```bash
-# Opção A — atualizar Vitest
-npm install --save-dev vitest@latest
-
-# Opção B — fixar Vite em versão compatível
-npm install --save-dev vite@^6
-```
-
-Após a correção, remover o `--no-verify` do fluxo e validar que `npm test` passa
-localmente antes de qualquer push.
+Resolvido. `npm test` passa com 303 testes. Hook de pre-push do Husky funciona normalmente.

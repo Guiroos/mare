@@ -8,10 +8,10 @@ export default defineConfig({
     setupFiles: ['__tests__/integration/env-setup.ts'],
     include: ['__tests__/integration/**/*.test.ts'],
     pool: 'forks',
-    poolOptions: { forks: { singleFork: false, maxForks: 4 } },
+    maxWorkers: 4,
     testTimeout: 30000,
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, '.') },
+    alias: { '@': path.resolve(import.meta.dirname, '.') },
   },
 })

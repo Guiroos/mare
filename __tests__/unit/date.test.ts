@@ -179,19 +179,19 @@ describe('daysAgo', () => {
   })
 
   it('returns 0 for today', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(daysAgo('2025-03-15')).toBe(0)
   })
 
   it('returns 1 for yesterday', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(daysAgo('2025-03-14')).toBe(1)
   })
 
   it('returns 30 for 30 days ago', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(daysAgo('2025-02-13')).toBe(30)
   })
@@ -203,13 +203,13 @@ describe('currentYearMonth', () => {
   })
 
   it('returns current date as YYYY-MM', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(currentYearMonth()).toBe('2025-03')
   })
 
   it('handles year boundary', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2024-12-31T12:00:00'))
     expect(currentYearMonth()).toBe('2024-12')
   })
@@ -221,13 +221,13 @@ describe('currentReferenceMonth', () => {
   })
 
   it('returns first day of current month as YYYY-MM-01', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(currentReferenceMonth()).toBe('2025-03-01')
   })
 
   it('is already the first day when called on the 1st', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-01T12:00:00'))
     expect(currentReferenceMonth()).toBe('2025-03-01')
   })
@@ -239,7 +239,7 @@ describe('currentYear', () => {
   })
 
   it('returns current year as number', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(currentYear()).toBe(2025)
   })
@@ -251,19 +251,19 @@ describe('todayParts', () => {
   })
 
   it('returns day, month, year as integers', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(todayParts()).toEqual({ day: 15, month: 3, year: 2025 })
   })
 
   it('month is 1-indexed (March = 3, not 2)', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-01T12:00:00'))
     expect(todayParts().month).toBe(3)
   })
 
   it('January is 1', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-01-20T12:00:00'))
     expect(todayParts()).toEqual({ day: 20, month: 1, year: 2025 })
   })
@@ -275,13 +275,13 @@ describe('todayISOString', () => {
   })
 
   it('returns today as YYYY-MM-DD', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(todayISOString()).toBe('2025-03-15')
   })
 
   it('pads single-digit day and month with zero', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-01-05T12:00:00'))
     expect(todayISOString()).toBe('2025-01-05')
   })
@@ -293,7 +293,7 @@ describe('pastNMonths', () => {
   })
 
   it('returns N months as YYYY-MM-01, oldest first, ending with current', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     const result = pastNMonths(3)
     expect(result).toHaveLength(3)
@@ -303,7 +303,7 @@ describe('pastNMonths', () => {
   })
 
   it('wraps across year boundary', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-02-01T12:00:00'))
     const result = pastNMonths(3)
     expect(result[0]).toBe('2024-12-01')
@@ -312,7 +312,7 @@ describe('pastNMonths', () => {
   })
 
   it('returns array with single element for n=1', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     const result = pastNMonths(1)
     expect(result).toHaveLength(1)
@@ -326,7 +326,7 @@ describe('futureNMonths', () => {
   })
 
   it('returns N months as YYYY-MM-01 starting from current month', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     const result = futureNMonths(3)
     expect(result).toHaveLength(3)
@@ -336,7 +336,7 @@ describe('futureNMonths', () => {
   })
 
   it('wraps across year boundary', () => {
-    vi.useFakeTimers()
+    vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-11-01T12:00:00'))
     const result = futureNMonths(3)
     expect(result[0]).toBe('2025-11-01')

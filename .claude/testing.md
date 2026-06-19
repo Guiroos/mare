@@ -4,10 +4,17 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 
 ---
 
+## Configuração do Vitest (4.x)
+
+- **Extensão `.mts` obrigatória nos configs**: quando o projeto não tem `"type": "module"`, Vite 7 carrega `vitest.config.ts` em modo CJS — quebra com deps ESM-only (ex: `std-env@4`); renomear para `vitest.config.mts` força Vite 7 a usar `import()` ESM e resolve o problema; mesmo vale para `vitest.integration.config.mts`
+- **`__dirname` não existe em arquivos `.mts`**: substituir por `import.meta.dirname` (disponível desde Node 21.2; projeto exige ≥22)
+- **`vi.useFakeTimers({ toFake: ['Date'] })` no Vitest 4.x**: `vi.useFakeTimers()` sem parâmetros faz fake de `setImmediate`/`process.nextTick` internos do Vitest, travando `afterEach` com timeout; quando só é preciso controlar `Date`, sempre passar `{ toFake: ['Date'] }`
+- **`poolOptions` removido no Vitest 4.x**: `poolOptions: { forks: { maxForks: N } }` não existe mais em `InlineConfig`; usar `maxWorkers: N` no topo de `test:` — o limite de branches do Neon continua sendo controlado via `maxWorkers: 4`
+
 ## Setup do neon-testing
 
 - **API atual**: `makeNeonTesting` importado de `neon-testing` (não `neonTestingSetup` de `neon-testing/vitest` — esse export não existe na versão ≥ 2.x)
-- **`neon-testing/vite` é ESM-only**: importar o plugin no `vitest.integration.config.ts` falha com `[plugin: externalize-deps] Failed to resolve "neon-testing/vite"` porque o bundler do projeto é CJS; substituir por `setupFiles` com `dotenv.config({ path: '.env.local' })` em `__tests__/integration/env-setup.ts`
+- **`neon-testing/vite` é ESM-only**: importar o plugin no `vitest.integration.config.mts` falha com `[plugin: externalize-deps] Failed to resolve "neon-testing/vite"` porque o bundler do projeto é CJS; substituir por `setupFiles` com `dotenv.config({ path: '.env.local' })` em `__tests__/integration/env-setup.ts`
 - **`autoCloseWebSockets: true` obrigatório**: quando usando `Pool` de `@neondatabase/serverless`, omitir essa opção faz o cleanup do branch falhar silenciosamente com conexões WebSocket abertas
 - **`parentBranchId` obrigatório**: sem ele, neon-testing clona do branch default do projeto (prod); sempre passar `NEON_PARENT_BRANCH_ID` apontando para o branch dev — o ID fica em console.neon.tech → Branches
 - **Branches são clones — sem migrations**: o branch de teste herda o schema completo do pai; nunca chamar `migrate()` nos testes
