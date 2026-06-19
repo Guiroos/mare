@@ -1,13 +1,26 @@
 import { db } from '@/lib/db'
 import { categoryGroups, monthlyBudgetOverrides, paymentAccounts } from '@/lib/db/schema'
 import { eq, and, gt } from 'drizzle-orm'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 export async function getCategoriesWithGroups(userId: string) {
-  return db.query.categoryGroups.findMany({
+  const dek = await getDekForUser(userId)
+  const groups = await db.query.categoryGroups.findMany({
     where: eq(categoryGroups.userId, userId),
     with: { categories: true },
     orderBy: [categoryGroups.sortOrder, categoryGroups.name],
   })
+
+  return groups.map((group) => ({
+    ...group,
+    name: decryptField(group.name, dek),
+    categories: group.categories.map((cat) => ({
+      ...cat,
+      name: decryptField(cat.name, dek),
+      defaultBudget: decryptOptional(cat.defaultBudget, dek),
+    })),
+  }))
 }
 
 export async function getPaymentAccounts(userId: string) {
@@ -39,6 +52,7 @@ export async function getCreditAccounts(
 }
 
 export async function getCategoriesWithBudgets(userId: string, referenceMonth: string) {
+  const dek = await getDekForUser(userId)
   const groups = await db.query.categoryGroups.findMany({
     where: eq(categoryGroups.userId, userId),
     with: {
@@ -55,12 +69,17 @@ export async function getCategoriesWithBudgets(userId: string, referenceMonth: s
 
   return groups.map((group) => ({
     id: group.id,
-    name: group.name,
+    name: decryptField(group.name, dek),
     categories: group.categories.map((cat) => ({
       id: cat.id,
-      name: cat.name,
-      defaultBudget: cat.defaultBudget,
-      override: cat.budgetOverrides[0] ?? null,
+      name: decryptField(cat.name, dek),
+      defaultBudget: decryptOptional(cat.defaultBudget, dek),
+      override: cat.budgetOverrides[0]
+        ? {
+            ...cat.budgetOverrides[0],
+            amount: decryptField(cat.budgetOverrides[0].amount, dek),
+          }
+        : null,
     })),
   }))
 }
