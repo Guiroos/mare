@@ -71,12 +71,7 @@ export function WithdrawalTable({
               <td className="px-5 py-2.5">
                 <div className="flex items-center gap-1">
                   <WithdrawalEditButton withdrawal={w} investmentTypes={investmentTypeOptions} />
-                  <DeleteButton
-                    onDelete={async () => {
-                      'use server'
-                      await deleteWithdrawal(w.id)
-                    }}
-                  />
+                  <DeleteButton onDelete={() => deleteWithdrawal(w.id)} />
                 </div>
               </td>
             </tr>
