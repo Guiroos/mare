@@ -289,7 +289,7 @@ git commit -m "feat(privacy): wire provider to layout and add settings toggle"
 **Interfaces:**
 - Consumes: `SensitiveAmount`, `SensitiveMoneyBadge`, `PrivacyToggle`, `usePrivacyMode` de `@/components/providers/PrivacyMode`
 
-- [ ] **Step 1: Converter SummaryCards para client + usar SensitiveAmount**
+- [x] **Step 1: Converter SummaryCards para client + usar SensitiveAmount**
 
 Em `components/dashboard/SummaryCards.tsx`, adicionar `'use client'` na primeira linha e importar `SensitiveAmount`:
 
@@ -348,7 +348,7 @@ Remover `import { formatCurrency }`. Substituir cada `formatCurrency(x)` pelo `<
 </span>
 ```
 
-- [ ] **Step 2: Usar SensitiveAmount em IncomeList**
+- [x] **Step 2: Usar SensitiveAmount em IncomeList**
 
 Em `components/dashboard/IncomeList.tsx`, importar `SensitiveAmount`:
 
@@ -369,7 +369,7 @@ Remover import de `formatCurrency`. Substituir:
 </span>
 ```
 
-- [ ] **Step 3: Usar SensitiveAmount em InvestmentList**
+- [x] **Step 3: Usar SensitiveAmount em InvestmentList**
 
 Em `components/dashboard/InvestmentList.tsx`, importar `SensitiveAmount` e remover `formatCurrency`:
 
@@ -399,7 +399,7 @@ Substituir (2 ocorrências):
 </span>
 ```
 
-- [ ] **Step 4: Usar SensitiveAmount em FixedExpenseList**
+- [x] **Step 4: Usar SensitiveAmount em FixedExpenseList**
 
 Em `components/dashboard/FixedExpenseList.tsx`, importar `SensitiveAmount` e remover `formatCurrency`. Substituir em linha 156:
 
@@ -410,7 +410,7 @@ Em `components/dashboard/FixedExpenseList.tsx`, importar `SensitiveAmount` e rem
 <SensitiveAmount value={Number(e.amount)} />
 ```
 
-- [ ] **Step 5: Usar SensitiveAmount em TransactionList**
+- [x] **Step 5: Usar SensitiveAmount em TransactionList**
 
 Em `components/dashboard/TransactionList.tsx`, importar `SensitiveAmount` e `usePrivacyMode`. O `formatCurrency` ainda é usado para totais de string; manter o import mas adicionar o novo:
 
@@ -469,7 +469,7 @@ function AccountGroupedView({ ... }) {
 </span>
 ```
 
-- [ ] **Step 6: Atualizar dashboard/page.tsx — PrivacyToggle + SensitiveMoneyBadge**
+- [x] **Step 6: Atualizar dashboard/page.tsx — PrivacyToggle + SensitiveMoneyBadge**
 
 Em `app/(app)/dashboard/page.tsx`, importar:
 
@@ -520,7 +520,7 @@ action={<SensitiveMoneyBadge value={totalInvested} variant="muted" />}
 
 Remover o import de `Badge` e `formatCurrency` de `dashboard/page.tsx` se não forem mais usados em outros lugares (verificar).
 
-- [ ] **Step 7: Teste manual**
+- [x] **Step 7: Teste manual**
 
 ```bash
 npm run dev
@@ -532,7 +532,7 @@ npm run dev
 4. Desativar → valores voltam
 5. Recarregar → estado persiste
 
-- [ ] **Step 8: Rodar lint e typecheck**
+- [x] **Step 8: Rodar lint e typecheck**
 
 ```bash
 npm run lint && npm run typecheck
@@ -540,7 +540,7 @@ npm run lint && npm run typecheck
 
 Esperado: sem erros.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add components/dashboard/SummaryCards.tsx components/dashboard/IncomeList.tsx \
