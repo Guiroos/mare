@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { RegistrationDialogProvider } from '@/components/providers/RegistrationDialog'
+import { PrivacyModeProvider } from '@/components/providers/PrivacyMode'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -14,17 +15,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = !!process.env.ADMIN_EMAIL && session.user?.email === process.env.ADMIN_EMAIL
 
   return (
-    <RegistrationDialogProvider>
-      <div className="min-h-screen bg-bg-base">
-        <Sidebar
-          user={{ name: session.user?.name, email: session.user?.email }}
-          isAdmin={isAdmin}
-        />
-        <main className="pb-20 lg:pb-0 lg:pl-60">
-          <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
-        </main>
-        <BottomNav />
-      </div>
-    </RegistrationDialogProvider>
+    <PrivacyModeProvider>
+      <RegistrationDialogProvider>
+        <div className="min-h-screen bg-bg-base">
+          <Sidebar
+            user={{ name: session.user?.name, email: session.user?.email }}
+            isAdmin={isAdmin}
+          />
+          <main className="pb-20 lg:pb-0 lg:pl-60">
+            <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
+          </main>
+          <BottomNav />
+        </div>
+      </RegistrationDialogProvider>
+    </PrivacyModeProvider>
   )
 }
