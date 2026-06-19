@@ -6,6 +6,8 @@ import { people, debtorEntries, incomes, transactions } from '@/lib/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsPerson, assertOwnsDebtEntry } from '@/lib/auth/ownership'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional } from '@/lib/crypto/fields'
 import {
   personSchema,
   updatePersonActionSchema,
@@ -28,12 +30,14 @@ export async function createPerson(data: CreatePersonInput) {
   const userId = await requireUserId()
   personSchema.parse(data)
 
+  const dek = await getDekForUser(userId)
+
   await db.insert(people).values({
     userId,
-    name: data.name.trim(),
-    email: data.email?.trim() || null,
-    phone: data.phone?.trim() || null,
-    notes: data.notes?.trim() || null,
+    name: encryptField(data.name.trim(), dek),
+    email: encryptOptional(data.email?.trim() || null, dek),
+    phone: encryptOptional(data.phone?.trim() || null, dek),
+    notes: encryptOptional(data.notes?.trim() || null, dek),
   })
 
   revalidatePath('/devedores')
@@ -46,13 +50,15 @@ export async function updatePerson(data: UpdatePersonInput) {
   updatePersonActionSchema.parse(data)
   await assertOwnsPerson(userId, data.id)
 
+  const dek = await getDekForUser(userId)
+
   await db
     .update(people)
     .set({
-      name: data.name.trim(),
-      email: data.email?.trim() || null,
-      phone: data.phone?.trim() || null,
-      notes: data.notes?.trim() || null,
+      name: encryptField(data.name.trim(), dek),
+      email: encryptOptional(data.email?.trim() || null, dek),
+      phone: encryptOptional(data.phone?.trim() || null, dek),
+      notes: encryptOptional(data.notes?.trim() || null, dek),
       updatedAt: new Date(),
     })
     .where(and(eq(people.id, data.id), eq(people.userId, userId)))
@@ -109,16 +115,18 @@ export async function createDebtCharge(data: CreateDebtChargeInput) {
   debtChargeSchema.parse(data)
   await assertOwnsPerson(userId, data.personId)
 
+  const dek = await getDekForUser(userId)
+
   await db.insert(debtorEntries).values({
     userId,
     personId: data.personId,
     type: 'charge',
     status: 'open',
-    amount: data.amount,
-    description: data.description.trim(),
+    amount: encryptField(String(data.amount), dek),
+    description: encryptField(data.description.trim(), dek),
     entryDate: data.entryDate,
     referenceMonth: entryDateToReferenceMonth(data.entryDate),
-    notes: data.notes?.trim() || null,
+    notes: encryptOptional(data.notes?.trim() || null, dek),
   })
 
   revalidatePath('/devedores')
@@ -133,11 +141,12 @@ export async function createDebtChargeFromTransaction(data: CreateDebtChargeFrom
   const userId = await requireUserId()
   debtChargeFromTransactionSchema.parse(data)
 
-  const [tx] = await Promise.all([
+  const [tx, dek] = await Promise.all([
     db.query.transactions.findFirst({
       where: and(eq(transactions.id, data.sourceTransactionId), eq(transactions.userId, userId)),
       columns: { id: true },
     }),
+    getDekForUser(userId),
     assertOwnsPerson(userId, data.personId),
   ])
 
@@ -148,11 +157,11 @@ export async function createDebtChargeFromTransaction(data: CreateDebtChargeFrom
     personId: data.personId,
     type: 'charge',
     status: 'open',
-    amount: data.amount,
-    description: data.description.trim(),
+    amount: encryptField(String(data.amount), dek),
+    description: encryptField(data.description.trim(), dek),
     entryDate: data.entryDate,
     referenceMonth: entryDateToReferenceMonth(data.entryDate),
-    notes: data.notes?.trim() || null,
+    notes: encryptOptional(data.notes?.trim() || null, dek),
     sourceTransactionId: data.sourceTransactionId,
   })
 
@@ -175,11 +184,12 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
   const userId = await requireUserId()
   debtPaymentSchema.parse(data)
 
-  const [person] = await Promise.all([
+  const [person, dek] = await Promise.all([
     db.query.people.findFirst({
       where: and(eq(people.userId, userId), eq(people.id, data.personId)),
       columns: { name: true },
     }),
+    getDekForUser(userId),
     assertOwnsPerson(userId, data.personId),
   ])
 
@@ -208,11 +218,11 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
         userId,
         personId: data.personId,
         type: 'payment',
-        amount: data.amount,
-        description: data.description.trim(),
+        amount: encryptField(String(data.amount), dek),
+        description: encryptField(data.description.trim(), dek),
         entryDate: data.entryDate,
         referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
-        notes: data.notes?.trim() || null,
+        notes: encryptOptional(data.notes?.trim() || null, dek),
         incomeId,
       })
       .returning({ id: debtorEntries.id })
@@ -252,9 +262,12 @@ export type SettleChargeInput = {
 export async function settleCharge(data: SettleChargeInput): Promise<void> {
   const userId = await requireUserId()
   settleChargeSchema.parse(data)
-  await Promise.all([
-    assertOwnsDebtEntry(userId, data.chargeId),
-    assertOwnsPerson(userId, data.personId),
+  const [, dek] = await Promise.all([
+    Promise.all([
+      assertOwnsDebtEntry(userId, data.chargeId),
+      assertOwnsPerson(userId, data.personId),
+    ]),
+    getDekForUser(userId),
   ])
 
   const charge = await db.query.debtorEntries.findFirst({
@@ -304,7 +317,7 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
         description: charge.description,
         entryDate: data.entryDate,
         referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
-        notes: data.notes?.trim() || null,
+        notes: encryptOptional(data.notes?.trim() || null, dek),
         incomeId,
       })
       .returning({ id: debtorEntries.id })
