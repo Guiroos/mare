@@ -74,7 +74,6 @@ export function MetasList({
                   />
                   <DeleteButton
                     onDelete={async () => {
-                      'use server'
                       await deleteGoal(goal.id)
                     }}
                   />
@@ -141,7 +140,6 @@ export function MetasList({
                                 <ContributionEditButton contribution={c} />
                                 <DeleteButton
                                   onDelete={async () => {
-                                    'use server'
                                     await deleteGoalContribution(c.id)
                                   }}
                                 />
