@@ -63,7 +63,7 @@
   - `SensitiveMoneyBadge({ value: number; variant: 'positive' | 'muted'; size?: 'sm' }): JSX.Element | null`
   - `PrivacyToggle(): JSX.Element`
 
-- [ ] **Step 1: Escrever o teste que vai falhar**
+- [x] **Step 1: Escrever o teste que vai falhar**
 
 Criar `__tests__/unit/privacy-mode.test.ts`:
 
@@ -86,7 +86,7 @@ describe('maskValue', () => {
 })
 ```
 
-- [ ] **Step 2: Rodar o teste para confirmar que falha**
+- [x] **Step 2: Rodar o teste para confirmar que falha**
 
 ```bash
 npm test -- privacy-mode
@@ -94,7 +94,7 @@ npm test -- privacy-mode
 
 Esperado: `FAIL` com "Cannot find module '@/components/providers/PrivacyMode'"
 
-- [ ] **Step 3: Criar `components/providers/PrivacyMode.tsx`**
+- [x] **Step 3: Criar `components/providers/PrivacyMode.tsx`**
 
 ```tsx
 'use client'
@@ -178,7 +178,7 @@ export function PrivacyToggle() {
 }
 ```
 
-- [ ] **Step 4: Rodar o teste para confirmar que passa**
+- [x] **Step 4: Rodar o teste para confirmar que passa**
 
 ```bash
 npm test -- privacy-mode
@@ -186,7 +186,7 @@ npm test -- privacy-mode
 
 Esperado: `PASS` — 2 testes verdes.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/providers/PrivacyMode.tsx __tests__/unit/privacy-mode.test.ts
