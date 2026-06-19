@@ -79,15 +79,13 @@ export async function getActivePeople(userId: string): Promise<ActivePerson[]> {
     db
       .select({ id: people.id, name: people.name })
       .from(people)
-      .where(and(eq(people.userId, userId), eq(people.archived, false)))
-      .orderBy(asc(people.name)),
+      .where(and(eq(people.userId, userId), eq(people.archived, false))),
     getDekForUser(userId),
   ])
 
-  return rows.map((r) => ({
-    id: r.id,
-    name: decryptField(r.name, dek),
-  }))
+  return rows
+    .map((r) => ({ id: r.id, name: decryptField(r.name, dek) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 export type DebtEntryDetail = {

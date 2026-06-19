@@ -192,12 +192,13 @@ export async function getOpenFaturas(
           eq(paymentAccounts.type, 'credit'),
           gt(paymentAccounts.closingDay, 1)
         )
-      )
-      .orderBy(paymentAccounts.name),
+      ),
     getDekForUser(userId),
   ])
 
-  const creditAccounts = creditAccountsRaw.map((a) => ({ ...a, name: decryptField(a.name, dek) }))
+  const creditAccounts = creditAccountsRaw
+    .map((a) => ({ ...a, name: decryptField(a.name, dek) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 
   if (creditAccounts.length === 0) return []
 
