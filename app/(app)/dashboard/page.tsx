@@ -5,7 +5,6 @@ import { getDashboardData, getDashboardDataBillingCycle } from '@/lib/queries/da
 import { getCreditAccounts, getPaymentAccounts } from '@/lib/queries/categories'
 import { getUserCreditMode, getOpenFaturas } from '@/lib/queries/fatura'
 import { getMaturityAlerts } from '@/lib/queries/investments'
-import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
   yearMonthToReferenceMonth,
@@ -26,6 +25,7 @@ import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
+import { PrivacyToggle, SensitiveMoneyBadge } from '@/components/providers/PrivacyMode'
 
 export default async function DashboardPage({
   searchParams,
@@ -116,7 +116,12 @@ export default async function DashboardPage({
         cycleRange={cycleRange ?? undefined}
         creditAccounts={creditAccounts}
         activeCycleAccountId={activeAccount?.id}
-        action={<DashboardFAB month={month} />}
+        action={
+          <div className="flex items-center gap-1">
+            <PrivacyToggle />
+            <DashboardFAB month={month} />
+          </div>
+        }
       />
 
       <PendencyBanner unpaidFixedCount={unpaidFixedCount} pendingYieldCount={pendingYieldCount} />
@@ -207,26 +212,14 @@ export default async function DashboardPage({
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Section
           title="Entradas"
-          action={
-            totalIncomes > 0 ? (
-              <Badge variant="positive" size="sm">
-                {formatCurrency(totalIncomes)}
-              </Badge>
-            ) : undefined
-          }
+          action={<SensitiveMoneyBadge value={totalIncomes} variant="positive" />}
         >
           <IncomeList incomes={data.incomes} />
         </Section>
 
         <Section
           title="Investimentos"
-          action={
-            totalInvested > 0 ? (
-              <Badge variant="muted" size="sm">
-                {formatCurrency(totalInvested)}
-              </Badge>
-            ) : undefined
-          }
+          action={<SensitiveMoneyBadge value={totalInvested} variant="muted" />}
         >
           <InvestmentList investments={data.investments} />
         </Section>

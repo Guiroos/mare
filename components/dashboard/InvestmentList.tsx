@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import { deleteInvestment } from '@/lib/actions/investments'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
 import { TxList } from '@/components/ui/tx-list'
@@ -44,12 +44,12 @@ function InvestmentRow({ inv }: { inv: Investment }) {
       <div className="flex flex-shrink-0 flex-col items-end gap-0.5 text-right">
         {inv.amount !== null && (
           <span className="text-small font-semibold tabular-nums text-text-primary">
-            + {formatCurrency(Number(inv.amount))}
+            + <SensitiveAmount value={Number(inv.amount)} />
           </span>
         )}
         {inv.yieldAmount !== null ? (
           <span className="text-caption font-semibold tabular-nums text-positive-text">
-            Rend. {formatCurrency(Number(inv.yieldAmount))}
+            Rend. <SensitiveAmount value={Number(inv.yieldAmount)} />
           </span>
         ) : inv.amount !== null ? (
           <span className="text-caption font-medium text-warning-text">Rendimento pendente</span>

@@ -3,7 +3,8 @@
 import { Fragment, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { formatCurrency, toAmount } from '@/lib/utils/currency'
+import { toAmount } from '@/lib/utils/currency'
+import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import { parseDate, daysAgo, formatDisplayDate, currentYearMonth } from '@/lib/utils/date'
 import { format, getDaysInMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -178,7 +179,7 @@ function TransactionRow({
 
       <div className="flex-shrink-0">
         <span className="text-body font-semibold tabular-nums text-negative">
-          − {formatCurrency(Number(t.amount))}
+          − <SensitiveAmount value={Number(t.amount)} />
         </span>
       </div>
 
@@ -229,6 +230,7 @@ function DateGroupedView({
   onShowAll: () => void
   creditAccountIds: Set<string>
 }) {
+  const { mask } = usePrivacyMode()
   const visible = showAll ? transactions : transactions.slice(0, INITIAL_LIMIT)
   const hiddenCount = transactions.length - visible.length
   const groups = groupByDate(visible)
@@ -239,7 +241,7 @@ function DateGroupedView({
         <Fragment key={date}>
           <TxGroupHeader
             date={formatGroupDate(date)}
-            total={`− ${formatCurrency(items.reduce((s, t) => s + Number(t.amount), 0))}`}
+            total={`− ${mask(items.reduce((s, t) => s + Number(t.amount), 0))}`}
           />
           {items.map((t) => (
             <TransactionRow key={t.id} transaction={t} creditAccountIds={creditAccountIds} />
@@ -303,7 +305,7 @@ function AccountGroupedView({
                 </span>
               </div>
               <span className="shrink-0 text-body font-semibold tabular-nums text-negative">
-                − {formatCurrency(g.total)}
+                − <SensitiveAmount value={g.total} />
               </span>
             </AccordionHeader>
             {isOpen && (
@@ -350,7 +352,7 @@ function TypeGroupedView({
                 </span>
               </div>
               <span className="shrink-0 text-body font-semibold tabular-nums text-negative">
-                − {formatCurrency(total)}
+                − <SensitiveAmount value={total} />
               </span>
             </AccordionHeader>
             {isOpen && (

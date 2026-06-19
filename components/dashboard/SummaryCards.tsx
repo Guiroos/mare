@@ -1,4 +1,6 @@
-import { formatCurrency } from '@/lib/utils/currency'
+'use client'
+
+import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 
 type Summary = {
   totalIncomes: number
@@ -36,26 +38,28 @@ export function SummaryCards({ summary }: { summary: Summary }) {
       <p className="text-label uppercase opacity-70">Saldo do Mês</p>
 
       {/* Balance amount */}
-      <p className="mb-5 mt-1.5 text-hero tabular-nums">{formatCurrency(balance)}</p>
+      <p className="mb-5 mt-1.5 text-hero tabular-nums">
+        <SensitiveAmount value={balance} />
+      </p>
 
       {/* Incomes / Expenses / Invested */}
       <div className="flex flex-wrap gap-x-8 gap-y-0 border-t border-white/15 pt-4 lg:flex-nowrap">
         <div className="flex flex-col gap-0.5">
           <span className="text-label uppercase opacity-60">Entradas</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
-            + {formatCurrency(totalIncomes)}
+            + <SensitiveAmount value={totalIncomes} />
           </span>
         </div>
         <div className="flex flex-col gap-0.5">
           <span className="text-label uppercase opacity-60">Gastos</span>
           <span className="text-body-lg font-semibold tabular-nums tracking-tight">
-            − {formatCurrency(totalExpenses)}
+            − <SensitiveAmount value={totalExpenses} />
           </span>
         </div>
         <div className="mt-3 flex w-full items-center justify-between border-t border-white/10 pt-3 lg:ml-auto lg:mt-0 lg:w-auto lg:flex-col lg:items-end lg:justify-start lg:border-0 lg:pt-0">
           <span className="text-label uppercase opacity-60">Investido</span>
           <span className="text-body font-semibold tabular-nums tracking-tight opacity-85">
-            {formatCurrency(totalInvested)}
+            <SensitiveAmount value={totalInvested} />
           </span>
         </div>
       </div>
@@ -71,7 +75,7 @@ export function SummaryCards({ summary }: { summary: Summary }) {
               </span>
               <span className="block text-caption tabular-nums opacity-70 lg:inline">
                 {' '}
-                · {formatCurrency(totalSpent)} / {formatCurrency(totalBudget)}
+                · <SensitiveAmount value={totalSpent} /> / <SensitiveAmount value={totalBudget} />
               </span>
             </div>
           </div>
