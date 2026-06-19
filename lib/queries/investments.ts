@@ -10,9 +10,10 @@ export async function getInvestmentTypes(userId: string) {
   const dek = await getDekForUser(userId)
   const rows = await db.query.investmentTypes.findMany({
     where: eq(investmentTypes.userId, userId),
-    orderBy: asc(investmentTypes.name),
   })
-  return rows.map((r) => ({ ...r, name: decryptField(r.name, dek) }))
+  return rows
+    .map((r) => ({ ...r, name: decryptField(r.name, dek) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 export async function getInvestmentBalances(
@@ -24,7 +25,6 @@ export async function getInvestmentBalances(
 
   const types = await db.query.investmentTypes.findMany({
     where: and(eq(investmentTypes.userId, userId), eq(investmentTypes.archived, showArchived)),
-    orderBy: asc(investmentTypes.name),
   })
 
   const results = await Promise.all(

@@ -9,27 +9,30 @@ export async function getCategoriesWithGroups(userId: string) {
   const groups = await db.query.categoryGroups.findMany({
     where: eq(categoryGroups.userId, userId),
     with: { categories: true },
-    orderBy: [categoryGroups.sortOrder, categoryGroups.name],
+    orderBy: [categoryGroups.sortOrder],
   })
 
-  return groups.map((group) => ({
-    ...group,
-    name: decryptField(group.name, dek),
-    categories: group.categories.map((cat) => ({
-      ...cat,
-      name: decryptField(cat.name, dek),
-      defaultBudget: decryptOptional(cat.defaultBudget, dek),
-    })),
-  }))
+  return groups
+    .sort((a, b) => decryptField(a.name, dek).localeCompare(decryptField(b.name, dek), 'pt-BR'))
+    .map((group) => ({
+      ...group,
+      name: decryptField(group.name, dek),
+      categories: group.categories.map((cat) => ({
+        ...cat,
+        name: decryptField(cat.name, dek),
+        defaultBudget: decryptOptional(cat.defaultBudget, dek),
+      })),
+    }))
 }
 
 export async function getPaymentAccounts(userId: string) {
   const dek = await getDekForUser(userId)
   const rows = await db.query.paymentAccounts.findMany({
     where: eq(paymentAccounts.userId, userId),
-    orderBy: [paymentAccounts.name],
   })
-  return rows.map((r) => ({ ...r, name: decryptField(r.name, dek) }))
+  return rows
+    .map((r) => ({ ...r, name: decryptField(r.name, dek) }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 export async function getCreditAccounts(
@@ -50,12 +53,13 @@ export async function getCreditAccounts(
         gt(paymentAccounts.closingDay, 1)
       )
     )
-    .orderBy(paymentAccounts.name)
-  return rows.map((r) => ({
-    id: r.id,
-    name: decryptField(r.name, dek),
-    closingDay: r.closingDay as number,
-  }))
+  return rows
+    .map((r) => ({
+      id: r.id,
+      name: decryptField(r.name, dek),
+      closingDay: r.closingDay as number,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 export async function getCategoriesWithBudgets(userId: string, referenceMonth: string) {
@@ -71,22 +75,24 @@ export async function getCategoriesWithBudgets(userId: string, referenceMonth: s
         },
       },
     },
-    orderBy: [categoryGroups.sortOrder, categoryGroups.name],
+    orderBy: [categoryGroups.sortOrder],
   })
 
-  return groups.map((group) => ({
-    id: group.id,
-    name: decryptField(group.name, dek),
-    categories: group.categories.map((cat) => ({
-      id: cat.id,
-      name: decryptField(cat.name, dek),
-      defaultBudget: decryptOptional(cat.defaultBudget, dek),
-      override: cat.budgetOverrides[0]
-        ? {
-            ...cat.budgetOverrides[0],
-            amount: decryptField(cat.budgetOverrides[0].amount, dek),
-          }
-        : null,
-    })),
-  }))
+  return groups
+    .sort((a, b) => decryptField(a.name, dek).localeCompare(decryptField(b.name, dek), 'pt-BR'))
+    .map((group) => ({
+      id: group.id,
+      name: decryptField(group.name, dek),
+      categories: group.categories.map((cat) => ({
+        id: cat.id,
+        name: decryptField(cat.name, dek),
+        defaultBudget: decryptOptional(cat.defaultBudget, dek),
+        override: cat.budgetOverrides[0]
+          ? {
+              ...cat.budgetOverrides[0],
+              amount: decryptField(cat.budgetOverrides[0].amount, dek),
+            }
+          : null,
+      })),
+    }))
 }
