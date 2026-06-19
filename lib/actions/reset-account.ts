@@ -22,6 +22,8 @@ import {
   debtorEntries,
 } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional } from '@/lib/crypto/fields'
 
 type GroupSeed = {
   name: string
@@ -64,6 +66,7 @@ const DEFAULT_GROUPS: GroupSeed[] = [
 export async function resetAccount() {
   const userId = await requireUserId()
 
+  // Phase 1: Delete everything in a transaction (including userSettings/encryptedDek)
   await db.transaction(async (tx) => {
     // Devedores
     await tx.delete(debtorEntries).where(eq(debtorEntries.userId, userId))
@@ -90,28 +93,31 @@ export async function resetAccount() {
     // Categorias
     await tx.delete(categories).where(eq(categories.userId, userId))
     await tx.delete(categoryGroups).where(eq(categoryGroups.userId, userId))
-
-    // Reseed categorias default
-    for (const group of DEFAULT_GROUPS) {
-      const [inserted] = await tx
-        .insert(categoryGroups)
-        .values({ userId, name: group.name, sortOrder: group.sortOrder })
-        .returning({ id: categoryGroups.id })
-
-      if (!inserted) continue
-
-      await tx.insert(categories).values(
-        group.categories.map((cat) => ({
-          userId,
-          groupId: inserted.id,
-          name: cat.name,
-          defaultBudget: cat.defaultBudget,
-          color: cat.color,
-          bgColor: cat.bgColor,
-        }))
-      )
-    }
   })
+
+  // Phase 2: Provision new DEK (userSettings was deleted — getDekForUser creates a fresh row)
+  const dek = await getDekForUser(userId)
+
+  // Phase 3: Seed default categories with encryption
+  for (const group of DEFAULT_GROUPS) {
+    const [inserted] = await db
+      .insert(categoryGroups)
+      .values({ userId, name: encryptField(group.name, dek), sortOrder: group.sortOrder })
+      .returning({ id: categoryGroups.id })
+
+    if (!inserted) continue
+
+    await db.insert(categories).values(
+      group.categories.map((cat) => ({
+        userId,
+        groupId: inserted.id,
+        name: encryptField(cat.name, dek),
+        defaultBudget: encryptOptional(cat.defaultBudget, dek),
+        color: cat.color,
+        bgColor: cat.bgColor,
+      }))
+    )
+  }
 
   revalidatePath('/', 'layout')
 }

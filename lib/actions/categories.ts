@@ -20,22 +20,26 @@ import {
   accountActionSchema,
 } from '@/lib/validations/categories'
 import { uuidSchema, referenceMonthSchema } from '@/lib/validations/utils'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional } from '@/lib/crypto/fields'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
 export async function createCategoryGroup(name: string) {
   const userId = await requireUserId()
   groupSchema.parse({ name })
-  await db.insert(categoryGroups).values({ userId, name })
+  const dek = await getDekForUser(userId)
+  await db.insert(categoryGroups).values({ userId, name: encryptField(name, dek) })
   revalidatePath('/categorias')
 }
 
 export async function updateCategoryGroup(id: string, name: string) {
   const userId = await requireUserId()
   groupSchema.parse({ name })
+  const dek = await getDekForUser(userId)
   await db
     .update(categoryGroups)
-    .set({ name })
+    .set({ name: encryptField(name, dek) })
     .where(and(eq(categoryGroups.id, id), eq(categoryGroups.userId, userId)))
   revalidatePath('/categorias')
 }
@@ -77,11 +81,12 @@ export async function createCategory(data: CategoryInput) {
 
   await assertOwnsCategoryGroup(userId, data.groupId)
 
+  const dek = await getDekForUser(userId)
   await db.insert(categories).values({
     userId,
-    name: data.name,
+    name: encryptField(data.name, dek),
     groupId: data.groupId,
-    defaultBudget: data.defaultBudget || null,
+    defaultBudget: encryptOptional(data.defaultBudget || null, dek),
     color: data.color || null,
     bgColor: data.color ? deriveBgColor(data.color) : null,
   })
@@ -94,12 +99,13 @@ export async function updateCategory(id: string, data: CategoryInput) {
 
   await assertOwnsCategoryGroup(userId, data.groupId)
 
+  const dek = await getDekForUser(userId)
   await db
     .update(categories)
     .set({
-      name: data.name,
+      name: encryptField(data.name, dek),
       groupId: data.groupId,
-      defaultBudget: data.defaultBudget || null,
+      defaultBudget: encryptOptional(data.defaultBudget || null, dek),
       color: data.color || null,
       bgColor: data.color ? deriveBgColor(data.color) : null,
     })
@@ -127,13 +133,16 @@ export async function upsertBudgetOverride(data: {
 
   await assertOwnsCategory(userId, data.categoryId)
 
+  const dek = await getDekForUser(userId)
+  const encryptedAmount = encryptField(data.amount, dek)
+
   await db
     .insert(monthlyBudgetOverrides)
     .values({
       userId,
       categoryId: data.categoryId,
       referenceMonth: data.referenceMonth,
-      amount: data.amount,
+      amount: encryptedAmount,
     })
     .onConflictDoUpdate({
       target: [
@@ -141,7 +150,7 @@ export async function upsertBudgetOverride(data: {
         monthlyBudgetOverrides.categoryId,
         monthlyBudgetOverrides.referenceMonth,
       ],
-      set: { amount: data.amount },
+      set: { amount: encryptedAmount },
     })
 
   revalidatePath('/configuracao-mes')
@@ -210,9 +219,10 @@ export type AccountInput = {
 export async function createPaymentAccount(data: AccountInput) {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
   await db.insert(paymentAccounts).values({
     userId,
-    name: data.name,
+    name: encryptField(data.name, dek),
     type: data.type,
     closingDay: data.closingDay || null,
   })
@@ -222,10 +232,11 @@ export async function createPaymentAccount(data: AccountInput) {
 export async function updatePaymentAccount(id: string, data: AccountInput) {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
   await db
     .update(paymentAccounts)
     .set({
-      name: data.name,
+      name: encryptField(data.name, dek),
       type: data.type,
       closingDay: data.closingDay || null,
     })

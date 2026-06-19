@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals, incomes } from '@/lib/db/schema'
-import { eq, and, sum, sql } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { dateToReferenceMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
@@ -15,6 +15,8 @@ import {
   withdrawalSchema,
   updateWithdrawalActionSchema,
 } from '@/lib/validations/investments'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional, decryptOptional, decryptField } from '@/lib/crypto/fields'
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
@@ -28,10 +30,11 @@ export async function createInvestmentType(data: InvestmentTypeInput) {
   const userId = await requireUserId()
   investmentTypeSchema.parse(data)
   const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+  const dek = await getDekForUser(userId)
 
   await db.insert(investmentTypes).values({
     userId,
-    name: data.name,
+    name: encryptField(data.name, dek),
     color,
     bgColor: deriveBgColor(color),
     maturityDate: data.maturityDate || null,
@@ -43,11 +46,12 @@ export async function updateInvestmentType(id: string, data: InvestmentTypeInput
   const userId = await requireUserId()
   investmentTypeSchema.parse(data)
   const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+  const dek = await getDekForUser(userId)
 
   await db
     .update(investmentTypes)
     .set({
-      name: data.name,
+      name: encryptField(data.name, dek),
       color,
       bgColor: deriveBgColor(color),
       maturityDate: data.maturityDate || null,
@@ -68,15 +72,15 @@ export async function archiveInvestmentType(id: string) {
   const userId = await requireUserId()
   await assertOwnsInvestmentType(userId, id)
 
-  const [amountResult, withdrawalResult] = await Promise.all([
+  const dek = await getDekForUser(userId)
+
+  const [investmentRows, withdrawalRows] = await Promise.all([
     db
-      .select({ totalAmount: sum(investments.amount), totalYield: sum(investments.yieldAmount) })
+      .select({ amount: investments.amount, yieldAmount: investments.yieldAmount })
       .from(investments)
       .where(and(eq(investments.userId, userId), eq(investments.investmentTypeId, id))),
     db
-      .select({
-        totalWithdrawn: sql<string>`coalesce(sum(${investmentWithdrawals.amount} + coalesce(${investmentWithdrawals.taxAmount}, 0)), 0)`,
-      })
+      .select({ amount: investmentWithdrawals.amount, taxAmount: investmentWithdrawals.taxAmount })
       .from(investmentWithdrawals)
       .where(
         and(
@@ -86,10 +90,20 @@ export async function archiveInvestmentType(id: string) {
       ),
   ])
 
-  const currentBalance =
-    toAmount(amountResult[0]?.totalAmount) +
-    toAmount(amountResult[0]?.totalYield) -
-    toAmount(withdrawalResult[0]?.totalWithdrawn)
+  const totalAmount = investmentRows.reduce(
+    (acc, r) =>
+      acc +
+      toAmount(decryptOptional(r.amount, dek)) +
+      toAmount(decryptOptional(r.yieldAmount, dek)),
+    0
+  )
+  const totalWithdrawn = withdrawalRows.reduce(
+    (acc, r) =>
+      acc + toAmount(decryptField(r.amount, dek)) + toAmount(decryptOptional(r.taxAmount, dek)),
+    0
+  )
+
+  const currentBalance = totalAmount - totalWithdrawn
 
   if (Math.round(currentBalance * 100) > 0) {
     throw new Error('Não é possível arquivar tipo com saldo.')
@@ -129,23 +143,25 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
 
   await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
+  const dek = await getDekForUser(userId)
+
   await db
     .insert(investments)
     .values({
       userId,
       investmentTypeId: data.investmentTypeId,
       referenceMonth: data.referenceMonth,
-      amount: data.amount || null,
-      yieldAmount: data.yieldAmount || null,
-      notes: data.notes || null,
+      amount: encryptOptional(data.amount || null, dek),
+      yieldAmount: encryptOptional(data.yieldAmount || null, dek),
+      notes: encryptOptional(data.notes || null, dek),
       excludeFromCashFlow: data.excludeFromCashFlow ?? false,
     })
     .onConflictDoUpdate({
       target: [investments.userId, investments.investmentTypeId, investments.referenceMonth],
       set: {
-        amount: data.amount || null,
-        yieldAmount: data.yieldAmount || null,
-        notes: data.notes || null,
+        amount: encryptOptional(data.amount || null, dek),
+        yieldAmount: encryptOptional(data.yieldAmount || null, dek),
+        notes: encryptOptional(data.notes || null, dek),
         excludeFromCashFlow: data.excludeFromCashFlow ?? false,
       },
     })
@@ -181,17 +197,23 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
 
   await assertOwnsInvestmentType(userId, data.investmentTypeId)
 
+  const dek = await getDekForUser(userId)
+
   let incomeId: string | null = null
   let investmentReturnCapital: string | null = null
 
   if (data.destination === 'reinvest') {
-    const [capitalRow] = await db
-      .select({ total: sum(investments.amount) })
+    const capitalRows = await db
+      .select({ amount: investments.amount })
       .from(investments)
       .where(
         and(eq(investments.userId, userId), eq(investments.investmentTypeId, data.investmentTypeId))
       )
-    investmentReturnCapital = String(Math.min(Number(data.amount), toAmount(capitalRow?.total)))
+    const totalCapital = capitalRows.reduce(
+      (acc, r) => acc + toAmount(decryptOptional(r.amount, dek)),
+      0
+    )
+    investmentReturnCapital = String(Math.min(Number(data.amount), totalCapital))
   }
 
   await db.transaction(async (tx) => {
@@ -212,12 +234,12 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
     await tx.insert(investmentWithdrawals).values({
       userId,
       investmentTypeId: data.investmentTypeId,
-      amount: data.amount,
-      taxAmount: data.taxAmount || null,
+      amount: encryptField(data.amount, dek),
+      taxAmount: encryptOptional(data.taxAmount || null, dek),
       date: data.date,
       destination: data.destination,
       incomeId,
-      notes: data.notes || null,
+      notes: encryptOptional(data.notes || null, dek),
     })
   })
 
@@ -239,6 +261,8 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   const userId = await requireUserId()
   updateWithdrawalActionSchema.parse(data)
 
+  const dek = await getDekForUser(userId)
+
   // Fetch do resgate e ownership check do novo tipo em paralelo
   const [withdrawals] = await Promise.all([
     db.query.investmentWithdrawals.findMany({
@@ -256,17 +280,17 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
       .update(investmentWithdrawals)
       .set({
         investmentTypeId: data.investmentTypeId,
-        amount: data.amount,
-        taxAmount: data.taxAmount || null,
+        amount: encryptField(data.amount, dek),
+        taxAmount: encryptOptional(data.taxAmount || null, dek),
         date: data.date,
-        notes: data.notes || null,
+        notes: encryptOptional(data.notes || null, dek),
       })
       .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)))
 
     if (withdrawal.incomeId) {
       if (withdrawal.destination === 'reinvest') {
-        const [capitalRow] = await tx
-          .select({ total: sum(investments.amount) })
+        const capitalRows = await tx
+          .select({ amount: investments.amount })
           .from(investments)
           .where(
             and(
@@ -274,7 +298,11 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
               eq(investments.investmentTypeId, data.investmentTypeId)
             )
           )
-        const newReturnCapital = String(Math.min(Number(data.amount), toAmount(capitalRow?.total)))
+        const totalCapital = capitalRows.reduce(
+          (acc, r) => acc + toAmount(decryptOptional(r.amount, dek)),
+          0
+        )
+        const newReturnCapital = String(Math.min(Number(data.amount), totalCapital))
         await tx
           .update(incomes)
           .set({

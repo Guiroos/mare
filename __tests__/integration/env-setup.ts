@@ -3,7 +3,12 @@ import { join } from 'path'
 
 config({ path: join(process.cwd(), '.env.local'), override: false })
 
-const REQUIRED_NEON_VARS = ['NEON_API_KEY', 'NEON_PROJECT_ID', 'NEON_PARENT_BRANCH_ID'] as const
+const REQUIRED_NEON_VARS = [
+  'NEON_API_KEY',
+  'NEON_PROJECT_ID',
+  'NEON_PARENT_BRANCH_ID',
+  'ENCRYPTION_MASTER_KEY',
+] as const
 
 const missing = REQUIRED_NEON_VARS.filter((v) => !process.env[v])
 

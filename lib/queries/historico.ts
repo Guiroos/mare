@@ -7,8 +7,10 @@ import {
   investments,
   investmentWithdrawals,
 } from '@/lib/db/schema'
-import { and, eq, between, inArray, ilike } from 'drizzle-orm'
+import { and, eq, between, inArray } from 'drizzle-orm'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField } from '@/lib/crypto/fields'
 
 export type HistoricoFeedItem = {
   id: string
@@ -78,8 +80,7 @@ export async function getHistoricoFeed(
     eq(transactions.userId, userId),
     between(transactions.date, de, ate),
     categorias.length > 0 ? inArray(transactions.categoryId, categorias) : undefined,
-    contas.length > 0 ? inArray(transactions.accountId, contas) : undefined,
-    q ? ilike(transactions.name, `%${q}%`) : undefined
+    contas.length > 0 ? inArray(transactions.accountId, contas) : undefined
   )
 
   const fxWhere =
@@ -88,18 +89,13 @@ export async function getHistoricoFeed(
           eq(fixedExpenses.userId, userId),
           inArray(fixedExpenses.referenceMonth, refMonths),
           categorias.length > 0 ? inArray(fixedExpenses.categoryId, categorias) : undefined,
-          contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined,
-          q ? ilike(fixedExpenses.name, `%${q}%`) : undefined
+          contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined
         )
       : undefined
 
   const incomesWhere =
     refMonths.length > 0
-      ? and(
-          eq(incomes.userId, userId),
-          inArray(incomes.referenceMonth, refMonths),
-          q ? ilike(incomes.source, `%${q}%`) : undefined
-        )
+      ? and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, refMonths))
       : undefined
 
   const investWhere =
@@ -112,43 +108,46 @@ export async function getHistoricoFeed(
     between(investmentWithdrawals.date, de, ate)
   )
 
-  const [txRows, fxRows, incomeRows, investRows, withdrawRows] = await Promise.all([
-    wantsAvulsa || wantsParcelada
-      ? db.query.transactions.findMany({
-          where: txBaseWhere,
-          with: {
-            category: true,
-            account: true,
-            installmentGroup: true,
-          },
-          orderBy: (t, { desc }) => [desc(t.date)],
-        })
-      : Promise.resolve([]),
+  const [dek, [txRows, fxRows, incomeRows, investRows, withdrawRows]] = await Promise.all([
+    getDekForUser(userId),
+    Promise.all([
+      wantsAvulsa || wantsParcelada
+        ? db.query.transactions.findMany({
+            where: txBaseWhere,
+            with: {
+              category: true,
+              account: true,
+              installmentGroup: true,
+            },
+            orderBy: (t, { desc }) => [desc(t.date)],
+          })
+        : Promise.resolve([]),
 
-    wantsFixa && fxWhere
-      ? db.query.fixedExpenses.findMany({
-          where: fxWhere,
-          with: { category: true, account: true },
-        })
-      : Promise.resolve([]),
+      wantsFixa && fxWhere
+        ? db.query.fixedExpenses.findMany({
+            where: fxWhere,
+            with: { category: true, account: true },
+          })
+        : Promise.resolve([]),
 
-    wantsEntrada && incomesWhere
-      ? db.query.incomes.findMany({ where: incomesWhere })
-      : Promise.resolve([]),
+      wantsEntrada && incomesWhere
+        ? db.query.incomes.findMany({ where: incomesWhere })
+        : Promise.resolve([]),
 
-    wantsInvestimento && investWhere
-      ? db.query.investments.findMany({
-          where: investWhere,
-          with: { investmentType: true },
-        })
-      : Promise.resolve([]),
+      wantsInvestimento && investWhere
+        ? db.query.investments.findMany({
+            where: investWhere,
+            with: { investmentType: true },
+          })
+        : Promise.resolve([]),
 
-    wantsResgate
-      ? db.query.investmentWithdrawals.findMany({
-          where: withdrawWhere,
-          with: { investmentType: true },
-        })
-      : Promise.resolve([]),
+      wantsResgate
+        ? db.query.investmentWithdrawals.findMany({
+            where: withdrawWhere,
+            with: { investmentType: true },
+          })
+        : Promise.resolve([]),
+    ]),
   ])
 
   // Map each source to HistoricoFeedItem
@@ -160,15 +159,15 @@ export async function getHistoricoFeed(
     .map((t) => ({
       id: t.id,
       kind: (t.installmentGroup !== null ? 'saida_parcelada' : 'saida_avulsa') as TipoKind,
-      name: t.name,
-      amount: t.amount,
+      name: decryptField(t.name, dek),
+      amount: decryptField(t.amount, dek),
       date: t.date,
       categoryId: t.categoryId,
-      categoryName: t.category?.name ?? null,
+      categoryName: t.category ? decryptField(t.category.name, dek) : null,
       categoryColor: t.category?.color ?? null,
       categoryBgColor: t.category?.bgColor ?? null,
       accountId: t.accountId,
-      accountName: t.account?.name ?? null,
+      accountName: t.account ? decryptField(t.account.name, dek) : null,
       installmentNumber: t.installmentNumber ?? null,
       totalInstallments: t.totalInstallments ?? null,
       investmentTypeName: null,
@@ -177,15 +176,15 @@ export async function getHistoricoFeed(
   const fxItems: HistoricoFeedItem[] = fxRows.map((f) => ({
     id: f.id,
     kind: 'saida_fixa' as TipoKind,
-    name: f.name,
-    amount: f.amount,
+    name: decryptField(f.name, dek),
+    amount: decryptField(f.amount, dek),
     date: fixedExpenseDate(f.referenceMonth, f.dueDay),
     categoryId: f.categoryId,
-    categoryName: f.category?.name ?? null,
+    categoryName: f.category ? decryptField(f.category.name, dek) : null,
     categoryColor: f.category?.color ?? null,
     categoryBgColor: f.category?.bgColor ?? null,
     accountId: f.accountId,
-    accountName: f.account?.name ?? null,
+    accountName: f.account ? decryptField(f.account.name, dek) : null,
     installmentNumber: null,
     totalInstallments: null,
     investmentTypeName: null,
@@ -194,8 +193,8 @@ export async function getHistoricoFeed(
   const incomeItems: HistoricoFeedItem[] = incomeRows.map((i) => ({
     id: i.id,
     kind: 'entrada' as TipoKind,
-    name: i.source,
-    amount: i.amount,
+    name: decryptField(i.source, dek),
+    amount: decryptField(i.amount, dek),
     date: i.referenceMonth,
     categoryId: null,
     categoryName: null,
@@ -210,12 +209,34 @@ export async function getHistoricoFeed(
 
   const investItems: HistoricoFeedItem[] = investRows
     .filter((inv) => inv.amount !== null)
-    .map((inv) => ({
-      id: inv.id,
-      kind: 'investimento' as TipoKind,
-      name: inv.investmentType.name,
-      amount: inv.amount!,
-      date: inv.referenceMonth,
+    .map((inv) => {
+      const typeName = decryptField(inv.investmentType.name, dek)
+      return {
+        id: inv.id,
+        kind: 'investimento' as TipoKind,
+        name: typeName,
+        amount: decryptField(inv.amount!, dek),
+        date: inv.referenceMonth,
+        categoryId: null,
+        categoryName: null,
+        categoryColor: null,
+        categoryBgColor: null,
+        accountId: null,
+        accountName: null,
+        installmentNumber: null,
+        totalInstallments: null,
+        investmentTypeName: typeName,
+      }
+    })
+
+  const withdrawItems: HistoricoFeedItem[] = withdrawRows.map((w) => {
+    const typeName = decryptField(w.investmentType.name, dek)
+    return {
+      id: w.id,
+      kind: 'resgate' as TipoKind,
+      name: typeName,
+      amount: decryptField(w.amount, dek),
+      date: w.date,
       categoryId: null,
       categoryName: null,
       categoryColor: null,
@@ -224,25 +245,9 @@ export async function getHistoricoFeed(
       accountName: null,
       installmentNumber: null,
       totalInstallments: null,
-      investmentTypeName: inv.investmentType.name,
-    }))
-
-  const withdrawItems: HistoricoFeedItem[] = withdrawRows.map((w) => ({
-    id: w.id,
-    kind: 'resgate' as TipoKind,
-    name: w.investmentType.name,
-    amount: w.amount,
-    date: w.date,
-    categoryId: null,
-    categoryName: null,
-    categoryColor: null,
-    categoryBgColor: null,
-    accountId: null,
-    accountName: null,
-    installmentNumber: null,
-    totalInstallments: null,
-    investmentTypeName: w.investmentType.name,
-  }))
+      investmentTypeName: typeName,
+    }
+  })
 
   // Filtro JS de precisão para fixedExpenses (dueDay pode colocar fora do range)
   const fxItemsFiltered = fxItems.filter((f) => f.date >= de && f.date <= ate)

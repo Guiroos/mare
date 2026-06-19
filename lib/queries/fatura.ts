@@ -2,6 +2,8 @@ import { and, between, eq, gt, inArray, gte, lt, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { fixedExpenses, paymentAccounts, transactions, userSettings } from '@/lib/db/schema'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField } from '@/lib/crypto/fields'
 import {
   billingCycleDateRange,
   nextMonth,
@@ -92,9 +94,12 @@ export async function getFaturaState(
   accountId: string,
   referenceMonth: string
 ): Promise<FaturaState | null> {
-  const account = await db.query.paymentAccounts.findFirst({
-    where: and(eq(paymentAccounts.id, accountId), eq(paymentAccounts.userId, userId)),
-  })
+  const [account, dek] = await Promise.all([
+    db.query.paymentAccounts.findFirst({
+      where: and(eq(paymentAccounts.id, accountId), eq(paymentAccounts.userId, userId)),
+    }),
+    getDekForUser(userId),
+  ])
 
   if (!account || account.type !== 'credit' || !account.closingDay || account.closingDay <= 1) {
     return null
@@ -147,11 +152,11 @@ export async function getFaturaState(
     }),
   ])
 
-  const transactionTotal = txRows.reduce((s, t) => s + toAmount(t.amount), 0)
-  const fixedExpenseTotal = fxRows.reduce((s, e) => s + toAmount(e.amount), 0)
+  const transactionTotal = txRows.reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
+  const fixedExpenseTotal = fxRows.reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
   return {
-    account: { id: account.id, name: account.name, closingDay },
+    account: { id: account.id, name: decryptField(account.name, dek), closingDay },
     cycleStart: range.start,
     cycleEnd: range.end,
     cycleMonth: referenceMonth,
@@ -161,7 +166,7 @@ export async function getFaturaState(
     payment: payment
       ? {
           id: payment.id,
-          amount: toAmount(payment.amount),
+          amount: toAmount(decryptField(payment.amount, dek)),
           date: payment.date,
           referenceMonth: payment.referenceMonth,
         }
@@ -173,21 +178,26 @@ export async function getOpenFaturas(
   userId: string,
   faturaActiveFrom: string | null
 ): Promise<OpenFatura[]> {
-  const creditAccounts = await db
-    .select({
-      id: paymentAccounts.id,
-      name: paymentAccounts.name,
-      closingDay: paymentAccounts.closingDay,
-    })
-    .from(paymentAccounts)
-    .where(
-      and(
-        eq(paymentAccounts.userId, userId),
-        eq(paymentAccounts.type, 'credit'),
-        gt(paymentAccounts.closingDay, 1)
+  const [creditAccountsRaw, dek] = await Promise.all([
+    db
+      .select({
+        id: paymentAccounts.id,
+        name: paymentAccounts.name,
+        closingDay: paymentAccounts.closingDay,
+      })
+      .from(paymentAccounts)
+      .where(
+        and(
+          eq(paymentAccounts.userId, userId),
+          eq(paymentAccounts.type, 'credit'),
+          gt(paymentAccounts.closingDay, 1)
+        )
       )
-    )
-    .orderBy(paymentAccounts.name)
+      .orderBy(paymentAccounts.name),
+    getDekForUser(userId),
+  ])
+
+  const creditAccounts = creditAccountsRaw.map((a) => ({ ...a, name: decryptField(a.name, dek) }))
 
   if (creditAccounts.length === 0) return []
 
@@ -323,7 +333,7 @@ export async function getOpenFaturas(
         .filter(
           (t) => t.accountId === account.id && t.date >= openRange.start && t.date <= openRange.end
         )
-        .reduce((s, t) => s + toAmount(t.amount), 0)
+        .reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
       const openFxTotal = allFx
         .filter(
           (e) =>
@@ -331,7 +341,7 @@ export async function getOpenFaturas(
             ((e.referenceMonth === openPrevRefMonth && e.dueDay >= closingDay) ||
               (e.referenceMonth === openCycleMonth && e.dueDay < closingDay))
         )
-        .reduce((s, e) => s + toAmount(e.amount), 0)
+        .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
       const closedPrevRefMonth = yearMonthToReferenceMonth(prevMonth(closedYearMonth))
       const closedTxTotal = allTx
@@ -339,7 +349,7 @@ export async function getOpenFaturas(
           (t) =>
             t.accountId === account.id && t.date >= closedRange.start && t.date <= closedRange.end
         )
-        .reduce((s, t) => s + toAmount(t.amount), 0)
+        .reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
       const closedFxTotal = allFx
         .filter(
           (e) =>
@@ -347,7 +357,7 @@ export async function getOpenFaturas(
             ((e.referenceMonth === closedPrevRefMonth && e.dueDay >= closingDay) ||
               (e.referenceMonth === closedCycleMonth && e.dueDay < closingDay))
         )
-        .reduce((s, e) => s + toAmount(e.amount), 0)
+        .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
       const rawPayment = allPayments.find(
         (p) => p.faturaAccountId === account.id && p.faturaCycleMonth === closedCycleMonth
@@ -367,7 +377,7 @@ export async function getOpenFaturas(
 
         const txTotal = allTx
           .filter((t) => t.accountId === account.id && t.date >= range.start && t.date <= range.end)
-          .reduce((s, t) => s + toAmount(t.amount), 0)
+          .reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
 
         const fxTotal = allFx
           .filter(
@@ -376,7 +386,7 @@ export async function getOpenFaturas(
               ((e.referenceMonth === prevRefMonth && e.dueDay >= closingDay) ||
                 (e.referenceMonth === refMonth && e.dueDay < closingDay))
           )
-          .reduce((s, e) => s + toAmount(e.amount), 0)
+          .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
         if (txTotal + fxTotal === 0) continue
 
@@ -411,7 +421,7 @@ export async function getOpenFaturas(
           payment: rawPayment
             ? {
                 id: rawPayment.id,
-                amount: toAmount(rawPayment.amount),
+                amount: toAmount(decryptField(rawPayment.amount, dek)),
                 date: rawPayment.date,
                 referenceMonth: rawPayment.referenceMonth,
               }

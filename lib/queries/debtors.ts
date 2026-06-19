@@ -1,7 +1,9 @@
 import { db } from '@/lib/db'
 import { people, debtorEntries, transactions, categories, paymentAccounts } from '@/lib/db/schema'
-import { eq, and, sql, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
+import { eq, and, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 export type PersonWithBalance = {
   id: string
@@ -15,59 +17,77 @@ export type PersonWithBalance = {
 }
 
 export async function getPeopleWithBalances(userId: string): Promise<PersonWithBalance[]> {
-  const rows = await db
-    .select({
-      id: people.id,
-      name: people.name,
-      email: people.email,
-      phone: people.phone,
-      notes: people.notes,
-      archived: people.archived,
-      rawBalance: sql<string>`COALESCE(SUM(CASE
-        WHEN ${debtorEntries.type} = 'charge' THEN ${debtorEntries.amount}
-        WHEN ${debtorEntries.type} = 'payment' THEN -${debtorEntries.amount}
-        WHEN ${debtorEntries.type} = 'adjustment' THEN ${debtorEntries.amount}
-        ELSE 0
-      END), 0)`,
-      lastMovement: sql<string | null>`MAX(${debtorEntries.entryDate})`,
-    })
-    .from(people)
-    .leftJoin(
-      debtorEntries,
-      and(eq(debtorEntries.personId, people.id), eq(debtorEntries.userId, userId))
-    )
-    .where(and(eq(people.userId, userId), eq(people.archived, false)))
-    .groupBy(
-      people.id,
-      people.name,
-      people.email,
-      people.phone,
-      people.notes,
-      people.archived,
-      people.createdAt
-    )
-    .orderBy(asc(people.name))
+  const [personRows, entryRows, dek] = await Promise.all([
+    db
+      .select({
+        id: people.id,
+        name: people.name,
+        email: people.email,
+        phone: people.phone,
+        notes: people.notes,
+        archived: people.archived,
+      })
+      .from(people)
+      .where(and(eq(people.userId, userId), eq(people.archived, false))),
+    db
+      .select({
+        personId: debtorEntries.personId,
+        type: debtorEntries.type,
+        amount: debtorEntries.amount,
+        entryDate: debtorEntries.entryDate,
+      })
+      .from(debtorEntries)
+      .where(eq(debtorEntries.userId, userId)),
+    getDekForUser(userId),
+  ])
 
-  return rows.map((r) => ({
+  const balanceMap: Record<string, number> = {}
+  const lastMovementMap: Record<string, string | null> = {}
+
+  for (const e of entryRows) {
+    const amount = toAmount(decryptField(e.amount, dek))
+    if (balanceMap[e.personId] === undefined) balanceMap[e.personId] = 0
+    if (e.type === 'payment') {
+      balanceMap[e.personId] -= amount
+    } else {
+      balanceMap[e.personId] += amount
+    }
+    if (!lastMovementMap[e.personId] || e.entryDate > lastMovementMap[e.personId]!) {
+      lastMovementMap[e.personId] = e.entryDate
+    }
+  }
+
+  const result = personRows.map((r) => ({
     id: r.id,
-    name: r.name,
-    email: r.email,
-    phone: r.phone,
-    notes: r.notes,
+    name: decryptField(r.name, dek),
+    email: decryptOptional(r.email, dek),
+    phone: decryptOptional(r.phone, dek),
+    notes: decryptOptional(r.notes, dek),
     archived: r.archived,
-    balance: toAmount(r.rawBalance),
-    lastMovement: r.lastMovement ?? null,
+    balance: balanceMap[r.id] ?? 0,
+    lastMovement: lastMovementMap[r.id] ?? null,
   }))
+
+  result.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+  return result
 }
 
 export type ActivePerson = { id: string; name: string }
 
 export async function getActivePeople(userId: string): Promise<ActivePerson[]> {
-  return db
-    .select({ id: people.id, name: people.name })
-    .from(people)
-    .where(and(eq(people.userId, userId), eq(people.archived, false)))
-    .orderBy(asc(people.name))
+  const [rows, dek] = await Promise.all([
+    db
+      .select({ id: people.id, name: people.name })
+      .from(people)
+      .where(and(eq(people.userId, userId), eq(people.archived, false)))
+      .orderBy(asc(people.name)),
+    getDekForUser(userId),
+  ])
+
+  return rows.map((r) => ({
+    id: r.id,
+    name: decryptField(r.name, dek),
+  }))
 }
 
 export type DebtEntryDetail = {
@@ -120,7 +140,7 @@ export async function getPersonDebtDetails(
   userId: string,
   personId: string
 ): Promise<PersonDebtDetails> {
-  const [person, rawEntries] = await Promise.all([
+  const [person, rawEntries, dek] = await Promise.all([
     db.query.people.findFirst({
       where: and(eq(people.userId, userId), eq(people.id, personId)),
     }),
@@ -145,6 +165,7 @@ export async function getPersonDebtDetails(
       .leftJoin(transactions, eq(debtorEntries.sourceTransactionId, transactions.id))
       .where(and(eq(debtorEntries.userId, userId), eq(debtorEntries.personId, personId)))
       .orderBy(asc(debtorEntries.entryDate), asc(debtorEntries.createdAt)),
+    getDekForUser(userId),
   ])
 
   if (!person) return null
@@ -176,8 +197,8 @@ export async function getPersonDebtDetails(
       if (!settledChargesMap[pid]) settledChargesMap[pid] = []
       settledChargesMap[pid].push({
         id: row.id,
-        description: row.description,
-        amount: toAmount(row.amount),
+        description: decryptField(row.description, dek),
+        amount: toAmount(decryptField(row.amount, dek)),
       })
     }
   }
@@ -185,11 +206,11 @@ export async function getPersonDebtDetails(
   const entries = rawEntries.map((e) => ({
     id: e.id,
     type: e.type as 'charge' | 'payment' | 'adjustment',
-    amount: toAmount(e.amount),
-    description: e.description,
+    amount: toAmount(decryptField(e.amount, dek)),
+    description: decryptField(e.description, dek),
     referenceMonth: e.referenceMonth,
     entryDate: e.entryDate,
-    notes: e.notes ?? null,
+    notes: decryptOptional(e.notes, dek),
     incomeId: e.incomeId,
     status: e.status,
     settledByPaymentId: e.settledByPaymentId,
@@ -197,8 +218,8 @@ export async function getPersonDebtDetails(
     sourceTransaction: e.sourceTransactionId
       ? {
           id: e.sourceTransactionId,
-          name: e.sourceTxName!,
-          amount: toAmount(e.sourceTxAmount),
+          name: decryptField(e.sourceTxName!, dek),
+          amount: toAmount(decryptField(e.sourceTxAmount!, dek)),
           date: e.sourceTxDate!,
         }
       : null,
@@ -262,10 +283,10 @@ export async function getPersonDebtDetails(
   return {
     person: {
       id: person.id,
-      name: person.name,
-      email: person.email,
-      phone: person.phone,
-      notes: person.notes,
+      name: decryptField(person.name, dek),
+      email: decryptOptional(person.email, dek),
+      phone: decryptOptional(person.phone, dek),
+      notes: decryptOptional(person.notes, dek),
       archived: person.archived,
     },
     summary: { balance, totalCharged, totalPaid, lastMovement, chargeCount, paymentCount },
@@ -290,28 +311,31 @@ export async function getTransactionsForDebtLink(
   cutoff.setMonth(cutoff.getMonth() - 6)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
-  const rows = await db
-    .select({
-      id: transactions.id,
-      name: transactions.name,
-      amount: transactions.amount,
-      date: transactions.date,
-      categoryName: categories.name,
-      accountName: paymentAccounts.name,
-    })
-    .from(transactions)
-    .innerJoin(categories, eq(transactions.categoryId, categories.id))
-    .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
-    .where(and(eq(transactions.userId, userId), gte(transactions.date, cutoffStr)))
-    .orderBy(desc(transactions.date))
+  const [rows, dek] = await Promise.all([
+    db
+      .select({
+        id: transactions.id,
+        name: transactions.name,
+        amount: transactions.amount,
+        date: transactions.date,
+        categoryName: categories.name,
+        accountName: paymentAccounts.name,
+      })
+      .from(transactions)
+      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
+      .where(and(eq(transactions.userId, userId), gte(transactions.date, cutoffStr)))
+      .orderBy(desc(transactions.date)),
+    getDekForUser(userId),
+  ])
 
   return rows.map((r) => ({
     id: r.id,
-    name: r.name,
-    amount: toAmount(r.amount),
+    name: decryptField(r.name, dek),
+    amount: toAmount(decryptField(r.amount, dek)),
     date: r.date,
-    categoryName: r.categoryName,
-    accountName: r.accountName,
+    categoryName: decryptField(r.categoryName, dek),
+    accountName: decryptField(r.accountName, dek),
   }))
 }
 
@@ -326,28 +350,31 @@ export async function getOpenChargesForPerson(
   userId: string,
   personId: string
 ): Promise<OpenChargeForLinking[]> {
-  const rows = await db
-    .select({
-      id: debtorEntries.id,
-      description: debtorEntries.description,
-      amount: debtorEntries.amount,
-      entryDate: debtorEntries.entryDate,
-    })
-    .from(debtorEntries)
-    .where(
-      and(
-        eq(debtorEntries.userId, userId),
-        eq(debtorEntries.personId, personId),
-        eq(debtorEntries.type, 'charge'),
-        or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+  const [rows, dek] = await Promise.all([
+    db
+      .select({
+        id: debtorEntries.id,
+        description: debtorEntries.description,
+        amount: debtorEntries.amount,
+        entryDate: debtorEntries.entryDate,
+      })
+      .from(debtorEntries)
+      .where(
+        and(
+          eq(debtorEntries.userId, userId),
+          eq(debtorEntries.personId, personId),
+          eq(debtorEntries.type, 'charge'),
+          or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+        )
       )
-    )
-    .orderBy(asc(debtorEntries.entryDate))
+      .orderBy(asc(debtorEntries.entryDate)),
+    getDekForUser(userId),
+  ])
 
   return rows.map((r) => ({
     id: r.id,
-    description: r.description,
-    amount: toAmount(r.amount),
+    description: decryptField(r.description, dek),
+    amount: toAmount(decryptField(r.amount, dek)),
     entryDate: r.entryDate,
   }))
 }
@@ -358,32 +385,35 @@ export async function getOpenChargesForPeople(
 ): Promise<Record<string, OpenChargeForLinking[]>> {
   if (personIds.length === 0) return {}
 
-  const rows = await db
-    .select({
-      id: debtorEntries.id,
-      personId: debtorEntries.personId,
-      description: debtorEntries.description,
-      amount: debtorEntries.amount,
-      entryDate: debtorEntries.entryDate,
-    })
-    .from(debtorEntries)
-    .where(
-      and(
-        eq(debtorEntries.userId, userId),
-        inArray(debtorEntries.personId, personIds),
-        eq(debtorEntries.type, 'charge'),
-        or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+  const [rows, dek] = await Promise.all([
+    db
+      .select({
+        id: debtorEntries.id,
+        personId: debtorEntries.personId,
+        description: debtorEntries.description,
+        amount: debtorEntries.amount,
+        entryDate: debtorEntries.entryDate,
+      })
+      .from(debtorEntries)
+      .where(
+        and(
+          eq(debtorEntries.userId, userId),
+          inArray(debtorEntries.personId, personIds),
+          eq(debtorEntries.type, 'charge'),
+          or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+        )
       )
-    )
-    .orderBy(asc(debtorEntries.entryDate))
+      .orderBy(asc(debtorEntries.entryDate)),
+    getDekForUser(userId),
+  ])
 
   const result: Record<string, OpenChargeForLinking[]> = {}
   for (const row of rows) {
     if (!result[row.personId]) result[row.personId] = []
     result[row.personId].push({
       id: row.id,
-      description: row.description,
-      amount: toAmount(row.amount),
+      description: decryptField(row.description, dek),
+      amount: toAmount(decryptField(row.amount, dek)),
       entryDate: row.entryDate,
     })
   }

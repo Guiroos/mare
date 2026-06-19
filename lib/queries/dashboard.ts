@@ -12,7 +12,6 @@ import {
   eq,
   and,
   or,
-  sum,
   desc,
   between,
   gte,
@@ -21,11 +20,12 @@ import {
   isNotNull,
   ne,
   notInArray,
-  sql,
 } from 'drizzle-orm'
 import { pastNMonths, yearMonthToReferenceMonth, prevMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { FaturaContext } from '@/lib/queries/fatura'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 // ─── Gastos por grupo de categoria ───────────────────────────────────────────
 
@@ -64,8 +64,7 @@ export async function getCategoryGroupProgress(
       )
     : and(eq(fixedExpenses.userId, userId), eq(fixedExpenses.referenceMonth, referenceMonth))
 
-  // 3 queries em paralelo — sem waterfall
-  const [groups, spentByCategory, fixedByCategory] = await Promise.all([
+  const [groups, txRows, fxRows, dek] = await Promise.all([
     db.query.categoryGroups.findMany({
       where: eq(categoryGroups.userId, userId),
       with: {
@@ -79,35 +78,42 @@ export async function getCategoryGroupProgress(
       },
     }),
     db
-      .select({ categoryId: transactions.categoryId, total: sum(transactions.amount) })
+      .select({ categoryId: transactions.categoryId, amount: transactions.amount })
       .from(transactions)
-      .where(txWhere)
-      .groupBy(transactions.categoryId),
+      .where(txWhere),
     db
-      .select({ categoryId: fixedExpenses.categoryId, total: sum(fixedExpenses.amount) })
+      .select({ categoryId: fixedExpenses.categoryId, amount: fixedExpenses.amount })
       .from(fixedExpenses)
-      .where(fxWhere)
-      .groupBy(fixedExpenses.categoryId),
+      .where(fxWhere),
+    getDekForUser(userId),
   ])
 
   const spentMap = new Map<string, number>()
-  for (const r of spentByCategory) {
+  for (const r of txRows) {
     if (!r.categoryId) continue
-    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + toAmount(r.total))
+    spentMap.set(
+      r.categoryId,
+      (spentMap.get(r.categoryId) ?? 0) + toAmount(decryptField(r.amount, dek))
+    )
   }
-  for (const r of fixedByCategory) {
+  for (const r of fxRows) {
     if (!r.categoryId) continue
-    spentMap.set(r.categoryId, (spentMap.get(r.categoryId) ?? 0) + toAmount(r.total))
+    spentMap.set(
+      r.categoryId,
+      (spentMap.get(r.categoryId) ?? 0) + toAmount(decryptField(r.amount, dek))
+    )
   }
 
   return groups.map((group) => {
     const categoryDetails = group.categories.map((cat) => {
       const override = cat.budgetOverrides[0]
-      const budget = toAmount(override?.amount ?? cat.defaultBudget)
+      const budget = override?.amount
+        ? toAmount(decryptField(override.amount, dek))
+        : toAmount(decryptOptional(cat.defaultBudget, dek))
       const spent = spentMap.get(cat.id) ?? 0
       return {
         id: cat.id,
-        name: cat.name,
+        name: decryptField(cat.name, dek),
         color: cat.color ?? undefined,
         bgColor: cat.bgColor ?? undefined,
         budget,
@@ -118,46 +124,100 @@ export async function getCategoryGroupProgress(
     const totalBudget = categoryDetails.reduce((s, c) => s + c.budget, 0)
     const totalSpent = categoryDetails.reduce((s, c) => s + c.spent, 0)
 
-    return { id: group.id, name: group.name, totalBudget, totalSpent, categories: categoryDetails }
+    return {
+      id: group.id,
+      name: decryptField(group.name, dek),
+      totalBudget,
+      totalSpent,
+      categories: categoryDetails,
+    }
   })
 }
 
 // ─── Transações do mês ────────────────────────────────────────────────────────
 
 export async function getMonthTransactions(userId: string, referenceMonth: string) {
-  return db.query.transactions.findMany({
-    where: and(eq(transactions.userId, userId), eq(transactions.referenceMonth, referenceMonth)),
-    with: { category: true, account: true, installmentGroup: true },
-    orderBy: [desc(transactions.date)],
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.transactions.findMany({
+      where: and(eq(transactions.userId, userId), eq(transactions.referenceMonth, referenceMonth)),
+      with: { category: true, account: true, installmentGroup: true },
+      orderBy: [desc(transactions.date)],
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    name: decryptField(row.name, dek),
+    amount: decryptField(row.amount, dek),
+    category: row.category ? { ...row.category, name: decryptField(row.category.name, dek) } : null,
+    account: row.account ? { ...row.account, name: decryptField(row.account.name, dek) } : null,
+    installmentGroup: row.installmentGroup
+      ? {
+          ...row.installmentGroup,
+          name: decryptField(row.installmentGroup.name, dek),
+          totalAmount: decryptField(row.installmentGroup.totalAmount, dek),
+        }
+      : null,
+  }))
 }
 
 // ─── Gastos fixos do mês ─────────────────────────────────────────────────────
 
 export async function getMonthFixedExpenses(userId: string, referenceMonth: string) {
-  return db.query.fixedExpenses.findMany({
-    where: and(eq(fixedExpenses.userId, userId), eq(fixedExpenses.referenceMonth, referenceMonth)),
-    with: { category: true, account: true },
-    orderBy: [fixedExpenses.dueDay],
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.fixedExpenses.findMany({
+      where: and(
+        eq(fixedExpenses.userId, userId),
+        eq(fixedExpenses.referenceMonth, referenceMonth)
+      ),
+      with: { category: true, account: true },
+      orderBy: [fixedExpenses.dueDay],
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    name: decryptField(row.name, dek),
+    amount: decryptField(row.amount, dek),
+    category: row.category ? { ...row.category, name: decryptField(row.category.name, dek) } : null,
+    account: row.account ? { ...row.account, name: decryptField(row.account.name, dek) } : null,
+  }))
 }
 
 // ─── Entradas do mês ─────────────────────────────────────────────────────────
 
 export async function getMonthIncomes(userId: string, referenceMonth: string) {
-  return db.query.incomes.findMany({
-    where: and(eq(incomes.userId, userId), eq(incomes.referenceMonth, referenceMonth)),
-    orderBy: [desc(incomes.amount)],
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.incomes.findMany({
+      where: and(eq(incomes.userId, userId), eq(incomes.referenceMonth, referenceMonth)),
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    source: decryptField(row.source, dek),
+    amount: decryptField(row.amount, dek),
+    investmentReturnCapital: decryptOptional(row.investmentReturnCapital, dek),
+  }))
 }
 
 // ─── Investimentos do mês ────────────────────────────────────────────────────
 
 export async function getMonthInvestments(userId: string, referenceMonth: string) {
-  return db.query.investments.findMany({
-    where: and(eq(investments.userId, userId), eq(investments.referenceMonth, referenceMonth)),
-    with: { investmentType: true },
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.investments.findMany({
+      where: and(eq(investments.userId, userId), eq(investments.referenceMonth, referenceMonth)),
+      with: { investmentType: true },
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    amount: decryptOptional(row.amount, dek),
+    yieldAmount: decryptOptional(row.yieldAmount, dek),
+    notes: decryptOptional(row.notes, dek),
+    investmentType: { ...row.investmentType, name: decryptField(row.investmentType.name, dek) },
+  }))
 }
 
 // ─── Dados completos do dashboard (single call) ───────────────────────────────
@@ -237,15 +297,32 @@ export async function getTransactionsByDateRange(
   endDate: string,
   accountId?: string
 ) {
-  return db.query.transactions.findMany({
-    where: and(
-      eq(transactions.userId, userId),
-      between(transactions.date, startDate, endDate),
-      accountId ? eq(transactions.accountId, accountId) : undefined
-    ),
-    with: { category: true, account: true, installmentGroup: true },
-    orderBy: [desc(transactions.date)],
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.transactions.findMany({
+      where: and(
+        eq(transactions.userId, userId),
+        between(transactions.date, startDate, endDate),
+        accountId ? eq(transactions.accountId, accountId) : undefined
+      ),
+      with: { category: true, account: true, installmentGroup: true },
+      orderBy: [desc(transactions.date)],
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    name: decryptField(row.name, dek),
+    amount: decryptField(row.amount, dek),
+    category: row.category ? { ...row.category, name: decryptField(row.category.name, dek) } : null,
+    account: row.account ? { ...row.account, name: decryptField(row.account.name, dek) } : null,
+    installmentGroup: row.installmentGroup
+      ? {
+          ...row.installmentGroup,
+          name: decryptField(row.installmentGroup.name, dek),
+          totalAmount: decryptField(row.installmentGroup.totalAmount, dek),
+        }
+      : null,
+  }))
 }
 
 export async function getFixedExpensesByBillingCycle(
@@ -257,18 +334,31 @@ export async function getFixedExpensesByBillingCycle(
   const currRefMonth = yearMonthToReferenceMonth(yearMonth)
   const prevRefMonth = yearMonthToReferenceMonth(prevMonth(yearMonth))
 
-  return db.query.fixedExpenses.findMany({
-    where: and(
-      eq(fixedExpenses.userId, userId),
-      accountId ? eq(fixedExpenses.accountId, accountId) : undefined,
-      or(
-        and(eq(fixedExpenses.referenceMonth, prevRefMonth), gte(fixedExpenses.dueDay, closingDay)),
-        and(eq(fixedExpenses.referenceMonth, currRefMonth), lt(fixedExpenses.dueDay, closingDay))
-      )
-    ),
-    with: { category: true, account: true },
-    orderBy: [fixedExpenses.dueDay],
-  })
+  const [rows, dek] = await Promise.all([
+    db.query.fixedExpenses.findMany({
+      where: and(
+        eq(fixedExpenses.userId, userId),
+        accountId ? eq(fixedExpenses.accountId, accountId) : undefined,
+        or(
+          and(
+            eq(fixedExpenses.referenceMonth, prevRefMonth),
+            gte(fixedExpenses.dueDay, closingDay)
+          ),
+          and(eq(fixedExpenses.referenceMonth, currRefMonth), lt(fixedExpenses.dueDay, closingDay))
+        )
+      ),
+      with: { category: true, account: true },
+      orderBy: [fixedExpenses.dueDay],
+    }),
+    getDekForUser(userId),
+  ])
+  return rows.map((row) => ({
+    ...row,
+    name: decryptField(row.name, dek),
+    amount: decryptField(row.amount, dek),
+    category: row.category ? { ...row.category, name: decryptField(row.category.name, dek) } : null,
+    account: row.account ? { ...row.account, name: decryptField(row.account.name, dek) } : null,
+  }))
 }
 
 export async function getDashboardDataBillingCycle(
@@ -325,9 +415,8 @@ export async function getDashboardDataBillingCycle(
 }
 
 // ─── Evolução mensal (últimos N meses) ────────────────────────────────────────
-// 4 queries com IN + GROUP BY em vez de N×4 queries sequenciais.
-// Em regime de fatura, usa JOIN com paymentAccounts para excluir contas de crédito
-// nos meses com regime ativo — sem query extra de soma.
+// Rows individuais buscados por IN — aggregação em JS após decrypt.
+// Em regime de fatura, WHERE exclui contas de crédito nos meses ativos.
 
 export async function getMonthlyEvolution(
   userId: string,
@@ -341,95 +430,112 @@ export async function getMonthlyEvolution(
     faturaCtx.creditMode === 'fatura' &&
     faturaCtx.faturaActiveFrom !== null
 
-  const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows] = await Promise.all([
-    db
-      .select({
-        referenceMonth: incomes.referenceMonth,
-        total: sql<string>`SUM(
-          CASE
-            WHEN ${incomes.investmentReturnCapital} IS NOT NULL
-            THEN ${incomes.amount} - ${incomes.investmentReturnCapital}
-            ELSE ${incomes.amount}
-          END
-        )`,
-      })
-      .from(incomes)
-      .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months)))
-      .groupBy(incomes.referenceMonth),
+  const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows, dek] =
+    await Promise.all([
+      db
+        .select({
+          referenceMonth: incomes.referenceMonth,
+          amount: incomes.amount,
+          investmentReturnCapital: incomes.investmentReturnCapital,
+        })
+        .from(incomes)
+        .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months))),
 
-    isFaturaMode
-      ? db
-          .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
-          .from(transactions)
-          .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
-          .where(
-            and(
-              eq(transactions.userId, userId),
-              inArray(transactions.referenceMonth, months),
-              // Accrual months: include all; fatura months: exclude credit accounts
-              or(
-                lt(transactions.referenceMonth, faturaCtx.faturaActiveFrom!),
-                ne(paymentAccounts.type, 'credit')
+      isFaturaMode
+        ? db
+            .select({ referenceMonth: transactions.referenceMonth, amount: transactions.amount })
+            .from(transactions)
+            .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
+            .where(
+              and(
+                eq(transactions.userId, userId),
+                inArray(transactions.referenceMonth, months),
+                or(
+                  lt(transactions.referenceMonth, faturaCtx.faturaActiveFrom!),
+                  ne(paymentAccounts.type, 'credit')
+                )
               )
             )
-          )
-          .groupBy(transactions.referenceMonth)
-      : db
-          .select({ referenceMonth: transactions.referenceMonth, total: sum(transactions.amount) })
-          .from(transactions)
-          .where(and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months)))
-          .groupBy(transactions.referenceMonth),
+        : db
+            .select({ referenceMonth: transactions.referenceMonth, amount: transactions.amount })
+            .from(transactions)
+            .where(
+              and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months))
+            ),
 
-    isFaturaMode
-      ? db
-          .select({
-            referenceMonth: fixedExpenses.referenceMonth,
-            total: sum(fixedExpenses.amount),
-          })
-          .from(fixedExpenses)
-          .innerJoin(paymentAccounts, eq(fixedExpenses.accountId, paymentAccounts.id))
-          .where(
-            and(
-              eq(fixedExpenses.userId, userId),
-              inArray(fixedExpenses.referenceMonth, months),
-              or(
-                lt(fixedExpenses.referenceMonth, faturaCtx.faturaActiveFrom!),
-                ne(paymentAccounts.type, 'credit')
+      isFaturaMode
+        ? db
+            .select({
+              referenceMonth: fixedExpenses.referenceMonth,
+              amount: fixedExpenses.amount,
+            })
+            .from(fixedExpenses)
+            .innerJoin(paymentAccounts, eq(fixedExpenses.accountId, paymentAccounts.id))
+            .where(
+              and(
+                eq(fixedExpenses.userId, userId),
+                inArray(fixedExpenses.referenceMonth, months),
+                or(
+                  lt(fixedExpenses.referenceMonth, faturaCtx.faturaActiveFrom!),
+                  ne(paymentAccounts.type, 'credit')
+                )
               )
             )
+        : db
+            .select({
+              referenceMonth: fixedExpenses.referenceMonth,
+              amount: fixedExpenses.amount,
+            })
+            .from(fixedExpenses)
+            .where(
+              and(eq(fixedExpenses.userId, userId), inArray(fixedExpenses.referenceMonth, months))
+            ),
+
+      db
+        .select({ referenceMonth: investments.referenceMonth, amount: investments.amount })
+        .from(investments)
+        .where(
+          and(
+            eq(investments.userId, userId),
+            inArray(investments.referenceMonth, months),
+            eq(investments.excludeFromCashFlow, false)
           )
-          .groupBy(fixedExpenses.referenceMonth)
-      : db
-          .select({
-            referenceMonth: fixedExpenses.referenceMonth,
-            total: sum(fixedExpenses.amount),
-          })
-          .from(fixedExpenses)
-          .where(
-            and(eq(fixedExpenses.userId, userId), inArray(fixedExpenses.referenceMonth, months))
-          )
-          .groupBy(fixedExpenses.referenceMonth),
+        ),
 
-    db
-      .select({ referenceMonth: investments.referenceMonth, total: sum(investments.amount) })
-      .from(investments)
-      .where(
-        and(
-          eq(investments.userId, userId),
-          inArray(investments.referenceMonth, months),
-          eq(investments.excludeFromCashFlow, false)
-        )
-      )
-      .groupBy(investments.referenceMonth),
-  ])
+      getDekForUser(userId),
+    ])
 
-  const toMap = (rows: { referenceMonth: string; total: string | null }[]) =>
-    new Map(rows.map((r) => [r.referenceMonth, toAmount(r.total)]))
+  const incomesMap = new Map<string, number>()
+  for (const r of incomesRows) {
+    const net =
+      toAmount(decryptField(r.amount, dek)) -
+      toAmount(decryptOptional(r.investmentReturnCapital, dek))
+    incomesMap.set(r.referenceMonth, (incomesMap.get(r.referenceMonth) ?? 0) + net)
+  }
 
-  const incomesMap = toMap(incomesRows)
-  const transactionsMap = toMap(transactionsRows)
-  const fixedExpensesMap = toMap(fixedExpensesRows)
-  const investmentsMap = toMap(investmentsRows)
+  const transactionsMap = new Map<string, number>()
+  for (const r of transactionsRows) {
+    transactionsMap.set(
+      r.referenceMonth,
+      (transactionsMap.get(r.referenceMonth) ?? 0) + toAmount(decryptField(r.amount, dek))
+    )
+  }
+
+  const fixedExpensesMap = new Map<string, number>()
+  for (const r of fixedExpensesRows) {
+    fixedExpensesMap.set(
+      r.referenceMonth,
+      (fixedExpensesMap.get(r.referenceMonth) ?? 0) + toAmount(decryptField(r.amount, dek))
+    )
+  }
+
+  const investmentsMap = new Map<string, number>()
+  for (const r of investmentsRows) {
+    investmentsMap.set(
+      r.referenceMonth,
+      (investmentsMap.get(r.referenceMonth) ?? 0) + toAmount(decryptOptional(r.amount, dek))
+    )
+  }
 
   return months.map((refMonth) => ({
     month: refMonth.slice(0, 7),
