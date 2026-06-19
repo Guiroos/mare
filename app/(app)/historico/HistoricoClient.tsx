@@ -5,11 +5,12 @@ import { fetchMoreHistorico } from '@/lib/actions/historico'
 import { TxList, TxGroupHeader } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
-import { toAmount, formatCurrency } from '@/lib/utils/currency'
+import { toAmount } from '@/lib/utils/currency'
 import { formatDisplayDate, daysAgo, parseDate } from '@/lib/utils/date'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils/cn'
+import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import type { HistoricoFeedItem } from '@/lib/queries/historico'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
 
@@ -68,19 +69,19 @@ function SummaryCards({ items }: { items: HistoricoFeedItem[] }) {
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       <div className="rounded-lg bg-positive-subtle p-3 text-center">
         <p className="text-body font-semibold tabular-nums text-positive-text">
-          {formatCurrency(entradas)}
+          <SensitiveAmount value={entradas} />
         </p>
         <p className="mt-0.5 text-caption text-text-tertiary">entradas</p>
       </div>
       <div className="rounded-lg bg-negative-subtle p-3 text-center">
         <p className="text-body font-semibold tabular-nums text-negative-text">
-          {formatCurrency(saidas)}
+          <SensitiveAmount value={saidas} />
         </p>
         <p className="mt-0.5 text-caption text-text-tertiary">saídas</p>
       </div>
       <div className="rounded-lg bg-accent-subtle p-3 text-center">
         <p className="text-body font-semibold tabular-nums text-accent-text">
-          {formatCurrency(investido)}
+          <SensitiveAmount value={investido} />
         </p>
         <p className="mt-0.5 text-caption text-text-tertiary">investido</p>
       </div>
@@ -157,7 +158,7 @@ function FeedRow({ item }: { item: HistoricoFeedItem }) {
           debit ? 'text-negative' : item.kind === 'entrada' ? 'text-positive' : 'text-accent'
         )}
       >
-        {debit ? '−' : '+'} {formatCurrency(toAmount(item.amount))}
+        {debit ? '−' : '+'} <SensitiveAmount value={toAmount(item.amount)} />
       </span>
     </div>
   )
@@ -180,6 +181,7 @@ export function HistoricoClient({
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [cursor, setCursor] = useState(initialNextCursor)
   const [isPending, startTransition] = useTransition()
+  const { mask } = usePrivacyMode()
 
   const loadMore = () => {
     if (!cursor) return
@@ -211,7 +213,7 @@ export function HistoricoClient({
           <Fragment key={date}>
             <TxGroupHeader
               date={formatGroupDate(date)}
-              total={`${formatCurrency(groupItems.filter((i) => isDebit(i.kind)).reduce((s, i) => s + toAmount(i.amount), 0))} saídas`}
+              total={`${mask(groupItems.filter((i) => isDebit(i.kind)).reduce((s, i) => s + toAmount(i.amount), 0))} saídas`}
             />
             {groupItems.map((item) => (
               <FeedRow key={item.id} item={item} />
