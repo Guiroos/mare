@@ -206,7 +206,7 @@ git commit -m "feat(privacy): add PrivacyModeProvider, SensitiveAmount, PrivacyT
 - Consumes: `usePrivacyMode` de `@/components/providers/PrivacyMode`
 - Consumes: `Switch` de `@/components/ui/switch`
 
-- [ ] **Step 1: Adicionar `PrivacyModeProvider` ao layout**
+- [x] **Step 1: Adicionar `PrivacyModeProvider` ao layout**
 
 Em `app/(app)/layout.tsx`, importar e envolver `RegistrationDialogProvider`:
 
@@ -229,7 +229,7 @@ return (
 )
 ```
 
-- [ ] **Step 2: Adicionar seção "Privacidade" no SettingsDialog**
+- [x] **Step 2: Adicionar seção "Privacidade" no SettingsDialog**
 
 Em `components/settings/SettingsDialog.tsx`, importar `usePrivacyMode` e `Switch`:
 
@@ -257,7 +257,7 @@ const { isPrivate, toggle } = usePrivacyMode()
 </div>
 ```
 
-- [ ] **Step 3: Teste manual**
+- [x] **Step 3: Teste manual**
 
 ```bash
 npm run dev
@@ -267,7 +267,7 @@ npm run dev
 2. Ativar o Switch → verificar que `localStorage.getItem('mare:privacy-mode')` retorna `'true'` no console
 3. Recarregar a página → Switch deve continuar ativo
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/\(app\)/layout.tsx components/settings/SettingsDialog.tsx
