@@ -1,5 +1,5 @@
 import { db } from '@/lib/db'
-import { transactions, installmentGroups } from '@/lib/db/schema'
+import { transactions, installmentGroups, paymentAccounts, categories } from '@/lib/db/schema'
 import { eq, and, isNotNull, gte, lte } from 'drizzle-orm'
 import { currentReferenceMonth, futureNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
@@ -11,32 +11,57 @@ import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 export async function getActiveInstallmentGroups(userId: string) {
   const currentMonthStr = currentReferenceMonth()
 
-  const groups = await db.query.installmentGroups.findMany({
-    where: eq(installmentGroups.userId, userId),
-    with: {
-      transactions: true,
-      account: true,
-      category: true,
-    },
-  })
+  const [groups, txRows, dek] = await Promise.all([
+    db
+      .select({
+        id: installmentGroups.id,
+        name: installmentGroups.name,
+        totalAmount: installmentGroups.totalAmount,
+        totalInstallments: installmentGroups.totalInstallments,
+        startDate: installmentGroups.startDate,
+        categoryId: installmentGroups.categoryId,
+        accountId: installmentGroups.accountId,
+        accountName: paymentAccounts.name,
+        categoryName: categories.name,
+        categoryColor: categories.color,
+      })
+      .from(installmentGroups)
+      .innerJoin(paymentAccounts, eq(installmentGroups.accountId, paymentAccounts.id))
+      .innerJoin(categories, eq(installmentGroups.categoryId, categories.id))
+      .where(eq(installmentGroups.userId, userId)),
+    db
+      .select({
+        installmentGroupId: transactions.installmentGroupId,
+        referenceMonth: transactions.referenceMonth,
+        date: transactions.date,
+      })
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), isNotNull(transactions.installmentGroupId))),
+    getDekForUser(userId),
+  ])
 
-  const dek = await getDekForUser(userId)
+  // Index transactions by group id
+  const txByGroup = new Map<string, typeof txRows>()
+  for (const tx of txRows) {
+    const gid = tx.installmentGroupId!
+    const list = txByGroup.get(gid) ?? []
+    list.push(tx)
+    txByGroup.set(gid, list)
+  }
 
   return groups
     .map((group) => {
-      const decryptedTotalAmount = decryptField(group.totalAmount, dek)
-      const totalAmount = toAmount(decryptedTotalAmount)
+      const totalAmount = toAmount(decryptField(group.totalAmount, dek))
       const totalInstallments = group.totalInstallments
       const installmentAmount = totalAmount / totalInstallments
+      const groupTxs = txByGroup.get(group.id) ?? []
 
-      const paidInstallments = group.transactions.filter(
-        (t) => t.referenceMonth < currentMonthStr
-      ).length
+      const paidInstallments = groupTxs.filter((t) => t.referenceMonth <= currentMonthStr).length
 
       const remainingInstallments = totalInstallments - paidInstallments
       const remainingAmount = remainingInstallments * installmentAmount
 
-      const nextTx = group.transactions
+      const nextTx = groupTxs
         .filter((t) => t.referenceMonth >= currentMonthStr)
         .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))[0]
 
@@ -45,9 +70,9 @@ export async function getActiveInstallmentGroups(userId: string) {
         name: decryptField(group.name, dek),
         categoryId: group.categoryId,
         accountId: group.accountId,
-        accountName: decryptField(group.account.name, dek),
-        categoryName: decryptField(group.category.name, dek),
-        categoryColor: group.category.color ?? undefined,
+        accountName: decryptField(group.accountName, dek),
+        categoryName: decryptField(group.categoryName, dek),
+        categoryColor: group.categoryColor ?? undefined,
         startDate: group.startDate,
         nextChargeMonth: nextTx ? nextTx.referenceMonth.slice(0, 7) : null,
         nextChargeDate: nextTx?.date ?? null,

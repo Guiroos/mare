@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import { people, debtorEntries, transactions, categories, paymentAccounts } from '@/lib/db/schema'
-import { eq, and, sql, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
+import { eq, and, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
@@ -17,7 +17,7 @@ export type PersonWithBalance = {
 }
 
 export async function getPeopleWithBalances(userId: string): Promise<PersonWithBalance[]> {
-  const [rows, dek] = await Promise.all([
+  const [personRows, entryRows, dek] = await Promise.all([
     db
       .select({
         id: people.id,
@@ -26,43 +26,50 @@ export async function getPeopleWithBalances(userId: string): Promise<PersonWithB
         phone: people.phone,
         notes: people.notes,
         archived: people.archived,
-        rawBalance: sql<string>`COALESCE(SUM(CASE
-          WHEN ${debtorEntries.type} = 'charge' THEN ${debtorEntries.amount}
-          WHEN ${debtorEntries.type} = 'payment' THEN -${debtorEntries.amount}
-          WHEN ${debtorEntries.type} = 'adjustment' THEN ${debtorEntries.amount}
-          ELSE 0
-        END), 0)`,
-        lastMovement: sql<string | null>`MAX(${debtorEntries.entryDate})`,
       })
       .from(people)
-      .leftJoin(
-        debtorEntries,
-        and(eq(debtorEntries.personId, people.id), eq(debtorEntries.userId, userId))
-      )
-      .where(and(eq(people.userId, userId), eq(people.archived, false)))
-      .groupBy(
-        people.id,
-        people.name,
-        people.email,
-        people.phone,
-        people.notes,
-        people.archived,
-        people.createdAt
-      )
-      .orderBy(asc(people.name)),
+      .where(and(eq(people.userId, userId), eq(people.archived, false))),
+    db
+      .select({
+        personId: debtorEntries.personId,
+        type: debtorEntries.type,
+        amount: debtorEntries.amount,
+        entryDate: debtorEntries.entryDate,
+      })
+      .from(debtorEntries)
+      .where(eq(debtorEntries.userId, userId)),
     getDekForUser(userId),
   ])
 
-  return rows.map((r) => ({
+  const balanceMap: Record<string, number> = {}
+  const lastMovementMap: Record<string, string | null> = {}
+
+  for (const e of entryRows) {
+    const amount = toAmount(decryptField(e.amount, dek))
+    if (balanceMap[e.personId] === undefined) balanceMap[e.personId] = 0
+    if (e.type === 'payment') {
+      balanceMap[e.personId] -= amount
+    } else {
+      balanceMap[e.personId] += amount
+    }
+    if (!lastMovementMap[e.personId] || e.entryDate > lastMovementMap[e.personId]!) {
+      lastMovementMap[e.personId] = e.entryDate
+    }
+  }
+
+  const result = personRows.map((r) => ({
     id: r.id,
     name: decryptField(r.name, dek),
     email: decryptOptional(r.email, dek),
     phone: decryptOptional(r.phone, dek),
     notes: decryptOptional(r.notes, dek),
     archived: r.archived,
-    balance: toAmount(r.rawBalance),
-    lastMovement: r.lastMovement ?? null,
+    balance: balanceMap[r.id] ?? 0,
+    lastMovement: lastMovementMap[r.id] ?? null,
   }))
+
+  result.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+  return result
 }
 
 export type ActivePerson = { id: string; name: string }
