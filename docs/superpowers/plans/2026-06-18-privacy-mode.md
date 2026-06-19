@@ -560,7 +560,7 @@ git commit -m "feat(privacy): mask sensitive values in dashboard"
 **Interfaces:**
 - Consumes: `SensitiveAmount`, `PrivacyToggle`, `usePrivacyMode` de `@/components/providers/PrivacyMode`
 
-- [ ] **Step 1: Mascarar valores em HistoricoClient**
+- [x] **Step 1: Mascarar valores em HistoricoClient**
 
 Em `app/(app)/historico/HistoricoClient.tsx`, importar:
 
@@ -619,7 +619,7 @@ const { mask } = usePrivacyMode() // no componente pai que mapeia os grupos
 total={`${mask(groupItems.filter((i) => isDebit(i.kind)).reduce((s, i) => s + toAmount(i.amount), 0))} saídas`}
 ```
 
-- [ ] **Step 2: Adicionar PrivacyToggle no header do Histórico**
+- [x] **Step 2: Adicionar PrivacyToggle no header do Histórico**
 
 Em `app/(app)/historico/page.tsx`, importar `PrivacyToggle` e envolver o `PageHeader` com flex layout:
 
@@ -635,7 +635,7 @@ import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 </div>
 ```
 
-- [ ] **Step 3: Teste manual**
+- [x] **Step 3: Teste manual**
 
 ```bash
 npm run dev
@@ -645,7 +645,7 @@ npm run dev
 2. Clicar no ícone de olho → valores de cada item e SummaryCards mascarados
 3. Verificar que o estado é compartilhado com dashboard (mesmo `localStorage`)
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add app/\(app\)/historico/HistoricoClient.tsx app/\(app\)/historico/page.tsx
@@ -667,7 +667,7 @@ git commit -m "feat(privacy): mask sensitive values in historico"
 - Consumes: `SensitiveAmount`, `PrivacyToggle`, `usePrivacyMode` de `@/components/providers/PrivacyMode`
 - Produces: `WithdrawalTable({ withdrawals, investmentTypeOptions })`
 
-- [ ] **Step 1: Converter PatrimonyHero para client + SensitiveAmount**
+- [x] **Step 1: Converter PatrimonyHero para client + SensitiveAmount**
 
 Em `components/investimentos/PatrimonyHero.tsx`, adicionar `'use client'` na primeira linha e importar `SensitiveAmount`:
 
@@ -725,7 +725,7 @@ aporte {formatCurrency(thisMonthAporte)} · rend. {formatCurrency(thisMonthYield
 aporte <SensitiveAmount value={thisMonthAporte} /> · rend. <SensitiveAmount value={thisMonthYield} />
 ```
 
-- [ ] **Step 2: Usar SensitiveAmount em InvestmentTypeCard**
+- [x] **Step 2: Usar SensitiveAmount em InvestmentTypeCard**
 
 Em `components/investimentos/InvestmentTypeCard.tsx`, importar `SensitiveAmount` e remover import de `formatCurrency`:
 
@@ -774,7 +774,7 @@ Substituir as 7 ocorrências (linhas 201, 207, 224, 288, 296, 378, 386):
 </strong>
 ```
 
-- [ ] **Step 3: Usar SensitiveAmount em InvestmentTypeAccordion**
+- [x] **Step 3: Usar SensitiveAmount em InvestmentTypeAccordion**
 
 Em `components/investimentos/InvestmentTypeAccordion.tsx`, importar `SensitiveAmount`:
 
@@ -809,7 +809,7 @@ Substituir as 5 ocorrências (linhas 202, 227, 233, 270, 280):
 
 Remover import de `formatCurrency` se não houver mais usos.
 
-- [ ] **Step 4: Criar WithdrawalTable**
+- [x] **Step 4: Criar WithdrawalTable**
 
 Criar `components/investimentos/WithdrawalTable.tsx` extraindo o bloco `<table>` da seção "Resgates" de `investimentos/page.tsx`. O componente precisa dos imports de `deleteWithdrawal`, `WithdrawalEditButton`, `DeleteButton`, `Badge`, `formatDate`:
 
@@ -905,7 +905,7 @@ export function WithdrawalTable({
 
 **Nota:** a action `deleteWithdrawal` marcada com `'use server'` inline funciona em Client Components — Next.js suporta isso.
 
-- [ ] **Step 5: Atualizar investimentos/page.tsx**
+- [x] **Step 5: Atualizar investimentos/page.tsx**
 
 Em `app/(app)/investimentos/page.tsx`:
 
@@ -948,7 +948,7 @@ Remover imports não mais usados: `formatCurrency`, `formatDate`, `WithdrawalEdi
 2. Ativar modo privado → PatrimonyHero, InvestmentTypeCard, InvestmentTypeAccordion e WithdrawalTable mascarados
 3. Verificar que o PrivacyToggle no header funciona
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add components/investimentos/PatrimonyHero.tsx \
