@@ -2,7 +2,6 @@ import {
   pgTable,
   uuid,
   varchar,
-  decimal,
   date,
   integer,
   boolean,
@@ -33,7 +32,8 @@ export const userSettings = pgTable(
     creditMode: varchar('credit_mode', { length: 20 }).notNull().default('accrual'), // accrual | fatura
     faturaActiveFrom: date('fatura_active_from'),
     autoRolloverFixedExpenses: boolean('auto_rollover_fixed_expenses').notNull().default(false),
-    pixKey: varchar('pix_key', { length: 100 }),
+    pixKey: text('pix_key'),
+    encryptedDek: text('encrypted_dek'),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (t) => [index('user_settings_user_idx').on(t.userId)]
@@ -78,7 +78,7 @@ export const categoryGroups = pgTable('category_groups', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 100 }).notNull(),
+  name: text('name').notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
 })
 
@@ -90,8 +90,8 @@ export const categories = pgTable('categories', {
   groupId: uuid('group_id')
     .notNull()
     .references(() => categoryGroups.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 100 }).notNull(),
-  defaultBudget: decimal('default_budget', { precision: 10, scale: 2 }),
+  name: text('name').notNull(),
+  defaultBudget: text('default_budget'),
   color: varchar('color', { length: 7 }),
   bgColor: varchar('bg_color', { length: 7 }),
 })
@@ -107,7 +107,7 @@ export const monthlyBudgetOverrides = pgTable(
       .notNull()
       .references(() => categories.id, { onDelete: 'cascade' }),
     referenceMonth: date('reference_month').notNull(),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    amount: text('amount').notNull(),
   },
   (t) => [
     index('mbo_user_month_idx').on(t.userId, t.referenceMonth),
@@ -120,7 +120,7 @@ export const paymentAccounts = pgTable('payment_accounts', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 100 }).notNull(),
+  name: text('name').notNull(),
   type: varchar('type', { length: 20 }).notNull(), // credit | debit | pix
   closingDay: integer('closing_day'),
 })
@@ -138,8 +138,8 @@ export const fixedExpenses = pgTable(
     categoryId: uuid('category_id')
       .notNull()
       .references(() => categories.id, { onDelete: 'restrict' }),
-    name: varchar('name', { length: 200 }).notNull(),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    name: text('name').notNull(),
+    amount: text('amount').notNull(),
     dueDay: integer('due_day').notNull(),
     paid: boolean('paid').default(false).notNull(),
     referenceMonth: date('reference_month').notNull(),
@@ -158,8 +158,8 @@ export const installmentGroups = pgTable('installment_groups', {
   categoryId: uuid('category_id')
     .notNull()
     .references(() => categories.id, { onDelete: 'restrict' }),
-  name: varchar('name', { length: 200 }).notNull(),
-  totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(),
+  name: text('name').notNull(),
+  totalAmount: text('total_amount').notNull(),
   totalInstallments: integer('total_installments').notNull(),
   startDate: date('start_date').notNull(),
 })
@@ -182,8 +182,8 @@ export const transactions = pgTable(
       onDelete: 'restrict',
     }),
     faturaCycleMonth: date('fatura_cycle_month'),
-    name: varchar('name', { length: 200 }).notNull(),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    name: text('name').notNull(),
+    amount: text('amount').notNull(),
     date: date('date').notNull(),
     referenceMonth: date('reference_month').notNull(),
     installmentNumber: integer('installment_number'),
@@ -205,13 +205,10 @@ export const incomes = pgTable(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    source: varchar('source', { length: 200 }).notNull(),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+    source: text('source').notNull(),
+    amount: text('amount').notNull(),
     referenceMonth: date('reference_month').notNull(),
-    investmentReturnCapital: decimal('investment_return_capital', {
-      precision: 12,
-      scale: 2,
-    }),
+    investmentReturnCapital: text('investment_return_capital'),
   },
   (t) => [index('incomes_user_month_idx').on(t.userId, t.referenceMonth)]
 )
@@ -222,8 +219,8 @@ export const goals = pgTable('goals', {
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   investmentTypeId: uuid('investment_type_id'),
-  name: varchar('name', { length: 200 }).notNull(),
-  targetAmount: decimal('target_amount', { precision: 10, scale: 2 }).notNull(),
+  name: text('name').notNull(),
+  targetAmount: text('target_amount').notNull(),
   targetDate: date('target_date'),
 })
 
@@ -232,7 +229,7 @@ export const investmentTypes = pgTable('investment_types', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 200 }).notNull(),
+  name: text('name').notNull(),
   color: varchar('color', { length: 7 }),
   bgColor: varchar('bg_color', { length: 7 }),
   goalId: uuid('goal_id').references(() => goals.id, { onDelete: 'set null' }),
@@ -250,8 +247,8 @@ export const investments = pgTable(
     investmentTypeId: uuid('investment_type_id')
       .notNull()
       .references(() => investmentTypes.id, { onDelete: 'restrict' }),
-    amount: decimal('amount', { precision: 10, scale: 2 }),
-    yieldAmount: decimal('yield_amount', { precision: 10, scale: 2 }),
+    amount: text('amount'),
+    yieldAmount: text('yield_amount'),
     referenceMonth: date('reference_month').notNull(),
     notes: text('notes'),
     excludeFromCashFlow: boolean('exclude_from_cash_flow').notNull().default(false),
@@ -277,8 +274,8 @@ export const investmentWithdrawals = pgTable(
     investmentTypeId: uuid('investment_type_id')
       .notNull()
       .references(() => investmentTypes.id, { onDelete: 'restrict' }),
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-    taxAmount: decimal('tax_amount', { precision: 10, scale: 2 }),
+    amount: text('amount').notNull(),
+    taxAmount: text('tax_amount'),
     date: date('date').notNull(),
     destination: varchar('destination', { length: 20 }).notNull(), // income | reinvest | transfer
     incomeId: uuid('income_id').references(() => incomes.id, {
@@ -297,7 +294,7 @@ export const goalContributions = pgTable('goal_contributions', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  amount: text('amount').notNull(),
   referenceMonth: date('reference_month').notNull(),
   source: varchar('source', { length: 20 }).notNull(), // manual | investment
 })
@@ -480,9 +477,9 @@ export const people = pgTable('people', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 200 }).notNull(),
-  email: varchar('email', { length: 255 }),
-  phone: varchar('phone', { length: 40 }),
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
   notes: text('notes'),
   archived: boolean('archived').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -500,8 +497,8 @@ export const debtorEntries = pgTable(
       .notNull()
       .references(() => people.id, { onDelete: 'cascade' }),
     type: varchar('type', { length: 20 }).notNull(), // charge | payment | adjustment
-    amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-    description: varchar('description', { length: 200 }).notNull(),
+    amount: text('amount').notNull(),
+    description: text('description').notNull(),
     referenceMonth: date('reference_month').notNull(),
     entryDate: date('entry_date').notNull(),
     dueDate: date('due_date'),

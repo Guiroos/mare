@@ -48,22 +48,16 @@ export const getDekForUser = cache(async (userId: string): Promise<Buffer> => {
   const newDek = generateDek()
   const newEncryptedDek = encryptDek(newDek)
 
-  // encryptedDek column added in Task 2 migration
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [row] = (await db
+  const [row] = await db
     .insert(userSettings)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .values({ userId, encryptedDek: newEncryptedDek } as any)
+    .values({ userId, encryptedDek: newEncryptedDek })
     .onConflictDoUpdate({
       target: userSettings.userId,
       set: {
-        // @ts-expect-error – encryptedDek not yet in schema
         encryptedDek: sql`COALESCE(user_settings.encrypted_dek, EXCLUDED.encrypted_dek)`,
       },
     })
-    // @ts-expect-error – encryptedDek not yet in schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .returning({ encryptedDek: userSettings.encryptedDek })) as any
+    .returning({ encryptedDek: userSettings.encryptedDek })
 
   if (!row?.encryptedDek) throw new Error(`DEK não encontrado para userId=${userId}`)
   return decryptDek(row.encryptedDek)
