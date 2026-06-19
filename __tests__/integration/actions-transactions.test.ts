@@ -69,13 +69,19 @@ describe('createInstallmentPurchase', () => {
       accountId,
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.name, 'Notebook')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-01-10')),
     })
 
     expect(group).toBeDefined()
     expect(group?.totalInstallments).toBe(3)
-    expect(group?.totalAmount).toBe('3000.00')
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    expect(decryptField(group!.totalAmount, dek)).toBe('3000.00')
 
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
@@ -85,9 +91,9 @@ describe('createInstallmentPurchase', () => {
     expect(txs).toHaveLength(3)
 
     // Nomes no formato "Nome (i/N)"
-    expect(txs[0].name).toBe('Notebook (1/3)')
-    expect(txs[1].name).toBe('Notebook (2/3)')
-    expect(txs[2].name).toBe('Notebook (3/3)')
+    expect(decryptField(txs[0].name, dek)).toBe('Notebook (1/3)')
+    expect(decryptField(txs[1].name, dek)).toBe('Notebook (2/3)')
+    expect(decryptField(txs[2].name, dek)).toBe('Notebook (3/3)')
 
     // installmentNumber e totalInstallments
     expect(txs[0].installmentNumber).toBe(1)
@@ -100,9 +106,9 @@ describe('createInstallmentPurchase', () => {
     expect(txs[2].referenceMonth).toBe('2025-03-01')
 
     // Valor de cada parcela
-    expect(txs[0].amount).toBe('1000.00')
-    expect(txs[1].amount).toBe('1000.00')
-    expect(txs[2].amount).toBe('1000.00')
+    expect(decryptField(txs[0].amount, dek)).toBe('1000.00')
+    expect(decryptField(txs[1].amount, dek)).toBe('1000.00')
+    expect(decryptField(txs[2].amount, dek)).toBe('1000.00')
 
     // Todos vinculados ao usuário, categoria e conta corretos
     expect(txs.every((t) => t.userId === userId)).toBe(true)
@@ -188,9 +194,9 @@ describe('createInstallmentPurchase', () => {
       accountId: creditAccount.id,
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) =>
-        and(eqFn(g.userId, userId), eqFn(g.name, 'TV antes fechamento')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-01-05')),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
@@ -220,9 +226,9 @@ describe('createInstallmentPurchase', () => {
       accountId: creditAccount.id,
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) =>
-        and(eqFn(g.userId, userId), eqFn(g.name, 'TV depois fechamento')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-01-18')),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
@@ -252,9 +258,9 @@ describe('createInstallmentPurchase', () => {
       accountId: creditAccount.id,
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) =>
-        and(eqFn(g.userId, userId), eqFn(g.name, 'Compra closingDay 28')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-01-30')),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
@@ -290,9 +296,9 @@ describe('deleteInstallmentGroup', () => {
       accountId,
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) =>
-        and(eqFn(g.userId, userId), eqFn(g.name, 'Sofá para deletar')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-03-01')),
     })
     expect(group).toBeDefined()
 
@@ -323,7 +329,7 @@ describe('deleteInstallmentGroup', () => {
     const { createInstallmentPurchase, deleteInstallmentGroup } =
       await import('@/lib/actions/transactions')
 
-    // Criar dois grupos
+    // Criar dois grupos — startDate distintos para lookup único
     await createInstallmentPurchase({
       name: 'Grupo A',
       totalAmount: '600.00',
@@ -341,11 +347,14 @@ describe('deleteInstallmentGroup', () => {
       accountId,
     })
 
+    // lookup por startDate + totalInstallments — name está cifrado
     const groupA = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.name, 'Grupo A')),
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-04-01'), eqFn(g.totalInstallments, 2)),
     })
     const groupB = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.name, 'Grupo B')),
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-04-01'), eqFn(g.totalInstallments, 3)),
     })
 
     await deleteInstallmentGroup(groupA!.id)
@@ -378,11 +387,18 @@ describe('createTransaction com splits', () => {
       ],
     })
 
+    // lookup por date + isNull(installmentGroupId) — name está cifrado
     const tx = await db.query.transactions.findFirst({
-      where: (t, { and, eq: eqFn }) => and(eqFn(t.userId, userId), eqFn(t.name, 'Presente da mãe')),
+      where: (t, { and, eq: eqFn, isNull: isNullFn }) =>
+        and(eqFn(t.userId, userId), eqFn(t.date, '2025-06-10'), isNullFn(t.installmentGroupId)),
     })
     expect(tx).toBeDefined()
-    expect(tx?.amount).toBe('300.00')
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    expect(decryptField(tx!.amount, dek)).toBe('300.00')
 
     const charges = await db.query.debtorEntries.findMany({
       where: (e, { and, eq: eqFn }) =>
@@ -392,10 +408,10 @@ describe('createTransaction com splits', () => {
 
     expect(charges).toHaveLength(2)
     expect(charges[0].personId).toBe(personId)
-    expect(charges[0].amount).toBe('100.00')
+    expect(decryptField(charges[0].amount, dek)).toBe('100.00')
     expect(charges[0].type).toBe('charge')
     expect(charges[0].status).toBe('open')
-    expect(charges[0].description).toBe('Presente da mãe')
+    expect(decryptField(charges[0].description, dek)).toBe('Presente da mãe')
     expect(charges[0].entryDate).toBe('2025-06-10')
     expect(charges[0].referenceMonth).toBe('2025-06-01')
     expect(charges[1].personId).toBe(person2.id)
@@ -414,9 +430,10 @@ describe('createTransaction com splits', () => {
       accountId,
     })
 
+    // lookup por date + isNull(installmentGroupId) — name está cifrado
     const tx = await db.query.transactions.findFirst({
-      where: (t, { and, eq: eqFn }) =>
-        and(eqFn(t.userId, userId), eqFn(t.name, 'Mercado sem split')),
+      where: (t, { and, eq: eqFn, isNull: isNullFn }) =>
+        and(eqFn(t.userId, userId), eqFn(t.date, '2025-06-11'), isNullFn(t.installmentGroupId)),
     })
     expect(tx).toBeDefined()
 
@@ -440,18 +457,24 @@ describe('createTransaction com splits', () => {
       splits: [{ personId, amount: '250.00' }],
     })
 
+    // lookup por date + isNull(installmentGroupId) — name está cifrado
     const tx = await db.query.transactions.findFirst({
-      where: (t, { and, eq: eqFn }) =>
-        and(eqFn(t.userId, userId), eqFn(t.name, 'Jantar modo integral')),
+      where: (t, { and, eq: eqFn, isNull: isNullFn }) =>
+        and(eqFn(t.userId, userId), eqFn(t.date, '2025-06-15'), isNullFn(t.installmentGroupId)),
     })
     expect(tx).toBeDefined()
-    expect(tx?.amount).toBe('250.00')
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    expect(decryptField(tx!.amount, dek)).toBe('250.00')
 
     const charges = await db.query.debtorEntries.findMany({
       where: (e, { eq: eqFn }) => eqFn(e.sourceTransactionId, tx!.id),
     })
     expect(charges).toHaveLength(1)
-    expect(charges[0].amount).toBe('250.00')
+    expect(decryptField(charges[0].amount, dek)).toBe('250.00')
     expect(charges[0].personId).toBe(personId)
   })
 
@@ -502,14 +525,20 @@ describe('createInstallmentPurchase com splits', () => {
       splits: [{ personId, amount: '300.00' }],
     })
 
+    // lookup por startDate + totalInstallments — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.name, 'Cadeira split')),
+      where: (g, { and, eq: eqFn }) =>
+        and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-06-01'), eqFn(g.totalInstallments, 3)),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
       orderBy: (t, { asc }) => asc(t.installmentNumber),
     })
     expect(txs).toHaveLength(3)
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
 
     for (let i = 0; i < 3; i++) {
       const charges = await db.query.debtorEntries.findMany({
@@ -518,8 +547,8 @@ describe('createInstallmentPurchase com splits', () => {
       })
       expect(charges).toHaveLength(1)
       expect(charges[0].personId).toBe(personId)
-      expect(charges[0].amount).toBe('100.00') // 300 / 3
-      expect(charges[0].description).toBe(`Cadeira split (${i + 1}/3)`)
+      expect(decryptField(charges[0].amount, dek)).toBe('100.00') // 300 / 3
+      expect(decryptField(charges[0].description, dek)).toBe(`Cadeira split (${i + 1}/3)`)
       expect(charges[0].referenceMonth).toBe(txs[i].referenceMonth)
     }
   })
@@ -539,18 +568,24 @@ describe('createInstallmentPurchase com splits', () => {
       splits: [{ personId, amount: '250.00' }],
     })
 
+    // lookup por startDate + totalInstallments — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
       where: (g, { and, eq: eqFn }) =>
-        and(eqFn(g.userId, userId), eqFn(g.name, 'Cadeira modo integral')),
+        and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-06-01'), eqFn(g.totalInstallments, 2)),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
       orderBy: (t, { asc }) => asc(t.installmentNumber),
     })
     expect(txs).toHaveLength(2)
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
     // Cada parcela = 250 / 2 = 125
-    expect(txs[0].amount).toBe('125.00')
-    expect(txs[1].amount).toBe('125.00')
+    expect(decryptField(txs[0].amount, dek)).toBe('125.00')
+    expect(decryptField(txs[1].amount, dek)).toBe('125.00')
 
     for (const tx of txs) {
       const charges = await db.query.debtorEntries.findMany({
@@ -558,7 +593,7 @@ describe('createInstallmentPurchase com splits', () => {
           and(eqFn(e.sourceTransactionId, tx.id), eqFn(e.userId, userId)),
       })
       expect(charges).toHaveLength(1)
-      expect(charges[0].amount).toBe('125.00') // 250 / 2
+      expect(decryptField(charges[0].amount, dek)).toBe('125.00') // 250 / 2
       expect(charges[0].personId).toBe(personId)
     }
   })
@@ -580,13 +615,18 @@ describe('createInstallmentPurchase com splits', () => {
       ],
     })
 
+    // lookup por startDate — name está cifrado
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.name, 'Mesa split 2p')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2025-07-01')),
     })
     const txs = await db.query.transactions.findMany({
       where: eq(schema.transactions.installmentGroupId, group!.id),
       orderBy: (t, { asc }) => asc(t.installmentNumber),
     })
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
 
     // 2 parcelas × 2 pessoas = 4 cobranças total, R$100 cada (200 / 2)
     for (const tx of txs) {
@@ -595,7 +635,7 @@ describe('createInstallmentPurchase com splits', () => {
           and(eqFn(e.sourceTransactionId, tx.id), eqFn(e.userId, userId)),
       })
       expect(charges).toHaveLength(2)
-      expect(charges.every((c) => c.amount === '100.00')).toBe(true)
+      expect(charges.every((c) => decryptField(c.amount, dek) === '100.00')).toBe(true)
     }
   })
 })

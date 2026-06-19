@@ -229,7 +229,7 @@ describe('createDebtPayment', () => {
       where: and(
         eq(schema.debtorEntries.userId, userId),
         eq(schema.debtorEntries.type, 'payment'),
-        eq(schema.debtorEntries.description, 'Pagamento direto')
+        eq(schema.debtorEntries.entryDate, '2025-08-15')
       ),
     })
 

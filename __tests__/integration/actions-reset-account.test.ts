@@ -132,8 +132,13 @@ describe('resetAccount', () => {
       .orderBy(schema.categoryGroups.sortOrder)
 
     expect(groups).toHaveLength(2)
-    expect(groups[0]!.name).toBe('Essencial')
-    expect(groups[1]!.name).toBe('Estilo de Vida')
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField, decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    expect(decryptField(groups[0]!.name, dek)).toBe('Essencial')
+    expect(decryptField(groups[1]!.name, dek)).toBe('Estilo de Vida')
 
     const cats = await db
       .select()
@@ -142,13 +147,19 @@ describe('resetAccount', () => {
 
     expect(cats).toHaveLength(17)
 
-    const mercado = cats.find((c) => c.name === 'Mercado')
+    const decryptedCats = cats.map((c) => ({
+      ...c,
+      name: decryptField(c.name, dek),
+      defaultBudget: decryptOptional(c.defaultBudget, dek),
+    }))
+
+    const mercado = decryptedCats.find((c) => c.name === 'Mercado')
     expect(mercado?.defaultBudget).toBe('350.00')
 
-    const lazer = cats.find((c) => c.name === 'Lazer')
+    const lazer = decryptedCats.find((c) => c.name === 'Lazer')
     expect(lazer?.defaultBudget).toBe('700.00')
 
-    const aluguel = cats.find((c) => c.name === 'Aluguel')
+    const aluguel = decryptedCats.find((c) => c.name === 'Aluguel')
     expect(aluguel?.defaultBudget).toBeNull()
   })
 
