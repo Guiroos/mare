@@ -213,7 +213,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
       (acc, r) => acc + toAmount(decryptOptional(r.amount, dek)),
       0
     )
-    investmentReturnCapital = String(Math.min(Number(data.amount), totalCapital))
+    investmentReturnCapital = Math.min(Number(data.amount), totalCapital).toFixed(2)
   }
 
   await db.transaction(async (tx) => {
@@ -302,7 +302,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
           (acc, r) => acc + toAmount(decryptOptional(r.amount, dek)),
           0
         )
-        const newReturnCapital = String(Math.min(Number(data.amount), totalCapital))
+        const newReturnCapital = Math.min(Number(data.amount), totalCapital).toFixed(2)
         await tx
           .update(incomes)
           .set({
