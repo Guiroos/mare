@@ -219,9 +219,10 @@ export type AccountInput = {
 export async function createPaymentAccount(data: AccountInput) {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
   await db.insert(paymentAccounts).values({
     userId,
-    name: data.name,
+    name: encryptField(data.name, dek),
     type: data.type,
     closingDay: data.closingDay || null,
   })
@@ -231,10 +232,11 @@ export async function createPaymentAccount(data: AccountInput) {
 export async function updatePaymentAccount(id: string, data: AccountInput) {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+  const dek = await getDekForUser(userId)
   await db
     .update(paymentAccounts)
     .set({
-      name: data.name,
+      name: encryptField(data.name, dek),
       type: data.type,
       closingDay: data.closingDay || null,
     })

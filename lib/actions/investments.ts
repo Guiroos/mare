@@ -30,10 +30,11 @@ export async function createInvestmentType(data: InvestmentTypeInput) {
   const userId = await requireUserId()
   investmentTypeSchema.parse(data)
   const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+  const dek = await getDekForUser(userId)
 
   await db.insert(investmentTypes).values({
     userId,
-    name: data.name,
+    name: encryptField(data.name, dek),
     color,
     bgColor: deriveBgColor(color),
     maturityDate: data.maturityDate || null,
@@ -45,11 +46,12 @@ export async function updateInvestmentType(id: string, data: InvestmentTypeInput
   const userId = await requireUserId()
   investmentTypeSchema.parse(data)
   const color = data.color || DEFAULT_INVESTMENT_TYPE_COLOR
+  const dek = await getDekForUser(userId)
 
   await db
     .update(investmentTypes)
     .set({
-      name: data.name,
+      name: encryptField(data.name, dek),
       color,
       bgColor: deriveBgColor(color),
       maturityDate: data.maturityDate || null,

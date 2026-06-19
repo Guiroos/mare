@@ -7,10 +7,12 @@ import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 export async function getInvestmentTypes(userId: string) {
-  return db.query.investmentTypes.findMany({
+  const dek = await getDekForUser(userId)
+  const rows = await db.query.investmentTypes.findMany({
     where: eq(investmentTypes.userId, userId),
     orderBy: asc(investmentTypes.name),
   })
+  return rows.map((r) => ({ ...r, name: decryptField(r.name, dek) }))
 }
 
 export async function getInvestmentBalances(
@@ -64,7 +66,7 @@ export async function getInvestmentBalances(
 
       return {
         id: type.id,
-        name: type.name,
+        name: decryptField(type.name, dek),
         color: type.color,
         bgColor: type.bgColor,
         goalId: type.goalId,
@@ -153,7 +155,7 @@ export async function getInvestmentWithdrawals(userId: string) {
   return rows.map((r) => ({
     id: r.id,
     investmentTypeId: r.investmentTypeId,
-    typeName: r.investmentType.name,
+    typeName: decryptField(r.investmentType.name, dek),
     amount: toAmount(decryptField(r.amount, dek)),
     taxAmount: r.taxAmount !== null ? toAmount(decryptOptional(r.taxAmount, dek)) : null,
     date: r.date,

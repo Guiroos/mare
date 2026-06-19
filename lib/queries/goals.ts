@@ -97,7 +97,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
   }
 
   return allGoals.map((goal) => {
-    const targetAmount = toAmount(goal.targetAmount)
+    const targetAmount = toAmount(decryptField(goal.targetAmount, dek))
     let currentBalance = 0
     let recentMonthlyAmounts: number[] = []
 
@@ -136,11 +136,11 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
 
     return {
       id: goal.id,
-      name: goal.name,
+      name: decryptField(goal.name, dek),
       targetAmount,
       targetDate: goal.targetDate,
       investmentTypeId: goal.investmentTypeId,
-      investmentTypeName: goal.investmentType?.name ?? null,
+      investmentTypeName: goal.investmentType ? decryptField(goal.investmentType.name, dek) : null,
       currentBalance,
       progress,
       projectedCompletionYearMonth,
@@ -155,8 +155,10 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
 }
 
 export async function getInvestmentTypesForGoals(userId: string) {
-  return db.query.investmentTypes.findMany({
+  const dek = await getDekForUser(userId)
+  const rows = await db.query.investmentTypes.findMany({
     where: eq(investmentTypes.userId, userId),
     orderBy: asc(investmentTypes.name),
   })
+  return rows.map((r) => ({ ...r, name: decryptField(r.name, dek) }))
 }

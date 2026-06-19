@@ -30,9 +30,11 @@ export async function upsertGoal(data: UpsertGoalInput) {
     await assertOwnsInvestmentType(userId, data.investmentTypeId)
   }
 
+  const dek = await getDekForUser(userId)
+
   const values = {
-    name: data.name.trim(),
-    targetAmount: data.targetAmount,
+    name: encryptField(data.name.trim(), dek),
+    targetAmount: encryptField(data.targetAmount, dek),
     targetDate: data.targetDate || null,
     investmentTypeId: data.investmentTypeId || null,
   }

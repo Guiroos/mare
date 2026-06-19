@@ -2,6 +2,8 @@ import { db } from '@/lib/db'
 import { people, debtorEntries, transactions, categories, paymentAccounts } from '@/lib/db/schema'
 import { eq, and, sql, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
 import { toAmount } from '@/lib/utils/currency'
+import { getDekForUser } from '@/lib/crypto/keys'
+import { decryptField } from '@/lib/crypto/fields'
 
 export type PersonWithBalance = {
   id: string
@@ -290,28 +292,31 @@ export async function getTransactionsForDebtLink(
   cutoff.setMonth(cutoff.getMonth() - 6)
   const cutoffStr = cutoff.toISOString().slice(0, 10)
 
-  const rows = await db
-    .select({
-      id: transactions.id,
-      name: transactions.name,
-      amount: transactions.amount,
-      date: transactions.date,
-      categoryName: categories.name,
-      accountName: paymentAccounts.name,
-    })
-    .from(transactions)
-    .innerJoin(categories, eq(transactions.categoryId, categories.id))
-    .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
-    .where(and(eq(transactions.userId, userId), gte(transactions.date, cutoffStr)))
-    .orderBy(desc(transactions.date))
+  const [rows, dek] = await Promise.all([
+    db
+      .select({
+        id: transactions.id,
+        name: transactions.name,
+        amount: transactions.amount,
+        date: transactions.date,
+        categoryName: categories.name,
+        accountName: paymentAccounts.name,
+      })
+      .from(transactions)
+      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
+      .where(and(eq(transactions.userId, userId), gte(transactions.date, cutoffStr)))
+      .orderBy(desc(transactions.date)),
+    getDekForUser(userId),
+  ])
 
   return rows.map((r) => ({
     id: r.id,
-    name: r.name,
-    amount: toAmount(r.amount),
+    name: decryptField(r.name, dek),
+    amount: toAmount(decryptField(r.amount, dek)),
     date: r.date,
-    categoryName: r.categoryName,
-    accountName: r.accountName,
+    categoryName: decryptField(r.categoryName, dek),
+    accountName: decryptField(r.accountName, dek),
   }))
 }
 

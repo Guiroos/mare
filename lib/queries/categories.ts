@@ -24,15 +24,18 @@ export async function getCategoriesWithGroups(userId: string) {
 }
 
 export async function getPaymentAccounts(userId: string) {
-  return db.query.paymentAccounts.findMany({
+  const dek = await getDekForUser(userId)
+  const rows = await db.query.paymentAccounts.findMany({
     where: eq(paymentAccounts.userId, userId),
     orderBy: [paymentAccounts.name],
   })
+  return rows.map((r) => ({ ...r, name: decryptField(r.name, dek) }))
 }
 
 export async function getCreditAccounts(
   userId: string
 ): Promise<{ id: string; name: string; closingDay: number }[]> {
+  const dek = await getDekForUser(userId)
   const rows = await db
     .select({
       id: paymentAccounts.id,
@@ -48,7 +51,11 @@ export async function getCreditAccounts(
       )
     )
     .orderBy(paymentAccounts.name)
-  return rows.map((r) => ({ id: r.id, name: r.name, closingDay: r.closingDay as number }))
+  return rows.map((r) => ({
+    id: r.id,
+    name: decryptField(r.name, dek),
+    closingDay: r.closingDay as number,
+  }))
 }
 
 export async function getCategoriesWithBudgets(userId: string, referenceMonth: string) {
