@@ -17,6 +17,12 @@ Diff completo (truncado em 400 linhas):
 Leia os arquivos destino antes de extrair qualquer aprendizado:
 - `CLAUDE.md` — seções Architecture e Gotchas
 - `.claude/ds-components.md` — todas as seções
+- `.claude/auth.md` — todas as seções
+- `.claude/db.md` — todas as seções
+- `.claude/crypto.md` — todas as seções
+- `.claude/domain.md` — todas as seções
+- `.claude/domain-fatura.md` — todas as seções
+- `.claude/testing.md` — todas as seções
 
 ## Passo 1 — Extraia aprendizados candidatos
 
@@ -41,7 +47,25 @@ Comportamento de token ou classe Tailwind, quirks de componentes Radix (renderin
 Novo componente adicionado em `components/ui/`, nova prop relevante em componente DS existente, mudança de hierarquia de camadas.
 
 **`CLAUDE.md` → `### Gotchas`**
-Auth (`requireUserId`, `assertOwns*`, ordem de action), Drizzle/data layer (`toAmount`, unique indexes, migrations), conceitos de domínio (meses, billing cycles, contas), Playwright nesta aplicação, git/build/deploy, parsing de datas. Regra prática: se envolve lógica de negócio, dados ou infraestrutura → vai aqui.
+Next.js quirks (`params`/`searchParams` como `Promise`, Turbopack, `error.tsx`, `'use server'` inline em Client Component), ESLint `react-hooks`, comportamento dos hooks `PostToolUse:Edit`/`PostToolUse:Write`, git/build/deploy. Subseção **`**UI:**`**: padrões de layout (PageLayout, padding global, header com ações), dialogs de mutação, privacy mode, filtros booleanos via URL, paginação acumulada com `key`, input de busca com debounce. Regra prática: se é comportamento do framework Next.js ou padrão de UI fora do DS → vai aqui.
+
+**`.claude/auth.md`**
+Padrões de action com mutação (`requireUserId`, `assertOwns*`, ordem obrigatória), paralelização de ownership + fetch com `.then()`, schemas de amount (`positiveAmountSchema`, `nonNegativeAmountSchema`, `nullishNonNegativeAmountSchema`), rotas de cron sem sessão. Regra prática: envolve auth, sessão ou segurança em server actions → vai aqui.
+
+**`.claude/db.md`**
+Schema Drizzle (indexes, FK self-referente, `uniqueIndex`), migrations (prettier pós-generate, backfill manual), queries (`inArray` vazio, `findFirst` em transaction, `OR IS NULL` com `or()`), `db.transaction()`, tipo de retorno com `Awaited<ReturnType<...>>`, `toAmount`. Regra prática: envolve ORM, schema ou banco de dados → vai aqui.
+
+**`.claude/crypto.md`**
+MEK/DEK, `encryptField`/`decryptField`/`encryptOptional`/`decryptOptional`, `getDekForUser`, ORDER BY em colunas encriptadas (quebra), SUM/GROUP BY em ciphertext (quebra), busca textual em campos encriptados (mover para JS). Regra prática: envolve criptografia de campo → vai aqui.
+
+**`.claude/domain.md`**
+Regras de negócio: parcelas (`installmentGroup`, `calcBaseReferenceMonth`), devedores (`people`/`debtorEntries`, `settleCharge`, `archivePerson`), investimentos (saldo, `excludeFromCashFlow`, resgates), metas (`GoalWithProgress`, `projectedCompletionYearMonth`), panorama (`activeMonths`, YTD), histórico (feed multi-tabela, cursor pagination, `parseHistoricoParams`). Regra prática: envolve lógica de produto de um domínio → vai aqui.
+
+**`.claude/domain-fatura.md`**
+Regime de fatura: `billingCycleDateRange`, `FaturaState`/`OpenFatura`/`HistoricalUnpaidCycle`, `getOpenFaturas`, `createFaturaPayment`, `isFaturaMode`/`isCycleView`, check constraint `(faturaAccountId, categoryId)`. Regra prática: envolve cartão de crédito ou ciclo de faturamento → vai aqui.
+
+**`.claude/testing.md`**
+Vitest 4.x (`.mts`, `vi.useFakeTimers({ toFake: ['Date'] })`, `maxWorkers`), neon-testing (`makeNeonTesting`, `parentBranchId`, branches sem migrations), factories (isolamento por ID, `userSettings` constraint, `categoryId` obrigatório), dynamic import em testes de integração, `revalidatePath` mock, spy em `db.transaction()`. Regra prática: envolve configuração de teste ou padrão de factory → vai aqui.
 
 ### Criar novo arquivo
 

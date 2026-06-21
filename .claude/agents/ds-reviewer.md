@@ -84,7 +84,7 @@ Estes são os únicos valores arbitrários permitidos no projeto.
 - Animações de progresso/largura (ex: BudgetBar): `duration-300` é aceito
 - Outros valores arbitrários de duração são violação
 
-**Border radius**: `rounded-sm` `rounded-md` `rounded-lg` `rounded-xl` `rounded-2xl` `rounded-full`
+**Border radius**: `rounded-sm` `rounded-md` `rounded-lg` `rounded-xl` `rounded-full`
 
 **Alturas de controles interativos**: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`
 

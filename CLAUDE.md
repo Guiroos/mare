@@ -13,8 +13,9 @@ npm run lint         # run ESLint (next lint)
 
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` não executa migrations; Vercel usa `npm run db:migrate && npm run build` via `vercel.json`
+- CI: testes de integração rodam **apenas em push para `main`**, não em PRs (job `integration` tem `if: github.event_name == 'push'`)
 
-Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`, `ENCRYPTION_MASTER_KEY`). Playwright MCP disponível para iteração de UI em tempo real.
+Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`, `ENCRYPTION_MASTER_KEY`). Playwright MCP disponível para iteração de UI em tempo real. Gotchas de infra de testes (Vitest 4.x, neon-testing, dynamic import, factories): **@.claude/testing.md**
 
 **Coverage:** ao cobrir arquivo em `lib/utils/` ou `lib/validations/` com >= 80%, adicionar entrada em `thresholds.perFile` no `vitest.config.ts`. Nunca definir abaixo do já conquistado.
 
@@ -38,7 +39,7 @@ ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em t
 
 - `app/(auth)/login` — entry point (Google OAuth via NextAuth)
 - `app/(app)/` — shell autenticado; `layout.tsx` renderiza `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
-- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`
+- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`, `historico`, `contas`
 
 ### Data layer
 
@@ -48,6 +49,7 @@ ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em t
 - Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas; `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries fixas — não N×4)
 - Gotchas de schema, migrations e Drizzle: **@.claude/db.md**
 - Criptografia de campos (MEK/DEK, API, gotchas de query): **@.claude/crypto.md**
+- Regras de negócio por domínio: **@.claude/domain.md** | Fatura (billing cycle, modos, pagamento): **@.claude/domain-fatura.md**
 
 ### Auth
 
@@ -59,61 +61,21 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Meses em URLs são `YYYY-MM`; usar helpers de `lib/utils/date.ts` — nunca construir strings de mês manualmente
 - `<input type="month">` retorna `YYYY-MM` — schemas de formulário usam `yearMonthSchema`; converter para `YYYY-MM-01` antes de chamar a action (`referenceMonthSchema`)
 - Budget por categoria: `category.defaultBudget` ou override via `monthlyBudgetOverride` para o mês
-- Parcela: 1 `installmentGroup` + N `transaction` rows (`"<name> (i/N)"`); `closingDay` da conta define se a 1ª parcela pertence ao mês atual ou seguinte — usar `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts`; `closingDay <= 1` é tratado como calendário
-- `paidInstallments` usa `referenceMonth <= currentMonthStr` (mês atual conta como pago) — `<` deixaria o mês corrente como "não pago"
-- `installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))` — sem `.toFixed(2)`, drift de float corrompe `remainingAmount` ao multiplicar por `remainingInstallments`
+- Parcela: 1 `installmentGroup` + N `transaction` rows; `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts` definem qual mês é a 1ª parcela
 - `paymentAccounts.type`: `credit | debit | pix`; quando `closingDay > 1`, dashboard exibe cycle select (`?cycleAccount=`)
 - Contas gerenciadas em `/contas`; `/categorias` cobre apenas grupos e categorias
 - Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`
-
-**Regime fatura:**
-- `userSettings.creditMode` (`'accrual'` | `'fatura'`); `faturaActiveFrom` (`YYYY-MM-01`)
-- Contas de crédito precisam de `closingDay > 1`; pagamento de fatura é `transaction` com `faturaAccountId` + `faturaCycleMonth`
-- `FaturaContext` (`{ creditMode, faturaActiveFrom, creditAccountIds }`) é 3º argumento de `getDashboardData`, `getAnnualOverview`, `getAnnualExpensesByGroup` — construir no page level
-- `isFaturaMode` e `isCycleView` são mutuamente exclusivos: `isFaturaMode = !isCycleView && creditMode === 'fatura'`
-- Em fatura mode, `fixedForPendency` exclui gastos fixos de crédito das pendências; `unpaidFixedCount` e `pendingFixed` derivam de `fixedForPendency`
-- `getUserCreditMode(userId)` nunca retorna null — default `{ creditMode: 'accrual', faturaActiveFrom: null }`
-
-**Devedores:**
-- `people` (cadastro) + `debtorEntries` (lançamentos); `type`: `charge` | `payment` | `adjustment`
-- `balance > 0` = pessoa deve a você; `status` `null`/`'open'` são equivalentes (pré-migration ficaram como `null`)
-- `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
-- Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
-- `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)
-- `createDebtPayment` com `createIncome: true` cria income — ao deletar, passar `alsoDeleteIncome: true`
-- `pixKey` em `userSettings.pixKey`; `getUserPixKey(userId)` / `updatePixKey(pixKey | null)` (upsert por userId); exibido via `PixKeyCard` em `/devedores`
-- `getOpenChargesForPeople(userId, personIds)` — variante batch de `getOpenChargesForPerson`; retorna `Record<string, OpenChargeForLinking[]>`; usar em list pages para evitar N queries por pessoa
-- `CobrancaDialog` (`components/devedores/CobrancaDialog.tsx`): recebe `openCharges: OpenChargeForLinking[]` + `pixKey: string | null` + `onEditPhone?`; quando `person.phone` é null exibe botão "Copiar mensagem" em vez de "Abrir WhatsApp"; usa `buildDebtMessage(name, charges, pixKey)` e `formatPhoneForWhatsApp(phone)` de `lib/utils/`
-
-**Investimentos:**
-- `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
-- `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
-- `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`, `getMonthlyEvolution`
-- `investmentTypes.goalId`: `ON DELETE SET NULL`; `goalContributions.goalId`: `ON DELETE CASCADE` (assimétrico)
-- Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
-- `getPatrimonyTimeline` — `aporte` é capital líquido: desconta resgates brutos (`amount + taxAmount`); `PatrimonyHero` exibe `totalYield` só de tipos ativos
-
-**Cron:**
-- Neon não suporta `pg_cron`; jobs em `vercel.json` (`"crons": [{ "path": "...", "schedule": "..." }]`); autenticação via `Authorization: Bearer ${CRON_SECRET}`
-- Rotas de cron não têm sessão — operam direto no `db`; usar `Promise.allSettled` por usuário
-- `autoRolloverFixedExpenses` (cron, dia 1): pula se já há gastos fixos no mês; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo
 
 ### Gotchas
 
 - Datas: `new Date(dateStr + 'T12:00:00')` evita UTC shift ao converter para `referenceMonth`
 - `dateSchema` faz overflow silencioso em datas inválidas (ex: 29/02 em não-bissexto) — não usar para validar precisão de calendário
-- `transactions` tem check constraint: `(faturaAccountId IS NULL AND categoryId IS NOT NULL) OR vice-versa` — sempre passar `categoryId` em transações comuns
-- `installmentGroups` FK é `set null`, mas semântica de produto é excluir tudo — `deleteInstallmentGroup` usa `db.transaction()`: transactions primeiro, depois o grupo
-- **Panorama — activeMonths**: `overview.filter(m => m.month <= currentYearMonth())` — nunca `m.totalIncomes > 0`; tfoot usa `totalExpensesYTD`; saldo: `income - expenses - invested`; média de investimentos usa `monthsWithInvestment` como divisor
-- Comparações YTD: filtrar `prevOverview` pelos meses ativos do ano atual (`.slice(5)` para extrair `MM` antes de montar o Set)
 - `ESLint react-hooks/immutability`: `let` reassignment em callbacks — usar `for` loop ou `reduce` sem mutação de variável externa
 - Next.js 16: `params`/`searchParams` são `Promise<>` — `await`; paralelizar com `auth()` via `Promise.all`
 - `@serwist/next`: adicionar `turbopack: {}` vazio ao `next.config.mjs` (Turbopack + webpack coexistência)
 - Hook `PostToolUse:Edit` bloqueia edits com imports não usados — usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças
 - Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
-- Panorama e dashboard compartilham as mesmas fontes: `getAnnualOverview` soma `transactions` **e** `fixedExpenses` para despesas mensais — toda action com `revalidatePath('/dashboard')` por dado financeiro (incomes, transactions, fixedExpenses, investments, withdrawals) deve também chamar `revalidatePath('/panorama')`; exceção: budget overrides em `categories.ts` (panorama exibe amounts, não orçamentos)
-- Feed cross-table por data: `fixedExpenses` não têm coluna `date` — buscar por `inArray(referenceMonth, referenceMonthsInRange(de, ate))` e JS-filtrar o date computado (`referenceMonth + dueDay - 1`) para excluir itens cujo `dueDay` os coloca fora do range exato
 - `'use server'` inline em body de função dentro de arquivo `'use client'` é inválido — Next.js não suporta server actions definidas inline em Client Components; definir em arquivo separado com `'use server'` no topo e importar
 
 **UI:**
