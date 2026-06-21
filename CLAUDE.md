@@ -14,7 +14,7 @@ npm run lint         # run ESLint (next lint)
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` não executa migrations; Vercel usa `npm run db:migrate && npm run build` via `vercel.json`
 
-Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`). Playwright MCP disponível para iteração de UI em tempo real.
+Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`, `ENCRYPTION_MASTER_KEY`). Playwright MCP disponível para iteração de UI em tempo real.
 
 **Coverage:** ao cobrir arquivo em `lib/utils/` ou `lib/validations/` com >= 80%, adicionar entrada em `thresholds.perFile` no `vitest.config.ts`. Nunca definir abaixo do já conquistado.
 
@@ -27,6 +27,7 @@ GOOGLE_CLIENT_SECRET=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
 BLOCK_SIGNIN=          # opcional; "true" bloqueia novos cadastros (usuários existentes continuam entrando)
+ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em testes de integração
 ```
 
 ## Architecture
@@ -46,6 +47,7 @@ BLOCK_SIGNIN=          # opcional; "true" bloqueia novos cadastros (usuários ex
 - `toAmount(val)` em `lib/utils/currency.ts` — sempre usar em vez de `Number(x.amount)`; campos `decimal` do Drizzle retornam string
 - Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas; `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries fixas — não N×4)
 - Gotchas de schema, migrations e Drizzle: **@.claude/db.md**
+- Criptografia de campos (MEK/DEK, API, gotchas de query): **@.claude/crypto.md**
 
 ### Auth
 
@@ -58,6 +60,8 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `<input type="month">` retorna `YYYY-MM` — schemas de formulário usam `yearMonthSchema`; converter para `YYYY-MM-01` antes de chamar a action (`referenceMonthSchema`)
 - Budget por categoria: `category.defaultBudget` ou override via `monthlyBudgetOverride` para o mês
 - Parcela: 1 `installmentGroup` + N `transaction` rows (`"<name> (i/N)"`); `closingDay` da conta define se a 1ª parcela pertence ao mês atual ou seguinte — usar `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts`; `closingDay <= 1` é tratado como calendário
+- `paidInstallments` usa `referenceMonth <= currentMonthStr` (mês atual conta como pago) — `<` deixaria o mês corrente como "não pago"
+- `installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))` — sem `.toFixed(2)`, drift de float corrompe `remainingAmount` ao multiplicar por `remainingInstallments`
 - `paymentAccounts.type`: `credit | debit | pix`; quando `closingDay > 1`, dashboard exibe cycle select (`?cycleAccount=`)
 - Contas gerenciadas em `/contas`; `/categorias` cobre apenas grupos e categorias
 - Rota `/admin` protegida via `ADMIN_EMAIL` no `.env.local`

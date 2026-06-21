@@ -53,10 +53,10 @@ export async function getActiveInstallmentGroups(userId: string) {
     .map((group) => {
       const totalAmount = toAmount(decryptField(group.totalAmount, dek))
       const totalInstallments = group.totalInstallments
-      const installmentAmount = totalAmount / totalInstallments
+      const installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))
       const groupTxs = txByGroup.get(group.id) ?? []
 
-      const paidInstallments = groupTxs.filter((t) => t.referenceMonth <= currentMonthStr).length
+      const paidInstallments = groupTxs.filter((t) => t.referenceMonth < currentMonthStr).length
 
       const remainingInstallments = totalInstallments - paidInstallments
       const remainingAmount = remainingInstallments * installmentAmount
