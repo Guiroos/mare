@@ -15,7 +15,7 @@ type DebitAccount = { id: string; name: string; type: string }
 type CardState = 'alert' | 'open' | 'paid'
 
 function deriveState(data: OpenFatura): CardState {
-  if (data.closedCycle.payment === null) return 'alert'
+  if (data.closedCycle.payment === null && data.closedCycle.total > 0) return 'alert'
   if (data.openCycle.total > 0) return 'open'
   return 'paid'
 }
