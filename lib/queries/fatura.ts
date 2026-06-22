@@ -344,25 +344,35 @@ export async function getOpenFaturas(
         )
         .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
-      const closedPrevRefMonth = yearMonthToReferenceMonth(prevMonth(closedYearMonth))
-      const closedTxTotal = allTx
-        .filter(
-          (t) =>
-            t.accountId === account.id && t.date >= closedRange.start && t.date <= closedRange.end
-        )
-        .reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
-      const closedFxTotal = allFx
-        .filter(
-          (e) =>
-            e.accountId === account.id &&
-            ((e.referenceMonth === closedPrevRefMonth && e.dueDay >= closingDay) ||
-              (e.referenceMonth === closedCycleMonth && e.dueDay < closingDay))
-        )
-        .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
+      const closedIsPreActivation = faturaActiveFrom !== null && closedCycleMonth < faturaActiveFrom
 
-      const rawPayment = allPayments.find(
-        (p) => p.faturaAccountId === account.id && p.faturaCycleMonth === closedCycleMonth
-      )
+      const closedPrevRefMonth = yearMonthToReferenceMonth(prevMonth(closedYearMonth))
+      const closedTxTotal = closedIsPreActivation
+        ? 0
+        : allTx
+            .filter(
+              (t) =>
+                t.accountId === account.id &&
+                t.date >= closedRange.start &&
+                t.date <= closedRange.end
+            )
+            .reduce((s, t) => s + toAmount(decryptField(t.amount, dek)), 0)
+      const closedFxTotal = closedIsPreActivation
+        ? 0
+        : allFx
+            .filter(
+              (e) =>
+                e.accountId === account.id &&
+                ((e.referenceMonth === closedPrevRefMonth && e.dueDay >= closingDay) ||
+                  (e.referenceMonth === closedCycleMonth && e.dueDay < closingDay))
+            )
+            .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
+
+      const rawPayment = closedIsPreActivation
+        ? undefined
+        : allPayments.find(
+            (p) => p.faturaAccountId === account.id && p.faturaCycleMonth === closedCycleMonth
+          )
 
       // Build set of paid cycle months for this account
       const paidCycleMonthSet = new Set(
