@@ -50,6 +50,7 @@ export async function getPeopleWithBalances(userId: string): Promise<PersonWithB
     if (e.type === 'payment') {
       balanceMap[e.personId] -= amount
     } else {
+      // 'charge' e 'adjustment' (amount com sinal) somam ao saldo aqui
       balanceMap[e.personId] += amount
     }
     if (!lastMovementMap[e.personId] || e.entryDate > lastMovementMap[e.personId]!) {
@@ -187,7 +188,11 @@ export async function getPersonDebtDetails(
       })
       .from(debtorEntries)
       .where(
-        and(inArray(debtorEntries.settledByPaymentId, paymentIds), eq(debtorEntries.userId, userId))
+        and(
+          inArray(debtorEntries.settledByPaymentId, paymentIds),
+          eq(debtorEntries.userId, userId),
+          eq(debtorEntries.type, 'charge')
+        )
       )
 
     for (const row of settled) {
@@ -235,6 +240,10 @@ export async function getPersonDebtDetails(
       balance -= e.amount
       totalPaid += e.amount
       paymentCount++
+    } else if (e.type === 'adjustment') {
+      // amount com sinal: negativo reduz o saldo, positivo aumenta.
+      // NÃO é cobrança — não pode contaminar totalCharged/chargeCount.
+      balance += e.amount
     } else {
       balance += e.amount
       totalCharged += e.amount
@@ -251,6 +260,7 @@ export async function getPersonDebtDetails(
     if (e.type === 'payment') {
       runningBalance -= e.amount
     } else {
+      // 'charge' e 'adjustment' (amount com sinal) somam ao saldo aqui
       runningBalance += e.amount
     }
     const month = e.entryDate.slice(0, 7)

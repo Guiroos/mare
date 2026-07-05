@@ -8,6 +8,7 @@ import {
   createPerson,
   createCharge,
   createPayment,
+  createAdjustment,
   createAccount,
   createCategoryGroup,
   createCategory,
@@ -377,5 +378,38 @@ describe('debtorEntries.incomeId — ON DELETE SET NULL', () => {
 
     expect(entry).toBeDefined()
     expect(entry?.incomeId).toBeNull()
+  })
+})
+
+describe('getPersonDebtDetails — ajustes no saldo', () => {
+  it('ajuste negativo zera o saldo e NÃO conta como cobrança', async () => {
+    const person = await createPerson(db, userId, 'GF Ajuste Negativo')
+    await createCharge(db, userId, person.id, { amount: '500.00', description: 'Dívidas' })
+    await createPayment(db, userId, person.id, { amount: '400.00', description: 'Pgto 400' })
+    await createAdjustment(db, userId, person.id, { amount: '-100.00', description: 'Abatimento' })
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    if (!detail) throw new Error('detail não encontrado')
+
+    expect(detail.summary.balance).toBe(0)
+    expect(detail.summary.chargeCount).toBe(1)
+    expect(detail.summary.totalCharged).toBe(500)
+    expect(detail.summary.paymentCount).toBe(1)
+    expect(detail.summary.totalPaid).toBe(400)
+  })
+
+  it('ajuste positivo aumenta o saldo sem virar cobrança', async () => {
+    const person = await createPerson(db, userId, 'GF Ajuste Positivo')
+    await createCharge(db, userId, person.id, { amount: '500.00', description: 'Dívida' })
+    await createAdjustment(db, userId, person.id, { amount: '50.00', description: 'Correção' })
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    if (!detail) throw new Error('detail não encontrado')
+
+    expect(detail.summary.balance).toBe(550)
+    expect(detail.summary.chargeCount).toBe(1)
+    expect(detail.summary.totalCharged).toBe(500)
   })
 })

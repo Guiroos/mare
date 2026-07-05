@@ -294,6 +294,137 @@ describe('createDebtPayment', () => {
   })
 })
 
+describe('createDebtPayment — conciliação (reconcileRemainder)', () => {
+  it('cria payment + adjustment atômicos e zera o saldo', async () => {
+    const person = await createPerson(db, userId, 'Concilia OK')
+    const c1 = await createCharge(db, userId, person.id, { amount: '300.00', description: 'C1' })
+    const c2 = await createCharge(db, userId, person.id, { amount: '200.00', description: 'C2' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '400.00',
+      description: 'Pagamento parcial',
+      entryDate: '2025-04-10',
+      createIncome: false,
+      settleChargeIds: [c1.id, c2.id],
+      reconcileRemainder: true,
+    })
+
+    const rows = await db.query.debtorEntries.findMany({
+      where: eq(schema.debtorEntries.personId, person.id),
+    })
+    const payment = rows.find((r) => r.type === 'payment')!
+    const adjustment = rows.find((r) => r.type === 'adjustment')!
+
+    expect(adjustment).toBeDefined()
+    expect(adjustment.settledByPaymentId).toBe(payment.id)
+    expect(adjustment.status).toBeNull()
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    expect(detail!.summary.balance).toBe(0)
+    expect(detail!.summary.totalPaid).toBe(400)
+    expect(detail!.summary.chargeCount).toBe(2)
+
+    // settledCharges do payment deve conter só as charges reais — o adjustment
+    // de conciliação (mesmo settledByPaymentId) não pode vazar para essa lista.
+    const paymentEntry = detail!.entries.find((e) => e.type === 'payment')!
+    expect(paymentEntry.settledCharges).toHaveLength(2)
+    expect(paymentEntry.settledCharges.map((c) => c.id).sort()).toEqual([c1.id, c2.id].sort())
+  })
+
+  it('não cria adjustment em caso de overpayment (charges < amount pago)', async () => {
+    const person = await createPerson(db, userId, 'Overpayment')
+    const c1 = await createCharge(db, userId, person.id, { amount: '400.00', description: 'C' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '500.00',
+      description: 'Pagamento a maior',
+      entryDate: '2025-04-10',
+      createIncome: false,
+      settleChargeIds: [c1.id],
+      reconcileRemainder: true,
+    })
+
+    const rows = await db.query.debtorEntries.findMany({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'adjustment')
+      ),
+    })
+    expect(rows).toHaveLength(0)
+  })
+
+  it('não cria adjustment quando não há underpayment (diff <= 0)', async () => {
+    const person = await createPerson(db, userId, 'Sem diff')
+    const c1 = await createCharge(db, userId, person.id, { amount: '400.00', description: 'C' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '400.00',
+      description: 'Pagamento exato',
+      entryDate: '2025-04-10',
+      createIncome: false,
+      settleChargeIds: [c1.id],
+      reconcileRemainder: true,
+    })
+
+    const rows = await db.query.debtorEntries.findMany({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'adjustment')
+      ),
+    })
+    expect(rows).toHaveLength(0)
+  })
+})
+
+describe('deleteDebtEntry — pagamento com ajuste de conciliação', () => {
+  it('deleta o ajuste vinculado e reabre as cobranças', async () => {
+    const person = await createPerson(db, userId, 'Del Concilia')
+    const c1 = await createCharge(db, userId, person.id, { amount: '300.00', description: 'C1' })
+    const c2 = await createCharge(db, userId, person.id, { amount: '200.00', description: 'C2' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '400.00',
+      description: 'Pagamento parcial',
+      entryDate: '2025-05-10',
+      createIncome: false,
+      settleChargeIds: [c1.id, c2.id],
+      reconcileRemainder: true,
+    })
+
+    const paymentBefore = await db.query.debtorEntries.findFirst({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+
+    const { deleteDebtEntry } = await import('@/lib/actions/debtors')
+    await deleteDebtEntry({ id: paymentBefore!.id })
+
+    const remaining = await db.query.debtorEntries.findMany({
+      where: eq(schema.debtorEntries.personId, person.id),
+    })
+    // sobram só as 2 cobranças, reabertas; nenhum ajuste, nenhum pagamento
+    expect(remaining).toHaveLength(2)
+    expect(remaining.every((r) => r.type === 'charge')).toBe(true)
+    expect(remaining.every((r) => r.status === 'open')).toBe(true)
+    expect(remaining.every((r) => r.settledByPaymentId === null)).toBe(true)
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    expect(detail!.summary.balance).toBe(500)
+  })
+})
+
 // ─── auth e ownership — rejeições ─────────────────────────────────────────────
 
 describe('auth — usuário não autenticado', () => {

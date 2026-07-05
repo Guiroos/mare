@@ -41,6 +41,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
   const [paymentAmountCents, setPaymentAmountCents] = useState(0)
   const [selectedChargeIds, setSelectedChargeIds] = useState<string[]>([])
   const [chargesExpanded, setChargesExpanded] = useState(false)
+  const [reconcile, setReconcile] = useState(true)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const today = new Date().toISOString().slice(0, 10)
@@ -54,6 +55,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
       setPaymentAmountCents(0)
       setSelectedChargeIds([])
       setChargesExpanded(false)
+      setReconcile(true)
     }
   }
 
@@ -65,6 +67,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
   const isOverAmount = selectedTotal > paymentAmount + 0.01
   const isExactAmount =
     selectedChargeIds.length > 0 && Math.abs(selectedTotal - paymentAmount) <= 0.01
+  const remainder = isOverAmount ? Math.round((selectedTotal - paymentAmount) * 100) / 100 : 0
 
   function toggleCharge(id: string) {
     setSelectedChargeIds((prev) =>
@@ -87,6 +90,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
           ? yearMonthToReferenceMonth(referenceMonthRaw)
           : undefined,
       settleChargeIds: selectedChargeIds.length > 0 ? selectedChargeIds : undefined,
+      reconcileRemainder: isOverAmount && reconcile ? true : undefined,
       notes: (fd.get('notes') as string).trim() || undefined,
     }
 
@@ -171,7 +175,22 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
                     Exato
                   </Badge>
                 )}
-                {isOverAmount && <span>Valor selecionado excede o pagamento</span>}
+              </div>
+            )}
+
+            {isOverAmount && (
+              <div className="mt-2 space-y-2 border-t pt-2">
+                <div className="flex items-center justify-between text-caption text-text-secondary">
+                  <span>Diferença a conciliar</span>
+                  <span className="font-medium tabular-nums text-text-primary">
+                    {formatCurrency(remainder)}
+                  </span>
+                </div>
+                <Switch
+                  label="Registrar diferença como ajuste (abatimento)"
+                  checked={reconcile}
+                  onChange={setReconcile}
+                />
               </div>
             )}
           </div>

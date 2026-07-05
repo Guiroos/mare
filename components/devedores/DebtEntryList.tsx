@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckCircle, TrendingDown, TrendingUp } from 'lucide-react'
+import { CheckCircle, Scale, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
 import { DebtEntryDetail } from '@/lib/queries/debtors'
@@ -53,18 +53,23 @@ function EntryRow({
   const isOpenCharge = entry.type === 'charge' && (entry.status === 'open' || entry.status === null)
   const isPaymentWithSettled = entry.type === 'payment' && entry.settledCharges.length > 0
   const isPaymentWithIncome = entry.type === 'payment' && !!entry.incomeId && !isPaymentWithSettled
+  const isAdjustment = entry.type === 'adjustment'
 
   return (
     <div className="group flex items-center gap-3 px-4 py-3">
       <div
         className={cn(
           'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
-          entry.type === 'charge' || entry.type === 'adjustment'
-            ? 'bg-negative-subtle'
-            : 'bg-positive-subtle'
+          isAdjustment
+            ? 'bg-bg-muted'
+            : entry.type === 'charge'
+              ? 'bg-negative-subtle'
+              : 'bg-positive-subtle'
         )}
       >
-        {entry.type === 'payment' ? (
+        {isAdjustment ? (
+          <Scale className="h-4 w-4 text-text-secondary" />
+        ) : entry.type === 'payment' ? (
           <TrendingUp className="h-4 w-4 text-positive" />
         ) : (
           <TrendingDown className="h-4 w-4 text-negative" />
@@ -84,6 +89,14 @@ function EntryRow({
           <span className="shrink-0 text-caption text-text-tertiary">
             {formatDate(entry.entryDate)}
           </span>
+          {isAdjustment && (
+            <>
+              <span className="shrink-0 text-caption text-text-tertiary">·</span>
+              <Badge variant="muted" size="sm">
+                Ajuste
+              </Badge>
+            </>
+          )}
           {isSettled && (
             <>
               <span className="shrink-0 text-caption text-text-tertiary">·</span>
@@ -122,11 +135,15 @@ function EntryRow({
       <span
         className={cn(
           'shrink-0 text-small font-semibold tabular-nums',
-          entry.type === 'payment' ? 'text-positive' : 'text-negative'
+          isAdjustment
+            ? 'text-text-secondary'
+            : entry.type === 'payment'
+              ? 'text-positive'
+              : 'text-negative'
         )}
       >
-        {entry.type === 'payment' ? '+' : '-'}
-        {formatCurrency(entry.amount)}
+        {isAdjustment ? (entry.amount < 0 ? '−' : '+') : entry.type === 'payment' ? '+' : '-'}
+        {formatCurrency(Math.abs(entry.amount))}
       </span>
 
       {isPaymentWithSettled ? (
