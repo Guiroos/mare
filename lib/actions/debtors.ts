@@ -7,7 +7,8 @@ import { eq, and, inArray } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsPerson, assertOwnsDebtEntry } from '@/lib/auth/ownership'
 import { getDekForUser } from '@/lib/crypto/keys'
-import { encryptField, encryptOptional } from '@/lib/crypto/fields'
+import { encryptField, encryptOptional, decryptField } from '@/lib/crypto/fields'
+import { toAmount } from '@/lib/utils/currency'
 import {
   personSchema,
   updatePersonActionSchema,
@@ -177,6 +178,7 @@ export type CreateDebtPaymentInput = {
   createIncome: boolean
   referenceMonth?: string
   settleChargeIds?: string[]
+  reconcileRemainder?: boolean
   notes?: string
 }
 
@@ -229,6 +231,21 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
     paymentEntryId = payment.id
 
     if (data.settleChargeIds && data.settleChargeIds.length > 0) {
+      const chargeRows = await tx
+        .select({ amount: debtorEntries.amount })
+        .from(debtorEntries)
+        .where(
+          and(
+            inArray(debtorEntries.id, data.settleChargeIds),
+            eq(debtorEntries.userId, userId),
+            eq(debtorEntries.type, 'charge')
+          )
+        )
+      const chargesTotal = chargeRows.reduce(
+        (sum, r) => sum + toAmount(decryptField(r.amount, dek)),
+        0
+      )
+
       await tx
         .update(debtorEntries)
         .set({ status: 'settled', settledByPaymentId: paymentEntryId })
@@ -239,6 +256,24 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
             eq(debtorEntries.type, 'charge')
           )
         )
+
+      if (data.reconcileRemainder) {
+        const diffCents = Math.round((chargesTotal - Number(data.amount)) * 100)
+        if (diffCents > 0) {
+          const adjustmentAmount = (-diffCents / 100).toFixed(2)
+          await tx.insert(debtorEntries).values({
+            userId,
+            personId: data.personId,
+            type: 'adjustment',
+            amount: encryptField(adjustmentAmount, dek),
+            description: encryptField('Abatimento — conciliação de pagamento', dek),
+            entryDate: data.entryDate,
+            referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
+            status: null,
+            settledByPaymentId: paymentEntryId,
+          })
+        }
+      }
     }
   })
 

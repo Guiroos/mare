@@ -31,6 +31,7 @@ export const debtPaymentSchema = z
     createIncome: z.boolean(),
     referenceMonth: referenceMonthSchema.optional(),
     settleChargeIds: z.array(uuidSchema).optional(),
+    reconcileRemainder: z.boolean().optional(),
     notes: z.string().optional(),
   })
   .refine((data) => !data.createIncome || !!data.referenceMonth, {
