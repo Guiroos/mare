@@ -353,6 +353,48 @@ describe('createDebtPayment — conciliação (reconcileRemainder)', () => {
   })
 })
 
+describe('deleteDebtEntry — pagamento com ajuste de conciliação', () => {
+  it('deleta o ajuste vinculado e reabre as cobranças', async () => {
+    const person = await createPerson(db, userId, 'Del Concilia')
+    const c1 = await createCharge(db, userId, person.id, { amount: '300.00', description: 'C1' })
+    const c2 = await createCharge(db, userId, person.id, { amount: '200.00', description: 'C2' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '400.00',
+      description: 'Pagamento parcial',
+      entryDate: '2025-05-10',
+      createIncome: false,
+      settleChargeIds: [c1.id, c2.id],
+      reconcileRemainder: true,
+    })
+
+    const paymentBefore = await db.query.debtorEntries.findFirst({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+
+    const { deleteDebtEntry } = await import('@/lib/actions/debtors')
+    await deleteDebtEntry({ id: paymentBefore!.id })
+
+    const remaining = await db.query.debtorEntries.findMany({
+      where: eq(schema.debtorEntries.personId, person.id),
+    })
+    // sobram só as 2 cobranças, reabertas; nenhum ajuste, nenhum pagamento
+    expect(remaining).toHaveLength(2)
+    expect(remaining.every((r) => r.type === 'charge')).toBe(true)
+    expect(remaining.every((r) => r.status === 'open')).toBe(true)
+    expect(remaining.every((r) => r.settledByPaymentId === null)).toBe(true)
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    expect(detail!.summary.balance).toBe(500)
+  })
+})
+
 // ─── auth e ownership — rejeições ─────────────────────────────────────────────
 
 describe('auth — usuário não autenticado', () => {

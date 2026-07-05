@@ -389,12 +389,29 @@ export async function deleteDebtEntry(data: DeleteDebtEntryInput) {
 
   if (entry.type === 'payment') {
     await db.transaction(async (tx) => {
-      // Reopen settled charges BEFORE deleting the payment to avoid relying on the FK SET NULL
-      // (which clears settledByPaymentId but does not reset status).
+      // Ajustes de conciliação criados junto deste pagamento: deletar.
+      await tx
+        .delete(debtorEntries)
+        .where(
+          and(
+            eq(debtorEntries.settledByPaymentId, data.id),
+            eq(debtorEntries.userId, userId),
+            eq(debtorEntries.type, 'adjustment')
+          )
+        )
+
+      // Cobranças quitadas por este pagamento: reabrir ANTES de deletar o pagamento
+      // (o FK SET NULL limpa settledByPaymentId mas não reseta status).
       await tx
         .update(debtorEntries)
         .set({ status: 'open', settledByPaymentId: null })
-        .where(and(eq(debtorEntries.settledByPaymentId, data.id), eq(debtorEntries.userId, userId)))
+        .where(
+          and(
+            eq(debtorEntries.settledByPaymentId, data.id),
+            eq(debtorEntries.userId, userId),
+            eq(debtorEntries.type, 'charge')
+          )
+        )
 
       if (data.alsoDeleteIncome && entry.incomeId) {
         await tx
