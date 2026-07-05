@@ -28,21 +28,19 @@ O tipo `adjustment` já existe no enum de `debtorEntries.type` (`lib/db/schema.t
 ### Data / schema
 - Nenhuma migration. `type` já é `varchar(20)` sem check constraint; `amount` é `text` (aceita `"-100"`); `status` é nullable (ajuste usa `null`).
 
-### Cálculo de saldo (`lib/queries/debtors.ts`) — três laços
-Adicionar tratamento explícito de `adjustment` (soma o valor **com sinal**, sem contar como cobrança):
-- `getPeopleWithBalances` (~L47-58): `balance += amount` para ajuste (sinal negativo reduz). Não toca contadores.
-- `getDebtorDetail` — laço `summary` (~L233-244): **novo branch** `else if (type === 'adjustment') balance += amount` — crucial aqui, pois o `else` atual incrementa `totalCharged`/`chargeCount` e contaminaria os totais.
-- `getDebtorDetail` — laço `balanceEvolution` (~L251-256): `runningBalance += amount` para ajuste.
+### Cálculo de saldo (`lib/queries/debtors.ts`)
+Com valor **com sinal**, o saldo já fica correto: os três laços somam ajuste via o branch `else → += amount` (um ajuste de −100 reduz o saldo). A **única correção funcional** é no laço `summary` de `getDebtorDetail` (~L233-244), que hoje conta o ajuste como cobrança:
+- `summary` (~L233-244): **novo branch** `else if (type === 'adjustment') { balance += e.amount }` — mantém o efeito no saldo, mas **não** incrementa `totalCharged`/`chargeCount` (senão os totais contaminam).
+- `getPeopleWithBalances` (~L47-58) e `balanceEvolution` (~L251-256): saldo já correto; adicionar comentário deixando explícito que ajustes com sinal fluem pelo branch da cobrança. Sem mudança de comportamento.
 
 ### Action (`lib/actions/debtors.ts`)
-- Estender `createDebtPayment` (`CreateDebtPaymentInput` + `debtPaymentSchema` em `lib/validations/debtors.ts`) com campos opcionais para o ajuste de conciliação (ex.: flag + valor do abatimento).
-- Dentro da `db.transaction` existente, após inserir o `payment` e marcar as cobranças `settled`, inserir a entrada `adjustment` (valor negativo, `status=null`, descrição tipo "Abatimento na conciliação").
-- **Validação de servidor** (espelha `createFaturaPayment`): o valor do abatimento tem que igualar `soma(cobranças selecionadas) − pagamento` em centavos (`Math.round(x*100)`); divergência → erro "O valor mudou, reabra o pagamento".
-- **Link para exclusão em cascata:** o `adjustment` referencia o pagamento reusando `settledByPaymentId` (evita migration). O `deleteDebtEntry` (`~L344-362`) já reseta cobranças por `settledByPaymentId`; ajustá-lo para ser **type-aware**: linhas `type='charge'` voltam a `status:'open'`; linhas `type='adjustment'` são **deletadas** junto com o pagamento.
+- Estender `createDebtPayment` (`CreateDebtPaymentInput` + `debtPaymentSchema` em `lib/validations/debtors.ts`) com **uma flag** `reconcileRemainder?: boolean`.
+- **O servidor calcula o abatimento** (não confia em valor do cliente): dentro da `db.transaction` existente, quando `reconcileRemainder` e há `settleChargeIds`, seleciona as cobranças, decripta e soma; `diff = soma − pagamento`. Se `diff > 0` (underpayment), insere a entrada `adjustment` de `-diff` (`status=null`, descrição "Abatimento — conciliação de pagamento", `entryDate`/`referenceMonth` do pagamento). Se `diff <= 0`, ignora a flag (sem ajuste). Sem erro de "valor mudou" — servidor é a fonte da verdade.
+- **Link para exclusão em cascata:** o `adjustment` referencia o pagamento reusando `settledByPaymentId` (evita migration). O `deleteDebtEntry` (`~L344-362`) já reseta cobranças por `settledByPaymentId`; ajustá-lo para ser **type-aware**: linhas `type='adjustment'` são **deletadas** junto com o pagamento; linhas `type='charge'` voltam a `status:'open'`.
 
 ### UI (`components/devedores/`)
-- `DebtPaymentDialog`: quando o usuário seleciona cobranças e informa o valor, calcular no cliente `soma(selecionadas) − pago`; se > 0, mostrar a diferença e um controle explícito ("Registrar diferença como ajuste (abatimento)" vs "Deixar em aberto"). Dados já disponíveis via `openCharges` — sem query nova.
-- `DebtEntryList`: renderizar o tipo `adjustment` (rótulo, cor, sinal do valor) ao lado de cobranças e pagamentos.
+- `DebtPaymentDialog`: já calcula `selectedTotal`, `paymentAmount` e `isOverAmount` (selecionado > pago). Quando `isOverAmount`, exibir a diferença e um toggle explícito ("Registrar diferença como ajuste (abatimento)"); ao submeter, mandar `reconcileRemainder` só quando o toggle está ligado. Sem query nova. Resetar o estado no `handleOpenChange(false)`.
+- `DebtEntryList`: renderizar o tipo `adjustment` sem quebrar com valor negativo — sinal derivado de `entry.amount < 0`, `formatCurrency(Math.abs(...))`, cor neutra (`text-text-secondary`), ícone/`Badge` próprios ("Ajuste"). `netTotal` e filtro já tratam ajuste pelo branch de não-pagamento — sem mudança.
 
 ## Fora de escopo
 - Botão standalone de ajuste.
@@ -52,14 +50,13 @@ Adicionar tratamento explícito de `adjustment` (soma o valor **com sinal**, sem
 
 ## Testes
 
-**Cálculo de saldo (unit, `debtors` query — os três laços):** construir entradas diretamente para exercitar ambos os sinais, independente da UI.
-- Ajuste **negativo** (abatimento): `+500 cobrança − 400 pagamento − 100 ajuste = 0` → saldo zera.
-- Ajuste **positivo** (acréscimo): `+500 cobrança + 50 ajuste = 550` → saldo sobe.
-- Ajuste **não contamina os contadores**: `chargeCount`/`totalCharged` e `paymentCount`/`totalPaid` ignoram o ajuste (só o branch `charge`/`payment` conta).
-- `balanceEvolution`: o ponto do mês reflete o `runningBalance` com o ajuste aplicado (sinal correto).
+**Cálculo de saldo (integração, `getDebtorDetail`):** construir entradas via factory (amount plaintext, `decryptField` é backward-compat) para exercitar ambos os sinais.
+- Driver TDD — **contadores**: `+500 cobrança − 400 pagamento − 100 ajuste` → `chargeCount === 1`, `totalCharged === 500` (antes do fix seriam 2 e 400).
+- Saldo (caracterização): mesmo cenário → `balance === 0`; ajuste positivo `+500 + 50` → `balance === 550`.
+- `balanceEvolution`: ponto do mês reflete o `runningBalance` com o ajuste aplicado (sinal correto).
 
 **Action (integração com banco real):**
-- `createDebtPayment` com conciliação cria **duas** entradas atômicas (`payment` + `adjustment`); `totalPaid` reflete só o pagamento; saldo final zera.
-- Validação de centavos: abatimento ≠ `soma(cobranças) − pagamento` → rejeita com erro; nenhuma entrada é criada (rollback da transaction).
-- Underpayment sem conciliação (flag off): comportamento atual preservado (saldo pendurado, sem ajuste).
+- `createDebtPayment` com `reconcileRemainder` cria **duas** entradas atômicas (`payment` + `adjustment` de `-diff`); `totalPaid` reflete só o pagamento; saldo final zera; ajuste linkado via `settledByPaymentId`.
+- `reconcileRemainder` com `diff <= 0` (sem underpayment) → nenhum ajuste criado.
+- Underpayment sem a flag → comportamento atual preservado (saldo pendurado, sem ajuste).
 - `deleteDebtEntry` do pagamento: remove o ajuste vinculado (`type='adjustment'` por `settledByPaymentId`) **e** reabre as cobranças (`type='charge'` → `status:'open'`); saldo volta ao estado pré-pagamento.
