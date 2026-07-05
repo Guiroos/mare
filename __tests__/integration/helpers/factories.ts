@@ -137,6 +137,29 @@ export async function createPayment(
   return entry
 }
 
+export async function createAdjustment(
+  db: TestDb,
+  userId: string,
+  personId: string,
+  overrides: Partial<typeof schema.debtorEntries.$inferInsert> = {}
+) {
+  const [entry] = await db
+    .insert(schema.debtorEntries)
+    .values({
+      userId,
+      personId,
+      type: 'adjustment',
+      amount: '-100.00',
+      description: 'Ajuste teste',
+      entryDate: '2025-01-20',
+      referenceMonth: '2025-01-01',
+      status: null,
+      ...overrides,
+    })
+    .returning({ id: schema.debtorEntries.id })
+  return entry
+}
+
 export async function createGoalContribution(
   db: TestDb,
   userId: string,
