@@ -188,7 +188,11 @@ export async function getPersonDebtDetails(
       })
       .from(debtorEntries)
       .where(
-        and(inArray(debtorEntries.settledByPaymentId, paymentIds), eq(debtorEntries.userId, userId))
+        and(
+          inArray(debtorEntries.settledByPaymentId, paymentIds),
+          eq(debtorEntries.userId, userId),
+          eq(debtorEntries.type, 'charge')
+        )
       )
 
     for (const row of settled) {

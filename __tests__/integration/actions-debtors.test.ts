@@ -326,6 +326,36 @@ describe('createDebtPayment — conciliação (reconcileRemainder)', () => {
     expect(detail!.summary.balance).toBe(0)
     expect(detail!.summary.totalPaid).toBe(400)
     expect(detail!.summary.chargeCount).toBe(2)
+
+    // settledCharges do payment deve conter só as charges reais — o adjustment
+    // de conciliação (mesmo settledByPaymentId) não pode vazar para essa lista.
+    const paymentEntry = detail!.entries.find((e) => e.type === 'payment')!
+    expect(paymentEntry.settledCharges).toHaveLength(2)
+    expect(paymentEntry.settledCharges.map((c) => c.id).sort()).toEqual([c1.id, c2.id].sort())
+  })
+
+  it('não cria adjustment em caso de overpayment (charges < amount pago)', async () => {
+    const person = await createPerson(db, userId, 'Overpayment')
+    const c1 = await createCharge(db, userId, person.id, { amount: '400.00', description: 'C' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '500.00',
+      description: 'Pagamento a maior',
+      entryDate: '2025-04-10',
+      createIncome: false,
+      settleChargeIds: [c1.id],
+      reconcileRemainder: true,
+    })
+
+    const rows = await db.query.debtorEntries.findMany({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'adjustment')
+      ),
+    })
+    expect(rows).toHaveLength(0)
   })
 
   it('não cria adjustment quando não há underpayment (diff <= 0)', async () => {
