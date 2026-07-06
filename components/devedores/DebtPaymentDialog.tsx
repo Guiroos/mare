@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Switch } from '@/components/ui/switch'
@@ -20,6 +19,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { formatCurrency } from '@/lib/utils/currency'
 import { OpenChargeForLinking } from '@/lib/queries/debtors'
+import { OpenChargesPicker } from './OpenChargesPicker'
 import { cn } from '@/lib/utils/cn'
 
 type Props = {
@@ -39,7 +39,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [createIncome, setCreateIncome] = useState(true)
   const [paymentAmountCents, setPaymentAmountCents] = useState(0)
-  const [selectedChargeIds, setSelectedChargeIds] = useState<string[]>([])
+  const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set())
   const [chargesExpanded, setChargesExpanded] = useState(false)
   const [reconcile, setReconcile] = useState(true)
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -53,27 +53,21 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
       setErrors({})
       setCreateIncome(true)
       setPaymentAmountCents(0)
-      setSelectedChargeIds([])
+      setSelectedChargeIds(new Set())
       setChargesExpanded(false)
       setReconcile(true)
     }
   }
 
   const selectedTotal = openCharges
-    .filter((c) => selectedChargeIds.includes(c.id))
+    .filter((c) => selectedChargeIds.has(c.id))
     .reduce((sum, c) => sum + c.amount, 0)
 
   const paymentAmount = paymentAmountCents / 100
   const isOverAmount = selectedTotal > paymentAmount + 0.01
   const isExactAmount =
-    selectedChargeIds.length > 0 && Math.abs(selectedTotal - paymentAmount) <= 0.01
+    selectedChargeIds.size > 0 && Math.abs(selectedTotal - paymentAmount) <= 0.01
   const remainder = isOverAmount ? Math.round((selectedTotal - paymentAmount) * 100) / 100 : 0
-
-  function toggleCharge(id: string) {
-    setSelectedChargeIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    )
-  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -89,7 +83,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
         createIncome && referenceMonthRaw
           ? yearMonthToReferenceMonth(referenceMonthRaw)
           : undefined,
-      settleChargeIds: selectedChargeIds.length > 0 ? selectedChargeIds : undefined,
+      settleChargeIds: selectedChargeIds.size > 0 ? [...selectedChargeIds] : undefined,
       reconcileRemainder: isOverAmount && reconcile ? true : undefined,
       notes: (fd.get('notes') as string).trim() || undefined,
     }
@@ -137,30 +131,13 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
 
         {chargesExpanded && (
           <div className="space-y-1 rounded-lg border bg-bg-subtle p-3">
-            {openCharges.map((charge) => {
-              const checked = selectedChargeIds.includes(charge.id)
-              return (
-                <Label
-                  key={charge.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-1 py-1.5 font-normal hover:bg-bg-muted"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleCharge(charge.id)}
-                    className="accent-accent"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-small text-text-primary">
-                    {charge.description}
-                  </span>
-                  <span className="shrink-0 text-small tabular-nums text-text-secondary">
-                    {formatCurrency(charge.amount)}
-                  </span>
-                </Label>
-              )
-            })}
+            <OpenChargesPicker
+              charges={openCharges}
+              selectedIds={selectedChargeIds}
+              onSelectionChange={setSelectedChargeIds}
+            />
 
-            {selectedChargeIds.length > 0 && (
+            {selectedChargeIds.size > 0 && (
               <div
                 className={cn(
                   'mt-2 flex items-center justify-between border-t pt-2 text-caption',

@@ -4,45 +4,18 @@ import { useState } from 'react'
 import { Copy, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { formatCurrency } from '@/lib/utils/currency'
 import { buildDebtMessage } from '@/lib/utils/debtMessage'
 import { formatPhoneForWhatsApp } from '@/lib/utils/phone'
+import { OpenChargesPicker } from './OpenChargesPicker'
 import type { OpenChargeForLinking } from '@/lib/queries/debtors'
 
-const MONTHS_PT = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
-]
-
-function formatMonthLabel(ym: string): string {
-  const [year, month] = ym.split('-')
-  return `${MONTHS_PT[parseInt(month) - 1]}/${year.slice(2)}`
-}
-
-function getUniqueMonths(charges: OpenChargeForLinking[]): string[] {
-  const months = new Set(charges.map((c) => c.entryDate.slice(0, 7)))
-  return [...months].sort((a, b) => b.localeCompare(a))
+function mostRecentMonth(charges: OpenChargeForLinking[]): string | null {
+  const months = charges.map((c) => c.entryDate.slice(0, 7)).sort((a, b) => b.localeCompare(a))
+  return months[0] ?? null
 }
 
 interface CobrancaDialogProps {
@@ -67,48 +40,16 @@ function CobrancaContent({
   onClose: () => void
   onEditPhone?: () => void
 }) {
-  const months = getUniqueMonths(openCharges)
-  const mostRecentMonth = months[0] ?? 'all'
+  const recentMonth = mostRecentMonth(openCharges)
 
-  const [activeMonth, setActiveMonth] = useState<string>(mostRecentMonth)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () =>
       new Set(
         openCharges
-          .filter((c) => mostRecentMonth === 'all' || c.entryDate.startsWith(mostRecentMonth))
+          .filter((c) => recentMonth === null || c.entryDate.startsWith(recentMonth))
           .map((c) => c.id)
       )
   )
-
-  const visibleCharges =
-    activeMonth === 'all'
-      ? openCharges
-      : openCharges.filter((c) => c.entryDate.startsWith(activeMonth))
-
-  function toggle(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  function selectAll() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const c of visibleCharges) next.add(c.id)
-      return next
-    })
-  }
-
-  function clearVisible() {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const c of visibleCharges) next.delete(c.id)
-      return next
-    })
-  }
 
   const selected = openCharges.filter((c) => selectedIds.has(c.id))
   const total = selected.reduce((sum, c) => sum + c.amount, 0)
@@ -145,7 +86,7 @@ function CobrancaContent({
                 type="button"
                 variant="ghost"
                 size="xs"
-                className="h-auto p-0 text-accent underline-offset-4 hover:underline"
+                className="h-7 p-0 text-accent underline-offset-4 hover:underline"
                 onClick={() => {
                   onClose()
                   onEditPhone()
@@ -159,59 +100,15 @@ function CobrancaContent({
       )}
 
       <div>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="whitespace-nowrap text-caption font-medium text-text-tertiary">
-            Cobranças em aberto
-          </p>
-          <div className="flex items-center gap-1">
-            {months.length > 1 && (
-              <Select value={activeMonth} onValueChange={setActiveMonth}>
-                <SelectTrigger className="h-8 w-auto bg-bg-input px-3 text-small">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os meses</SelectItem>
-                  {months.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {formatMonthLabel(m)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button type="button" variant="ghost" size="xs" onClick={selectAll}>
-              Selecionar tudo
-            </Button>
-            <Button type="button" variant="ghost" size="xs" onClick={clearVisible}>
-              Limpar
-            </Button>
-          </div>
-        </div>
-        <div className="max-h-48 space-y-0.5 overflow-y-auto">
-          {visibleCharges.map((charge) => (
-            <Label
-              key={charge.id}
-              className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 hover:bg-bg-subtle"
-            >
-              <input
-                type="checkbox"
-                className="h-4 w-4 shrink-0 accent-accent"
-                checked={selectedIds.has(charge.id)}
-                onChange={() => toggle(charge.id)}
-              />
-              <span className="min-w-0 flex-1 truncate text-body">{charge.description}</span>
-              <span className="shrink-0 text-small text-text-tertiary">
-                {new Date(charge.entryDate + 'T12:00:00').toLocaleDateString('pt-BR')}
-              </span>
-              <span className="shrink-0 text-body tabular-nums">
-                {formatCurrency(charge.amount)}
-              </span>
-            </Label>
-          ))}
-          {visibleCharges.length === 0 && (
-            <p className="py-2 text-small text-text-tertiary">Nenhuma cobrança em aberto.</p>
-          )}
-        </div>
+        <p className="mb-2 whitespace-nowrap text-caption font-medium text-text-tertiary">
+          Cobranças em aberto
+        </p>
+        <OpenChargesPicker
+          charges={openCharges}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          showBulkControls
+        />
       </div>
 
       <div>
