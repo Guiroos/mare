@@ -12,6 +12,7 @@ import { RowActions } from '@/components/ui/row-actions'
 import { PaymentWithIncomeDeleteDialog } from './PaymentWithIncomeDeleteDialog'
 import { PaymentWithSettledChargesDeleteDialog } from './PaymentWithSettledChargesDeleteDialog'
 import { SettleChargeDialog } from './SettleChargeDialog'
+import { EditChargeDialog } from './EditChargeDialog'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 
@@ -43,11 +44,13 @@ function EntryRow({
   onDeleteWithIncome,
   onDeleteWithSettled,
   onSettle,
+  onEdit,
 }: {
   entry: DebtEntryDetail
   onDeleteWithIncome: (entry: DebtEntryDetail) => void
   onDeleteWithSettled: (entry: DebtEntryDetail) => void
   onSettle: (entry: DebtEntryDetail) => void
+  onEdit: (entry: DebtEntryDetail) => void
 }) {
   const isSettled = entry.status === 'settled'
   const isOpenCharge = entry.type === 'charge' && (entry.status === 'open' || entry.status === null)
@@ -168,6 +171,7 @@ function EntryRow({
         />
       ) : isOpenCharge ? (
         <RowActions
+          onEdit={() => onEdit(entry)}
           additionalActions={[
             {
               label: 'Quitar',
@@ -201,6 +205,7 @@ export function DebtEntryList({ entries, personId }: Props) {
   const [dialogEntry, setDialogEntry] = useState<DebtEntryDetail | null>(null)
   const [settledDeleteEntry, setSettledDeleteEntry] = useState<DebtEntryDetail | null>(null)
   const [settleEntry, setSettleEntry] = useState<DebtEntryDetail | null>(null)
+  const [editEntry, setEditEntry] = useState<DebtEntryDetail | null>(null)
 
   if (entries.length === 0) {
     return <p className="text-small text-text-tertiary">Nenhum lançamento registrado.</p>
@@ -280,6 +285,7 @@ export function DebtEntryList({ entries, personId }: Props) {
                     onDeleteWithIncome={setDialogEntry}
                     onDeleteWithSettled={setSettledDeleteEntry}
                     onSettle={setSettleEntry}
+                    onEdit={setEditEntry}
                   />
                 ))}
               </div>
@@ -315,6 +321,16 @@ export function DebtEntryList({ entries, personId }: Props) {
           open={!!settleEntry}
           onOpenChange={(v) => {
             if (!v) setSettleEntry(null)
+          }}
+        />
+      )}
+
+      {editEntry && (
+        <EditChargeDialog
+          entry={editEntry}
+          open={!!editEntry}
+          onOpenChange={(v) => {
+            if (!v) setEditEntry(null)
           }}
         />
       )}

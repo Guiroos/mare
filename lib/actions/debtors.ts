@@ -14,6 +14,7 @@ import {
   updatePersonActionSchema,
   debtChargeSchema,
   debtChargeFromTransactionSchema,
+  updateDebtChargeSchema,
   debtPaymentSchema,
   settleChargeSchema,
 } from '@/lib/validations/debtors'
@@ -170,6 +171,45 @@ export async function createDebtChargeFromTransaction(data: CreateDebtChargeFrom
   revalidatePath(`/devedores/${data.personId}`)
 }
 
+export type UpdateDebtChargeInput = {
+  id: string
+  description: string
+  entryDate: string
+  notes?: string
+}
+
+export async function updateDebtCharge(data: UpdateDebtChargeInput) {
+  const userId = await requireUserId()
+  updateDebtChargeSchema.parse(data)
+  await assertOwnsDebtEntry(userId, data.id)
+
+  const entry = await db.query.debtorEntries.findFirst({
+    where: and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)),
+    columns: { type: true, status: true, personId: true },
+  })
+
+  if (!entry) throw new Error('Lançamento não encontrado')
+  if (entry.type !== 'charge' || (entry.status !== 'open' && entry.status !== null)) {
+    throw new Error('Só é possível editar cobranças em aberto')
+  }
+
+  const dek = await getDekForUser(userId)
+
+  await db
+    .update(debtorEntries)
+    .set({
+      description: encryptField(data.description.trim(), dek),
+      entryDate: data.entryDate,
+      referenceMonth: entryDateToReferenceMonth(data.entryDate),
+      notes: encryptOptional(data.notes?.trim() || null, dek),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+
+  revalidatePath('/devedores')
+  revalidatePath(`/devedores/${entry.personId}`)
+}
+
 export type CreateDebtPaymentInput = {
   personId: string
   amount: string
@@ -206,8 +246,11 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
         .insert(incomes)
         .values({
           userId,
-          source: `${person.name} — ${data.description}`,
-          amount: data.amount,
+          source: encryptField(
+            `${decryptField(person.name, dek)} — ${data.description.trim()}`,
+            dek
+          ),
+          amount: encryptField(data.amount, dek),
           referenceMonth: data.referenceMonth,
         })
         .returning({ id: incomes.id })
@@ -334,8 +377,11 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
         .insert(incomes)
         .values({
           userId,
-          source: `${person.name} — ${charge.description}`,
-          amount: charge.amount,
+          source: encryptField(
+            `${decryptField(person.name, dek)} — ${decryptField(charge.description, dek)}`,
+            dek
+          ),
+          amount: encryptField(decryptField(charge.amount, dek), dek),
           referenceMonth: data.referenceMonth,
         })
         .returning({ id: incomes.id })
@@ -348,8 +394,8 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
         userId,
         personId: data.personId,
         type: 'payment',
-        amount: charge.amount,
-        description: charge.description,
+        amount: encryptField(decryptField(charge.amount, dek), dek),
+        description: encryptField(decryptField(charge.description, dek), dek),
         entryDate: data.entryDate,
         referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
         notes: encryptOptional(data.notes?.trim() || null, dek),

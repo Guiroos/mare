@@ -78,7 +78,10 @@ describe('settleCharge', () => {
     })
 
     expect(payment?.type).toBe('payment')
-    expect(payment?.amount).toBe('150.00')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(payment!.amount, dek)).toBe('150.00')
     expect(payment?.incomeId).toBeNull()
   })
 
@@ -116,7 +119,10 @@ describe('settleCharge', () => {
     })
 
     expect(income).toBeDefined()
-    expect(income?.amount).toBe('200.00')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.amount, dek)).toBe('200.00')
     expect(income?.referenceMonth).toBe('2025-04-01')
   })
 
@@ -241,7 +247,10 @@ describe('createDebtPayment', () => {
     })
 
     expect(income).toBeDefined()
-    expect(income?.amount).toBe('300.00')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.amount, dek)).toBe('300.00')
     expect(income?.referenceMonth).toBe('2025-08-01')
   })
 
