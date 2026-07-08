@@ -10,6 +10,7 @@ export default defineConfig({
     pool: 'forks',
     maxWorkers: 4,
     testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: { '@': path.resolve(import.meta.dirname, '.') },
