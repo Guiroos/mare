@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { and, eq, inArray } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
@@ -16,6 +16,13 @@ import {
   createIncome,
 } from './helpers/factories'
 
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('@/lib/auth/require-user', () => ({ requireUserId: vi.fn() }))
+vi.mock('@/lib/auth/ownership', () => ({
+  assertOwnsPerson: vi.fn(),
+  assertOwnsDebtEntry: vi.fn(),
+}))
+
 neonTestingSetup()
 
 let db: TestDb
@@ -31,6 +38,11 @@ beforeAll(async () => {
   ;({ id: accountId } = await createAccount(db, userId))
   const group = await createCategoryGroup(db, userId)
   ;({ id: categoryId } = await createCategory(db, userId, group.id))
+
+  const { requireUserId } = await import('@/lib/auth/require-user')
+  vi.mocked(requireUserId).mockResolvedValue(userId)
+  const { assertOwnsDebtEntry } = await import('@/lib/auth/ownership')
+  vi.mocked(assertOwnsDebtEntry).mockResolvedValue(undefined)
 })
 
 describe('pessoas', () => {
@@ -411,5 +423,44 @@ describe('getPersonDebtDetails — ajustes no saldo', () => {
     expect(detail.summary.balance).toBe(550)
     expect(detail.summary.chargeCount).toBe(1)
     expect(detail.summary.totalCharged).toBe(500)
+  })
+})
+
+describe('updateDebtCharge', () => {
+  it('atualiza descrição, data e recalcula referenceMonth ao mudar de mês', async () => {
+    const charge = await createCharge(db, userId, personId, {
+      description: 'Almoço',
+      entryDate: '2025-01-10',
+      referenceMonth: '2025-01-01',
+    })
+
+    const { updateDebtCharge } = await import('@/lib/actions/debtors')
+    await updateDebtCharge({
+      id: charge.id,
+      description: 'Almoço editado',
+      entryDate: '2025-02-15',
+      notes: 'movido um mês',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, charge.id),
+    })
+    expect(row?.entryDate).toBe('2025-02-15')
+    expect(row?.referenceMonth).toBe('2025-02-01')
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField, decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.description, dek)).toBe('Almoço editado')
+    expect(decryptOptional(row!.notes, dek)).toBe('movido um mês')
+  })
+
+  it('rejeita edição de lançamento que não é cobrança aberta', async () => {
+    const payment = await createPayment(db, userId, personId)
+
+    const { updateDebtCharge } = await import('@/lib/actions/debtors')
+    await expect(
+      updateDebtCharge({ id: payment.id, description: 'x', entryDate: '2025-01-10' })
+    ).rejects.toThrow('Só é possível editar cobranças em aberto')
   })
 })

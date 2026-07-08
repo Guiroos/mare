@@ -22,6 +22,13 @@ export const debtChargeFromTransactionSchema = debtChargeSchema.extend({
   sourceTransactionId: uuidSchema,
 })
 
+export const updateDebtChargeSchema = z.object({
+  id: uuidSchema,
+  description: z.string().min(1, 'Descrição é obrigatória').max(200),
+  entryDate: dateSchema,
+  notes: z.string().optional(),
+})
+
 export const debtPaymentSchema = z
   .object({
     personId: uuidSchema,
