@@ -1,11 +1,18 @@
 #!/usr/bin/env npx tsx
 /**
- * Criptografa dados existentes no banco usando o DEK de cada usuário.
- * Idempotente: campos com prefixo 'enc:' são pulados.
+ * Criptografa dados existentes no banco usando o DEK de cada usuário e repara
+ * incomes cujo `source` ficou corrompido (ciphertext interpolado em string por
+ * bugs antigos em createDebtPayment/settleCharge/createWithdrawal).
+ *
+ * Idempotente e seguro para rodar sempre que precisar corrigir dados:
+ *   - Campos com prefixo 'enc:' e decifráveis são pulados.
+ *   - Campos plaintext são cifrados.
+ *   - `source` de income com prefixo 'enc:' mas NÃO decifrável é reconstruído a
+ *     partir da entidade de origem (debtorEntry payment ou investmentWithdrawal).
  *
  * Uso:
  *   npx tsx scripts/encrypt-existing-data.ts --dry-run  # imprime contagens sem modificar
- *   npx tsx scripts/encrypt-existing-data.ts             # aplica criptografia
+ *   npx tsx scripts/encrypt-existing-data.ts             # aplica criptografia + reparos
  */
 
 import { config } from 'dotenv'
@@ -13,10 +20,10 @@ config({ path: '.env.local' })
 
 import { Pool } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-serverless'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import * as schema from '../lib/db/schema'
 import { generateDek, encryptDek, decryptDek } from '../lib/crypto/keys'
-import { encryptField, encryptOptional } from '../lib/crypto/fields'
+import { encryptField, encryptOptional, decryptField } from '../lib/crypto/fields'
 
 const isDryRun = process.argv.includes('--dry-run')
 const pool = new Pool({ connectionString: process.env.DATABASE_URL! })
@@ -25,6 +32,71 @@ const db = drizzle(pool, { schema })
 const PREFIX = 'enc:'
 function isEncrypted(val: string | null | undefined): boolean {
   return val != null && val.startsWith(PREFIX)
+}
+
+// Verifica se um valor com prefixo 'enc:' realmente decifra (auth tag válida).
+// Valores corrompidos (ex: "enc:AAA — enc:BBB") têm prefixo mas falham no decrypt.
+function isDecryptable(val: string | null | undefined, dek: Buffer): boolean {
+  if (val == null) return true
+  try {
+    decryptField(val, dek)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Decifra tolerando falha: retorna o fallback se o valor estiver corrompido/ausente.
+function safeDecrypt(val: string | null | undefined, dek: Buffer, fallback: string): string {
+  if (val == null) return fallback
+  try {
+    return decryptField(val, dek)
+  } catch {
+    return fallback
+  }
+}
+
+// Reconstrói o `source` legível de um income corrompido, buscando a entidade de
+// origem ligada por incomeId. Retorna null se não houver origem rastreável.
+async function reconstructIncomeSource(
+  incomeId: string,
+  userId: string,
+  dek: Buffer
+): Promise<string | null> {
+  const entry = await db.query.debtorEntries.findFirst({
+    where: and(
+      eq(schema.debtorEntries.incomeId, incomeId),
+      eq(schema.debtorEntries.userId, userId)
+    ),
+    columns: { personId: true, description: true },
+  })
+  if (entry) {
+    const person = await db.query.people.findFirst({
+      where: eq(schema.people.id, entry.personId),
+      columns: { name: true },
+    })
+    const name = safeDecrypt(person?.name, dek, 'Desconhecido')
+    const desc = safeDecrypt(entry.description, dek, '')
+    return desc ? `${name} — ${desc}` : name
+  }
+
+  const wd = await db.query.investmentWithdrawals.findFirst({
+    where: and(
+      eq(schema.investmentWithdrawals.incomeId, incomeId),
+      eq(schema.investmentWithdrawals.userId, userId)
+    ),
+    columns: { investmentTypeId: true },
+  })
+  if (wd) {
+    const type = await db.query.investmentTypes.findFirst({
+      where: eq(schema.investmentTypes.id, wd.investmentTypeId),
+      columns: { name: true },
+    })
+    const typeName = safeDecrypt(type?.name, dek, 'investimento')
+    return `Resgate investimento ${typeName}`
+  }
+
+  return null
 }
 
 async function getOrCreateDek(userId: string): Promise<Buffer> {
@@ -59,6 +131,7 @@ async function main() {
   console.log(`Usuários encontrados: ${users.length}`)
 
   let totalUpdated = 0
+  let totalRepaired = 0
 
   for (const { id: userId } of users) {
     const dek = await getOrCreateDek(userId)
@@ -150,14 +223,39 @@ async function main() {
       .where(eq(schema.incomes.userId, userId))
 
     for (const row of incRows) {
-      if (isEncrypted(row.source) && isEncrypted(row.amount)) continue
+      const sourceEncrypted = isEncrypted(row.source)
+      const sourceOk = sourceEncrypted && isDecryptable(row.source, dek)
+      const amountOk = isEncrypted(row.amount)
+      const ircOk = row.investmentReturnCapital == null || isEncrypted(row.investmentReturnCapital)
+
+      if (sourceOk && amountOk && ircOk) continue
+
+      let newSource: string
+      if (!sourceEncrypted) {
+        // plaintext legado → cifra direto
+        newSource = encryptField(row.source, dek)
+      } else if (sourceOk) {
+        newSource = row.source
+      } else {
+        // ciphertext corrompido (interpolação antiga) → reconstrói a partir da origem
+        const reconstructed = await reconstructIncomeSource(row.id, userId, dek)
+        if (reconstructed == null) {
+          console.warn(
+            `  ⚠ income ${row.id}: source corrompido e sem origem para reconstruir — pulado`
+          )
+          continue
+        }
+        newSource = encryptField(reconstructed, dek)
+        totalRepaired++
+      }
+
       if (!isDryRun) {
         await db
           .update(schema.incomes)
           .set({
-            source: isEncrypted(row.source) ? row.source : encryptField(row.source, dek),
-            amount: isEncrypted(row.amount) ? row.amount : encryptField(row.amount, dek),
-            investmentReturnCapital: isEncrypted(row.investmentReturnCapital)
+            source: newSource,
+            amount: amountOk ? row.amount : encryptField(row.amount, dek),
+            investmentReturnCapital: ircOk
               ? row.investmentReturnCapital
               : encryptOptional(row.investmentReturnCapital, dek),
           })
@@ -178,10 +276,13 @@ async function main() {
       .where(eq(schema.investments.userId, userId))
 
     for (const row of invRows) {
+      // Campos nullable: só precisam de update quando NÃO são null e ainda não
+      // estão cifrados. Sem o guard de null, `!isEncrypted(null)` marcaria a
+      // linha para sempre (bug de idempotência) e regravaria null a cada run.
       const needsUpdate =
-        !isEncrypted(row.amount) ||
-        !isEncrypted(row.yieldAmount) ||
-        (row.notes && !isEncrypted(row.notes))
+        (row.amount != null && !isEncrypted(row.amount)) ||
+        (row.yieldAmount != null && !isEncrypted(row.yieldAmount)) ||
+        (row.notes != null && !isEncrypted(row.notes))
       if (!needsUpdate) continue
       if (!isDryRun) {
         await db
@@ -455,6 +556,11 @@ async function main() {
   console.log(
     `\nTotal: ${totalUpdated} registros ${isDryRun ? 'seriam cifrados' : 'cifrados com sucesso'}.`
   )
+  if (totalRepaired > 0) {
+    console.log(
+      `Incomes com source reconstruído: ${totalRepaired} ${isDryRun ? '(seriam reparados)' : '(reparados)'}.`
+    )
+  }
   await pool.end()
 }
 

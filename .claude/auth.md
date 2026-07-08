@@ -43,3 +43,5 @@ Schemas de action vs formulário: quando input tem campos `number` (ex: `dueDay`
 ## Cron routes
 
 Não usam `requireUserId()` — não há sessão. Autenticam via `Authorization: Bearer ${CRON_SECRET}`. Operam direto no `db` iterando `userSettings`. Usar `Promise.allSettled` para isolamento de falhas por usuário.
+
+Comparar o secret com `crypto.timingSafeEqual` (não `!==`) e **recusar quando `CRON_SECRET` não estiver definido** — senão o header `Bearer undefined` bateria com a env não-setada e passaria. `timingSafeEqual` exige buffers de mesmo tamanho: guardar com `provided.length === expected.length` antes.

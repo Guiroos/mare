@@ -222,10 +222,10 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
         .insert(incomes)
         .values({
           userId,
-          source: `Resgate investimento ${data.investmentTypeName}`,
-          amount: data.amount,
+          source: encryptField(`Resgate investimento ${data.investmentTypeName}`, dek),
+          amount: encryptField(data.amount, dek),
           referenceMonth: dateToReferenceMonth(data.date),
-          investmentReturnCapital,
+          investmentReturnCapital: encryptOptional(investmentReturnCapital, dek),
         })
         .returning({ id: incomes.id })
       incomeId = income.id
@@ -306,16 +306,16 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
         await tx
           .update(incomes)
           .set({
-            amount: data.amount,
+            amount: encryptField(data.amount, dek),
             referenceMonth: dateToReferenceMonth(data.date),
-            investmentReturnCapital: newReturnCapital,
+            investmentReturnCapital: encryptOptional(newReturnCapital, dek),
           })
           .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
       } else {
         await tx
           .update(incomes)
           .set({
-            amount: data.amount,
+            amount: encryptField(data.amount, dek),
             referenceMonth: dateToReferenceMonth(data.date),
             investmentReturnCapital: null,
           })

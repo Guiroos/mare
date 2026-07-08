@@ -77,6 +77,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 - `'use server'` inline em body de função dentro de arquivo `'use client'` é inválido — Next.js não suporta server actions definidas inline em Client Components; definir em arquivo separado com `'use server'` no topo e importar
+- Security headers via `headers()` em `next.config.mjs`: o CSP precisa de `'unsafe-inline'` em `script-src`/`style-src` (a hidratação do Next e o script anti-flash do `next-themes` quebram sem); `'unsafe-eval'` só em dev (HMR); HSTS só em prod (não forçar HTTPS no localhost). `next/font` self-hospeda as fontes (`font-src 'self'`), `@vercel/speed-insights` é same-origin com fallback em `va.vercel-scripts.com`
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa

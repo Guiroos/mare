@@ -206,8 +206,11 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
         .insert(incomes)
         .values({
           userId,
-          source: `${person.name} — ${data.description}`,
-          amount: data.amount,
+          source: encryptField(
+            `${decryptField(person.name, dek)} — ${data.description.trim()}`,
+            dek
+          ),
+          amount: encryptField(data.amount, dek),
           referenceMonth: data.referenceMonth,
         })
         .returning({ id: incomes.id })
@@ -334,8 +337,11 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
         .insert(incomes)
         .values({
           userId,
-          source: `${person.name} — ${charge.description}`,
-          amount: charge.amount,
+          source: encryptField(
+            `${decryptField(person.name, dek)} — ${decryptField(charge.description, dek)}`,
+            dek
+          ),
+          amount: encryptField(decryptField(charge.amount, dek), dek),
           referenceMonth: data.referenceMonth,
         })
         .returning({ id: incomes.id })
@@ -348,8 +354,8 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
         userId,
         personId: data.personId,
         type: 'payment',
-        amount: charge.amount,
-        description: charge.description,
+        amount: encryptField(decryptField(charge.amount, dek), dek),
+        description: encryptField(decryptField(charge.description, dek), dek),
         entryDate: data.entryDate,
         referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
         notes: encryptOptional(data.notes?.trim() || null, dek),

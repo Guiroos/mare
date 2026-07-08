@@ -1,10 +1,19 @@
+import { timingSafeEqual } from 'crypto'
 import { eq, and, count } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { fixedExpenses, userSettings } from '@/lib/db/schema'
 import { currentYearMonth, prevMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 
+function isAuthorized(req: Request): boolean {
+  const secret = process.env.CRON_SECRET
+  if (!secret) return false // sem secret configurado, nega tudo (evita `Bearer undefined`)
+  const provided = Buffer.from(req.headers.get('authorization') ?? '')
+  const expected = Buffer.from(`Bearer ${secret}`)
+  return provided.length === expected.length && timingSafeEqual(provided, expected)
+}
+
 export async function GET(req: Request) {
-  if (req.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorized(req)) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
