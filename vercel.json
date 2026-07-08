@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run db:migrate && npm run build",
+  "regions": ["gru1"],
   "crons": [
     {
       "path": "/api/cron/rollover-fixed-expenses",

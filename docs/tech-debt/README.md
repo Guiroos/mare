@@ -18,3 +18,4 @@ o motivo da decisão de não resolver agora, e o critério para revisitar.
 | 9 | ✅ [error-boundaries-ausentes.md](./error-boundaries-ausentes.md) | UX / resiliência | resolvida |
 | 10 | [number-amount-em-vez-de-toamount.md](./number-amount-em-vez-de-toamount.md) | Convenção de código | baixa |
 | 11 | [vitest-incompativel-com-vite-7.md](./vitest-incompativel-com-vite-7.md) | Tooling / testes | alta |
+| 12 | [leituras-usam-neon-serverless-websocket.md](./leituras-usam-neon-serverless-websocket.md) | Performance / banco | baixa |
