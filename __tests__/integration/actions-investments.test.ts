@@ -201,11 +201,16 @@ describe('createWithdrawal', () => {
       destination: 'income',
     })
 
-    const income = await db.query.incomes.findFirst({
-      where: and(eq(schema.incomes.userId, userId), eq(schema.incomes.amount, '1000.00')),
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: eq(schema.investmentWithdrawals.investmentTypeId, type.id),
     })
-
-    expect(income?.source).toBe('Resgate investimento CDB Banco Inter')
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.source, dek)).toBe('Resgate investimento CDB Banco Inter')
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
@@ -263,12 +268,17 @@ describe('createWithdrawal', () => {
       destination: 'reinvest',
     })
 
-    const income = await db.query.incomes.findFirst({
-      where: and(eq(schema.incomes.userId, userId), eq(schema.incomes.amount, '3450.00')),
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: eq(schema.investmentWithdrawals.investmentTypeId, type.id),
     })
-
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
     expect(income).toBeDefined()
-    expect(income?.investmentReturnCapital).toBe('3000.00')
+    expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('3000.00')
   })
 
   it('destination=reinvest com resgate menor que capital usa o valor do resgate', async () => {
@@ -292,11 +302,16 @@ describe('createWithdrawal', () => {
       destination: 'reinvest',
     })
 
-    const income = await db.query.incomes.findFirst({
-      where: and(eq(schema.incomes.userId, userId), eq(schema.incomes.amount, '50.00')),
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: eq(schema.investmentWithdrawals.investmentTypeId, type.id),
     })
-
-    expect(income?.investmentReturnCapital).toBe('50.00')
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('50.00')
   })
 
   it('destination=income NÃO seta investmentReturnCapital (emergência)', async () => {
@@ -378,7 +393,10 @@ describe('updateWithdrawal', () => {
     })
 
     // min(200, 3000) = 200
-    expect(income?.amount).toBe('200.00')
-    expect(income?.investmentReturnCapital).toBe('200.00')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField, decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.amount, dek)).toBe('200.00')
+    expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('200.00')
   })
 })
