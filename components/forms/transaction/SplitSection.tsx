@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Combobox } from '@/components/ui/combobox'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Field } from '@/components/ui/field'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -182,24 +183,34 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
         </Button>
       )}
 
-      <Switch label="Registrar só minha parte" checked={integral} onChange={handleIntegralChange} />
+      <Separator />
 
-      <div className="flex items-center justify-between rounded-md bg-bg-surface px-3 py-2">
-        <span className="text-small text-text-secondary">
-          {integral ? 'Valor a registrar' : 'Sua parte'}
-        </span>
-        <span
-          className={cn(
-            'text-small font-semibold tabular-nums',
-            yourShareCents < 0
-              ? 'text-negative'
-              : integral
-                ? 'text-accent-text'
-                : 'text-text-primary'
-          )}
-        >
-          {formatCurrency(yourShareCents / 100)}
-        </span>
+      <div className="space-y-2">
+        <Switch
+          label="Registrar só a minha parte"
+          checked={integral}
+          onChange={handleIntegralChange}
+        />
+        <p className="text-caption text-text-tertiary">
+          As partes das outras pessoas viram cobranças em Devedores.
+        </p>
+        <div className="flex items-center justify-between rounded-md bg-bg-surface px-3 py-2">
+          <span className="text-small text-text-secondary">
+            {integral ? 'Valor a registrar' : 'Sua parte'}
+          </span>
+          <span
+            className={cn(
+              'text-small font-semibold tabular-nums',
+              yourShareCents < 0
+                ? 'text-negative'
+                : integral
+                  ? 'text-accent-text'
+                  : 'text-text-primary'
+            )}
+          >
+            {formatCurrency(yourShareCents / 100)}
+          </span>
+        </div>
       </div>
     </div>
   )
