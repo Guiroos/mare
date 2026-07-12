@@ -45,6 +45,9 @@ type Props = {
   onSubTypeChange: (v: SaidaSubType) => void
   onValueChange: (cents: number) => void
   errors: Record<string, string>
+  defaultAmount?: string
+  defaultYield?: string
+  lockSubType?: boolean
 }
 
 export function HeroAmountCard({
@@ -54,30 +57,27 @@ export function HeroAmountCard({
   onSubTypeChange,
   onValueChange,
   errors,
+  defaultAmount,
+  defaultYield,
+  lockSubType = false,
 }: Props) {
   if (primaryType === 'investimento') {
     return (
       <div className={cn('rounded-lg p-4', heroCard.investimento)}>
-        <p
-          className={cn(
-            'text-label font-semibold uppercase tracking-widest',
-            heroLabel.investimento
-          )}
-        >
-          Investimento
-        </p>
+        <p className={cn('text-label font-semibold', heroLabel.investimento)}>Investimento</p>
         <div className="mt-1">
           <p className={cn('text-caption opacity-60', heroLabel.investimento)}>Aporte</p>
           <div className="flex items-baseline gap-2">
             <span className={cn('text-h3', heroLabel.investimento)}>R$</span>
             <NumericInput
               name="amount"
+              defaultValue={defaultAmount}
               error={!!errors.amount}
               autoFocus
               onValueChange={onValueChange}
               preserveExplicitZero
               className={cn(
-                'h-auto border-0 bg-transparent py-1 text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+                'h-14 border-0 bg-transparent text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
                 heroLabel.investimento
               )}
             />
@@ -92,10 +92,11 @@ export function HeroAmountCard({
             <span className={cn('text-body opacity-70', heroLabel.investimento)}>R$</span>
             <NumericInput
               name="yieldAmount"
+              defaultValue={defaultYield}
               error={!!errors.yieldAmount}
               preserveExplicitZero
               className={cn(
-                'h-auto border-0 bg-transparent py-1 text-h2 tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+                'h-11 border-0 bg-transparent text-h2 tabular-nums shadow-none focus:border-transparent focus:shadow-none',
                 heroLabel.investimento
               )}
             />
@@ -107,26 +108,25 @@ export function HeroAmountCard({
 
   return (
     <div className={cn('space-y-1 rounded-lg p-4', heroCard[primaryType])}>
-      <p
-        className={cn('text-label font-semibold uppercase tracking-widest', heroLabel[primaryType])}
-      >
+      <p className={cn('text-label font-semibold', heroLabel[primaryType])}>
         {primaryTypeLabel[primaryType]}
       </p>
       <div className="flex items-baseline gap-2">
         <span className={cn('text-h3', heroLabel[primaryType])}>R$</span>
         <NumericInput
           name={resolvedType === 'parcelado' ? 'totalAmount' : 'amount'}
+          defaultValue={defaultAmount}
           error={!!(errors.amount ?? errors.totalAmount)}
           required
           autoFocus
           onValueChange={onValueChange}
           className={cn(
-            'h-auto border-0 bg-transparent py-1 text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+            'h-14 border-0 bg-transparent text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
             heroInput[primaryType]
           )}
         />
       </div>
-      {primaryType === 'saida' && (
+      {primaryType === 'saida' && !lockSubType && (
         <div className="flex gap-1 pt-1">
           {SAIDA_SUBTYPES.map((st) => (
             <Chip
@@ -137,7 +137,7 @@ export function HeroAmountCard({
                 'px-2 py-0.5 text-caption',
                 subType === st.value
                   ? 'border-negative bg-bg-surface text-negative-text'
-                  : 'border-transparent bg-transparent text-negative-text opacity-60 hover:border-transparent hover:opacity-100'
+                  : 'border-transparent bg-transparent text-negative-text opacity-60'
               )}
             >
               {st.label}
