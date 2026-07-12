@@ -171,6 +171,8 @@ export function TransactionForm({
       accountId,
       accountName: acc?.name ?? '',
       excludeFromCashFlow,
+      investmentTypeId,
+      investmentTypeName: investmentTypes?.find((t) => t.id === investmentTypeId)?.name ?? '',
     })
   }, [
     primaryType,
@@ -184,6 +186,8 @@ export function TransactionForm({
     onFormChange,
     categoryGroups,
     accounts,
+    investmentTypeId,
+    investmentTypes,
   ])
 
   function resolvedFormType(): FormType {

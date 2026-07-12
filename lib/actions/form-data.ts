@@ -1,7 +1,7 @@
 'use server'
 
 import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
-import { getInvestmentTypes } from '@/lib/queries/investments'
+import { getInvestmentTypes, getInvestmentBalances } from '@/lib/queries/investments'
 import {
   getCategoryGroupProgress,
   getMonthIncomes,
@@ -24,6 +24,7 @@ export async function getRegistrationFormData() {
     incomeList,
     investmentList,
     people,
+    balances,
   ] = await Promise.all([
     getCategoriesWithGroups(userId),
     getPaymentAccounts(userId),
@@ -32,6 +33,7 @@ export async function getRegistrationFormData() {
     getMonthIncomes(userId, month),
     getMonthInvestments(userId, month),
     getActivePeople(userId),
+    getInvestmentBalances(userId),
   ])
 
   const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
@@ -47,5 +49,15 @@ export async function getRegistrationFormData() {
     )
   )
 
-  return { categoryGroups, accounts, investmentTypes, categorySpends, currentBalance, people }
+  const investmentBalances = Object.fromEntries(balances.map((b) => [b.id, b.currentBalance]))
+
+  return {
+    categoryGroups,
+    accounts,
+    investmentTypes,
+    categorySpends,
+    currentBalance,
+    people,
+    investmentBalances,
+  }
 }
