@@ -16,6 +16,8 @@ type Props = {
   isPaid: boolean
   onIsPaidChange: (v: boolean) => void
   accountField?: ReactNode
+  defaultDate?: string
+  defaultDueDay?: number
 }
 
 export function SaidaConditionalFields({
@@ -29,12 +31,20 @@ export function SaidaConditionalFields({
   isPaid,
   onIsPaidChange,
   accountField,
+  defaultDate,
+  defaultDueDay,
 }: Props) {
   if (resolvedType === 'avulso') {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Data" error={errors.date}>
-          <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
+          <Input
+            name="date"
+            type="date"
+            defaultValue={defaultDate ?? today}
+            error={!!errors.date}
+            required
+          />
         </Field>
         {accountField}
       </div>
@@ -52,6 +62,7 @@ export function SaidaConditionalFields({
               min="1"
               max="31"
               placeholder="Ex: 10"
+              defaultValue={defaultDueDay}
               error={!!errors.dueDay}
               required
             />

@@ -30,3 +30,18 @@ export type PreviewState = {
   accountName: string
   excludeFromCashFlow: boolean
 }
+
+export type EditContext = {
+  entityId: string
+  primaryType: 'saida' | 'entrada'
+  subType?: 'avulsa' | 'fixa'
+  initialValues: {
+    name?: string
+    source?: string
+    amount: string
+    date?: string
+    dueDay?: number
+    categoryId?: string
+    accountId?: string
+  }
+}

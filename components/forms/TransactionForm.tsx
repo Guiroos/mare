@@ -20,15 +20,19 @@ import {
   createTransaction,
   createFixedExpense,
   createInstallmentPurchase,
+  updateTransaction,
+  updateFixedExpense,
 } from '@/lib/actions/transactions'
 import { toast } from 'sonner'
-import { createIncome } from '@/lib/actions/incomes'
+import { createIncome, updateIncome } from '@/lib/actions/incomes'
 import { upsertInvestment, createWithdrawal } from '@/lib/actions/investments'
 import {
   transactionSchema,
   fixedExpenseSchema,
+  fixedExpenseEditSchema,
   installmentSchema,
   incomeSchema,
+  incomeEditSchema,
 } from '@/lib/validations/transactions'
 import { investmentEntrySchema, withdrawalSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
@@ -42,6 +46,7 @@ import { SplitSection } from './transaction/SplitSection'
 import type {
   Account,
   CategoryGroup,
+  EditContext,
   InvestmentType,
   PrimaryType,
   SaidaSubType,
@@ -62,6 +67,8 @@ type Props = {
   onSuccess?: () => void
   onFormChange?: (state: import('./transaction/types').PreviewState) => void
   categoryVariant?: 'grid' | 'select' | 'combobox'
+  mode?: 'create' | 'edit'
+  editContext?: EditContext
 }
 
 const PRIMARY_TYPES: { value: PrimaryType; label: string; icon?: LucideIcon }[] = [
@@ -85,6 +92,13 @@ const submitLabel: Record<PrimaryType, string> = {
   resgate: 'Registrar resgate',
 }
 
+const primaryTypeContextLabel: Record<PrimaryType, string> = {
+  saida: 'saída',
+  entrada: 'entrada',
+  investimento: 'investimento',
+  resgate: 'resgate',
+}
+
 export function TransactionForm({
   categoryGroups,
   accounts,
@@ -95,20 +109,25 @@ export function TransactionForm({
   onSuccess,
   onFormChange,
   categoryVariant = 'combobox',
+  mode = 'create',
+  editContext,
 }: Props) {
   const month = defaultMonth ?? currentYearMonth()
   const today = defaultDate ?? todayISOString()
+  const isEdit = mode === 'edit'
 
-  const [primaryType, setPrimaryType] = useState<PrimaryType>('saida')
-  const [subType, setSubType] = useState<SaidaSubType>('avulsa')
+  const [primaryType, setPrimaryType] = useState<PrimaryType>(editContext?.primaryType ?? 'saida')
+  const [subType, setSubType] = useState<SaidaSubType>(editContext?.subType ?? 'avulsa')
   const [isPending, startTransition] = useTransition()
   const [key, setKey] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [categoryId, setCategoryId] = useState('')
-  const [accountId, setAccountId] = useState('')
+  const [categoryId, setCategoryId] = useState(editContext?.initialValues.categoryId ?? '')
+  const [accountId, setAccountId] = useState(editContext?.initialValues.accountId ?? '')
   const [investmentTypeId, setInvestmentTypeId] = useState('')
   const [destination, setDestination] = useState('')
-  const [previewName, setPreviewName] = useState('')
+  const [previewName, setPreviewName] = useState(
+    editContext?.initialValues.name ?? editContext?.initialValues.source ?? ''
+  )
   const [previewAmount, setPreviewAmount] = useState('')
   const [installments, setInstallments] = useState(2)
   const [isPaid, setIsPaid] = useState(false)
@@ -181,6 +200,78 @@ export function TransactionForm({
     const fd = new FormData(e.currentTarget)
     const str = (name: string) => (fd.get(name) as string) ?? ''
     const type = resolvedFormType()
+
+    if (isEdit && editContext) {
+      if (editContext.primaryType === 'entrada') {
+        const result = incomeEditSchema.safeParse({ source: str('source'), amount: str('amount') })
+        if (!result.success) {
+          setErrors(formatZodErrors(result.error))
+          return
+        }
+        setErrors({})
+        startTransition(async () => {
+          try {
+            await updateIncome({ id: editContext.entityId, ...result.data })
+            onSuccess?.()
+          } catch {
+            toast.error('Erro ao salvar. Tente novamente.')
+          }
+        })
+        return
+      }
+      if (editContext.subType === 'fixa') {
+        const result = fixedExpenseEditSchema.safeParse({
+          name: str('name'),
+          amount: str('amount'),
+          dueDay: str('dueDay'),
+          categoryId,
+          accountId,
+        })
+        if (!result.success) {
+          setErrors(formatZodErrors(result.error))
+          return
+        }
+        setErrors({})
+        startTransition(async () => {
+          try {
+            await updateFixedExpense({
+              id: editContext.entityId,
+              name: result.data.name,
+              amount: result.data.amount,
+              dueDay: Number(result.data.dueDay),
+              categoryId: result.data.categoryId,
+              accountId: result.data.accountId,
+            })
+            onSuccess?.()
+          } catch {
+            toast.error('Erro ao salvar. Tente novamente.')
+          }
+        })
+        return
+      }
+      // saída avulsa
+      const result = transactionSchema.safeParse({
+        name: str('name'),
+        amount: str('amount'),
+        date: str('date'),
+        categoryId,
+        accountId,
+      })
+      if (!result.success) {
+        setErrors(formatZodErrors(result.error))
+        return
+      }
+      setErrors({})
+      startTransition(async () => {
+        try {
+          await updateTransaction({ id: editContext.entityId, ...result.data })
+          onSuccess?.()
+        } catch {
+          toast.error('Erro ao salvar. Tente novamente.')
+        }
+      })
+      return
+    }
 
     if (type === 'avulso') {
       const amountToUse =
@@ -361,26 +452,37 @@ export function TransactionForm({
 
   return (
     <div className="space-y-5">
-      <div className="overflow-x-auto">
-        <Segment
-          options={PRIMARY_TYPES.map((pt) => ({
-            value: pt.value,
-            label: (
-              <span className="inline-flex items-center gap-1.5">
-                {pt.icon && <pt.icon className="h-3.5 w-3.5" />}
-                {pt.label}
-              </span>
-            ),
-            activeClassName: cn('font-semibold', typeSegActiveText[pt.value]),
-          }))}
-          value={primaryType}
-          onChange={(v) => {
-            setPrimaryType(v)
-            resetForm()
-          }}
-          className="flex w-full min-w-max"
-        />
-      </div>
+      {isEdit ? (
+        <div
+          className={cn(
+            'rounded-md px-3 py-2 text-caption font-semibold',
+            typeSegActiveText[primaryType]
+          )}
+        >
+          {`Editando ${primaryTypeContextLabel[primaryType]}`}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Segment
+            options={PRIMARY_TYPES.map((pt) => ({
+              value: pt.value,
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  {pt.icon && <pt.icon className="h-3.5 w-3.5" />}
+                  {pt.label}
+                </span>
+              ),
+              activeClassName: cn('font-semibold', typeSegActiveText[pt.value]),
+            }))}
+            value={primaryType}
+            onChange={(v) => {
+              setPrimaryType(v)
+              resetForm()
+            }}
+            className="flex w-full min-w-max"
+          />
+        </div>
+      )}
 
       <form key={key} onSubmit={handleSubmit} className="space-y-4">
         <HeroAmountCard
@@ -390,6 +492,8 @@ export function TransactionForm({
           onSubTypeChange={setSubType}
           onValueChange={(cents) => setPreviewAmount((cents / 100).toFixed(2))}
           errors={errors}
+          defaultAmount={editContext?.initialValues.amount}
+          lockSubType={isEdit}
         />
 
         {/* Nome / Origem */}
@@ -400,6 +504,7 @@ export function TransactionForm({
           >
             <Input
               name={primaryType === 'entrada' ? 'source' : 'name'}
+              defaultValue={editContext?.initialValues.name ?? editContext?.initialValues.source}
               placeholder={
                 primaryType === 'entrada' ? 'Ex: Salário, Vale...' : 'Ex: Mercado, Netflix...'
               }
@@ -439,6 +544,8 @@ export function TransactionForm({
             previewAmount={previewAmount}
             isPaid={isPaid}
             onIsPaidChange={setIsPaid}
+            defaultDate={editContext?.initialValues.date}
+            defaultDueDay={editContext?.initialValues.dueDay}
             accountField={
               <Field label="Conta / Cartão" error={errors.accountId}>
                 <Select value={accountId} onValueChange={setAccountId}>
@@ -487,7 +594,8 @@ export function TransactionForm({
         )}
 
         {/* Dividir com devedores — apenas saída avulsa e parcelada */}
-        {primaryType === 'saida' &&
+        {!isEdit &&
+          primaryType === 'saida' &&
           (resolvedType === 'avulso' || resolvedType === 'parcelado') &&
           people.length > 0 && (
             <SplitSection
@@ -500,7 +608,7 @@ export function TransactionForm({
 
         <div className="pt-1">
           <Button type="submit" className="w-full" loading={isPending}>
-            {submitLabel[primaryType]}
+            {isEdit ? 'Salvar alterações' : submitLabel[primaryType]}
           </Button>
         </div>
       </form>
