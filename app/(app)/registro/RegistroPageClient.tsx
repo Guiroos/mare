@@ -73,7 +73,7 @@ function RegistroPreviewPanel({
   if (!state || (!state.name && !state.amount)) {
     return (
       <Card padding="md">
-        <p className="text-caption font-semibold uppercase text-text-tertiary">Saldo do mês</p>
+        <p className="text-caption font-semibold text-text-tertiary">Saldo do mês</p>
         <p className="mt-1 text-h1 font-semibold tabular-nums text-text-primary">
           {formatCurrency(currentBalance)}
         </p>
@@ -110,7 +110,7 @@ function RegistroPreviewPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-caption font-semibold uppercase text-text-tertiary">Preview</p>
+      <p className="text-caption font-semibold text-text-tertiary">Preview</p>
 
       {/* Transaction card */}
       <Card padding="md">
@@ -161,9 +161,7 @@ function RegistroPreviewPanel({
       {/* Impacto no orçamento — saída com categoria selecionada */}
       {categoryData && projectedSpent !== null && state.primaryType === 'saida' && (
         <Card padding="md">
-          <p className="mb-3 text-caption font-semibold uppercase text-text-tertiary">
-            Impacto no orçamento
-          </p>
+          <p className="mb-3 text-caption font-semibold text-text-tertiary">Impacto no orçamento</p>
           <BudgetBar
             label={categoryData.name}
             current={projectedSpent}
@@ -184,7 +182,7 @@ function RegistroPreviewPanel({
         state.investmentTypeId &&
         amountNum > 0 && (
           <Card padding="md">
-            <p className="mb-1 text-caption font-semibold uppercase text-text-tertiary">
+            <p className="mb-1 text-caption font-semibold text-text-tertiary">
               {state.primaryType === 'investimento' ? 'Novo total aportado' : 'Saldo restante'}
             </p>
             <p className="text-h1 font-semibold tabular-nums text-text-primary">
@@ -201,7 +199,7 @@ function RegistroPreviewPanel({
       {/* Saldo após lançamento */}
       {amountNum > 0 && (isDebit || isCredit) && (
         <Card padding="md">
-          <p className="mb-1 text-caption font-semibold uppercase text-text-tertiary">
+          <p className="mb-1 text-caption font-semibold text-text-tertiary">
             Saldo após lançamento
           </p>
           <p className="text-h1 font-semibold tabular-nums text-text-primary">
