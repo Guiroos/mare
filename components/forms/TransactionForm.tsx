@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition, type FormEvent } from 'react'
-import { ArrowDown, ArrowUp, TrendingUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, TrendingUp, TrendingDown } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
@@ -75,7 +75,7 @@ const PRIMARY_TYPES: { value: PrimaryType; label: string; icon?: LucideIcon }[] 
   { value: 'saida', label: 'Saída', icon: ArrowDown },
   { value: 'entrada', label: 'Entrada', icon: ArrowUp },
   { value: 'investimento', label: 'Investimento', icon: TrendingUp },
-  { value: 'resgate', label: 'Resgate' },
+  { value: 'resgate', label: 'Resgate', icon: TrendingDown },
 ]
 
 const typeSegActiveText: Record<PrimaryType, string> = {
