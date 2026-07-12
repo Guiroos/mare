@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { MonthSelect } from '@/components/ui/month-select'
 
 type Props = {
   resolvedType: 'avulso' | 'fixo' | 'parcelado'
@@ -56,12 +57,10 @@ export function SaidaConditionalFields({
             />
           </Field>
           <Field label="Mês de referência" error={errors.referenceMonth}>
-            <Input
+            <MonthSelect
               name="referenceMonth"
-              type="month"
               defaultValue={month}
               error={!!errors.referenceMonth}
-              required
             />
           </Field>
         </div>

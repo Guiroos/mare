@@ -38,6 +38,7 @@ Importam e usam primitivos da Camada 1.
 - `Field` → usa `<Label>`
 - `CurrencyInput` → compartilha `inputBase` e `inputErrorCls` de `input.tsx`
 - `Combobox` → usa `<Input>` + `<Button>`
+- `MonthSelect` → usa `<Select>`
 - `Segment` `BudgetBar` `EmptyState` `SummaryCard` `BalanceCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
 
 ### Camada 3 — Modal / Complexo
@@ -67,6 +68,7 @@ Radix UI + primitivos.
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
 | `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
 | `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
+| `month-select.tsx`   | `MonthSelect`                   | Select de mês em pt-BR (`formatMonthYear`); popula `FormData` via hidden input com `YYYY-MM`; props `name` `defaultValue` `error` `back` `forward` |
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
 | `separator.tsx`      | `Separator`                     | Radix; prop `orientation`: `horizontal` (default) / `vertical`                   |

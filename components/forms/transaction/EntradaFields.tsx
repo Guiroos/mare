@@ -1,5 +1,5 @@
 import { Field } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import { MonthSelect } from '@/components/ui/month-select'
 
 type Props = {
   errors: Record<string, string>
@@ -9,13 +9,7 @@ type Props = {
 export function EntradaFields({ errors, month }: Props) {
   return (
     <Field label="Mês de referência" error={errors.referenceMonth}>
-      <Input
-        name="referenceMonth"
-        type="month"
-        defaultValue={month}
-        error={!!errors.referenceMonth}
-        required
-      />
+      <MonthSelect name="referenceMonth" defaultValue={month} error={!!errors.referenceMonth} />
     </Field>
   )
 }
