@@ -84,6 +84,16 @@ export function formatMonthYear(yearMonth: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
+/** Retorna uma lista de YYYY-MM centrada em centerYearMonth, com `back` meses antes e `forward` depois (crescente). */
+export function monthOptions(centerYearMonth: string, back: number, forward: number): string[] {
+  const center = parseISO(`${centerYearMonth}-01`)
+  const result: string[] = []
+  for (let i = back; i >= 1; i--) result.push(format(subMonths(center, i), 'yyyy-MM'))
+  result.push(format(center, 'yyyy-MM'))
+  for (let i = 1; i <= forward; i++) result.push(format(addMonths(center, i), 'yyyy-MM'))
+  return result
+}
+
 /** Formats a YYYY-MM as a short chart label, e.g. "jan 25" (pt-BR). */
 export function formatMonthShort(yearMonth: string): string {
   return fmt(parseISO(`${yearMonth}-01`), 'MMM yy')

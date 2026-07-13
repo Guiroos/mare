@@ -2,7 +2,9 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { MonthSelect } from '@/components/ui/month-select'
 
 type Props = {
   resolvedType: 'avulso' | 'fixo' | 'parcelado'
@@ -15,6 +17,8 @@ type Props = {
   isPaid: boolean
   onIsPaidChange: (v: boolean) => void
   accountField?: ReactNode
+  defaultDate?: string
+  defaultDueDay?: number
 }
 
 export function SaidaConditionalFields({
@@ -28,12 +32,20 @@ export function SaidaConditionalFields({
   isPaid,
   onIsPaidChange,
   accountField,
+  defaultDate,
+  defaultDueDay,
 }: Props) {
   if (resolvedType === 'avulso') {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Data" error={errors.date}>
-          <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
+          <Input
+            name="date"
+            type="date"
+            defaultValue={defaultDate ?? today}
+            error={!!errors.date}
+            required
+          />
         </Field>
         {accountField}
       </div>
@@ -51,17 +63,16 @@ export function SaidaConditionalFields({
               min="1"
               max="31"
               placeholder="Ex: 10"
+              defaultValue={defaultDueDay}
               error={!!errors.dueDay}
               required
             />
           </Field>
           <Field label="Mês de referência" error={errors.referenceMonth}>
-            <Input
+            <MonthSelect
               name="referenceMonth"
-              type="month"
               defaultValue={month}
               error={!!errors.referenceMonth}
-              required
             />
           </Field>
         </div>
@@ -76,7 +87,7 @@ export function SaidaConditionalFields({
     return (
       <>
         <div className="space-y-2">
-          <p className="text-caption font-medium text-text-secondary">Nº de parcelas</p>
+          <Label>Nº de parcelas</Label>
           <div className="flex items-center gap-3">
             <Button
               type="button"

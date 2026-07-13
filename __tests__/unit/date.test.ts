@@ -10,6 +10,7 @@ import {
   dateToReferenceMonth,
   formatMonthName,
   formatMonthYear,
+  monthOptions,
   formatMonthShort,
   formatMonthAbbr,
   formatDisplayDate,
@@ -130,6 +131,26 @@ describe('formatMonthYear', () => {
   it('starts with capitalized month (Janeiro, Março, etc.)', () => {
     expect(formatMonthYear('2025-01')).toMatch(/^Janeiro/)
     expect(formatMonthYear('2025-03')).toMatch(/^Março/)
+  })
+})
+
+describe('monthOptions', () => {
+  it('inclui o centro e respeita back/forward em ordem crescente', () => {
+    expect(monthOptions('2025-06', 2, 2)).toEqual([
+      '2025-04',
+      '2025-05',
+      '2025-06',
+      '2025-07',
+      '2025-08',
+    ])
+  })
+
+  it('atravessa fronteira de ano corretamente', () => {
+    expect(monthOptions('2025-01', 1, 1)).toEqual(['2024-12', '2025-01', '2025-02'])
+  })
+
+  it('back=0 e forward=0 retorna só o centro', () => {
+    expect(monthOptions('2025-06', 0, 0)).toEqual(['2025-06'])
   })
 })
 

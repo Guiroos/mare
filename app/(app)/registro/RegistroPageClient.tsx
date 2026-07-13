@@ -62,16 +62,22 @@ function RegistroPreviewPanel({
   categorySpends,
   currentBalance,
   categoryIndexMap,
+  investmentBalances,
 }: {
   state: PreviewState | null
   categorySpends: Record<string, CategorySpend>
   currentBalance: number
   categoryIndexMap: Record<string, number>
+  investmentBalances: Record<string, number>
 }) {
   if (!state || (!state.name && !state.amount)) {
     return (
       <Card padding="md">
-        <p className="py-4 text-center text-small text-text-tertiary">
+        <p className="text-caption font-semibold text-text-tertiary">Saldo do mês</p>
+        <p className="mt-1 text-h1 font-semibold tabular-nums text-text-primary">
+          {formatCurrency(currentBalance)}
+        </p>
+        <p className="mt-2 text-small text-text-tertiary">
           Preencha o formulário para visualizar o lançamento
         </p>
       </Card>
@@ -104,7 +110,7 @@ function RegistroPreviewPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-caption font-semibold uppercase text-text-tertiary">Preview</p>
+      <p className="text-caption font-semibold text-text-tertiary">Preview</p>
 
       {/* Transaction card */}
       <Card padding="md">
@@ -155,9 +161,7 @@ function RegistroPreviewPanel({
       {/* Impacto no orçamento — saída com categoria selecionada */}
       {categoryData && projectedSpent !== null && state.primaryType === 'saida' && (
         <Card padding="md">
-          <p className="mb-3 text-caption font-semibold uppercase text-text-tertiary">
-            Impacto no orçamento
-          </p>
+          <p className="mb-3 text-caption font-semibold text-text-tertiary">Impacto no orçamento</p>
           <BudgetBar
             label={categoryData.name}
             current={projectedSpent}
@@ -173,10 +177,29 @@ function RegistroPreviewPanel({
         </Card>
       )}
 
+      {/* Novo total aportado / Saldo restante — investimento e resgate */}
+      {(state.primaryType === 'investimento' || state.primaryType === 'resgate') &&
+        state.investmentTypeId &&
+        amountNum > 0 && (
+          <Card padding="md">
+            <p className="mb-1 text-caption font-semibold text-text-tertiary">
+              {state.primaryType === 'investimento' ? 'Novo total aportado' : 'Saldo restante'}
+            </p>
+            <p className="text-h1 font-semibold tabular-nums text-text-primary">
+              {formatCurrency(
+                state.primaryType === 'investimento'
+                  ? (investmentBalances[state.investmentTypeId] ?? 0) + amountNum
+                  : (investmentBalances[state.investmentTypeId] ?? 0) - amountNum
+              )}
+            </p>
+            <p className="mt-0.5 text-small text-text-secondary">{state.investmentTypeName}</p>
+          </Card>
+        )}
+
       {/* Saldo após lançamento */}
       {amountNum > 0 && (isDebit || isCredit) && (
         <Card padding="md">
-          <p className="mb-1 text-caption font-semibold uppercase text-text-tertiary">
+          <p className="mb-1 text-caption font-semibold text-text-tertiary">
             Saldo após lançamento
           </p>
           <p className="text-h1 font-semibold tabular-nums text-text-primary">
@@ -228,6 +251,7 @@ export function RegistroPageClient({ formData }: { formData: FormDataType }) {
           categorySpends={formData.categorySpends}
           currentBalance={formData.currentBalance}
           categoryIndexMap={categoryIndexMap}
+          investmentBalances={formData.investmentBalances}
         />
       </div>
     </div>
