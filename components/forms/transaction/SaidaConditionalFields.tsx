@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { MonthSelect } from '@/components/ui/month-select'
 
@@ -86,7 +87,7 @@ export function SaidaConditionalFields({
     return (
       <>
         <div className="space-y-2">
-          <p className="text-caption font-medium text-text-secondary">Nº de parcelas</p>
+          <Label>Nº de parcelas</Label>
           <div className="flex items-center gap-3">
             <Button
               type="button"
