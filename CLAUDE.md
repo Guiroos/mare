@@ -78,6 +78,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 - `'use server'` inline em body de função dentro de arquivo `'use client'` é inválido — Next.js não suporta server actions definidas inline em Client Components; definir em arquivo separado com `'use server'` no topo e importar
 - Security headers via `headers()` em `next.config.mjs`: o CSP precisa de `'unsafe-inline'` em `script-src`/`style-src` (a hidratação do Next e o script anti-flash do `next-themes` quebram sem); `'unsafe-eval'` só em dev (HMR); HSTS só em prod (não forçar HTTPS no localhost). `next/font` self-hospeda as fontes (`font-src 'self'`), `@vercel/speed-insights` é same-origin com fallback em `va.vercel-scripts.com`
+- Skills instaladas em `.claude/skills/**/*.cjs` são varridas por `next lint` e disparam `@typescript-eslint/no-require-imports`, quebrando o gate de `npm run lint` mesmo sem serem código do app — manter `.claude/` nos `ignores` do `eslint.config.mjs` (`.claude` é tooling, não source)
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
@@ -94,6 +95,8 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
 - `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
 - Privacy mode: `SensitiveAmount` (mascara valor), `PrivacyToggle` (botão de olho) e `usePrivacyMode()` (hook com `mask(value)`) estão em `@/components/providers/PrivacyMode` — importar os três ao adicionar privacy a qualquer nova página
+- Componente baseado em `Select` cujo valor precisa ser submetido via `FormData` (form uncontrolled): espelhar o state num `<input type="hidden" name value={value}>` — o `Select` do Radix não popula `FormData` sozinho; `MonthSelect` é a referência do padrão
+- Editar lançamento (saída avulsa/fixa, entrada) reusa `TransactionForm` com props aditivas `mode="edit"` + `editContext`, não forms próprios; `TransactionEditButton`/`FixedExpenseEditButton`/`IncomeEditButton` só carregam dados e delegam ao form, que trava o tipo e roteia o submit para as actions de update existentes — nunca recriar `EditForm` cru
 
 **Playwright MCP:**
 - `<LoginButton>` renderiza duas vezes (mobile + desktop) — filtrar com `offsetParent !== null` no `browser_evaluate`
