@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import { Download } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import {
   getAnnualOverview,
@@ -11,7 +10,6 @@ import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getCreditAccounts } from '@/lib/queries/categories'
 import { currentYear, currentYearMonth } from '@/lib/utils/date'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 import { PatrimonyEvolutionChart } from '@/components/charts/PatrimonyEvolutionChart'
 import { PageLayout } from '@/components/ui/page-layout'
@@ -20,6 +18,7 @@ import { YearSelector } from '@/components/panorama/YearSelector'
 import { AnnualSummaryCards } from '@/components/panorama/AnnualSummaryCards'
 import { PanoramaTable } from '@/components/panorama/PanoramaTable'
 import { PrivacyToggle } from '@/components/providers/PrivacyMode'
+import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function PanoramaPage({
   searchParams,
@@ -83,9 +82,7 @@ export default async function PanoramaPage({
         <div className="flex flex-shrink-0 items-center gap-2">
           <PrivacyToggle />
           <YearSelector years={years} selected={year} />
-          <Button variant="outline" size="sm" disabled leftIcon={<Download className="h-4 w-4" />}>
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
+          <ExportButton href={`/api/export/extrato?de=${year}-01-01&ate=${year}-12-31`} />
         </div>
       </div>
 
