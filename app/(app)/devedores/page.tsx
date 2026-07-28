@@ -9,6 +9,7 @@ import { PersonDialog } from '@/components/devedores/PersonDialog'
 import { DebtorList } from '@/components/devedores/DebtorList'
 import { DebtorSummaryCards } from '@/components/devedores/DebtorSummaryCards'
 import { PixKeyCard } from '@/components/devedores/PixKeyCard'
+import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function DevedoresPage() {
   const session = await auth()
@@ -29,7 +30,10 @@ export default async function DevedoresPage() {
           title="Devedores"
           description="Acompanhe valores que outras pessoas devem a você."
         />
-        <PersonDialog mode="create" />
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <ExportButton href="/api/export/devedores" />
+          <PersonDialog mode="create" />
+        </div>
       </div>
 
       <PixKeyCard pixKey={pixKey} />

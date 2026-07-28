@@ -17,6 +17,7 @@ import { DebtBalanceEvolutionChart } from '@/components/devedores/DebtBalanceEvo
 import { DevedorDetailActions } from '@/components/devedores/DevedorDetailActions'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function DevedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [session, { id }] = await Promise.all([auth(), params])
@@ -44,12 +45,15 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
 
       <div className="group flex items-start justify-between gap-4">
         <PageHeader title={person.name} description={person.email ?? person.phone ?? undefined} />
-        <DevedorDetailActions
-          person={person}
-          balance={summary.balance}
-          openCharges={openCharges}
-          pixKey={pixKey}
-        />
+        <div className="flex flex-shrink-0 items-center gap-2">
+          <ExportButton href={`/api/export/devedores?pessoa=${person.id}`} />
+          <DevedorDetailActions
+            person={person}
+            balance={summary.balance}
+            openCharges={openCharges}
+            pixKey={pixKey}
+          />
+        </div>
       </div>
 
       <DebtorDetailSummary summary={summary} hasEntries={entries.length > 0} />
