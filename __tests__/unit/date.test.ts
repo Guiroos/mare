@@ -6,6 +6,7 @@ import {
   prevMonth,
   nextMonth,
   parseDate,
+  lastDayOfYearMonth,
   billingCycleDateRange,
   dateToReferenceMonth,
   formatMonthName,
@@ -459,5 +460,23 @@ describe('calcInstallmentDate', () => {
 
   it('closingDay = 31: dia 32 nunca existe — retorna dia 1 do referenceMonth', () => {
     expect(fmt(calcInstallmentDate(parseDate('2025-03-01'), 31))).toBe('2025-03-01')
+  })
+})
+
+describe('lastDayOfYearMonth', () => {
+  it('devolve o último dia de um mês de 31 dias', () => {
+    expect(lastDayOfYearMonth('2026-07')).toBe('2026-07-31')
+  })
+
+  it('devolve o último dia de um mês de 30 dias', () => {
+    expect(lastDayOfYearMonth('2026-04')).toBe('2026-04-30')
+  })
+
+  it('trata fevereiro em ano comum', () => {
+    expect(lastDayOfYearMonth('2026-02')).toBe('2026-02-28')
+  })
+
+  it('trata fevereiro em ano bissexto', () => {
+    expect(lastDayOfYearMonth('2024-02')).toBe('2024-02-29')
   })
 })

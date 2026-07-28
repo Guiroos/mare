@@ -67,9 +67,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : 'button'
     const cls = cn(base, variants[variant], sizes[size], className)
 
+    // Com asChild, os filhos vão direto para o Slot: embrulhar num Fragment faria
+    // o Radix clonar o Fragment e o React descartar className/disabled.
+    // Nesse modo o chamador põe o ícone dentro do próprio elemento filho.
     return (
       <Comp ref={ref} className={cls} disabled={disabled || loading} {...props}>
-        {loading ? (
+        {asChild ? (
+          children
+        ) : loading ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : (
           <>
