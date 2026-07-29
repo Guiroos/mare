@@ -23,12 +23,22 @@ export default async function MetasPage() {
     <PageLayout>
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Metas" description="Acompanhe o progresso das suas metas financeiras." />
+        <div className="hidden items-center gap-2 lg:flex">
+          <GoalDialog
+            mode="create"
+            investmentTypes={investmentTypeOptions}
+            triggerSize="md"
+            triggerVariant="primary"
+          />
+        </div>
       </div>
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-label font-semibold text-text-secondary">Suas metas</h2>
-          <GoalDialog mode="create" investmentTypes={investmentTypeOptions} />
+          <div className="lg:hidden">
+            <GoalDialog mode="create" investmentTypes={investmentTypeOptions} />
+          </div>
         </div>
 
         <MetasList goals={goalsData} investmentTypeOptions={investmentTypeOptions} />
