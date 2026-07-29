@@ -25,12 +25,24 @@ export default async function CategoriasPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Categorias e grupos"
-        description="Gerencie grupos e categorias de gastos."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Categorias e grupos"
+          description="Gerencie grupos e categorias de gastos."
+        />
+        <div className="hidden items-center gap-2 lg:flex">
+          <GroupDialog mode="create" triggerSize="md" triggerVariant="primary" />
+        </div>
+      </div>
 
-      <Section title="Grupos e categorias" action={<GroupDialog mode="create" />}>
+      <Section
+        title="Grupos e categorias"
+        action={
+          <div className="lg:hidden">
+            <GroupDialog mode="create" />
+          </div>
+        }
+      >
         {groups.length === 0 ? (
           <EmptyState title="Nenhum grupo criado. Comece criando um grupo." />
         ) : (
