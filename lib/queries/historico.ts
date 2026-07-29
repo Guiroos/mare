@@ -60,10 +60,10 @@ export function referenceMonthsInRange(de: string, ate: string): string[] {
   return result
 }
 
-export async function getHistoricoFeed(
+export async function collectHistoricoItems(
   userId: string,
   params: HistoricoParams
-): Promise<{ items: HistoricoFeedItem[]; hasMore: boolean; nextCursor: string | null }> {
+): Promise<HistoricoFeedItem[]> {
   const { de, ate, tipos, categorias, contas, q } = params
 
   const wantsAvulsa = tipos.includes('saida_avulsa')
@@ -265,7 +265,15 @@ export async function getHistoricoFeed(
   const qLower = q ? q.toLowerCase() : null
   const sorted = qLower ? merged.filter((item) => item.name.toLowerCase().includes(qLower)) : merged
 
-  // Cursor-based pagination
+  return sorted
+}
+
+export async function getHistoricoFeed(
+  userId: string,
+  params: HistoricoParams
+): Promise<{ items: HistoricoFeedItem[]; hasMore: boolean; nextCursor: string | null }> {
+  const sorted = await collectHistoricoItems(userId, params)
+
   let startIdx = 0
   if (params.cursor) {
     const [cursorDate, cursorId] = params.cursor.split('_')

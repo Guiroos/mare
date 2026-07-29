@@ -33,12 +33,24 @@ export default async function ContasPage() {
 
   return (
     <PageLayout>
-      <PageHeader
-        title="Contas e Cartões"
-        description="Gerencie suas contas de débito, crédito e Pix."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          title="Contas e Cartões"
+          description="Gerencie suas contas de débito, crédito e Pix."
+        />
+        <div className="hidden items-center gap-2 lg:flex">
+          <AccountDialog mode="create" triggerSize="md" triggerVariant="primary" />
+        </div>
+      </div>
 
-      <Section title="Contas e cartões" action={<AccountDialog mode="create" />}>
+      <Section
+        title="Contas e cartões"
+        action={
+          <div className="lg:hidden">
+            <AccountDialog mode="create" />
+          </div>
+        }
+      >
         {accounts.length === 0 ? (
           <EmptyState title="Nenhuma conta cadastrada." />
         ) : (

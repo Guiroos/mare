@@ -10,6 +10,7 @@ import {
   getDaysInMonth,
   setDate,
   differenceInCalendarDays,
+  endOfMonth,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -20,6 +21,11 @@ const fmt = (date: Date, formatStr: string) => format(date, formatStr, { locale:
 /** Parses a YYYY-MM-DD string safely (avoids UTC offset day shifting). */
 export function parseDate(dateStr: string): Date {
   return parseISO(dateStr + 'T12:00:00')
+}
+
+/** Returns the last day of a YYYY-MM month as YYYY-MM-DD. */
+export function lastDayOfYearMonth(yearMonth: string): string {
+  return format(endOfMonth(parseDate(yearMonth + '-01')), 'yyyy-MM-dd')
 }
 
 /** Returns the current date as YYYY-MM. */

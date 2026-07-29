@@ -20,9 +20,9 @@ export function DashboardFAB({ month }: { month: string }) {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleClick} className="hidden lg:flex">
-      <Plus className="h-3.5 w-3.5" />
-      Nova
+    <Button variant="primary" size="sm" onClick={handleClick} className="hidden gap-2 lg:flex">
+      <Plus className="h-4 w-4" />
+      Lançamento
     </Button>
   )
 }

@@ -427,3 +427,56 @@ export async function getOpenChargesForPeople(
   }
   return result
 }
+
+export type DebtorEntryExportRow = {
+  personName: string
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number
+  description: string
+  referenceMonth: string
+  entryDate: string
+  status: string | null
+  notes: string | null
+}
+
+export async function getAllDebtorEntries(userId: string): Promise<DebtorEntryExportRow[]> {
+  const [personRows, entryRows, dek] = await Promise.all([
+    db.select({ id: people.id, name: people.name }).from(people).where(eq(people.userId, userId)),
+    db
+      .select({
+        personId: debtorEntries.personId,
+        type: debtorEntries.type,
+        amount: debtorEntries.amount,
+        description: debtorEntries.description,
+        referenceMonth: debtorEntries.referenceMonth,
+        entryDate: debtorEntries.entryDate,
+        status: debtorEntries.status,
+        notes: debtorEntries.notes,
+      })
+      .from(debtorEntries)
+      .where(eq(debtorEntries.userId, userId)),
+    getDekForUser(userId),
+  ])
+
+  const nameById = new Map(personRows.map((p) => [p.id, decryptField(p.name, dek)]))
+
+  const rows = entryRows.map((e) => ({
+    personName: nameById.get(e.personId) ?? '',
+    type: e.type as 'charge' | 'payment' | 'adjustment',
+    amount: toAmount(decryptField(e.amount, dek)),
+    description: decryptField(e.description, dek),
+    referenceMonth: e.referenceMonth,
+    entryDate: e.entryDate,
+    status: e.status,
+    notes: decryptOptional(e.notes, dek),
+  }))
+
+  // Ordenação em JS: as colunas são ciphertext, ORDER BY no SQL ordenaria lixo.
+  rows.sort((a, b) => {
+    const byName = a.personName.localeCompare(b.personName, 'pt-BR')
+    if (byName !== 0) return byName
+    return b.entryDate.localeCompare(a.entryDate)
+  })
+
+  return rows
+}

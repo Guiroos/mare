@@ -10,6 +10,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils/cn'
 import { prevMonth, nextMonth, currentYearMonth, formatMonthYear } from '@/lib/utils/date'
 
@@ -121,6 +122,10 @@ export function MonthSelector({
             >
               Mês atual
             </Button>
+          )}
+
+          {action && (hasBillingCycle || !isCurrentMonth) && (
+            <Separator orientation="vertical" className="mx-1 h-6" />
           )}
           {action}
         </div>

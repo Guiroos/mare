@@ -10,6 +10,7 @@ import {
   yearMonthToReferenceMonth,
   todayParts,
   billingCycleDateRange,
+  lastDayOfYearMonth,
 } from '@/lib/utils/date'
 import { MaturityAlerts } from '@/components/dashboard/MaturityAlerts'
 import { MonthSelector } from '@/components/dashboard/MonthSelector'
@@ -25,7 +26,8 @@ import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
-import { PrivacyToggle, SensitiveMoneyBadge } from '@/components/providers/PrivacyMode'
+import { SensitiveMoneyBadge } from '@/components/providers/PrivacyMode'
+import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function DashboardPage({
   searchParams,
@@ -83,6 +85,12 @@ export default async function DashboardPage({
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
   const isCurrentMonth = month === currentYearMonth()
+
+  // Em visão de ciclo de fatura a tela mostra o ciclo, não o mês de calendário —
+  // o recorte exportado tem de seguir a tela.
+  const exportRange = cycleRange
+    ? { de: cycleRange.start, ate: cycleRange.end }
+    : { de: `${month}-01`, ate: lastDayOfYearMonth(month) }
   const isPastMonth =
     displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
 
@@ -118,7 +126,9 @@ export default async function DashboardPage({
         activeCycleAccountId={activeAccount?.id}
         action={
           <div className="flex items-center gap-1">
-            <PrivacyToggle />
+            <ExportButton
+              href={`/api/export/extrato?de=${exportRange.de}&ate=${exportRange.ate}`}
+            />
             <DashboardFAB month={month} />
           </div>
         }

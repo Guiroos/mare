@@ -17,6 +17,8 @@ import {
   CreditCard,
   HandCoins,
   History,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -26,6 +28,7 @@ import { Button } from '@/components/ui/button'
 import { useRegistrationDialog } from '@/components/providers/RegistrationDialog'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { usePrivacyMode } from '@/components/providers/PrivacyMode'
 
 const primaryNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -94,6 +97,7 @@ export function BottomNav() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const { open } = useRegistrationDialog()
+  const { isPrivate, toggle: togglePrivacy } = usePrivacyMode()
 
   // If pathname already matches pendingHref, navigation settled — ignore pending
   const isActive = (href: string) => {
@@ -202,6 +206,21 @@ export function BottomNav() {
               </Link>
             ))}
           </nav>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setMenuOpen(false)
+              togglePrivacy()
+            }}
+            className="w-full justify-start gap-3 border border-border"
+          >
+            {isPrivate ? (
+              <EyeOff className="h-4 w-4 shrink-0" />
+            ) : (
+              <Eye className="h-4 w-4 shrink-0" />
+            )}
+            {isPrivate ? 'Mostrar valores' : 'Ocultar valores'}
+          </Button>
           <Button
             variant="ghost"
             onClick={() => {
