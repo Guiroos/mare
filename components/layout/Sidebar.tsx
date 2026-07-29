@@ -24,6 +24,7 @@ import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 import { FeedbackDialog } from '@/components/feedback/FeedbackDialog'
 import { SettingsDialog } from '@/components/settings/SettingsDialog'
+import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 
 const mainNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -174,63 +175,68 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
 
       {/* User footer */}
       <div className="mt-auto border-t border-border p-3">
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-bg-subtle">
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
-                style={{
-                  background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
-                }}
-              >
-                {initials}
-              </div>
-              <div className="min-w-0 flex-1 text-left">
-                <div className="truncate text-small font-semibold text-text-primary">
-                  {user?.name ?? '—'}
+        <div className="flex items-center gap-1">
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger asChild>
+              <button className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-bg-subtle">
+                <div
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
+                  style={{
+                    background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
+                  }}
+                >
+                  {initials}
                 </div>
-                <div className="truncate text-caption text-text-tertiary">{user?.email ?? ''}</div>
-              </div>
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Portal>
-            <DropdownMenu.Content
-              side="top"
-              align="start"
-              sideOffset={4}
-              className="z-50 min-w-48 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
-            >
-              <DropdownMenu.Item
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setFeedbackOpen(true)
-                }}
+                <div className="min-w-0 flex-1 text-left">
+                  <div className="truncate text-small font-semibold text-text-primary">
+                    {user?.name ?? '—'}
+                  </div>
+                  <div className="truncate text-caption text-text-tertiary">
+                    {user?.email ?? ''}
+                  </div>
+                </div>
+              </button>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Portal>
+              <DropdownMenu.Content
+                side="top"
+                align="start"
+                sideOffset={4}
+                className="z-50 min-w-48 overflow-hidden rounded-md border border-border bg-bg-surface shadow-md"
               >
-                <MessageSquare className="h-4 w-4 shrink-0" />
-                Enviar feedback
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setSettingsOpen(true)
-                }}
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                Configurações
-              </DropdownMenu.Item>
-              <DropdownMenu.Separator className="my-1 h-px bg-border" />
-              <DropdownMenu.Item
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
-                onSelect={() => signOut({ callbackUrl: '/login' })}
-              >
-                <LogOut className="h-4 w-4 shrink-0" />
-                Sair
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Portal>
-        </DropdownMenu.Root>
+                <DropdownMenu.Item
+                  className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setFeedbackOpen(true)
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 shrink-0" />
+                  Enviar feedback
+                </DropdownMenu.Item>
+                <DropdownMenu.Item
+                  className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setSettingsOpen(true)
+                  }}
+                >
+                  <Settings className="h-4 w-4 shrink-0" />
+                  Configurações
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                <DropdownMenu.Item
+                  className="flex cursor-pointer items-center gap-2 px-3 py-2 text-small text-text-primary outline-none transition-colors hover:bg-bg-subtle focus:bg-bg-subtle"
+                  onSelect={() => signOut({ callbackUrl: '/login' })}
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  Sair
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Portal>
+          </DropdownMenu.Root>
+          <PrivacyToggle />
+        </div>
       </div>
 
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
