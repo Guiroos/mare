@@ -26,7 +26,7 @@ import { PageLayout } from '@/components/ui/page-layout'
 import { Section } from '@/components/ui/section'
 import { Badge } from '@/components/ui/badge'
 import { DashboardFAB } from '@/components/dashboard/DashboardFAB'
-import { PrivacyToggle, SensitiveMoneyBadge } from '@/components/providers/PrivacyMode'
+import { SensitiveMoneyBadge } from '@/components/providers/PrivacyMode'
 import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function DashboardPage({
@@ -129,7 +129,6 @@ export default async function DashboardPage({
             <ExportButton
               href={`/api/export/extrato?de=${exportRange.de}&ate=${exportRange.ate}`}
             />
-            <PrivacyToggle />
             <DashboardFAB month={month} />
           </div>
         }

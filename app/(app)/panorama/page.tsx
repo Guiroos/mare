@@ -17,7 +17,6 @@ import { PageHeader } from '@/components/ui/page-header'
 import { YearSelector } from '@/components/panorama/YearSelector'
 import { AnnualSummaryCards } from '@/components/panorama/AnnualSummaryCards'
 import { PanoramaTable } from '@/components/panorama/PanoramaTable'
-import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function PanoramaPage({
@@ -80,7 +79,6 @@ export default async function PanoramaPage({
           description="Como o seu ano financeiro está se desenhando — receitas, despesas e patrimônio mês a mês."
         />
         <div className="flex flex-shrink-0 items-center gap-2">
-          <PrivacyToggle />
           <YearSelector years={years} selected={year} />
           <ExportButton href={`/api/export/extrato?de=${year}-01-01&ate=${year}-12-31`} />
         </div>

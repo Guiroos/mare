@@ -10,7 +10,6 @@ import { categoryGroups, paymentAccounts } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { HistoricoFilters } from './HistoricoFilters'
 import { HistoricoClient } from './HistoricoClient'
-import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 import { ExportButton } from '@/components/export/ExportButton'
 
 export default async function HistoricoPage({
@@ -56,7 +55,6 @@ export default async function HistoricoPage({
         <PageHeader title="Histórico" description="Todas as movimentações" />
         <div className="flex flex-shrink-0 items-center gap-2">
           <ExportButton href={`/api/export/extrato?${exportQuery.toString()}`} />
-          <PrivacyToggle />
         </div>
       </div>
       <HistoricoFilters

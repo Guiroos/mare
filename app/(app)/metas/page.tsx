@@ -3,7 +3,6 @@ import { auth } from '@/lib/auth'
 import { getGoalsWithProgress, getInvestmentTypesForGoals } from '@/lib/queries/goals'
 import { GoalDialog } from '@/components/metas/GoalDialog'
 import { MetasList } from '@/components/metas/MetasList'
-import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -24,7 +23,6 @@ export default async function MetasPage() {
     <PageLayout>
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Metas" description="Acompanhe o progresso das suas metas financeiras." />
-        <PrivacyToggle />
       </div>
 
       <div className="space-y-4">

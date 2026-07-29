@@ -21,7 +21,6 @@ import { WithdrawalTable } from '@/components/investimentos/WithdrawalTable'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { ArchivedFilterChip } from '@/components/investimentos/ArchivedFilterChip'
-import { PrivacyToggle } from '@/components/providers/PrivacyMode'
 
 export default async function InvestimentosPage({
   searchParams,
@@ -92,7 +91,6 @@ export default async function InvestimentosPage({
           description="Acompanhe seus aportes, rendimentos e patrimônio acumulado."
         />
         <div className="hidden items-center gap-2 lg:flex">
-          <PrivacyToggle />
           <InvestmentTypeDialog mode="create" triggerSize="md" />
           <InvestmentEntryDialog investmentTypes={investmentTypeOptions} />
         </div>
