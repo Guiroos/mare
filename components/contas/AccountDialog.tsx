@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Plus, Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonSize, ButtonVariant } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -21,7 +21,11 @@ import { formatZodErrors } from '@/lib/validations/utils'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 type BaseProps = Record<never, never>
-type CreateProps = BaseProps & { mode: 'create' }
+type CreateProps = BaseProps & {
+  mode: 'create'
+  triggerSize?: ButtonSize
+  triggerVariant?: ButtonVariant
+}
 type EditProps = BaseProps & {
   mode: 'edit'
   account: {
@@ -142,8 +146,13 @@ export function AccountDialog(props: Props) {
 
   const trigger =
     props.mode === 'create' ? (
-      <Button size="sm" variant="outline" className="gap-2" onClick={() => setOpen(true)}>
-        <Plus className="h-3.5 w-3.5" />
+      <Button
+        size={props.triggerSize ?? 'sm'}
+        variant={props.triggerVariant ?? 'outline'}
+        className={(props.triggerSize ?? 'sm') === 'md' ? 'gap-2' : 'gap-1.5'}
+        onClick={() => setOpen(true)}
+      >
+        <Plus className="h-4 w-4" />
         Nova conta
       </Button>
     ) : (

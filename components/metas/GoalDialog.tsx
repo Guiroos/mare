@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { Plus, Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, ButtonSize, ButtonVariant } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
@@ -24,7 +24,12 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 type InvestmentTypeOption = { id: string; name: string }
 
 type Props =
-  | { mode: 'create'; investmentTypes: InvestmentTypeOption[] }
+  | {
+      mode: 'create'
+      investmentTypes: InvestmentTypeOption[]
+      triggerSize?: ButtonSize
+      triggerVariant?: ButtonVariant
+    }
   | {
       mode: 'edit'
       investmentTypes: InvestmentTypeOption[]
@@ -138,8 +143,13 @@ export function GoalDialog(props: Props) {
   return (
     <>
       {props.mode === 'create' ? (
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
-          <Plus className="h-3.5 w-3.5" />
+        <Button
+          size={props.triggerSize ?? 'sm'}
+          variant={props.triggerVariant ?? 'outline'}
+          className={(props.triggerSize ?? 'sm') === 'md' ? 'gap-2' : 'gap-1.5'}
+          onClick={() => setOpen(true)}
+        >
+          <Plus className="h-4 w-4" />
           Nova meta
         </Button>
       ) : (
