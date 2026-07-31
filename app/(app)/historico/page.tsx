@@ -5,9 +5,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { parseHistoricoParams } from '@/lib/utils/historico-params'
 import { getHistoricoFeed } from '@/lib/queries/historico'
-import { db } from '@/lib/db'
-import { categoryGroups, paymentAccounts } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
 import { HistoricoFilters } from './HistoricoFilters'
 import { HistoricoClient } from './HistoricoClient'
 import { ExportButton } from '@/components/export/ExportButton'
@@ -26,13 +24,8 @@ export default async function HistoricoPage({
 
   const [feedResult, groupsData, accountsData] = await Promise.all([
     getHistoricoFeed(userId, params),
-    db.query.categoryGroups.findMany({
-      where: eq(categoryGroups.userId, userId),
-      with: { categories: true },
-    }),
-    db.query.paymentAccounts.findMany({
-      where: eq(paymentAccounts.userId, userId),
-    }),
+    getCategoriesWithGroups(userId),
+    getPaymentAccounts(userId),
   ])
 
   const categoryOptions = groupsData.flatMap((g) =>
