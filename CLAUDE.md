@@ -119,4 +119,4 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 
 ## Auditoria automática (Routines)
 
-Critérios do que é bug e o que não reportar (usado pela Routine de auditoria diária e por revisões de código no repo): **@.claude/audit.md**
+Critérios de julgamento (o que é bug aqui, o que não reportar), rotação de foco por dia da semana e exigências de todo achado: **@.claude/audit.md** — usado pela Routine `auditoria-diaria` e por revisões de código no repo. A Routine define só o processo (dedup, teto de issues, formato); o julgamento fica versionado.
