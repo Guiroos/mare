@@ -117,17 +117,6 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
 - Gráficos Recharts (`MonthlyEvolutionChart`, `ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
 
-## Critérios de auditoria deste projeto
+## Auditoria automática (Routines)
 
-### O que é bug aqui
-- Estado derivado guardado em useState em vez de calculado no render
-- useEffect com dependência faltando ou com cleanup ausente
-- Componente que refaz fetch em cascata (waterfall) em vez de paralelo
-- any explícito ou implícito em código de domínio
-- Handler de erro que engole a exceção sem log nem feedback ao usuário
-
-### O que NÃO reportar
-- Preferência de estilo já coberta pelo ESLint/Prettier
-- Sugestão de trocar biblioteca ou framework
-- "Adicionar testes" como issue genérica sem apontar o caso não coberto
-- Otimização sem evidência de custo real
+Critérios do que é bug e o que não reportar (usado pela Routine de auditoria diária e por revisões de código no repo): **@.claude/audit.md**
