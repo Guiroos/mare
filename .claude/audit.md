@@ -1,0 +1,129 @@
+# Critérios de auditoria deste projeto
+
+Referenciado por `CLAUDE.md` via `@`. Usado pela Routine `auditoria-diaria` e por qualquer revisão de código (manual ou `/code-review`) neste repositório.
+
+A Routine define o **processo** (dedup, teto de issues, formato). Este arquivo define o **julgamento**: o que conta como bug aqui, o que ignorar, e onde procurar em cada dia.
+
+---
+
+## O que é bug aqui
+
+Ordenado por rendimento observado — as três primeiras categorias produziram a maioria dos achados reais até hoje.
+
+### 1. Fronteira de criptografia
+
+Colunas cifradas tratadas como texto comum. O tipo do Drizzle diz `string` e o compilador aceita, mas o valor em runtime é `enc:AAAA...`.
+
+- Coluna cifrada lida direto via `db.query.*` em vez da função de `lib/queries/` que decripta — e renderizada na UI (issue #31: filtros de `/historico` exibindo ciphertext)
+- `ORDER BY`, `SUM`, `GROUP BY` ou `ILIKE` sobre coluna cifrada — ordena/soma/busca ciphertext em silêncio
+- Escrita derivada que esquece de cifrar: insert de `income`/`debtorEntry` a partir de outra entidade
+- Interpolação de ciphertext em template string — gera valor que começa com `enc:` mas não decifra
+- `decryptField` em campo nullable (deveria ser `decryptOptional`)
+
+Referência: `.claude/crypto.md`.
+
+### 2. Camada de dados e queries
+
+- `inArray`/`notInArray` sem guard de array vazio — gera `IN ()`, SQL inválido
+- `findFirst` dentro de `db.transaction` cujo `null` não é verificado
+- Mutação em múltiplas tabelas fora de `db.transaction`
+- `revalidatePath` faltando num caminho que a mudança afeta — em especial `/panorama`, que toda action de dado financeiro precisa revalidar junto com `/dashboard`
+- Agregação que poderia ser N+1 quando já existe variante batch (`getOpenChargesForPeople` vs. chamar `getOpenChargesForPerson` em loop)
+- `toAmount()` ausente em campo `decimal` — `Number(x.amount)` sobre string
+
+Referência: `.claude/db.md`, `.claude/domain.md`.
+
+### 3. Fronteiras de entrada sem validação
+
+- `searchParams` ou parâmetro de route handler indo direto para uma query sem passar por schema Zod — id não-UUID chega ao Postgres e vira 500 onde deveria ser 404/400 (issue #33)
+- String crua da URL interpolada em header de resposta sem sanitizar (issue #32: `Content-Disposition`)
+- Action que referencia `categoryId`/`accountId`/`personId` do cliente sem `assertOwns*` antes
+- Rota de cron sem `timingSafeEqual` ou que não recusa quando `CRON_SECRET` é indefinido
+
+Referência: `.claude/auth.md`.
+
+### 4. Erro que não chega ao usuário — ou chega errado
+
+- `catch {}` sem log e sem feedback
+- `catch` que afirma uma causa específica que o código não conhece — pior que mensagem genérica, porque manda o usuário para o lado errado (issue #35: "item em uso" para falha de rede)
+- Mensagem de `throw new Error()` em Server Action consumida como `err.message` no cliente: em build de produção o React descarta a mensagem original (issue #34). Falha esperada deve virar retorno tipado, não exceção
+- Dialog de mutação que fecha no `catch` — esconde a falha e sugere sucesso
+
+### 5. Regra de negócio replicada com definições divergentes
+
+O padrão mais caro encontrado até agora: a mesma regra implementada em dois lugares com predicados diferentes, sem que nada force consistência.
+
+Caso de referência (issue #36): "conta de crédito sob regime de fatura" existe como `type='credit' AND closingDay > 1` em 5 sites e como só `type='credit'` em 2 queries — o conjunto entre as duas definições some do gráfico de evolução e do Panorama sem aparecer em fatura nenhuma.
+
+Ao encontrar um predicado de domínio, levantar **todos** os sites que o expressam antes de reportar. Se a maioria segue uma forma e uma minoria segue outra, a minoria é o bug — não é discussão de arquitetura.
+
+### 6. React e estado
+
+- Estado derivado em `useState` em vez de calculado no render
+- `useEffect` com dependência faltando ou sem cleanup
+- Fetch em cascata (waterfall) onde caberia `Promise.all`
+- `any` explícito ou implícito em código de domínio
+
+---
+
+## O que NÃO reportar
+
+- Preferência de estilo já coberta por ESLint/Prettier
+- Sugestão de trocar biblioteca ou framework
+- "Adicionar testes" como issue genérica sem apontar o caso não coberto
+- Otimização sem evidência de custo real
+- Regra de Design System — o agente `ds-reviewer` já cobre `components/ui/` contra `.claude/ds-components.md`
+- Gotcha já documentado em `.claude/*.md` como decisão intencional (ex: cores hardcoded nos gráficos Recharts, marcadas como fase 2)
+- Vulnerabilidade de dependência que já tem PR do Dependabot aberto — o valor está no que o Dependabot **não** pega (ver foco de terça)
+- Achado cuja correção depende de decisão de produto ainda não tomada
+
+---
+
+## Rotação de foco por dia da semana
+
+Timezone `America/Sao_Paulo`. Auditar **apenas** a área do dia — profundidade em 2 arquivos vale mais que varredura em 40.
+
+### Segunda — Camada de dados e criptografia
+`lib/queries/`, `lib/actions/`, `lib/db/`. Categorias 1 e 2 acima. Comece pelas queries sem cobertura de teste: `getMonthlyEvolution`, `getAnnualOverview` e `getCreditAccounts` hoje não têm nenhuma.
+
+### Terça — Dependências e supply chain
+47 pacotes diretos e alertas de segurança abertos no Dependabot. Procure o que o Dependabot não reporta:
+- Vulnerabilidade **alcançável** a partir do código do app vs. presa em devDependency que nunca roda em produção — a diferença muda a prioridade e o Dependabot não a faz
+- Dependência declarada e não usada, ou usada só num arquivo que poderia sair
+- Pacote pesado importado inteiro em Client Component quando só uma função é usada (custo de bundle real, mensurável)
+- Versão presa por peer dependency que bloqueia upgrades em cadeia
+- Duplicata de função já existente em `lib/utils/`
+- `overrides`/`resolutions` no `package.json` sem comentário explicando por que existem
+
+Aponte a versão-alvo e o que quebra ao subir. Não abra issue que apenas replica o alerta do Dependabot.
+
+### Quarta — Acessibilidade
+Semântica, ordem de foco, navegação por teclado, contraste, ARIA incorreta. Atenção a dialogs e drawers (foco preso e devolvido ao fechar), `RowActions` e menus kebab, e ao modo escuro — o contraste precisa passar nos dois temas.
+
+### Quinta — Tipagem e contratos
+Tipos que são verdade sintática e mentira semântica: a assinatura diz `string` mas o valor é ciphertext, id não validado, ou mensagem que não sobrevive à fronteira de Server Action. Categorias 3 e 4 acima. Prefira a correção que faz o compilador impedir a recaída.
+
+### Sexta — Arquitetura e acoplamento
+Categoria 5 acima. Dependência circular, camada vazando (page fazendo trabalho de `lib/queries/`), duplicação estrutural.
+
+---
+
+## Exigências de todo achado
+
+Valem em qualquer dia, independentemente do foco.
+
+1. **Evidência no código, não em tese.** Caminho e linha, trecho real, e por que é problema *aqui*.
+2. **Tentativa de falsificação registrada.** Antes de abrir, tente derrubar o próprio achado: leia o schema, rode `git log -S` no trecho para ver se foi decisão deliberada, levante a convenção do repo. Se a hipótese sobreviver, registre o que foi verificado. Se morrer, não abra.
+3. **Nota de cobertura.** Diga se existe teste que pegaria isso — e, se não existe, qual caso específico cobriria. Isso substitui "faltam testes" como issue própria.
+4. **Impacto para quem, em que cenário.** Se não der para descrever um usuário afetado, o achado provavelmente não passa do teto de relevância.
+5. **Custo estimado**: P (1 arquivo) / M (2-4) / G (estrutural).
+
+Zero achados com evidência suficiente = zero issues. Issue fraca é pior que issue nenhuma.
+
+---
+
+## Histórico de calibragem
+
+Registrar aqui o motivo de cada achado reprovado — é o que impede a auditoria de estagnar no critério do dia 1.
+
+- **2026-07-31** — Rotação ajustada com base nas 6 primeiras issues: 4 de 6 achados caíam fora dos critérios então escritos, todos concentrados em dados/cripto/validação. "Cobertura de testes" saiu de segunda e virou exigência transversal (item 3 acima), já que a auditoria naturalmente já reportava cobertura em todos os achados. "Performance de render" saiu de terça e deu lugar a dependências: o app é majoritariamente Server Components, e há alertas de segurança abertos sem triagem. Nenhum achado reprovado ainda.
