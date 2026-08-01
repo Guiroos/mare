@@ -1,3 +1,5 @@
+import { dateSchema } from '@/lib/validations/utils'
+
 export const ALL_TIPOS = [
   'saida_avulsa',
   'saida_fixa',
@@ -47,9 +49,14 @@ export function parseHistoricoParams(
   const categoriasRaw = raw('categorias')
   const contasRaw = raw('contas')
 
+  const deRaw = raw('de')
+  const ateRaw = raw('ate')
+  const de = deRaw && dateSchema.safeParse(deRaw).success ? deRaw : ninetyDaysAgoStr()
+  const ate = ateRaw && dateSchema.safeParse(ateRaw).success ? ateRaw : todayStr()
+
   return {
-    de: raw('de') ?? ninetyDaysAgoStr(),
-    ate: raw('ate') ?? todayStr(),
+    de: de <= ate ? de : ate,
+    ate: de <= ate ? ate : de,
     tipos,
     categorias: categoriasRaw ? categoriasRaw.split(',').filter(Boolean) : [],
     contas: contasRaw ? contasRaw.split(',').filter(Boolean) : [],
