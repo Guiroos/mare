@@ -1,9 +1,19 @@
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { eq, isNotNull } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
-import { createUser, createAccount, createTransaction } from './helpers/factories'
+import {
+  createUser,
+  createAccount,
+  createTransaction,
+  createCategoryGroup,
+  createCategory,
+} from './helpers/factories'
+
+vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('@/lib/auth/require-user', () => ({ requireUserId: vi.fn() }))
+vi.mock('@/lib/auth/ownership', () => ({ assertOwnsPaymentAccount: vi.fn() }))
 
 neonTestingSetup()
 
@@ -163,5 +173,115 @@ describe('guard de pagamentos fatura — verificação por query (não constrain
     })
     // guard da action dispara baseado nessa query — não é constraint do banco
     expect(hasFaturaPaymentsAfter).toBeDefined()
+  })
+})
+
+describe('createFaturaPayment — retorno tipado (ActionResult) em vez de throw', () => {
+  it('devolve ok:false com code duplicate_payment ao tentar pagar o mesmo ciclo duas vezes', async () => {
+    const { id: userId4 } = await createUser(db, `fatura-actions-dup-${Date.now()}`)
+    const { id: creditId } = await createAccount(db, userId4, {
+      name: 'Cartão Ação',
+      type: 'credit',
+      closingDay: 10,
+    })
+    const { id: debitId } = await createAccount(db, userId4, {
+      name: 'Conta Ação',
+      type: 'debit',
+    })
+    const group = await createCategoryGroup(db, userId4)
+    const { id: categoryId } = await createCategory(db, userId4, group.id)
+
+    await db.insert(schema.userSettings).values({
+      userId: userId4,
+      creditMode: 'fatura',
+      faturaActiveFrom: '2025-01-01',
+      updatedAt: new Date(),
+    })
+
+    // ciclo 2025-03: closingDay=10 => start=2025-02-10, end=2025-03-09
+    await createTransaction(db, userId4, creditId, {
+      categoryId,
+      amount: '150.00',
+      date: '2025-02-15',
+      referenceMonth: '2025-02-01',
+    })
+
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockResolvedValue(userId4)
+    const { assertOwnsPaymentAccount } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsPaymentAccount).mockResolvedValue(undefined)
+
+    const { createFaturaPayment } = await import('@/lib/actions/fatura')
+
+    const payload = {
+      faturaAccountId: creditId,
+      faturaCycleMonth: '2025-03-01',
+      sourceAccountId: debitId,
+      amount: '150.00',
+      date: '2025-03-10',
+    }
+
+    const first = await createFaturaPayment(payload)
+    expect(first).toEqual({ ok: true, data: undefined })
+
+    const second = await createFaturaPayment(payload)
+    expect(second.ok).toBe(false)
+    if (!second.ok) {
+      expect(second.code).toBe('duplicate_payment')
+      expect(second.message).toBe('Já existe um pagamento registrado para este ciclo')
+    }
+  })
+
+  it('devolve ok:false com code stale_total quando o valor enviado não bate com o total do ciclo', async () => {
+    const { id: userId5 } = await createUser(db, `fatura-actions-stale-${Date.now()}`)
+    const { id: creditId } = await createAccount(db, userId5, {
+      name: 'Cartão Ação 2',
+      type: 'credit',
+      closingDay: 10,
+    })
+    const { id: debitId } = await createAccount(db, userId5, {
+      name: 'Conta Ação 2',
+      type: 'debit',
+    })
+    const group = await createCategoryGroup(db, userId5)
+    const { id: categoryId } = await createCategory(db, userId5, group.id)
+
+    await db.insert(schema.userSettings).values({
+      userId: userId5,
+      creditMode: 'fatura',
+      faturaActiveFrom: '2025-01-01',
+      updatedAt: new Date(),
+    })
+
+    // ciclo 2025-04: closingDay=10 => start=2025-03-10, end=2025-04-09
+    await createTransaction(db, userId5, creditId, {
+      categoryId,
+      amount: '200.00',
+      date: '2025-03-20',
+      referenceMonth: '2025-03-01',
+    })
+
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockResolvedValue(userId5)
+    const { assertOwnsPaymentAccount } = await import('@/lib/auth/ownership')
+    vi.mocked(assertOwnsPaymentAccount).mockResolvedValue(undefined)
+
+    const { createFaturaPayment } = await import('@/lib/actions/fatura')
+
+    const result = await createFaturaPayment({
+      faturaAccountId: creditId,
+      faturaCycleMonth: '2025-04-01',
+      sourceAccountId: debitId,
+      amount: '999.00',
+      date: '2025-04-10',
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('stale_total')
+      expect(result.message).toBe(
+        'O valor da fatura mudou. Feche e reabra o dialog para ver o valor atualizado.'
+      )
+    }
   })
 })
