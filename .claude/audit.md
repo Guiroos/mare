@@ -127,3 +127,9 @@ Zero achados com evidência suficiente = zero issues. Issue fraca é pior que is
 Registrar aqui o motivo de cada achado reprovado — é o que impede a auditoria de estagnar no critério do dia 1.
 
 - **2026-07-31** — Rotação ajustada com base nas 6 primeiras issues: 4 de 6 achados caíam fora dos critérios então escritos, todos concentrados em dados/cripto/validação. "Cobertura de testes" saiu de segunda e virou exigência transversal (item 3 acima), já que a auditoria naturalmente já reportava cobertura em todos os achados. "Performance de render" saiu de terça e deu lugar a dependências: o app é majoritariamente Server Components, e há alertas de segurança abertos sem triagem. Nenhum achado reprovado ainda.
+
+- **2026-08-01** — Primeiro achado que sobreviveu à implementação. A issue #32 propunha `z.string().date()`; o PR #39 substituiu por `dateSchema` de `lib/validations/utils.ts` e passou em lint, typecheck, 358 testes e build — com o bug intacto para `?de=2025-02-29` e `?de=2025-06-31`, porque `dateSchema` faz overflow silencioso de calendário (gotcha já documentado no `CLAUDE.md`). A revisão pegou; a correção veio na rodada seguinte.
+
+  Duas lições. **Para a auditoria:** quando a proposta da issue depende de um helper específico, dizer *por que aquele* e não o similar mais óbvio do repo — a #32 nomeava `z.string().date()` sem explicar o que ele tem que `dateSchema` não tem, e o reuso do helper conhecido era o caminho natural. **Para todo achado:** os testes propostos precisam incluir a entrada que só a correção certa rejeita. Os dois casos que o PR escolheu (`abc`, `2025-13-99`) eram justamente os que o validador errado já barrava, então a suíte ficou verde sobre o furo.
+
+  Nenhum achado reprovado ainda — 1 de 6 implementado e corrigido.
