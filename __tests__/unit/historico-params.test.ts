@@ -59,6 +59,17 @@ describe('parseHistoricoParams', () => {
     expect(result.de).toBe('2025-01-15')
     expect(result.ate).toBe('2025-06-14')
   })
+
+  it('rejeita datas que não existem no calendário', () => {
+    const result = parseHistoricoParams({ de: '2025-02-29', ate: '2025-06-31' })
+    expect(result.de).not.toBe('2025-02-29')
+    expect(result.ate).not.toBe('2025-06-31')
+  })
+
+  it('aceita 29/02 em ano bissexto', () => {
+    const result = parseHistoricoParams({ de: '2024-02-29', ate: '2024-03-01' })
+    expect(result.de).toBe('2024-02-29')
+  })
 })
 
 describe('buildHistoricoUrl', () => {

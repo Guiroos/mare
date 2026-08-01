@@ -1,4 +1,6 @@
-import { dateSchema } from '@/lib/validations/utils'
+import { z } from 'zod'
+
+const isoDateSchema = z.string().date()
 
 export const ALL_TIPOS = [
   'saida_avulsa',
@@ -51,8 +53,8 @@ export function parseHistoricoParams(
 
   const deRaw = raw('de')
   const ateRaw = raw('ate')
-  const de = deRaw && dateSchema.safeParse(deRaw).success ? deRaw : ninetyDaysAgoStr()
-  const ate = ateRaw && dateSchema.safeParse(ateRaw).success ? ateRaw : todayStr()
+  const de = deRaw && isoDateSchema.safeParse(deRaw).success ? deRaw : ninetyDaysAgoStr()
+  const ate = ateRaw && isoDateSchema.safeParse(ateRaw).success ? ateRaw : todayStr()
 
   return {
     de: de <= ate ? de : ate,
