@@ -19,12 +19,14 @@ interface DeleteButtonProps {
   onDelete: () => Promise<void>
   title?: string
   description?: string
+  errorMessage?: string
 }
 
 export function DeleteButton({
   onDelete,
   title = 'Excluir item',
   description = 'Essa ação não pode ser desfeita.',
+  errorMessage,
 }: DeleteButtonProps) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -35,8 +37,9 @@ export function DeleteButton({
       try {
         await onDelete()
         setOpen(false)
-      } catch {
-        toast.error('Não é possível excluir — item em uso.')
+      } catch (err) {
+        console.error('[DeleteButton] delete falhou', err)
+        toast.error(errorMessage ?? 'Não foi possível excluir. Tente novamente.')
         setOpen(false)
       }
     })
