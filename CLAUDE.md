@@ -120,3 +120,5 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 ## Auditoria automática (Routines)
 
 Critérios de julgamento (o que é bug aqui, o que não reportar), rotação de foco por dia da semana e exigências de todo achado: **@.claude/audit.md** — usado pela Routine `auditoria-diaria` e por revisões de código no repo. A Routine define só o processo (dedup, teto de issues, formato); o julgamento fica versionado.
+
+Ciclo de vida das labels da fila (`claude-ready`, `claude-wip`, `claude-precisa-fatiar`, `claude-bloqueada`) e higiene de issues presas: **@.claude/routines.md** — usado pela Routine `implementacao-diaria`. Autoridade sobre o ESTADO DA FILA; o prompt da Routine é autoridade sobre o processo de implementar. Divergiu sobre qual label aplicar ou remover, o arquivo vence.
