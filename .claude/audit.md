@@ -122,8 +122,23 @@ Zero achados com evidência suficiente = zero issues. Issue fraca é pior que is
 
 ---
 
-## Histórico de calibragem
+## Calibragem
 
-Registrar aqui o motivo de cada achado reprovado — é o que impede a auditoria de estagnar no critério do dia 1.
+O retorno de cada execução vai para a **issue #45** ("Calibragem da auditoria automática"), que é permanente e não deve ser fechada. Ao encerrar, comente lá o balanço do dia no formato descrito na própria issue: foco, issues abertas, candidatos mortos no PASSO 3.5 e qual das quatro checagens derrubou cada um.
+
+Comentar é obrigatório quando houve sinal — issues abertas, candidatos descartados, ou um critério que se mostrou vago. Dia sem nenhum dos três não precisa de comentário.
+
+Isso não é burocracia: **o que a auditoria decide NÃO reportar é o dado mais valioso que ela produz**, e é o único que não deixa rastro em lugar nenhum. Issue aberta fica no GitHub; achado descartado some com a sessão.
+
+A divisão é:
+
+- **Issue #45 é a caixa de entrada.** Um comentário por execução, barato, sem PR. É onde o sinal bruto se acumula.
+- **Este arquivo é o livro-razão.** Só recebe mudança de critério já ratificada, via PR, quando um padrão se repetiu o bastante para virar regra.
+
+Um achado descartado uma vez é ruído. O mesmo tipo descartado três vezes é critério mal escrito — e aí sobe para cá.
+
+### Histórico de calibragem
+
+Mudanças de critério já ratificadas. Não registrar aqui o balanço diário (vai para a #45) — só o que mudou de fato nas regras acima e por quê.
 
 - **2026-07-31** — Rotação ajustada com base nas 6 primeiras issues: 4 de 6 achados caíam fora dos critérios então escritos, todos concentrados em dados/cripto/validação. "Cobertura de testes" saiu de segunda e virou exigência transversal (item 3 acima), já que a auditoria naturalmente já reportava cobertura em todos os achados. "Performance de render" saiu de terça e deu lugar a dependências: o app é majoritariamente Server Components, e há alertas de segurança abertos sem triagem. Nenhum achado reprovado ainda.
