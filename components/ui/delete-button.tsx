@@ -35,7 +35,8 @@ export function DeleteButton({
       try {
         await onDelete()
         setOpen(false)
-      } catch {
+      } catch (err) {
+        console.error('[DeleteButton] delete falhou', err)
         toast.error('Não é possível excluir — item em uso.')
         setOpen(false)
       }
