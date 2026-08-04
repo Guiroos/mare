@@ -648,6 +648,7 @@ describe('deleteTransaction', () => {
     const { createTransaction, deleteTransaction } = await import('@/lib/actions/transactions')
 
     const { id: otherUserId } = await createUser(db, `actions-transactions-other-${Date.now()}`)
+    const otherPerson = await createPerson(db, otherUserId, 'Pessoa Split Outro Usuário')
 
     // Transação e cobrança pertencentes a otherUserId
     vi.mocked(requireUserId).mockResolvedValueOnce(otherUserId)
@@ -657,7 +658,7 @@ describe('deleteTransaction', () => {
       date: '2025-08-01',
       categoryId,
       accountId,
-      splits: [{ personId, amount: '40.00' }],
+      splits: [{ personId: otherPerson.id, amount: '40.00' }],
     })
 
     const otherTx = await db.query.transactions.findFirst({
@@ -686,5 +687,38 @@ describe('deleteTransaction', () => {
         and(eqFn(e.sourceTransactionId, otherTx!.id), eqFn(e.userId, otherUserId)),
     })
     expect(chargeAfter).toBeDefined()
+  })
+
+  it('apaga a cobrança de devedor vinculada à própria transação', async () => {
+    const { createTransaction, deleteTransaction } = await import('@/lib/actions/transactions')
+
+    await createTransaction({
+      name: 'Compra própria com split',
+      amount: '60.00',
+      date: '2025-09-03',
+      categoryId,
+      accountId,
+      splits: [{ personId, amount: '30.00' }],
+    })
+
+    const tx = await db.query.transactions.findFirst({
+      where: (t, { and, eq: eqFn }) => and(eqFn(t.userId, userId), eqFn(t.date, '2025-09-03')),
+    })
+    expect(tx).toBeDefined()
+
+    await deleteTransaction(tx!.id)
+
+    const txAfter = await db.query.transactions.findFirst({
+      where: (t, { eq: eqFn }) => eqFn(t.id, tx!.id),
+    })
+    expect(txAfter).toBeUndefined()
+
+    // Busca por entryDate/userId, não por sourceTransactionId: o FK é onDelete 'set null',
+    // então um entry órfão (não apagado) teria sourceTransactionId=null e passaria despercebido
+    // se o teste filtrasse por essa coluna.
+    const chargeAfter = await db.query.debtorEntries.findFirst({
+      where: (e, { and, eq: eqFn }) => and(eqFn(e.userId, userId), eqFn(e.entryDate, '2025-09-03')),
+    })
+    expect(chargeAfter).toBeUndefined()
   })
 })
