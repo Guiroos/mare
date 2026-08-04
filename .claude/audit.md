@@ -114,9 +114,10 @@ Valem em qualquer dia, independentemente do foco.
 
 1. **Evidência no código, não em tese.** Caminho e linha, trecho real, e por que é problema *aqui*.
 2. **Tentativa de falsificação registrada.** Antes de abrir, tente derrubar o próprio achado: leia o schema, rode `git log -S` no trecho para ver se foi decisão deliberada, levante a convenção do repo. Se a hipótese sobreviver, registre o que foi verificado. Se morrer, não abra.
-3. **Nota de cobertura.** Diga se existe teste que pegaria isso — e, se não existe, qual caso específico cobriria. Isso substitui "faltam testes" como issue própria.
+3. **Nota de cobertura.** Diga se existe teste que pegaria isso — e, se não existe, qual caso específico cobriria. Isso substitui "faltam testes" como issue própria. O caso proposto precisa incluir a entrada que **só a correção certa rejeita**: se o teste também passaria com a implementação errada mais provável, ele não cobre nada — a suíte fica verde sobre o furo e a revisão perde o único sinal automático que tinha.
 4. **Impacto para quem, em que cenário.** Se não der para descrever um usuário afetado, o achado provavelmente não passa do teto de relevância.
 5. **Custo estimado**: P (1 arquivo) / M (2-4) / G (estrutural).
+6. **Helper nomeado, motivo declarado.** Quando a proposta depende de um helper ou schema específico, dizer *por que aquele* e não o similar mais óbvio do repo. Sem isso, quem implementa reusa o helper conhecido — que é o caminho natural e pode ser exatamente o errado.
 
 Zero achados com evidência suficiente = zero issues. Issue fraca é pior que issue nenhuma.
 
@@ -137,8 +138,12 @@ A divisão é:
 
 Um achado descartado uma vez é ruído. O mesmo tipo descartado três vezes é critério mal escrito — e aí sobe para cá.
 
+A regra das três repetições vale para achado **descartado**. Achado que sobreviveu à auditoria e ainda assim virou bug no PR de implementação é outra classe: um caso basta para virar regra, porque o custo já foi pago em código mergeado.
+
 ### Histórico de calibragem
 
 Mudanças de critério já ratificadas. Não registrar aqui o balanço diário (vai para a #45) — só o que mudou de fato nas regras acima e por quê.
 
 - **2026-07-31** — Rotação ajustada com base nas 6 primeiras issues: 4 de 6 achados caíam fora dos critérios então escritos, todos concentrados em dados/cripto/validação. "Cobertura de testes" saiu de segunda e virou exigência transversal (item 3 acima), já que a auditoria naturalmente já reportava cobertura em todos os achados. "Performance de render" saiu de terça e deu lugar a dependências: o app é majoritariamente Server Components, e há alertas de segurança abertos sem triagem. Nenhum achado reprovado ainda.
+
+- **2026-08-01** — Exigência 3 passou a pedir explicitamente a entrada que só a correção certa rejeita, e entrou a exigência 6 (helper nomeado, motivo declarado). Origem: primeiro achado que sobreviveu à auditoria e mesmo assim virou bug na implementação. A issue #32 propunha `z.string().date()`; o PR #39 (`08abe34`) substituiu por `dateSchema` de `lib/validations/utils.ts` e passou em lint, typecheck e 358 testes — com o bug intacto para `?de=2025-02-29` e `?de=2025-06-31`, porque `dateSchema` faz overflow silencioso de calendário (gotcha no `CLAUDE.md` desde `623e757`, seis semanas antes). Os dois casos de teste que o PR escolheu (`abc`, `2025-13-99`) eram justamente os que o validador errado já barrava, então nada no CI podia acusar. A #32 apontava para `lib/validations/utils.ts` — o arquivo do helper errado — sem justificar o helper que nomeava. A revisão humana pegou; a correção veio em `0f0770b`.
