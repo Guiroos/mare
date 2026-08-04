@@ -73,6 +73,7 @@ export default async function CategoriasPage() {
                               'use server'
                               await deleteCategoryGroup(group.id)
                             }}
+                            errorMessage="Não é possível excluir — item em uso."
                           />
                         </div>
                       </div>
@@ -111,6 +112,7 @@ export default async function CategoriasPage() {
                                 'use server'
                                 await deleteCategory(cat.id)
                               }}
+                              errorMessage="Não é possível excluir — item em uso."
                             />
                           </div>
                         </div>

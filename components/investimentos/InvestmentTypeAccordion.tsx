@@ -348,6 +348,7 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
               onDelete={() => deleteInvestmentType(balance.id)}
               deleteTitle="Excluir tipo de investimento"
               deleteDescription="Todos os registros mensais serão removidos. Essa ação não pode ser desfeita."
+              deleteErrorMessage="Não é possível excluir — tipo em uso."
               additionalActions={archiveAction ? [archiveAction] : undefined}
             />
             <InvestmentTypeDialog
