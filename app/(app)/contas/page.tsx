@@ -81,6 +81,7 @@ export default async function ContasPage() {
                       'use server'
                       await deletePaymentAccount(account.id)
                     }}
+                    errorMessage="Não é possível excluir — item em uso."
                   />
                 </div>
               </div>

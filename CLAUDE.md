@@ -116,3 +116,19 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 - Tema controlado via `next-themes` (`ThemeProvider` em `app/layout.tsx`); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
 - Gráficos Recharts (`MonthlyEvolutionChart`, `ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
+
+## Auditoria automática (Routines)
+
+Critérios de julgamento (o que é bug aqui, o que não reportar), rotação de foco por dia da semana e exigências de todo achado: **@.claude/audit.md** — usado pela Routine `auditoria-diaria` e por revisões de código no repo. A Routine define só o processo (dedup, teto de issues, formato); o julgamento fica versionado.
+
+Ciclo de vida das labels da fila (`claude-ready`, `claude-wip`, `claude-precisa-fatiar`, `claude-bloqueada`) e higiene de issues presas: **@.claude/routines.md** — usado pela Routine `implementacao-diaria`. Autoridade sobre o ESTADO DA FILA; o prompt da Routine é autoridade sobre o processo de implementar. Divergiu sobre qual label aplicar ou remover, o arquivo vence.
+
+## Acompanhamento de PR (check-ins automáticos)
+
+Sessão que abre PR se inscreve nos eventos (`subscribe_pr_activity`) e agenda check-ins de fallback (`send_later`). O fallback existe porque webhook perde alguns sinais — **"CI passou" e "novo push"** — não porque polling seja o mecanismo principal. Separar os dois estados de espera:
+
+- **Esperando a máquina** (CI rodando, merge processando): check-in vale. Usar backoff `1h → 2h → 4h`, nunca 1h fixo.
+- **Esperando humano** (CI verde, sem review pendente, `mergeable_state` limpo): **parar de checar.** O estado só muda quando o humano age, e tudo que pode chegar nesse meio-tempo — review, comentário, conflito de merge — vem por webhook, que já está inscrito. Avisar uma vez e encerrar os check-ins; não re-armar.
+- **Nunca deixar dois check-ins armados para o mesmo PR.** Cancelar o anterior antes de armar o próximo — três simultâneos já aconteceram no PR #44.
+
+Medido nos PRs #39, #43 e #44: 15 check-ins armados, ~4 renderam ação. Os 11 restantes caíram todos em "esperando humano" — no #43 foram 6 seguidos, de hora em hora, com CI verde desde a primeira.

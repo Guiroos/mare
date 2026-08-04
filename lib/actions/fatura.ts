@@ -13,6 +13,7 @@ import { toAmount } from '@/lib/utils/currency'
 import { getFaturaState } from '@/lib/queries/fatura'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField } from '@/lib/crypto/fields'
+import type { ActionResult } from '@/lib/actions/types'
 
 export async function updateCreditMode(data: unknown) {
   const userId = await requireUserId()
@@ -69,7 +70,7 @@ export async function updateCreditMode(data: unknown) {
   revalidatePath('/contas')
 }
 
-export async function createFaturaPayment(data: unknown) {
+export async function createFaturaPayment(data: unknown): Promise<ActionResult> {
   const userId = await requireUserId()
   const parsed = faturaPaymentActionSchema.parse(data)
 
@@ -90,13 +91,21 @@ export async function createFaturaPayment(data: unknown) {
   ])
 
   if (!faturaAccount || faturaAccount.type !== 'credit') {
-    throw new Error('Conta de crédito inválida')
+    return { ok: false, code: 'invalid_fatura_account', message: 'Conta de crédito inválida' }
   }
   if (!faturaAccount.closingDay || faturaAccount.closingDay <= 1) {
-    throw new Error('Conta de crédito sem data de fechamento configurada')
+    return {
+      ok: false,
+      code: 'missing_closing_day',
+      message: 'Conta de crédito sem data de fechamento configurada',
+    }
   }
   if (!sourceAccount || sourceAccount.type === 'credit') {
-    throw new Error('Conta de origem deve ser débito ou pix')
+    return {
+      ok: false,
+      code: 'invalid_source_account',
+      message: 'Conta de origem deve ser débito ou pix',
+    }
   }
 
   const settings = await db.query.userSettings.findFirst({
@@ -105,29 +114,41 @@ export async function createFaturaPayment(data: unknown) {
   })
 
   if (!settings || settings.creditMode !== 'fatura' || !settings.faturaActiveFrom) {
-    throw new Error('Regime de fatura não está ativo')
+    return { ok: false, code: 'fatura_not_active', message: 'Regime de fatura não está ativo' }
   }
   if (parsed.faturaCycleMonth < settings.faturaActiveFrom) {
-    throw new Error('Ciclo anterior à ativação do regime de fatura')
+    return {
+      ok: false,
+      code: 'cycle_before_activation',
+      message: 'Ciclo anterior à ativação do regime de fatura',
+    }
   }
 
   const cycleState = await getFaturaState(userId, parsed.faturaAccountId, parsed.faturaCycleMonth)
   if (!cycleState) {
-    throw new Error('Ciclo de faturamento não encontrado')
+    return { ok: false, code: 'cycle_not_found', message: 'Ciclo de faturamento não encontrado' }
   }
 
   if (parsed.date <= cycleState.cycleEnd) {
-    throw new Error('Data de pagamento deve ser posterior ao fechamento do ciclo')
+    return {
+      ok: false,
+      code: 'invalid_date',
+      message: 'Data de pagamento deve ser posterior ao fechamento do ciclo',
+    }
   }
 
   if (cycleState.total <= 0) {
-    throw new Error('Não há fatura a pagar para este ciclo')
+    return { ok: false, code: 'empty_cycle', message: 'Não há fatura a pagar para este ciclo' }
   }
 
   const serverTotalCents = Math.round(cycleState.total * 100)
   const clientTotalCents = Math.round(toAmount(parsed.amount) * 100)
   if (serverTotalCents !== clientTotalCents) {
-    throw new Error('O valor da fatura mudou. Feche e reabra o dialog para ver o valor atualizado.')
+    return {
+      ok: false,
+      code: 'stale_total',
+      message: 'O valor da fatura mudou. Feche e reabra o dialog para ver o valor atualizado.',
+    }
   }
 
   const existingPayment = await db.query.transactions.findFirst({
@@ -140,7 +161,11 @@ export async function createFaturaPayment(data: unknown) {
     columns: { id: true },
   })
   if (existingPayment) {
-    throw new Error('Já existe um pagamento registrado para este ciclo')
+    return {
+      ok: false,
+      code: 'duplicate_payment',
+      message: 'Já existe um pagamento registrado para este ciclo',
+    }
   }
 
   const referenceMonth = dateToReferenceMonth(parsed.date)
@@ -161,4 +186,6 @@ export async function createFaturaPayment(data: unknown) {
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+
+  return { ok: true, data: undefined }
 }

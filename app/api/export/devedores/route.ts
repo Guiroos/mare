@@ -13,18 +13,22 @@ import {
   getPersonDebtDetails,
 } from '@/lib/queries/debtors'
 import { todayISOString } from '@/lib/utils/date'
+import { uuidSchema } from '@/lib/validations/utils'
 
 export async function GET(req: Request) {
   const session = await auth()
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   const userId = session.user.id
-  const personId = new URL(req.url).searchParams.get('pessoa')
+  const rawPersonId = new URL(req.url).searchParams.get('pessoa')
   const hoje = todayISOString()
 
-  if (personId) {
+  if (rawPersonId) {
+    const parsedPersonId = uuidSchema.safeParse(rawPersonId)
+    if (!parsedPersonId.success) return new Response('Não encontrado', { status: 404 })
+
     // getPersonDebtDetails já filtra por userId: id de outro usuário devolve null.
-    const details = await getPersonDebtDetails(userId, personId)
+    const details = await getPersonDebtDetails(userId, parsedPersonId.data)
     if (!details) return new Response('Não encontrado', { status: 404 })
 
     const entries = details.entries.map((e) => ({

@@ -80,18 +80,18 @@ export function FaturaPaymentDialog({
     if (!valid) return
 
     startTransition(async () => {
-      try {
-        await createFaturaPayment({
-          faturaAccountId: accountId,
-          faturaCycleMonth: cycle.cycleMonth,
-          sourceAccountId,
-          amount: cycle.total.toString(),
-          date,
-        })
+      const result = await createFaturaPayment({
+        faturaAccountId: accountId,
+        faturaCycleMonth: cycle.cycleMonth,
+        sourceAccountId,
+        amount: cycle.total.toString(),
+        date,
+      })
+      if (result.ok) {
         handleOpenChange(false)
         toast.success('Pagamento registrado')
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Erro ao registrar pagamento')
+      } else {
+        toast.error(result.message)
       }
     })
   }
