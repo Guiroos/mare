@@ -45,6 +45,31 @@ describe('parseHistoricoParams', () => {
     const result = parseHistoricoParams({ cursor: '2025-03-10_uuid-abc' })
     expect(result.cursor).toBe('2025-03-10_uuid-abc')
   })
+
+  it('cai no default quando de/ate são inválidos', () => {
+    const result = parseHistoricoParams({ de: 'abc', ate: '2025-13-99' })
+    expect(result.de).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result.ate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(result.de).not.toBe('abc')
+    expect(result.ate).not.toBe('2025-13-99')
+  })
+
+  it('troca de/ate quando o intervalo vem invertido', () => {
+    const result = parseHistoricoParams({ de: '2025-06-14', ate: '2025-01-15' })
+    expect(result.de).toBe('2025-01-15')
+    expect(result.ate).toBe('2025-06-14')
+  })
+
+  it('rejeita datas que não existem no calendário', () => {
+    const result = parseHistoricoParams({ de: '2025-02-29', ate: '2025-06-31' })
+    expect(result.de).not.toBe('2025-02-29')
+    expect(result.ate).not.toBe('2025-06-31')
+  })
+
+  it('aceita 29/02 em ano bissexto', () => {
+    const result = parseHistoricoParams({ de: '2024-02-29', ate: '2024-03-01' })
+    expect(result.de).toBe('2024-02-29')
+  })
 })
 
 describe('buildHistoricoUrl', () => {

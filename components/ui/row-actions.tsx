@@ -29,6 +29,7 @@ interface RowActionsProps {
   onDelete?: () => Promise<void>
   deleteTitle?: string
   deleteDescription?: string
+  deleteErrorMessage?: string
   triggerClassName?: string
   additionalActions?: AdditionalAction[]
 }
@@ -38,6 +39,7 @@ export function RowActions({
   onDelete,
   deleteTitle = 'Excluir item',
   deleteDescription = 'Essa ação não pode ser desfeita.',
+  deleteErrorMessage,
   triggerClassName,
   additionalActions,
 }: RowActionsProps) {
@@ -51,8 +53,9 @@ export function RowActions({
       try {
         await onDelete()
         setConfirmOpen(false)
-      } catch {
-        toast.error('Não é possível excluir — item em uso.')
+      } catch (err) {
+        console.error('[RowActions] delete falhou', err)
+        toast.error(deleteErrorMessage ?? 'Não foi possível excluir. Tente novamente.')
         setConfirmOpen(false)
       }
     })
