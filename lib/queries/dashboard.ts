@@ -6,21 +6,8 @@ import {
   investments,
   categoryGroups,
   monthlyBudgetOverrides,
-  paymentAccounts,
 } from '@/lib/db/schema'
-import {
-  eq,
-  and,
-  or,
-  desc,
-  between,
-  gte,
-  lt,
-  inArray,
-  isNotNull,
-  ne,
-  notInArray,
-} from 'drizzle-orm'
+import { eq, and, or, desc, between, gte, lt, inArray, isNotNull, notInArray } from 'drizzle-orm'
 import { pastNMonths, yearMonthToReferenceMonth, prevMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { FaturaContext } from '@/lib/queries/fatura'
@@ -430,6 +417,9 @@ export async function getMonthlyEvolution(
     faturaCtx.creditMode === 'fatura' &&
     faturaCtx.faturaActiveFrom !== null
 
+  const creditAccountIds = faturaCtx?.creditAccountIds ?? []
+  const shouldFilterCredit = isFaturaMode && creditAccountIds.length > 0
+
   const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows, dek] =
     await Promise.all([
       db
@@ -441,18 +431,17 @@ export async function getMonthlyEvolution(
         .from(incomes)
         .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months))),
 
-      isFaturaMode
+      shouldFilterCredit
         ? db
             .select({ referenceMonth: transactions.referenceMonth, amount: transactions.amount })
             .from(transactions)
-            .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
             .where(
               and(
                 eq(transactions.userId, userId),
                 inArray(transactions.referenceMonth, months),
                 or(
-                  lt(transactions.referenceMonth, faturaCtx.faturaActiveFrom!),
-                  ne(paymentAccounts.type, 'credit')
+                  lt(transactions.referenceMonth, faturaCtx!.faturaActiveFrom!),
+                  notInArray(transactions.accountId, creditAccountIds)
                 )
               )
             )
@@ -463,21 +452,20 @@ export async function getMonthlyEvolution(
               and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months))
             ),
 
-      isFaturaMode
+      shouldFilterCredit
         ? db
             .select({
               referenceMonth: fixedExpenses.referenceMonth,
               amount: fixedExpenses.amount,
             })
             .from(fixedExpenses)
-            .innerJoin(paymentAccounts, eq(fixedExpenses.accountId, paymentAccounts.id))
             .where(
               and(
                 eq(fixedExpenses.userId, userId),
                 inArray(fixedExpenses.referenceMonth, months),
                 or(
-                  lt(fixedExpenses.referenceMonth, faturaCtx.faturaActiveFrom!),
-                  ne(paymentAccounts.type, 'credit')
+                  lt(fixedExpenses.referenceMonth, faturaCtx!.faturaActiveFrom!),
+                  notInArray(fixedExpenses.accountId, creditAccountIds)
                 )
               )
             )

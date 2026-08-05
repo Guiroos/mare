@@ -1,13 +1,6 @@
 import { db } from '@/lib/db'
-import {
-  transactions,
-  fixedExpenses,
-  incomes,
-  investments,
-  categoryGroups,
-  paymentAccounts,
-} from '@/lib/db/schema'
-import { eq, and, gte, lte, inArray, sql, ne, lt, or } from 'drizzle-orm'
+import { transactions, fixedExpenses, incomes, investments, categoryGroups } from '@/lib/db/schema'
+import { eq, and, gte, lte, inArray, sql, lt, or, notInArray } from 'drizzle-orm'
 import { currentYear } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { FaturaContext } from '@/lib/queries/fatura'
@@ -62,6 +55,9 @@ export async function getAnnualOverview(userId: string, year: number, faturaCtx?
     faturaCtx.creditMode === 'fatura' &&
     faturaCtx.faturaActiveFrom !== null
 
+  const creditAccountIds = faturaCtx?.creditAccountIds ?? []
+  const shouldFilterCredit = isFaturaMode && creditAccountIds.length > 0
+
   const [incomesRows, transactionsRows, fixedExpensesRows, investmentsRows, dek] =
     await Promise.all([
       db
@@ -73,18 +69,17 @@ export async function getAnnualOverview(userId: string, year: number, faturaCtx?
         .from(incomes)
         .where(and(eq(incomes.userId, userId), inArray(incomes.referenceMonth, months))),
 
-      isFaturaMode
+      shouldFilterCredit
         ? db
             .select({ referenceMonth: transactions.referenceMonth, amount: transactions.amount })
             .from(transactions)
-            .innerJoin(paymentAccounts, eq(transactions.accountId, paymentAccounts.id))
             .where(
               and(
                 eq(transactions.userId, userId),
                 inArray(transactions.referenceMonth, months),
                 or(
-                  lt(transactions.referenceMonth, faturaCtx.faturaActiveFrom!),
-                  ne(paymentAccounts.type, 'credit')
+                  lt(transactions.referenceMonth, faturaCtx!.faturaActiveFrom!),
+                  notInArray(transactions.accountId, creditAccountIds)
                 )
               )
             )
@@ -95,21 +90,20 @@ export async function getAnnualOverview(userId: string, year: number, faturaCtx?
               and(eq(transactions.userId, userId), inArray(transactions.referenceMonth, months))
             ),
 
-      isFaturaMode
+      shouldFilterCredit
         ? db
             .select({
               referenceMonth: fixedExpenses.referenceMonth,
               amount: fixedExpenses.amount,
             })
             .from(fixedExpenses)
-            .innerJoin(paymentAccounts, eq(fixedExpenses.accountId, paymentAccounts.id))
             .where(
               and(
                 eq(fixedExpenses.userId, userId),
                 inArray(fixedExpenses.referenceMonth, months),
                 or(
-                  lt(fixedExpenses.referenceMonth, faturaCtx.faturaActiveFrom!),
-                  ne(paymentAccounts.type, 'credit')
+                  lt(fixedExpenses.referenceMonth, faturaCtx!.faturaActiveFrom!),
+                  notInArray(fixedExpenses.accountId, creditAccountIds)
                 )
               )
             )
