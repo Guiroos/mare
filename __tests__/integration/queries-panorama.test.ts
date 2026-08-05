@@ -8,6 +8,7 @@ import {
   createCategory,
   createAccount,
   createTransaction,
+  createFixedExpense,
 } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -65,6 +66,16 @@ describe('getAnnualOverview — conta de crédito sem closingDay não é excluí
       date: day15,
       categoryId: catId,
     })
+    // Gasto fixo no cartão sem fechamento — deve somar (mesma correção, outra tabela)
+    await createFixedExpense(db, userId, unconfiguredCreditId, catId, {
+      amount: '80.00',
+      referenceMonth: refMonth,
+    })
+    // Gasto fixo no cartão configurado — deve ser excluído
+    await createFixedExpense(db, userId, configuredCreditId, catId, {
+      amount: '300.00',
+      referenceMonth: refMonth,
+    })
 
     const { getAnnualOverview } = await import('@/lib/queries/panorama')
     // creditAccountIds reflete getCreditAccounts: só a conta com closingDay > 1 entra
@@ -76,8 +87,9 @@ describe('getAnnualOverview — conta de crédito sem closingDay não é excluí
 
     const month = overview.find((m) => m.month === refMonth.slice(0, 7))
     expect(month).toBeDefined()
-    // R$ 100 (débito) + R$ 450 (cartão sem fechamento, não é conta de fatura) = R$ 550
-    // O cartão configurado (R$ 500) é excluído por estar em creditAccountIds
-    expect(month!.totalExpenses).toBeCloseTo(550, 1)
+    // R$ 100 (débito) + R$ 450 (transação, cartão sem fechamento) + R$ 80 (gasto fixo,
+    // cartão sem fechamento) = R$ 630. Exclui a transação (R$ 500) e o gasto fixo
+    // (R$ 300) do cartão configurado — cobre as duas queries que a correção mudou.
+    expect(month!.totalExpenses).toBeCloseTo(630, 1)
   })
 })
