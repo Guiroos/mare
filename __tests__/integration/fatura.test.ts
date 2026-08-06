@@ -285,3 +285,57 @@ describe('createFaturaPayment — retorno tipado (ActionResult) em vez de throw'
     }
   })
 })
+
+describe('updateCreditMode — retorno tipado (ActionResult) em vez de throw', () => {
+  it('devolve ok:false com code no_eligible_credit_account quando não há cartão elegível', async () => {
+    const { id: userId6 } = await createUser(db, `fatura-mode-noaccount-${Date.now()}`)
+
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockResolvedValue(userId6)
+
+    const { updateCreditMode } = await import('@/lib/actions/fatura')
+
+    const result = await updateCreditMode({ creditMode: 'fatura', faturaActiveFrom: '2025-05' })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('no_eligible_credit_account')
+      expect(result.message).toContain('Nenhum cartão de crédito')
+    }
+  })
+
+  it('devolve ok:false com code fatura_payments_exist quando há pagamento de fatura registrado', async () => {
+    const { id: userId7 } = await createUser(db, `fatura-mode-haspayments-${Date.now()}`)
+    const { id: creditId7 } = await createAccount(db, userId7, {
+      name: 'Cartão Ação 3',
+      type: 'credit',
+      closingDay: 10,
+    })
+    const { id: debitId7 } = await createAccount(db, userId7, {
+      name: 'Conta Ação 3',
+      type: 'debit',
+    })
+
+    await createTransaction(db, userId7, debitId7, {
+      faturaAccountId: creditId7,
+      faturaCycleMonth: '2025-05-01',
+      categoryId: null,
+      name: 'Pagamento fatura existente',
+      date: '2025-06-10',
+      referenceMonth: '2025-06-01',
+    })
+
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    vi.mocked(requireUserId).mockResolvedValue(userId7)
+
+    const { updateCreditMode } = await import('@/lib/actions/fatura')
+
+    const result = await updateCreditMode({ creditMode: 'accrual' })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('fatura_payments_exist')
+      expect(result.message).toContain('pagamentos de fatura registrados')
+    }
+  })
+})

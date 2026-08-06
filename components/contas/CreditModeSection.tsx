@@ -36,13 +36,12 @@ export function CreditModeSection({
   function handleSave() {
     setError(null)
     startTransition(async () => {
-      try {
-        await updateCreditMode({
-          creditMode: isFatura ? 'fatura' : 'accrual',
-          faturaActiveFrom: isFatura ? activeFrom : undefined,
-        })
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Erro ao salvar configuração.')
+      const result = await updateCreditMode({
+        creditMode: isFatura ? 'fatura' : 'accrual',
+        faturaActiveFrom: isFatura ? activeFrom : undefined,
+      })
+      if (!result.ok) {
+        setError(result.message)
       }
     })
   }
