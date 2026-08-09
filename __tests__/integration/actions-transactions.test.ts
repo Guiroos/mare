@@ -639,3 +639,86 @@ describe('createInstallmentPurchase com splits', () => {
     }
   })
 })
+
+// ─── deleteTransaction ─────────────────────────────────────────────────────────
+
+describe('deleteTransaction', () => {
+  it('não apaga debtorEntries de outro usuário ao receber id de transação alheia', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    const { createTransaction, deleteTransaction } = await import('@/lib/actions/transactions')
+
+    const { id: otherUserId } = await createUser(db, `actions-transactions-other-${Date.now()}`)
+    const otherPerson = await createPerson(db, otherUserId, 'Pessoa Split Outro Usuário')
+
+    // Transação e cobrança pertencentes a otherUserId
+    vi.mocked(requireUserId).mockResolvedValueOnce(otherUserId)
+    await createTransaction({
+      name: 'Compra do outro usuário',
+      amount: '80.00',
+      date: '2025-08-01',
+      categoryId,
+      accountId,
+      splits: [{ personId: otherPerson.id, amount: '40.00' }],
+    })
+
+    const otherTx = await db.query.transactions.findFirst({
+      where: (t, { and, eq: eqFn }) => and(eqFn(t.userId, otherUserId), eqFn(t.date, '2025-08-01')),
+    })
+    expect(otherTx).toBeDefined()
+
+    const chargeBefore = await db.query.debtorEntries.findFirst({
+      where: (e, { and, eq: eqFn }) =>
+        and(eqFn(e.sourceTransactionId, otherTx!.id), eqFn(e.userId, otherUserId)),
+    })
+    expect(chargeBefore).toBeDefined()
+
+    // requireUserId volta ao default (userId) — chama deleteTransaction com o id da transação alheia
+    await deleteTransaction(otherTx!.id)
+
+    // A transação do outro usuário não foi afetada (WHERE userId não bateu)
+    const otherTxAfter = await db.query.transactions.findFirst({
+      where: (t, { eq: eqFn }) => eqFn(t.id, otherTx!.id),
+    })
+    expect(otherTxAfter).toBeDefined()
+
+    // A cobrança de devedor do outro usuário sobrevive — este é o caso que a correção protege
+    const chargeAfter = await db.query.debtorEntries.findFirst({
+      where: (e, { and, eq: eqFn }) =>
+        and(eqFn(e.sourceTransactionId, otherTx!.id), eqFn(e.userId, otherUserId)),
+    })
+    expect(chargeAfter).toBeDefined()
+  })
+
+  it('apaga a cobrança de devedor vinculada à própria transação', async () => {
+    const { createTransaction, deleteTransaction } = await import('@/lib/actions/transactions')
+
+    await createTransaction({
+      name: 'Compra própria com split',
+      amount: '60.00',
+      date: '2025-09-03',
+      categoryId,
+      accountId,
+      splits: [{ personId, amount: '30.00' }],
+    })
+
+    const tx = await db.query.transactions.findFirst({
+      where: (t, { and, eq: eqFn }) => and(eqFn(t.userId, userId), eqFn(t.date, '2025-09-03')),
+    })
+    expect(tx).toBeDefined()
+
+    await deleteTransaction(tx!.id)
+
+    const txAfter = await db.query.transactions.findFirst({
+      where: (t, { eq: eqFn }) => eqFn(t.id, tx!.id),
+    })
+    expect(txAfter).toBeUndefined()
+
+    // Busca por entryDate/userId, não por sourceTransactionId: o FK é onDelete 'set null',
+    // então um entry órfão (não apagado) teria sourceTransactionId=null e passaria despercebido
+    // se o teste filtrasse por essa coluna.
+    const chargeAfter = await db.query.debtorEntries.findFirst({
+      where: (e, { and, eq: eqFn }) => and(eqFn(e.userId, userId), eqFn(e.entryDate, '2025-09-03')),
+    })
+    expect(chargeAfter).toBeUndefined()
+  })
+})

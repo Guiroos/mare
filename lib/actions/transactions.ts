@@ -516,7 +516,9 @@ export async function deleteTransaction(id: string) {
   const userId = await requireUserId()
 
   await db.transaction(async (tx) => {
-    await tx.delete(debtorEntries).where(eq(debtorEntries.sourceTransactionId, id))
+    await tx
+      .delete(debtorEntries)
+      .where(and(eq(debtorEntries.sourceTransactionId, id), eq(debtorEntries.userId, userId)))
     await tx
       .delete(transactions)
       .where(and(eq(transactions.id, id), eq(transactions.userId, userId)))

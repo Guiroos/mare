@@ -15,7 +15,7 @@ import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField } from '@/lib/crypto/fields'
 import type { ActionResult } from '@/lib/actions/types'
 
-export async function updateCreditMode(data: unknown) {
+export async function updateCreditMode(data: unknown): Promise<ActionResult> {
   const userId = await requireUserId()
   const parsed = creditModeSchema.parse(data)
 
@@ -26,9 +26,12 @@ export async function updateCreditMode(data: unknown) {
       columns: { id: true },
     })
     if (!eligibleAccount) {
-      throw new Error(
-        'Nenhum cartão de crédito com data de fechamento cadastrada. Configure um cartão antes de ativar o regime de fatura.'
-      )
+      return {
+        ok: false,
+        code: 'no_eligible_credit_account',
+        message:
+          'Nenhum cartão de crédito com data de fechamento cadastrada. Configure um cartão antes de ativar o regime de fatura.',
+      }
     }
   }
 
@@ -38,9 +41,12 @@ export async function updateCreditMode(data: unknown) {
   })
 
   if (hasFaturaPayments) {
-    throw new Error(
-      'Não é possível alterar o regime de fatura enquanto houver pagamentos de fatura registrados. Delete os pagamentos e tente novamente.'
-    )
+    return {
+      ok: false,
+      code: 'fatura_payments_exist',
+      message:
+        'Não é possível alterar o regime de fatura enquanto houver pagamentos de fatura registrados. Delete os pagamentos e tente novamente.',
+    }
   }
 
   const faturaActiveFrom =
@@ -68,6 +74,8 @@ export async function updateCreditMode(data: unknown) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/contas')
+
+  return { ok: true, data: undefined }
 }
 
 export async function createFaturaPayment(data: unknown): Promise<ActionResult> {
