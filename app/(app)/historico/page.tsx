@@ -42,12 +42,21 @@ export default async function HistoricoPage({
   if (params.contas.length > 0) exportQuery.set('contas', params.contas.join(','))
   if (params.q) exportQuery.set('q', params.q)
 
+  const csvQuery = new URLSearchParams(exportQuery)
+  csvQuery.set('format', 'csv')
+
   return (
     <PageLayout>
       <div className="flex items-start justify-between gap-4">
         <PageHeader title="Histórico" description="Todas as movimentações" />
         <div className="flex flex-shrink-0 items-center gap-2">
-          <ExportButton href={`/api/export/extrato?${exportQuery.toString()}`} />
+          <ExportButton
+            items={[
+              { label: 'Excel (.xlsx)', href: `/api/export/extrato?${exportQuery.toString()}` },
+              { label: 'CSV', href: `/api/export/extrato?${csvQuery.toString()}` },
+              { label: 'PDF', soon: true },
+            ]}
+          />
         </div>
       </div>
       <HistoricoFilters

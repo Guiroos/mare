@@ -127,7 +127,17 @@ export default async function DashboardPage({
         action={
           <div className="flex items-center gap-1">
             <ExportButton
-              href={`/api/export/extrato?de=${exportRange.de}&ate=${exportRange.ate}`}
+              items={[
+                {
+                  label: 'Excel (.xlsx)',
+                  href: `/api/export/extrato?de=${exportRange.de}&ate=${exportRange.ate}`,
+                },
+                {
+                  label: 'CSV',
+                  href: `/api/export/extrato?de=${exportRange.de}&ate=${exportRange.ate}&format=csv`,
+                },
+                { label: 'PDF', soon: true },
+              ]}
             />
             <DashboardFAB month={month} />
           </div>

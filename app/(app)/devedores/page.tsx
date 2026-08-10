@@ -9,7 +9,15 @@ import { PersonDialog } from '@/components/devedores/PersonDialog'
 import { DebtorList } from '@/components/devedores/DebtorList'
 import { DebtorSummaryCards } from '@/components/devedores/DebtorSummaryCards'
 import { PixKeyCard } from '@/components/devedores/PixKeyCard'
-import { ExportButton } from '@/components/export/ExportButton'
+import { ExportButton, type ExportItem } from '@/components/export/ExportButton'
+
+// CSV é uma tabela só: saldos e lançamentos saem como arquivos separados.
+const devedoresExportItems: ExportItem[] = [
+  { label: 'Excel (.xlsx)', href: '/api/export/devedores' },
+  { label: 'CSV — Saldos', href: '/api/export/devedores?format=csv&sheet=saldos' },
+  { label: 'CSV — Lançamentos', href: '/api/export/devedores?format=csv&sheet=lancamentos' },
+  { label: 'PDF', soon: true },
+]
 
 export default async function DevedoresPage() {
   const session = await auth()
@@ -31,7 +39,7 @@ export default async function DevedoresPage() {
           description="Acompanhe valores que outras pessoas devem a você."
         />
         <div className="hidden flex-shrink-0 items-center gap-2 lg:flex">
-          <ExportButton href="/api/export/devedores" size="md" />
+          <ExportButton items={devedoresExportItems} size="md" />
           <PersonDialog mode="create" />
         </div>
       </div>
@@ -44,7 +52,7 @@ export default async function DevedoresPage() {
         title="Pessoas"
         action={
           <div className="flex items-center gap-2 lg:hidden">
-            <ExportButton href="/api/export/devedores" />
+            <ExportButton items={devedoresExportItems} />
             <PersonDialog mode="create" />
           </div>
         }

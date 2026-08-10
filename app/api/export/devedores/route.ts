@@ -1,6 +1,12 @@
 // app/api/export/devedores/route.ts
 import { auth } from '@/lib/auth'
-import { writeDevedoresXlsx, writePessoaXlsx } from '@/lib/export/devedores-xlsx'
+import { sheetToCsv, toCsvResponse } from '@/lib/export/csv'
+import {
+  buildLancamentosRows,
+  buildSaldosRows,
+  writeDevedoresXlsx,
+  writePessoaXlsx,
+} from '@/lib/export/devedores-xlsx'
 import {
   EXPORT_ROW_LIMIT,
   slugifyForFilename,
@@ -20,7 +26,9 @@ export async function GET(req: Request) {
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   const userId = session.user.id
-  const rawPersonId = new URL(req.url).searchParams.get('pessoa')
+  const { searchParams } = new URL(req.url)
+  const rawPersonId = searchParams.get('pessoa')
+  const isCsv = searchParams.get('format') === 'csv'
   const hoje = todayISOString()
 
   if (rawPersonId) {
@@ -42,9 +50,12 @@ export async function GET(req: Request) {
       notes: e.notes,
     }))
 
-    const buffer = await writePessoaXlsx(entries)
     const slug = slugifyForFilename(details.person.name)
-    return toXlsxResponse(buffer, `mare-devedores-${slug}-${hoje}.xlsx`)
+    const filename = `mare-devedores-${slug}-${hoje}`
+    if (isCsv) return toCsvResponse(sheetToCsv(buildLancamentosRows(entries)), `${filename}.csv`)
+
+    const buffer = await writePessoaXlsx(entries)
+    return toXlsxResponse(buffer, `${filename}.xlsx`)
   }
 
   const [people, entries] = await Promise.all([
@@ -53,6 +64,18 @@ export async function GET(req: Request) {
   ])
 
   if (entries.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
+
+  if (isCsv) {
+    // CSV é uma tabela só: cada aba do XLSX vira um arquivo separado, escolhido via ?sheet.
+    const sheet = searchParams.get('sheet')
+    if (sheet === 'saldos') {
+      return toCsvResponse(sheetToCsv(buildSaldosRows(people)), `mare-devedores-saldos-${hoje}.csv`)
+    }
+    return toCsvResponse(
+      sheetToCsv(buildLancamentosRows(entries)),
+      `mare-devedores-lancamentos-${hoje}.csv`
+    )
+  }
 
   const buffer = await writeDevedoresXlsx(people, entries)
   return toXlsxResponse(buffer, `mare-devedores-${hoje}.xlsx`)
