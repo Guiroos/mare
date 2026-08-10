@@ -27,6 +27,7 @@ const base =
   'inline-flex items-center justify-center gap-2 font-sans font-medium whitespace-nowrap ' +
   'transition-[background,color,transform,box-shadow] duration-fast ease-out ' +
   'outline-none cursor-pointer active:scale-[0.97] antialiased ' +
+  'focus-visible:shadow-[0_0_0_3px_var(--ring-accent)] ' +
   'disabled:opacity-45 disabled:pointer-events-none'
 
 const variants: Record<ButtonVariant, string> = {
