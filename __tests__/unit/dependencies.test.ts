@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-// Varre app/, components/, lib/, scripts/ e arquivos *.config.* na raiz do
-// repo em busca de cada dependência de produção declarada no package.json.
-// Uma dependência sem nenhuma ocorrência é peso morto em `dependencies`
-// (superfície de supply chain sem contrapartida) — ver issue #50.
+// Varre app/, components/, hooks/, lib/, scripts/, types/ e arquivos
+// *.config.* na raiz do repo em busca de cada dependência de produção
+// declarada no package.json. Uma dependência sem nenhuma ocorrência é peso
+// morto em `dependencies` (superfície de supply chain sem contrapartida) —
+// ver issue #50.
 
 const ROOT = process.cwd()
-const SCAN_DIRS = ['app', 'components', 'lib', 'scripts']
+const SCAN_DIRS = ['app', 'components', 'hooks', 'lib', 'scripts', 'types']
 const IGNORED_DIRS = new Set(['node_modules', '.next', '.git'])
 
 // Peer dependency que o Next.js usa internamente para renderizar — nenhum
@@ -37,8 +38,20 @@ function rootConfigFiles(): string[] {
     .map((entry) => join(ROOT, entry))
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Casa só em especificador de import/require: 'dep', "dep/sub", `dep`.
+// Um match de substring solto (ex: `content.includes(dep)`) deixaria
+// `serwist`/`react`/`next` sempre "usados" por serem prefixo do nome de
+// outro pacote importado (`@serwist/next`, `react-dom`, `next-auth`).
+function importSpecifierRegex(dep: string): RegExp {
+  return new RegExp(`['"\`]${escapeRegExp(dep)}(?:/[^'"\`]*)?['"\`]`)
+}
+
 describe('package.json dependencies', () => {
-  it('every production dependency is imported somewhere in app/components/lib/scripts or *.config.*', () => {
+  it('every production dependency is imported somewhere in app/components/hooks/lib/scripts/types or *.config.*', () => {
     const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
     const dependencies = Object.keys(pkg.dependencies as Record<string, string>)
 
@@ -50,7 +63,7 @@ describe('package.json dependencies', () => {
 
     const orphaned = dependencies
       .filter((dep) => !ALLOWLIST.has(dep))
-      .filter((dep) => !contents.some((content) => content.includes(dep)))
+      .filter((dep) => !contents.some((content) => importSpecifierRegex(dep).test(content)))
 
     expect(orphaned).toEqual([])
   })
