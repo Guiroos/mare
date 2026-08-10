@@ -22,8 +22,12 @@ export const debtChargeFromTransactionSchema = debtChargeSchema.extend({
   sourceTransactionId: uuidSchema,
 })
 
-export const updateDebtChargeSchema = z.object({
+// `amount` é sempre a magnitude (> 0). Ajustes carregam o sinal em `amountSign`,
+// porque `debtorEntries.amount` de um ajuste pode ser negativo (abatimento).
+export const updateDebtEntrySchema = z.object({
   id: uuidSchema,
+  amount: positiveAmountSchema,
+  amountSign: z.enum(['positive', 'negative']).optional(),
   description: z.string().min(1, 'Descrição é obrigatória').max(200),
   entryDate: dateSchema,
   notes: z.string().optional(),

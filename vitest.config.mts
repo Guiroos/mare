@@ -115,6 +115,13 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/utils/debtorEntryHints.ts — avisos do campo Valor; 100% atingido.
+        'lib/utils/debtorEntryHints.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
         // lib/utils/debtMessage.ts — buildDebtMessage; 100% atingido.
         'lib/utils/debtMessage.ts': {
           statements: 95,

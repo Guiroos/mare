@@ -14,7 +14,7 @@ import {
   updatePersonActionSchema,
   debtChargeSchema,
   debtChargeFromTransactionSchema,
-  updateDebtChargeSchema,
+  updateDebtEntrySchema,
   debtPaymentSchema,
   settleChargeSchema,
 } from '@/lib/validations/debtors'
@@ -171,43 +171,89 @@ export async function createDebtChargeFromTransaction(data: CreateDebtChargeFrom
   revalidatePath(`/devedores/${data.personId}`)
 }
 
-export type UpdateDebtChargeInput = {
+export type UpdateDebtEntryInput = {
   id: string
+  amount: string
+  amountSign?: 'positive' | 'negative'
   description: string
   entryDate: string
   notes?: string
 }
 
-export async function updateDebtCharge(data: UpdateDebtChargeInput) {
+export async function updateDebtEntry(data: UpdateDebtEntryInput) {
   const userId = await requireUserId()
-  updateDebtChargeSchema.parse(data)
+  updateDebtEntrySchema.parse(data)
   await assertOwnsDebtEntry(userId, data.id)
 
   const entry = await db.query.debtorEntries.findFirst({
     where: and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)),
-    columns: { type: true, status: true, personId: true },
+    columns: { type: true, personId: true, incomeId: true, referenceMonth: true, amount: true },
   })
 
   if (!entry) throw new Error('Lançamento não encontrado')
-  if (entry.type !== 'charge' || (entry.status !== 'open' && entry.status !== null)) {
-    throw new Error('Só é possível editar cobranças em aberto')
-  }
 
   const dek = await getDekForUser(userId)
 
-  await db
-    .update(debtorEntries)
-    .set({
-      description: encryptField(data.description.trim(), dek),
-      entryDate: data.entryDate,
-      referenceMonth: entryDateToReferenceMonth(data.entryDate),
-      notes: encryptOptional(data.notes?.trim() || null, dek),
-      updatedAt: new Date(),
+  const description = data.description.trim()
+  // `amountSign` ausente preserva o sinal atual: omitir o campo não pode inverter
+  // um abatimento existente. A coluna é cifrada — o sinal só aparece após decrypt,
+  // testar `entry.amount.startsWith('-')` no valor cru leria ciphertext.
+  const sign =
+    data.amountSign ?? (toAmount(decryptField(entry.amount, dek)) < 0 ? 'negative' : 'positive')
+  // Só ajustes carregam sinal — cobranças e pagamentos são sempre positivos e o
+  // sentido no saldo vem do `type`.
+  const magnitude = Math.abs(parseFloat(data.amount)).toFixed(2)
+  const amount = entry.type === 'adjustment' && sign === 'negative' ? `-${magnitude}` : magnitude
+
+  // Lançamento com entrada vinculada mantém o referenceMonth escolhido no registro:
+  // derivá-lo de entryDate moveria a entrada de mês no fluxo de caixa sem o usuário pedir.
+  const referenceMonth = entry.incomeId
+    ? entry.referenceMonth
+    : entryDateToReferenceMonth(data.entryDate)
+
+  const entryValues = {
+    amount: encryptField(amount, dek),
+    description: encryptField(description, dek),
+    entryDate: data.entryDate,
+    referenceMonth,
+    notes: encryptOptional(data.notes?.trim() || null, dek),
+    updatedAt: new Date(),
+  }
+
+  if (entry.incomeId) {
+    const person = await db.query.people.findFirst({
+      where: and(eq(people.id, entry.personId), eq(people.userId, userId)),
+      columns: { name: true },
     })
-    .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+    if (!person) throw new Error('Pessoa não encontrada')
+
+    // Mesmo formato usado ao criar a entrada em createDebtPayment/settleCharge.
+    const source = encryptField(`${decryptField(person.name, dek)} — ${description}`, dek)
+
+    await db.transaction(async (tx) => {
+      await tx
+        .update(incomes)
+        .set({ source, amount: encryptField(amount, dek) })
+        .where(and(eq(incomes.id, entry.incomeId!), eq(incomes.userId, userId)))
+
+      await tx
+        .update(debtorEntries)
+        .set(entryValues)
+        .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+    })
+  } else {
+    await db
+      .update(debtorEntries)
+      .set(entryValues)
+      .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+  }
 
   revalidatePath('/devedores')
   revalidatePath(`/devedores/${entry.personId}`)
+  if (entry.incomeId) {
+    revalidatePath('/dashboard')
+    revalidatePath('/panorama')
+  }
 }
 
 export type CreateDebtPaymentInput = {
