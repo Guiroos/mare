@@ -77,7 +77,7 @@ export function HeroAmountCard({
               onValueChange={onValueChange}
               preserveExplicitZero
               className={cn(
-                'h-14 border-0 bg-transparent text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+                'h-14 border-0 bg-transparent text-display tabular-nums shadow-none',
                 heroLabel.investimento
               )}
             />
@@ -96,7 +96,7 @@ export function HeroAmountCard({
               error={!!errors.yieldAmount}
               preserveExplicitZero
               className={cn(
-                'h-11 border-0 bg-transparent text-h2 tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+                'h-11 border-0 bg-transparent text-h2 tabular-nums shadow-none',
                 heroLabel.investimento
               )}
             />
@@ -121,7 +121,7 @@ export function HeroAmountCard({
           autoFocus
           onValueChange={onValueChange}
           className={cn(
-            'h-14 border-0 bg-transparent text-display tabular-nums shadow-none focus:border-transparent focus:shadow-none',
+            'h-14 border-0 bg-transparent text-display tabular-nums shadow-none',
             heroInput[primaryType]
           )}
         />
