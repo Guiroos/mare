@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from 'react'
 import { DebtEntryDetail } from '@/lib/queries/debtors'
-import { updateDebtCharge } from '@/lib/actions/debtors'
-import { updateDebtChargeSchema } from '@/lib/validations/debtors'
+import { updateDebtEntry } from '@/lib/actions/debtors'
+import { updateDebtEntrySchema } from '@/lib/validations/debtors'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { formatCurrency } from '@/lib/utils/currency'
 import { Button } from '@/components/ui/button'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Segment } from '@/components/ui/segment'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -21,14 +22,40 @@ type Props = {
   onOpenChange: (v: boolean) => void
 }
 
-export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
+type Sign = 'positive' | 'negative'
+
+const TITLES: Record<DebtEntryDetail['type'], string> = {
+  charge: 'Editar cobrança',
+  payment: 'Editar pagamento',
+  adjustment: 'Editar ajuste',
+}
+
+function amountHint(entry: DebtEntryDetail): string | undefined {
+  if (entry.incomeId) {
+    return 'A entrada vinculada no fluxo de caixa será atualizada com o mesmo valor.'
+  }
+  if (entry.status === 'settled') {
+    return 'Cobrança já quitada — alterar o valor altera o saldo da pessoa.'
+  }
+  if (entry.settledCharges.length > 0) {
+    return 'Pagamento vinculado a cobranças quitadas — alterar o valor altera o saldo da pessoa.'
+  }
+  return undefined
+}
+
+export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
+  const isAdjustment = entry.type === 'adjustment'
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [sign, setSign] = useState<Sign>(entry.amount < 0 ? 'negative' : 'positive')
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     onOpenChange(v)
-    if (!v) setErrors({})
+    if (!v) {
+      setErrors({})
+      setSign(entry.amount < 0 ? 'negative' : 'positive')
+    }
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -36,12 +63,14 @@ export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
     const fd = new FormData(e.currentTarget)
     const data = {
       id: entry.id,
+      amount: fd.get('amount') as string,
+      amountSign: isAdjustment ? sign : undefined,
       description: (fd.get('description') as string).trim(),
       entryDate: fd.get('entryDate') as string,
       notes: (fd.get('notes') as string).trim() || undefined,
     }
 
-    const result = updateDebtChargeSchema.safeParse(data)
+    const result = updateDebtEntrySchema.safeParse(data)
     if (!result.success) {
       setErrors(formatZodErrors(result.error))
       return
@@ -50,21 +79,39 @@ export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
     setErrors({})
     startTransition(async () => {
       try {
-        await updateDebtCharge(result.data)
-        toast.success('Cobrança atualizada.')
+        await updateDebtEntry(result.data)
+        toast.success('Lançamento atualizado.')
         onOpenChange(false)
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Erro ao editar cobrança.')
+        toast.error(err instanceof Error ? err.message : 'Erro ao editar lançamento.')
       }
     })
   }
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Valor">
-        <p className="flex h-12 items-center text-body font-semibold tabular-nums text-text-primary">
-          {formatCurrency(entry.amount)}
-        </p>
+      {isAdjustment && (
+        <Field label="Tipo de ajuste">
+          <Segment<Sign>
+            className="w-full"
+            value={sign}
+            onChange={setSign}
+            options={[
+              { value: 'negative', label: 'Abatimento (−)', activeClassName: 'text-positive' },
+              { value: 'positive', label: 'Acréscimo (+)', activeClassName: 'text-negative' },
+            ]}
+          />
+        </Field>
+      )}
+
+      <Field label="Valor" required error={errors.amount} hint={amountHint(entry)}>
+        <CurrencyInput
+          name="amount"
+          defaultValue={Math.abs(entry.amount).toFixed(2)}
+          error={!!errors.amount}
+          autoFocus
+          required
+        />
       </Field>
 
       <Field label="Descrição" required error={errors.description}>
@@ -72,12 +119,20 @@ export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
           name="description"
           defaultValue={entry.description}
           error={!!errors.description}
-          autoFocus
           required
         />
       </Field>
 
-      <Field label="Data" required error={errors.entryDate}>
+      <Field
+        label="Data"
+        required
+        error={errors.entryDate}
+        hint={
+          entry.incomeId
+            ? 'O mês de referência da entrada vinculada não muda com a data.'
+            : undefined
+        }
+      >
         <Input
           name="entryDate"
           type="date"
@@ -112,7 +167,7 @@ export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Editar cobrança</DialogTitle>
+            <DialogTitle>{TITLES[entry.type]}</DialogTitle>
           </DialogHeader>
           {form}
         </DialogContent>
@@ -124,7 +179,7 @@ export function EditChargeDialog({ entry, open, onOpenChange }: Props) {
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>Editar cobrança</DrawerTitle>
+          <DrawerTitle>{TITLES[entry.type]}</DrawerTitle>
         </DrawerHeader>
         <div className="px-4 pb-6">{form}</div>
       </DrawerContent>

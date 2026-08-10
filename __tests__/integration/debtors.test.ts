@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest'
+import { revalidatePath } from 'next/cache'
 import { and, eq, inArray } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
@@ -426,17 +427,19 @@ describe('getPersonDebtDetails — ajustes no saldo', () => {
   })
 })
 
-describe('updateDebtCharge', () => {
-  it('atualiza descrição, data e recalcula referenceMonth ao mudar de mês', async () => {
+describe('updateDebtEntry', () => {
+  it('atualiza valor, descrição, data e recalcula referenceMonth ao mudar de mês', async () => {
     const charge = await createCharge(db, userId, personId, {
+      amount: '100.00',
       description: 'Almoço',
       entryDate: '2025-01-10',
       referenceMonth: '2025-01-01',
     })
 
-    const { updateDebtCharge } = await import('@/lib/actions/debtors')
-    await updateDebtCharge({
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
       id: charge.id,
+      amount: '100.05',
       description: 'Almoço editado',
       entryDate: '2025-02-15',
       notes: 'movido um mês',
@@ -451,16 +454,176 @@ describe('updateDebtCharge', () => {
     const { getDekForUser } = await import('@/lib/crypto/keys')
     const { decryptField, decryptOptional } = await import('@/lib/crypto/fields')
     const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('100.05')
     expect(decryptField(row!.description, dek)).toBe('Almoço editado')
     expect(decryptOptional(row!.notes, dek)).toBe('movido um mês')
   })
 
-  it('rejeita edição de lançamento que não é cobrança aberta', async () => {
-    const payment = await createPayment(db, userId, personId)
+  it('edita cobrança já quitada — valor e observação', async () => {
+    const charge = await createCharge(db, userId, personId, {
+      amount: '80.00',
+      description: 'Uber',
+      status: 'settled',
+    })
 
-    const { updateDebtCharge } = await import('@/lib/actions/debtors')
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: charge.id,
+      amount: '80.10',
+      description: 'Uber',
+      entryDate: '2025-01-10',
+      notes: 'faltavam 10 centavos',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, charge.id),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField, decryptOptional } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('80.10')
+    expect(decryptOptional(row!.notes, dek)).toBe('faltavam 10 centavos')
+    expect(row?.status).toBe('settled')
+  })
+
+  it('preserva o sinal negativo de um ajuste via amountSign', async () => {
+    const adjustment = await createAdjustment(db, userId, personId, { amount: '-100.00' })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: adjustment.id,
+      amount: '25.50',
+      amountSign: 'negative',
+      description: 'Abatimento corrigido',
+      entryDate: '2025-01-20',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, adjustment.id),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('-25.50')
+  })
+
+  it('inverte o sinal de um ajuste para positivo quando amountSign muda', async () => {
+    const adjustment = await createAdjustment(db, userId, personId, { amount: '-40.00' })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: adjustment.id,
+      amount: '40.00',
+      amountSign: 'positive',
+      description: 'Virou acréscimo',
+      entryDate: '2025-01-20',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, adjustment.id),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('40.00')
+  })
+
+  it('ignora amountSign em cobrança — cobrança nunca fica negativa', async () => {
+    const charge = await createCharge(db, userId, personId, { amount: '30.00' })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: charge.id,
+      amount: '30.00',
+      amountSign: 'negative',
+      description: 'Cobrança teste',
+      entryDate: '2025-01-10',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, charge.id),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('30.00')
+  })
+
+  it('sincroniza a entrada vinculada e não move o referenceMonth do pagamento', async () => {
+    const person = await createPerson(db, userId, 'Sincronia Entrada')
+    const income = await createIncome(db, userId, {
+      source: 'Sincronia Entrada — Pgto',
+      amount: '200.00',
+      referenceMonth: '2025-03-01',
+    })
+    const payment = await createPayment(db, userId, person.id, {
+      amount: '200.00',
+      description: 'Pgto',
+      entryDate: '2025-03-05',
+      referenceMonth: '2025-03-01',
+      incomeId: income.id,
+    })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: payment.id,
+      amount: '199.90',
+      description: 'Pgto corrigido',
+      entryDate: '2025-04-02',
+    })
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    const entryRow = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, payment.id),
+    })
+    expect(entryRow?.entryDate).toBe('2025-04-02')
+    // entryDate mudou de mês, mas o referenceMonth segue o da entrada vinculada
+    expect(entryRow?.referenceMonth).toBe('2025-03-01')
+    expect(decryptField(entryRow!.amount, dek)).toBe('199.90')
+
+    const incomeRow = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, income.id),
+    })
+    expect(decryptField(incomeRow!.amount, dek)).toBe('199.90')
+    expect(decryptField(incomeRow!.source, dek)).toBe('Sincronia Entrada — Pgto corrigido')
+    expect(incomeRow?.referenceMonth).toBe('2025-03-01')
+  })
+
+  it('revalida /dashboard e /panorama quando há entrada vinculada', async () => {
+    const person = await createPerson(db, userId, 'Revalida Entrada')
+    const income = await createIncome(db, userId, { source: 'x', amount: '50.00' })
+    const payment = await createPayment(db, userId, person.id, {
+      amount: '50.00',
+      incomeId: income.id,
+    })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    vi.mocked(revalidatePath).mockClear()
+    await updateDebtEntry({
+      id: payment.id,
+      amount: '50.00',
+      description: 'Pagamento teste',
+      entryDate: '2025-01-15',
+    })
+
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/dashboard')
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
+  })
+
+  it('rejeita valor zero ou negativo', async () => {
+    const charge = await createCharge(db, userId, personId)
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
     await expect(
-      updateDebtCharge({ id: payment.id, description: 'x', entryDate: '2025-01-10' })
-    ).rejects.toThrow('Só é possível editar cobranças em aberto')
+      updateDebtEntry({
+        id: charge.id,
+        amount: '0',
+        description: 'Cobrança teste',
+        entryDate: '2025-01-10',
+      })
+    ).rejects.toThrow()
   })
 })
