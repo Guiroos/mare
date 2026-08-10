@@ -17,7 +17,7 @@
 - Radius: `rounded-sm`(6) `rounded-md`(10) `rounded-lg`(16) `rounded-xl`(20) `rounded-full`
 - Alturas interativas: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`
 - Transições: `duration-fast`(120ms) `duration-base`(200ms)
-- Focus ring: `focus:shadow-[0_0_0_3px_var(--ring-accent)]`
+- Focus ring: `focus:shadow-[0_0_0_3px_var(--ring-accent)]` em campos (`Input`, `Select`, `Dialog` close) — foco de mouse e teclado devem parecer iguais; `focus-visible:shadow-[0_0_0_3px_var(--ring-accent)]` em botões (`Button`) — `focus:` deixaria o anel grudado após todo clique de mouse, o que tende a levar a reintroduzir `outline-none` depois
 
 **Formulários complexos:** extrair sub-componentes em `components/forms/<form>/` com `types.ts` para tipos compartilhados. Re-exports são proibidos — mover para `components/ui/` e atualizar imports.
 

@@ -96,3 +96,22 @@ describe('anel de foco — contraste WCAG 1.4.11', () => {
     expect(contrastAgainstSurface(block, token)).toBeGreaterThanOrEqual(3)
   })
 })
+
+// O gate acima só cobre o token — sozinho, não pega alguém apagando o
+// `focus-visible:` do Button ou reintroduzindo `focus:shadow-none` no
+// HeroAmountCard com o CSS intacto. As duas juntas fecham as duas metades
+// do bug da issue #52 (ver review no PR #69).
+describe('anel de foco — indicador não suprimido nos componentes', () => {
+  it('button.tsx devolve indicador de foco no base', () => {
+    const btn = readFileSync(join(process.cwd(), 'components/ui/button.tsx'), 'utf-8')
+    expect(btn).toMatch(/focus-visible:shadow-\[0_0_0_3px_var\(--ring-accent\)\]/)
+  })
+
+  it('HeroAmountCard não suprime o anel herdado do inputBase', () => {
+    const hero = readFileSync(
+      join(process.cwd(), 'components/forms/transaction/HeroAmountCard.tsx'),
+      'utf-8'
+    )
+    expect(hero).not.toMatch(/focus:shadow-none/)
+  })
+})
