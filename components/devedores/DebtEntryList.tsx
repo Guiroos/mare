@@ -12,7 +12,7 @@ import { RowActions } from '@/components/ui/row-actions'
 import { PaymentWithIncomeDeleteDialog } from './PaymentWithIncomeDeleteDialog'
 import { PaymentWithSettledChargesDeleteDialog } from './PaymentWithSettledChargesDeleteDialog'
 import { SettleChargeDialog } from './SettleChargeDialog'
-import { EditChargeDialog } from './EditChargeDialog'
+import { EditEntryDialog } from './EditEntryDialog'
 import { cn } from '@/lib/utils/cn'
 import { toast } from 'sonner'
 
@@ -57,6 +57,27 @@ function EntryRow({
   const isPaymentWithSettled = entry.type === 'payment' && entry.settledCharges.length > 0
   const isPaymentWithIncome = entry.type === 'payment' && !!entry.incomeId && !isPaymentWithSettled
   const isAdjustment = entry.type === 'adjustment'
+
+  // Pagamento com entrada ou com cobranças quitadas exige confirmação própria
+  // (o dialog explica o que mais será removido) — o delete padrão do RowActions
+  // não cobre esses casos.
+  const usesCustomDelete = isPaymentWithSettled || isPaymentWithIncome
+
+  const additionalActions = [
+    ...(isOpenCharge
+      ? [{ label: 'Quitar', icon: CheckCircle, onClick: () => onSettle(entry) }]
+      : []),
+    ...(usesCustomDelete
+      ? [
+          {
+            label: 'Excluir',
+            variant: 'destructive' as const,
+            onClick: () =>
+              isPaymentWithSettled ? onDeleteWithSettled(entry) : onDeleteWithIncome(entry),
+          },
+        ]
+      : []),
+  ]
 
   return (
     <div className="group flex items-center gap-3 px-4 py-3">
@@ -133,6 +154,9 @@ function EntryRow({
             </>
           )}
         </div>
+        {entry.notes && (
+          <span className="line-clamp-2 text-caption text-text-secondary">{entry.notes}</span>
+        )}
       </div>
 
       <span
@@ -149,53 +173,20 @@ function EntryRow({
         {formatCurrency(Math.abs(entry.amount))}
       </span>
 
-      {isPaymentWithSettled ? (
-        <RowActions
-          additionalActions={[
-            {
-              label: 'Excluir',
-              variant: 'destructive',
-              onClick: () => onDeleteWithSettled(entry),
-            },
-          ]}
-        />
-      ) : isPaymentWithIncome ? (
-        <RowActions
-          additionalActions={[
-            {
-              label: 'Excluir',
-              variant: 'destructive',
-              onClick: () => onDeleteWithIncome(entry),
-            },
-          ]}
-        />
-      ) : isOpenCharge ? (
-        <RowActions
-          onEdit={() => onEdit(entry)}
-          additionalActions={[
-            {
-              label: 'Quitar',
-              icon: CheckCircle,
-              onClick: () => onSettle(entry),
-            },
-          ]}
-          onDelete={async () => {
-            await deleteDebtEntry({ id: entry.id })
-            toast.success('Lançamento excluído.')
-          }}
-          deleteTitle="Excluir lançamento"
-          deleteDescription={`Excluir "${entry.description}"? O saldo da pessoa será recalculado.`}
-        />
-      ) : (
-        <RowActions
-          onDelete={async () => {
-            await deleteDebtEntry({ id: entry.id })
-            toast.success('Lançamento excluído.')
-          }}
-          deleteTitle="Excluir lançamento"
-          deleteDescription={`Excluir "${entry.description}"? O saldo da pessoa será recalculado.`}
-        />
-      )}
+      <RowActions
+        onEdit={() => onEdit(entry)}
+        additionalActions={additionalActions}
+        onDelete={
+          usesCustomDelete
+            ? undefined
+            : async () => {
+                await deleteDebtEntry({ id: entry.id })
+                toast.success('Lançamento excluído.')
+              }
+        }
+        deleteTitle="Excluir lançamento"
+        deleteDescription={`Excluir "${entry.description}"? O saldo da pessoa será recalculado.`}
+      />
     </div>
   )
 }
@@ -326,7 +317,7 @@ export function DebtEntryList({ entries, personId }: Props) {
       )}
 
       {editEntry && (
-        <EditChargeDialog
+        <EditEntryDialog
           entry={editEntry}
           open={!!editEntry}
           onOpenChange={(v) => {
