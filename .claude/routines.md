@@ -36,7 +36,13 @@ Labels auxiliares: `claude-precisa-fatiar`, `claude-bloqueada`. Se não existire
 
 ### Correções que este arquivo impõe sobre o prompt
 
-Três caminhos do prompt estão errados hoje. Onde o texto abaixo divergir do prompt, seguir este arquivo.
+Quatro caminhos do prompt estão errados hoje. Onde o texto abaixo divergir do prompt, seguir este arquivo.
+
+**PASSO 1 (qual issue pegar).** O prompt diz *"das restantes, pegue a MAIS ANTIGA"*, sem qualificar. Combinado com o teto de 5 arquivos do PASSO 4, isso trava a fila: uma issue grande demais na cabeça é escolhida, chega ao PASSO 4, sai sem PR — e a execução seguinte escolhe a mesma. Com duas execuções por dia, são duas rodadas perdidas em vez de uma.
+
+O critério correto é **a mais antiga que plausivelmente cabe em 5 arquivos**. Antes de reservar, leia o campo "Custo estimado" da issue: `G (estrutural)` não cabe, por definição — pule e aplique `claude-precisa-fatiar` direto, sem gastar a execução para redescobrir isso no PASSO 4. `P` e `M` cabem e seguem a ordem de antiguidade normal. Se a issue não declara custo, trate como `M` e siga.
+
+Pular uma issue por custo `G` não é escolher trabalho fora da fila — a fila continua sendo `claude-ready`, só a ordem muda.
 
 **PASSO 4 (escopo > 5 arquivos).** O prompt diz *"comente na issue propondo como fatiar em partes menores, remova `claude-wip` e encerre sem PR"* — mantendo `claude-ready`. Isso devolve a issue para a fila com o escopo idêntico: a próxima execução chega na mesma conclusão, comenta de novo e sai, todo dia útil. E como o PASSO 1 pega sempre a MAIS ANTIGA, uma issue grande demais fica presa na cabeça da fila e **bloqueia tudo que está atrás** indefinidamente. Remover `claude-ready` junto é obrigatório: só um humano refatiando o escopo tira ela desse estado.
 
@@ -49,6 +55,28 @@ O comentário do link deve ter **exatamente** este formato na primeira linha, po
 ```
 PR aberta: #<n>
 ```
+
+## Cadência e vazão
+
+A fila é alimentada pela `auditoria-diaria` (1×/dia útil) e drenada pela `implementacao-diaria`. Medido entre 2026-07-30 e 2026-08-07: a auditoria produziu 1,7 issues por execução e a implementação entregou 1 PR por execução — saldo de +0,7/dia, com 7 issues `claude-ready` acumuladas ao fim da primeira semana.
+
+Por isso `implementacao-diaria` e `review-de-pr` rodam **2× por dia útil**, e a auditoria continua 1×. A ordem dentro do dia importa: cada implementação precisa de uma revisão depois dela, então os pares são `implementação → review`, nunca dois de um tipo seguidos.
+
+| Horário (BRT) | UTC | Routine | Cron |
+| --- | --- | --- | --- |
+| 08:00 | 11:00 | `auditoria-diaria` | `0 11 * * 1-5` |
+| 10:00 | 13:00 | `implementacao-diaria` | `0 13,17 * * 1-5` |
+| 12:00 | 15:00 | `review-de-pr` | `0 15,19 * * 1-5` |
+| 14:00 | 17:00 | `implementacao-diaria` | ⤴ |
+| 16:00 | 19:00 | `review-de-pr` | ⤴ |
+
+Duas horas entre implementação e a revisão do PR que ela abriu, e o dia inteiro dentro do horário comercial — o merge continua sendo humano. Os horários ficam dentro do mesmo dia UTC de propósito: 22:00 BRT viraria 01:00 UTC do dia seguinte e exigiria deslocar o campo de dia da semana (`1-5` → `2-6`), o que na sexta à noite não dispara.
+
+Esses crons **não são editáveis por agente** — `update_trigger` recusa com *"this routine was created via http_api"*, tanto para o prompt quanto para o cron. Alterar exige a UI de Routines. A tabela acima é a fonte de verdade do que deveria estar configurado; se divergir da UI, a UI é o que roda.
+
+Duas execuções no mesmo dia tornam a reserva do PASSO 2 crítica, não opcional: é `claude-wip` que impede a segunda execução de pegar a issue que a primeira já está implementando. Execução que não conseguir aplicar a label **para**, como o prompt já manda — com cadência dobrada, ignorar isso significa dois PRs para a mesma issue.
+
+**A vazão real é limitada pela aprovação humana, não pela Routine.** A auditoria abre issue com `claude-audit` + label de área; quem coloca `claude-ready` é um humano. Duplicar a implementação só drena a fila enquanto houver issues aprovadas — se as execuções passarem a encerrar por fila vazia com issues abertas sem `claude-ready`, o gargalo voltou para a aprovação e a cadência dobrada não está custando nada nem resolvendo nada.
 
 ## Higiene de fila (antes de pegar trabalho novo)
 
