@@ -1,6 +1,12 @@
 // app/api/export/devedores/route.ts
 import { auth } from '@/lib/auth'
-import { writeDevedoresXlsx, writePessoaXlsx } from '@/lib/export/devedores-xlsx'
+import { sheetToCsv, toCsvResponse } from '@/lib/export/csv'
+import {
+  buildLancamentosRows,
+  buildSaldosRows,
+  writeDevedoresXlsx,
+  writePessoaXlsx,
+} from '@/lib/export/devedores-xlsx'
 import {
   EXPORT_ROW_LIMIT,
   slugifyForFilename,
@@ -20,7 +26,9 @@ export async function GET(req: Request) {
   if (!session) return new Response('Unauthorized', { status: 401 })
 
   const userId = session.user.id
-  const rawPersonId = new URL(req.url).searchParams.get('pessoa')
+  const { searchParams } = new URL(req.url)
+  const rawPersonId = searchParams.get('pessoa')
+  const isCsv = searchParams.get('format') === 'csv'
   const hoje = todayISOString()
 
   if (rawPersonId) {
@@ -42,11 +50,35 @@ export async function GET(req: Request) {
       notes: e.notes,
     }))
 
-    const buffer = await writePessoaXlsx(entries)
     const slug = slugifyForFilename(details.person.name)
-    return toXlsxResponse(buffer, `mare-devedores-${slug}-${hoje}.xlsx`)
+    const filename = `mare-devedores-${slug}-${hoje}`
+    if (isCsv) return toCsvResponse(sheetToCsv(buildLancamentosRows(entries)), `${filename}.csv`)
+
+    const buffer = await writePessoaXlsx(entries)
+    return toXlsxResponse(buffer, `${filename}.xlsx`)
   }
 
+  // CSV é uma tabela só: cada aba do XLSX vira um arquivo separado, escolhido via ?sheet.
+  // Cada formato afere o teto contra as linhas que ele próprio emite — Saldos tem uma
+  // linha por pessoa, e reprová-lo pelo volume de lançamentos recusaria um arquivo
+  // pequeno sem que o usuário tenha filtro para reduzi-lo.
+  if (isCsv) {
+    if (searchParams.get('sheet') === 'saldos') {
+      const people = await getPeopleWithBalances(userId)
+      if (people.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
+      return toCsvResponse(sheetToCsv(buildSaldosRows(people)), `mare-devedores-saldos-${hoje}.csv`)
+    }
+
+    const entries = await getAllDebtorEntries(userId)
+    if (entries.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
+    return toCsvResponse(
+      sheetToCsv(buildLancamentosRows(entries)),
+      `mare-devedores-lancamentos-${hoje}.csv`
+    )
+  }
+
+  // XLSX traz as duas abas no mesmo arquivo: o teto vale sobre os lançamentos, que
+  // são a aba que cresce.
   const [people, entries] = await Promise.all([
     getPeopleWithBalances(userId),
     getAllDebtorEntries(userId),

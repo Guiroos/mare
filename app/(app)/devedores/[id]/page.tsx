@@ -46,7 +46,16 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
       <div className="group flex items-start justify-between gap-4">
         <PageHeader title={person.name} description={person.email ?? person.phone ?? undefined} />
         <div className="flex flex-shrink-0 items-center gap-2">
-          <ExportButton href={`/api/export/devedores?pessoa=${person.id}`} />
+          <ExportButton
+            items={[
+              { label: 'Excel (.xlsx)', href: `/api/export/devedores?pessoa=${person.id}` },
+              {
+                label: 'CSV',
+                href: `/api/export/devedores?pessoa=${person.id}&format=csv`,
+              },
+              { label: 'PDF', soon: true },
+            ]}
+          />
           <DevedorDetailActions
             person={person}
             balance={summary.balance}

@@ -80,7 +80,19 @@ export default async function PanoramaPage({
         />
         <div className="flex flex-shrink-0 items-center gap-2">
           <YearSelector years={years} selected={year} />
-          <ExportButton href={`/api/export/extrato?de=${year}-01-01&ate=${year}-12-31`} />
+          <ExportButton
+            items={[
+              {
+                label: 'Excel (.xlsx)',
+                href: `/api/export/extrato?de=${year}-01-01&ate=${year}-12-31`,
+              },
+              {
+                label: 'CSV',
+                href: `/api/export/extrato?de=${year}-01-01&ate=${year}-12-31&format=csv`,
+              },
+              { label: 'PDF', soon: true },
+            ]}
+          />
         </div>
       </div>
 

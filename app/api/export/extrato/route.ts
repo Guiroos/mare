@@ -1,6 +1,7 @@
 // app/api/export/extrato/route.ts
 import { auth } from '@/lib/auth'
-import { writeExtratoXlsx } from '@/lib/export/extrato-xlsx'
+import { sheetToCsv, toCsvResponse } from '@/lib/export/csv'
+import { buildExtratoRows, writeExtratoXlsx } from '@/lib/export/extrato-xlsx'
 import {
   EXPORT_ROW_LIMIT,
   slugifyForFilename,
@@ -16,12 +17,16 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
   const params = parseHistoricoParams(Object.fromEntries(searchParams))
+  const isCsv = searchParams.get('format') === 'csv'
 
   const items = await collectHistoricoItems(session.user.id, params)
   if (items.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
 
-  const buffer = await writeExtratoXlsx(items)
   const de = slugifyForFilename(params.de)
   const ate = slugifyForFilename(params.ate)
-  return toXlsxResponse(buffer, `mare-extrato-${de}-a-${ate}.xlsx`)
+  const filename = `mare-extrato-${de}-a-${ate}`
+  if (isCsv) return toCsvResponse(sheetToCsv(buildExtratoRows(items)), `${filename}.csv`)
+
+  const buffer = await writeExtratoXlsx(items)
+  return toXlsxResponse(buffer, `${filename}.xlsx`)
 }
