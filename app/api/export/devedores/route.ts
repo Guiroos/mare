@@ -58,24 +58,33 @@ export async function GET(req: Request) {
     return toXlsxResponse(buffer, `${filename}.xlsx`)
   }
 
+  // CSV é uma tabela só: cada aba do XLSX vira um arquivo separado, escolhido via ?sheet.
+  // Cada formato afere o teto contra as linhas que ele próprio emite — Saldos tem uma
+  // linha por pessoa, e reprová-lo pelo volume de lançamentos recusaria um arquivo
+  // pequeno sem que o usuário tenha filtro para reduzi-lo.
+  if (isCsv) {
+    if (searchParams.get('sheet') === 'saldos') {
+      const people = await getPeopleWithBalances(userId)
+      if (people.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
+      return toCsvResponse(sheetToCsv(buildSaldosRows(people)), `mare-devedores-saldos-${hoje}.csv`)
+    }
+
+    const entries = await getAllDebtorEntries(userId)
+    if (entries.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
+    return toCsvResponse(
+      sheetToCsv(buildLancamentosRows(entries)),
+      `mare-devedores-lancamentos-${hoje}.csv`
+    )
+  }
+
+  // XLSX traz as duas abas no mesmo arquivo: o teto vale sobre os lançamentos, que
+  // são a aba que cresce.
   const [people, entries] = await Promise.all([
     getPeopleWithBalances(userId),
     getAllDebtorEntries(userId),
   ])
 
   if (entries.length > EXPORT_ROW_LIMIT) return tooManyRowsResponse()
-
-  if (isCsv) {
-    // CSV é uma tabela só: cada aba do XLSX vira um arquivo separado, escolhido via ?sheet.
-    const sheet = searchParams.get('sheet')
-    if (sheet === 'saldos') {
-      return toCsvResponse(sheetToCsv(buildSaldosRows(people)), `mare-devedores-saldos-${hoje}.csv`)
-    }
-    return toCsvResponse(
-      sheetToCsv(buildLancamentosRows(entries)),
-      `mare-devedores-lancamentos-${hoje}.csv`
-    )
-  }
 
   const buffer = await writeDevedoresXlsx(people, entries)
   return toXlsxResponse(buffer, `mare-devedores-${hoje}.xlsx`)
