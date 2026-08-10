@@ -613,17 +613,39 @@ describe('updateDebtEntry', () => {
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/panorama')
   })
 
+  it('preserva o sinal negativo de um ajuste quando amountSign é omitido', async () => {
+    const adjustment = await createAdjustment(db, userId, personId, { amount: '-40.00' })
+
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: adjustment.id,
+      amount: '40.00',
+      description: 'Sem sinal explícito',
+      entryDate: '2025-01-20',
+    })
+
+    const row = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, adjustment.id),
+    })
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(row!.amount, dek)).toBe('-40.00')
+  })
+
   it('rejeita valor zero ou negativo', async () => {
     const charge = await createCharge(db, userId, personId)
 
     const { updateDebtEntry } = await import('@/lib/actions/debtors')
-    await expect(
-      updateDebtEntry({
-        id: charge.id,
-        amount: '0',
-        description: 'Cobrança teste',
-        entryDate: '2025-01-10',
-      })
-    ).rejects.toThrow()
+    for (const amount of ['0', '-10.00']) {
+      await expect(
+        updateDebtEntry({
+          id: charge.id,
+          amount,
+          description: 'Cobrança teste',
+          entryDate: '2025-01-10',
+        })
+      ).rejects.toThrow('Valor deve ser maior que zero')
+    }
   })
 })

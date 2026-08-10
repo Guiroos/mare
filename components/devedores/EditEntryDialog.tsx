@@ -5,6 +5,7 @@ import { DebtEntryDetail } from '@/lib/queries/debtors'
 import { updateDebtEntry } from '@/lib/actions/debtors'
 import { updateDebtEntrySchema } from '@/lib/validations/debtors'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { amountHints } from '@/lib/utils/debtorEntryHints'
 import { Button } from '@/components/ui/button'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Field } from '@/components/ui/field'
@@ -28,19 +29,6 @@ const TITLES: Record<DebtEntryDetail['type'], string> = {
   charge: 'Editar cobrança',
   payment: 'Editar pagamento',
   adjustment: 'Editar ajuste',
-}
-
-function amountHint(entry: DebtEntryDetail): string | undefined {
-  if (entry.incomeId) {
-    return 'A entrada vinculada no fluxo de caixa será atualizada com o mesmo valor.'
-  }
-  if (entry.status === 'settled') {
-    return 'Cobrança já quitada — alterar o valor altera o saldo da pessoa.'
-  }
-  if (entry.settledCharges.length > 0) {
-    return 'Pagamento vinculado a cobranças quitadas — alterar o valor altera o saldo da pessoa.'
-  }
-  return undefined
 }
 
 export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
@@ -104,7 +92,7 @@ export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
         </Field>
       )}
 
-      <Field label="Valor" required error={errors.amount} hint={amountHint(entry)}>
+      <Field label="Valor" required error={errors.amount} hint={amountHints(entry)}>
         <CurrencyInput
           name="amount"
           defaultValue={Math.abs(entry.amount).toFixed(2)}

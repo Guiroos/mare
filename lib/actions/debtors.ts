@@ -187,7 +187,7 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
 
   const entry = await db.query.debtorEntries.findFirst({
     where: and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)),
-    columns: { type: true, personId: true, incomeId: true, referenceMonth: true },
+    columns: { type: true, personId: true, incomeId: true, referenceMonth: true, amount: true },
   })
 
   if (!entry) throw new Error('Lançamento não encontrado')
@@ -195,11 +195,15 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
   const dek = await getDekForUser(userId)
 
   const description = data.description.trim()
+  // `amountSign` ausente preserva o sinal atual: omitir o campo não pode inverter
+  // um abatimento existente. A coluna é cifrada — o sinal só aparece após decrypt,
+  // testar `entry.amount.startsWith('-')` no valor cru leria ciphertext.
+  const sign =
+    data.amountSign ?? (toAmount(decryptField(entry.amount, dek)) < 0 ? 'negative' : 'positive')
   // Só ajustes carregam sinal — cobranças e pagamentos são sempre positivos e o
   // sentido no saldo vem do `type`.
   const magnitude = Math.abs(parseFloat(data.amount)).toFixed(2)
-  const amount =
-    entry.type === 'adjustment' && data.amountSign === 'negative' ? `-${magnitude}` : magnitude
+  const amount = entry.type === 'adjustment' && sign === 'negative' ? `-${magnitude}` : magnitude
 
   // Lançamento com entrada vinculada mantém o referenceMonth escolhido no registro:
   // derivá-lo de entryDate moveria a entrada de mês no fluxo de caixa sem o usuário pedir.
