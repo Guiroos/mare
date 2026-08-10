@@ -3,3 +3,7 @@ node_modules/
 public/
 .claude/
 *.md
+.ds-sync/
+ds-bundle/
+.design-sync/build/
+.design-sync/fonts/
