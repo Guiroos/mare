@@ -3,7 +3,16 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* `.theme-light` repete o mesmo bloco de tokens num seletor de descendente,
+     para que uma subárvore permaneça clara mesmo com `.dark` no <html>.
+     Usado pelo grupo de rotas (marketing): a landing é light-only por decisão
+     de brief (screenshots, imagem OG e gráfico precisam de uma aparência
+     canônica), e a paleta de marketing não foi calibrada para fundo escuro —
+     em dark ela reprova contraste WCAG AA.
+     É seletor adicional, não cópia de valores: os tokens seguem definidos uma
+     única vez. */
+  :root,
+  .theme-light {
     /* ── Maré Design Tokens ── */
 
     /* Background */
