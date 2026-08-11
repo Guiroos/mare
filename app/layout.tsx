@@ -1,24 +1,33 @@
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
 import { Archivo, DM_Sans, IBM_Plex_Mono } from 'next/font/google'
-import NextTopLoader from 'nextjs-toploader'
-import { Toaster } from 'sonner'
-import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { cn } from '@/lib/utils/cn'
 import './globals.css'
 
+/* `preload: false` porque o preload do next/font é por documento, não por rota:
+   com ele ligado, a landing baixava 38 KB de DM Sans no caminho crítico para
+   uma fonte que nenhum elemento dela usa — ela disputava banda justamente com
+   o Archivo, que desenha o LCP. O app continua recebendo a fonte, só que
+   descoberta pelo CSS em vez de pré-carregada, e o app é `noindex`: LCP lá não
+   é ranqueado. */
 const dmSans = DM_Sans({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600'],
   variable: '--font-dm-sans',
+  preload: false,
 })
 
 /* Archivo e IBM Plex Mono servem apenas as rotas (marketing). next/font
    self-hospeda ambas: a CSP declara font-src 'self', então o <link> para
-   fonts.gstatic.com do protótipo seria bloqueado em produção. */
+   fonts.gstatic.com do protótipo seria bloqueado em produção.
+
+   Os pesos são exatamente os que a landing usa — cada peso extra é um arquivo
+   woff2 a mais no caminho crítico do LCP, e o 700 do Archivo não aparecia em
+   nenhum componente de marketing. Ao introduzir um `font-bold` lá, declarar o
+   peso aqui, senão o browser sintetiza o negrito. */
 const archivo = Archivo({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+  weight: ['400', '500', '600'],
   variable: '--font-archivo',
   display: 'swap',
 })
@@ -79,6 +88,14 @@ export const viewport: Viewport = {
   interactiveWidget: 'resizes-content',
 }
 
+/**
+ * O root layout é deliberadamente sem providers de cliente. `ThemeProvider`,
+ * `Toaster` e `NextTopLoader` vivem em `(app)/layout.tsx` e `(auth)/layout.tsx`
+ * — a landing não usa nenhum deles e é a única rota cujo LCP é ranqueado.
+ *
+ * `SpeedInsights` fica aqui de propósito: é justamente na landing que medir
+ * Core Web Vitals de usuário real importa.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
@@ -87,12 +104,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={cn(dmSans.variable, archivo.variable, plexMono.variable)}
     >
       <body className="font-sans">
-        <ThemeProvider>
-          <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
-          {children}
-          <Toaster richColors position="top-center" />
-          <SpeedInsights />
-        </ThemeProvider>
+        {children}
+        <SpeedInsights />
       </body>
     </html>
   )
