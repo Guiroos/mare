@@ -16,6 +16,14 @@ const FAQ = [
   },
   {
     q: 'Meus dados ficam onde?',
+    /* PROMESSA SEM LASTRO — ver docs/seo-landing-backlog.md §6.1.
+       "exportar tudo em CSV": hoje só existem /api/export/extrato e
+       /api/export/devedores. Investimentos, metas, parcelas, categorias e
+       contas não têm export.
+       "apagar sua conta": não existe. `resetAccount` limpa os dados e mantém o
+       usuário — que é outra coisa, e não é o que esta frase promete.
+       Enquanto as duas não subirem, esta resposta é afirmação falsa em
+       produção, não escopo futuro. Ao implementar, remover este comentário. */
     a: 'Em banco de dados gerenciado, com os campos sensíveis criptografados individualmente por uma chave exclusiva da sua conta — nem o banco de dados guarda os valores em texto legível. Você pode exportar tudo em CSV ou apagar sua conta a qualquer momento.',
   },
   {
