@@ -2,6 +2,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
 import { Archivo, DM_Sans, IBM_Plex_Mono } from 'next/font/google'
 import { cn } from '@/lib/utils/cn'
+import { SITE_URL } from '@/lib/utils/site'
 import './globals.css'
 
 /* `preload: false` porque o preload do next/font é por documento, não por rota:
@@ -39,8 +40,6 @@ const plexMono = IBM_Plex_Mono({
   display: 'swap',
 })
 
-const SITE_URL = 'https://meumare.com.br'
-
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -66,9 +65,15 @@ export const metadata: Metadata = {
     title: 'Maré — controle financeiro pessoal com parcelas e metas',
     description:
       'Controle financeiro para quem cansou da planilha. Parcelas projetadas por fatura, histórico que nunca zera e nenhum acesso à sua conta bancária.',
-    images: ['/og.png'],
+    /* Sem `images`: o caminho declarado antes (`/og.png`) não existe no repo —
+       nem em public/, nem como rota — e sobrescrevia a imagem boa, deixando o
+       card do X apontando para um 404. Omitindo o campo, o Next preenche
+       `twitter:image` a partir de `app/opengraph-image.tsx` (verificado no HTML
+       do build). */
   },
-  alternates: { canonical: '/' },
+  /* `alternates.canonical` fica em cada página, não aqui: no root layout ele é
+     herdado por todas as rotas e cada uma passa a declarar `/` como canônica —
+     o oposto do que o canonical serve para fazer. */
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

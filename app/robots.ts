@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { SITE_URL } from '@/lib/utils/site'
 
 /**
  * Rotas do shell autenticado. Não são segredo — o robots.txt é público — mas
@@ -38,7 +39,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: PRIVATE_PATHS,
     },
-    sitemap: 'https://meumare.com.br/sitemap.xml',
-    host: 'https://meumare.com.br',
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   }
 }
