@@ -1,9 +1,16 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { RegistrationDialogProvider } from '@/components/providers/RegistrationDialog'
 import { PrivacyModeProvider } from '@/components/providers/PrivacyMode'
+
+/* Defesa em profundidade sobre o robots.txt: ele impede o rastreio, mas não a
+   indexação de uma URL descoberta por link externo. O noindex fecha isso. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()

@@ -16,7 +16,8 @@ export default function AppleIcon() {
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 40,
-        background: 'linear-gradient(135deg, #1a78c4 0%, #1260a0 100%)',
+        /* Mesmo par de tokens do app/icon.tsx — ver comentário lá. */
+        background: 'linear-gradient(135deg, #006fa3 0%, #005d90 100%)',
       }}
     >
       <svg width={42 * scale} height={waveH} viewBox="0 0 42 30" fill="none">

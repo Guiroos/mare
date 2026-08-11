@@ -27,7 +27,10 @@ export default function Icon({ id }: { id: string }) {
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: radius,
-        background: 'linear-gradient(135deg, #1a78c4 0%, #1260a0 100%)',
+        /* Conversão exata dos tokens --accent e --accent-hover de globals.css.
+           O Satori não entende oklch(), então o hex é obrigatório aqui — mas
+           ele precisa vir do token, não de um azul escolhido à parte. */
+        background: 'linear-gradient(135deg, #006fa3 0%, #005d90 100%)',
       }}
     >
       <svg
