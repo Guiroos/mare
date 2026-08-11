@@ -3,6 +3,7 @@ import { ComparisonTable } from '@/components/marketing/ComparisonTable'
 import { Eyebrow } from '@/components/marketing/Eyebrow'
 import { FaqSection } from '@/components/marketing/FaqSection'
 import { MarketingButton } from '@/components/marketing/MarketingButton'
+import { StructuredData } from '@/components/marketing/StructuredData'
 import { TideChart } from '@/components/marketing/TideChart'
 
 export const metadata: Metadata = {
@@ -87,6 +88,8 @@ const STATS = [
 export default function LandingPage() {
   return (
     <>
+      <StructuredData />
+
       {/* ── Hero ── */}
       <section className="pb-0 pt-[clamp(48px,7vw,84px)]">
         <div className="mx-auto max-w-[1120px] px-5 sm:px-8 lg:px-10">
