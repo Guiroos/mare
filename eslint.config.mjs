@@ -16,6 +16,11 @@ const config = [
   },
   ...nextConfig,
   ...tsConfig,
+  {
+    rules: {
+      'jsx-a11y/label-has-associated-control': 'error',
+    },
+  },
 ]
 
 export default config
