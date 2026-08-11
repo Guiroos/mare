@@ -18,6 +18,7 @@ export type ComboboxGroup = {
 }
 
 type Props = {
+  id?: string
   groups?: ComboboxGroup[]
   options?: ComboboxOption[]
   value: string
@@ -25,9 +26,12 @@ type Props = {
   placeholder?: string
   error?: boolean
   className?: string
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
 }
 
 export function Combobox({
+  id,
   groups,
   options,
   value,
@@ -35,6 +39,8 @@ export function Combobox({
   placeholder = 'Buscar...',
   error,
   className,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: Props) {
   const [query, setQuery] = useState('')
   const [isOpen, setIsOpen] = useState(false)
@@ -140,6 +146,7 @@ export function Combobox({
     <div className={cn('space-y-1', className)}>
       <div className="relative">
         <Input
+          id={id}
           value={selectedOption ? selectedOption.label : query}
           onChange={handleChange}
           onFocus={handleFocus}
@@ -148,6 +155,8 @@ export function Combobox({
           placeholder={placeholder}
           error={error}
           autoComplete="off"
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
         />
         {value && (
           <Button
