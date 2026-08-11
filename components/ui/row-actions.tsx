@@ -80,7 +80,7 @@ export function RowActions({
             variant="ghost"
             size="icon"
             className={cn(
-              'h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity duration-fast lg:opacity-0 lg:focus-visible:opacity-100 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100',
+              'h-7 w-7 flex-shrink-0 text-text-secondary opacity-100 transition-opacity duration-fast lg:opacity-0 lg:focus-visible:opacity-100 lg:group-focus-within:opacity-100 lg:group-hover:opacity-100 lg:data-[state=open]:opacity-100',
               triggerClassName
             )}
             aria-label="Ações"

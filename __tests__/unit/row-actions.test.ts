@@ -10,19 +10,29 @@ import { join } from 'node:path'
 // possível é sobre a string de classe: o gatilho precisa declarar uma
 // variante de foco no mesmo breakpoint em que declara `lg:opacity-0`, ao
 // lado da variante de hover já existente.
+//
+// As asserções têm de mirar especificamente a className do gatilho, não o
+// arquivo inteiro — senão uma variante de foco movida para outro elemento
+// (ex: `DropdownMenu.Content`) deixa o teste verde com o bug intacto.
 
 const source = readFileSync(join(process.cwd(), 'components/ui/row-actions.tsx'), 'utf-8')
 
+// className do gatilho: o literal que carrega as classes de tamanho do kebab.
+const triggerClassName = source.match(/'h-7 w-7 flex-shrink-0[^']*'/)?.[0]
+
 describe('RowActions trigger — foco de teclado (#54)', () => {
-  it('declara opacidade condicional em lg (regressão: sem isso o teste abaixo não faz sentido)', () => {
-    expect(source).toMatch(/lg:opacity-0/)
+  it('encontra a className do gatilho', () => {
+    expect(triggerClassName).toBeDefined()
   })
 
-  it('mantém a variante de hover existente', () => {
-    expect(source).toMatch(/lg:group-hover:opacity-100/)
+  it('esconde o gatilho em lg e o reaparece no hover (comportamento preservado)', () => {
+    expect(triggerClassName).toMatch(/lg:opacity-0/)
+    expect(triggerClassName).toMatch(/lg:group-hover:opacity-100/)
   })
 
-  it('declara uma variante de foco que reaparece o gatilho em lg — só a correção certa passa', () => {
-    expect(source).toMatch(/lg:group-focus-within:opacity-100|lg:focus-visible:opacity-100/)
+  it('reaparece o gatilho no foco de teclado em lg — só a correção certa passa', () => {
+    expect(triggerClassName).toMatch(
+      /lg:group-focus-within:opacity-100|lg:focus-visible:opacity-100/
+    )
   })
 })
