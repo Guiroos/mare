@@ -5,6 +5,7 @@ import { inputBase, inputErrorCls } from './input'
 import { cn } from '@/lib/utils/cn'
 
 interface CurrencyInputProps {
+  id?: string
   name: string
   defaultValue?: string | number
   required?: boolean
@@ -14,6 +15,8 @@ interface CurrencyInputProps {
   error?: boolean
   onValueChange?: (cents: number) => void
   preserveExplicitZero?: boolean
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
 }
 
 function parseToCents(value: string | number | undefined): number {
@@ -34,6 +37,7 @@ function hasExplicitDefaultValue(value: string | number | undefined) {
 }
 
 export function CurrencyInput({
+  id,
   name,
   defaultValue,
   required,
@@ -43,6 +47,8 @@ export function CurrencyInput({
   error = false,
   onValueChange,
   preserveExplicitZero = false,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
 }: CurrencyInputProps) {
   const [cents, setCents] = useState(() => parseToCents(defaultValue))
   const [hasExplicitValue, setHasExplicitValue] = useState(() =>
@@ -62,6 +68,7 @@ export function CurrencyInput({
   return (
     <>
       <input
+        id={id}
         type="text"
         inputMode="numeric"
         value={formatCents(cents, showExplicitZero)}
@@ -69,6 +76,8 @@ export function CurrencyInput({
         required={required}
         autoFocus={autoFocus}
         placeholder={placeholder ?? 'R$ 0,00'}
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid}
         className={cn(inputBase, error && inputErrorCls, className)}
       />
       <input

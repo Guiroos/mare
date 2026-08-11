@@ -11,14 +11,26 @@ import {
 import { currentYearMonth, formatMonthYear, monthOptions } from '@/lib/utils/date'
 
 type Props = {
+  id?: string
   name: string
   defaultValue?: string
   error?: boolean
   back?: number
   forward?: number
+  'aria-describedby'?: string
+  'aria-invalid'?: boolean
 }
 
-export function MonthSelect({ name, defaultValue, error, back = 12, forward = 12 }: Props) {
+export function MonthSelect({
+  id,
+  name,
+  defaultValue,
+  error,
+  back = 12,
+  forward = 12,
+  'aria-describedby': ariaDescribedBy,
+  'aria-invalid': ariaInvalid,
+}: Props) {
   const initial = defaultValue ?? currentYearMonth()
   const [value, setValue] = useState(initial)
   const options = monthOptions(initial, back, forward)
@@ -28,7 +40,13 @@ export function MonthSelect({ name, defaultValue, error, back = 12, forward = 12
   return (
     <>
       <Select value={value} onValueChange={setValue}>
-        <SelectTrigger error={error} className="bg-bg-input">
+        <SelectTrigger
+          id={id}
+          error={error}
+          className="bg-bg-input"
+          aria-describedby={ariaDescribedBy}
+          aria-invalid={ariaInvalid}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
