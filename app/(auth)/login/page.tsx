@@ -180,7 +180,8 @@ export default async function LoginPage({
             )}
             <LoginButton />
             <p className="mx-auto max-w-[280px] text-pretty text-center text-caption text-text-tertiary">
-              Aplicação de uso pessoal · Acesso restrito ao proprietário cadastrado.
+              Ao entrar, você concorda em usar o Maré durante o beta, sem garantia de
+              disponibilidade.
             </p>
           </div>
         </div>
@@ -206,7 +207,8 @@ export default async function LoginPage({
               )}
               <LoginButton />
               <p className="text-pretty text-center text-caption text-text-tertiary">
-                Aplicação de uso pessoal · Acesso restrito ao proprietário cadastrado.
+                Ao entrar, você concorda em usar o Maré durante o beta, sem garantia de
+                disponibilidade.
               </p>
             </div>
 

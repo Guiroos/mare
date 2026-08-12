@@ -1,9 +1,19 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import NextTopLoader from 'nextjs-toploader'
+import { Toaster } from 'sonner'
 import { auth } from '@/lib/auth'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { RegistrationDialogProvider } from '@/components/providers/RegistrationDialog'
 import { PrivacyModeProvider } from '@/components/providers/PrivacyMode'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
+
+/* Defesa em profundidade sobre o robots.txt: ele impede o rastreio, mas não a
+   indexação de uma URL descoberta por link externo. O noindex fecha isso. */
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+}
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -14,20 +24,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const isAdmin = !!process.env.ADMIN_EMAIL && session.user?.email === process.env.ADMIN_EMAIL
 
+  /* Os providers de cliente (tema, toasts, barra de progresso) vivem aqui e não
+     no root layout: a landing pública não usa nenhum deles e pagava ~100 KB de
+     JS por eles em toda visita — é a única rota do site cujo LCP conta para
+     ranqueamento. `(auth)/layout.tsx` repete só o ThemeProvider, que /login
+     precisa para respeitar a preferência de tema. */
   return (
-    <PrivacyModeProvider>
-      <RegistrationDialogProvider>
-        <div className="min-h-screen bg-bg-base">
-          <Sidebar
-            user={{ name: session.user?.name, email: session.user?.email }}
-            isAdmin={isAdmin}
-          />
-          <main className="pb-20 lg:pb-0 lg:pl-60">
-            <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
-          </main>
-          <BottomNav />
-        </div>
-      </RegistrationDialogProvider>
-    </PrivacyModeProvider>
+    <ThemeProvider>
+      <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
+      <PrivacyModeProvider>
+        <RegistrationDialogProvider>
+          <div className="min-h-screen bg-bg-base">
+            <Sidebar
+              user={{ name: session.user?.name, email: session.user?.email }}
+              isAdmin={isAdmin}
+            />
+            <main className="pb-20 lg:pb-0 lg:pl-60">
+              <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
+            </main>
+            <BottomNav />
+          </div>
+        </RegistrationDialogProvider>
+      </PrivacyModeProvider>
+      <Toaster richColors position="top-center" />
+    </ThemeProvider>
   )
 }

@@ -70,6 +70,15 @@ function extractOklch(cssBlock: string, varName: string) {
   return { l: Number(l) / 100, c: Number(c), h: Number(h), a: a === undefined ? 1 : Number(a) }
 }
 
+function solidRgb(block: string, token: string): Rgb {
+  const { l, c, h } = extractOklch(block, token)
+  return oklchToSrgb255(l, c, h)
+}
+
+function textContrast(block: string, textToken: string, bgToken: string): number {
+  return contrastRatio(solidRgb(block, textToken), solidRgb(block, bgToken))
+}
+
 function contrastAgainstSurface(block: string, ringToken: string): number {
   const surface = extractOklch(block, 'bg-surface')
   const ring = extractOklch(block, ringToken)
@@ -80,7 +89,10 @@ function contrastAgainstSurface(block: string, ringToken: string): number {
 }
 
 const css = readFileSync(CSS_PATH, 'utf-8')
-const rootBlock = css.match(/:root\s*\{([^}]*)\}/)?.[1]
+// `[^{]*` cobre seletores adicionais na mesma regra (hoje `:root, .theme-light`,
+// usado pela landing para permanecer clara sob `.dark`). Casar `:root {` literal
+// quebra o teste a cada seletor novo, sem que nada de contraste tenha mudado.
+const rootBlock = css.match(/:root[^{]*\{([^}]*)\}/)?.[1]
 const darkBlock = css.match(/\.dark\s*\{([^}]*)\}/)?.[1]
 if (!rootBlock || !darkBlock) {
   throw new Error('Não encontrei os blocos :root/.dark em app/globals.css')
@@ -94,6 +106,37 @@ describe('anel de foco — contraste WCAG 1.4.11', () => {
     ['escuro', darkBlock, 'ring-negative'],
   ] as const)('%s: --%s composto sobre --bg-surface atinge >= 3:1', (_theme, block, token) => {
     expect(contrastAgainstSurface(block, token)).toBeGreaterThanOrEqual(3)
+  })
+})
+
+// Texto contra fundo é WCAG 1.4.3 (4,5:1 para texto normal), gate distinto do
+// anel de foco acima — mas a mesma maquinaria de conversão de cor. Estender
+// este arquivo em vez de criar outro é deliberado: duas implementações de
+// OKLCH→sRGB no repo é como as duas divergem e uma delas passa a mentir.
+//
+// `--text-tertiary` reprovava nos dois temas (2,86:1 sobre --bg-base no claro,
+// 2,83:1 sobre --bg-surface no escuro) — é justamente o par que a implementação
+// anterior falhava, então um caso que passasse antes da correção não cobriria
+// nada. `--bg-muted` fica fora de propósito: nenhum dos tokens de texto
+// secundário/terciário alcança 4,5:1 sobre ele, e a regra registrada é não usar
+// texto terciário nesse fundo.
+const TEXT_BACKGROUNDS = ['bg-base', 'bg-surface', 'bg-subtle'] as const
+const TEXT_TOKENS = ['text-primary', 'text-secondary', 'text-tertiary'] as const
+
+describe('texto — contraste WCAG 1.4.3', () => {
+  it.each(
+    (['claro', 'escuro'] as const).flatMap((theme) =>
+      TEXT_TOKENS.flatMap((text) =>
+        TEXT_BACKGROUNDS.map(
+          // O bloco de CSS vai no fim da tupla porque `%s` do vitest consome os
+          // argumentos em ordem — com ele antes, o título do teste imprimiria
+          // o arquivo inteiro.
+          (bg) => [theme, text, bg, theme === 'claro' ? rootBlock : darkBlock] as const
+        )
+      )
+    )
+  )('%s: --%s sobre --%s atinge >= 4.5:1', (_theme, text, bg, block) => {
+    expect(textContrast(block, text, bg)).toBeGreaterThanOrEqual(4.5)
   })
 })
 

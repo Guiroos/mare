@@ -3,7 +3,16 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* `.theme-light` repete o mesmo bloco de tokens num seletor de descendente,
+     para que uma subárvore permaneça clara mesmo com `.dark` no <html>.
+     Usado pelo grupo de rotas (marketing): a landing é light-only por decisão
+     de brief (screenshots, imagem OG e gráfico precisam de uma aparência
+     canônica), e a paleta de marketing não foi calibrada para fundo escuro —
+     em dark ela reprova contraste WCAG AA.
+     É seletor adicional, não cópia de valores: os tokens seguem definidos uma
+     única vez. */
+  :root,
+  .theme-light {
     /* ── Maré Design Tokens ── */
 
     /* Background */
@@ -14,9 +23,19 @@
     --bg-muted: oklch(91.5% 0.014 222);
 
     /* Text */
+    /* `--text-tertiary` era oklch(66%): 2,86:1 sobre --bg-base, ou seja,
+       reprovava WCAG AA como texto em todo o app — a landing só foi a primeira
+       superfície medida. Agora passa 4,5:1 contra --bg-base, --bg-surface e
+       --bg-subtle, com gate em __tests__/unit/focus-ring-contrast.test.ts.
+       O secundário desce junto porque o piso de AA empurrou o terciário para
+       perto dele; sem isso os dois níveis viram a mesma cor e a hierarquia de
+       texto deixa de existir. Não há como manter o degrau original de 18 pontos
+       de L e passar AA — o piso está em ~52,5%.
+       Ressalva: sobre --bg-muted o terciário dá 3,84:1. O token não é para
+       texto normal nesse fundo; usar --text-secondary lá. */
     --text-primary: oklch(16% 0.022 230);
-    --text-secondary: oklch(48% 0.018 228);
-    --text-tertiary: oklch(66% 0.014 226);
+    --text-secondary: oklch(43% 0.018 228);
+    --text-tertiary: oklch(52.5% 0.014 226);
     --text-inverse: oklch(98% 0.004 222);
 
     /* Accent — Ocean Blue */
@@ -86,9 +105,13 @@
     --bg-muted: oklch(30% 0.018 228);
 
     /* Text */
+    /* O tema escuro reprovava pior que o claro: --text-tertiary em oklch(48%)
+       dava 2,83:1 sobre --bg-surface. Subir só o terciário o deixaria a 3
+       pontos de L do secundário — os dois viram a mesma cor e a hierarquia
+       morre. Por isso o secundário sobe junto, mantendo o degrau. */
     --text-primary: oklch(94% 0.008 225);
-    --text-secondary: oklch(65% 0.014 226);
-    --text-tertiary: oklch(48% 0.012 226);
+    --text-secondary: oklch(70% 0.014 226);
+    --text-tertiary: oklch(62% 0.012 226);
     --text-inverse: oklch(12% 0.018 230);
 
     /* Accent */

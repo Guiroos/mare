@@ -12,7 +12,10 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-dm-sans)', 'DM Sans', 'system-ui', 'sans-serif'],
+        /* Marketing-only (rotas (marketing)); o app continua em DM Sans */
+        display: ['var(--font-archivo)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-plex-mono)', 'ui-monospace', 'monospace'],
       },
       colors: {
         /* shadcn/ui tokens */
@@ -113,6 +116,32 @@ const config: Config = {
         label: ['11px', { lineHeight: '1.2', letterSpacing: '0.06em', fontWeight: '600' }],
         amount: ['28px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '600' }],
         hero: ['40px', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '600' }],
+
+        /* ── Escala de marketing (só rotas (marketing)) ──
+           Fluida por clamp() porque a landing vai de 320px a 1120px numa única
+           composição; a escala do app é fixa porque vive dentro de containers
+           de largura controlada. Não usar estes tokens dentro de (app). */
+        'mkt-hero': [
+          'clamp(38px, 6.6vw, 68px)',
+          { lineHeight: '1.05', letterSpacing: '-0.032em', fontWeight: '600' },
+        ],
+        'mkt-h2': [
+          'clamp(28px, 3.8vw, 40px)',
+          { lineHeight: '1.05', letterSpacing: '-0.032em', fontWeight: '600' },
+        ],
+        'mkt-h3': [
+          'clamp(23px, 2.6vw, 28px)',
+          { lineHeight: '1.1', letterSpacing: '-0.032em', fontWeight: '600' },
+        ],
+        'mkt-lead': ['clamp(17px, 1.9vw, 19.5px)', { lineHeight: '1.6' }],
+        'mkt-body': ['17px', { lineHeight: '1.6' }],
+        'mkt-small': ['15.5px', { lineHeight: '1.6' }],
+        'mkt-micro': ['13.5px', { lineHeight: '1.5' }],
+        'mkt-stat': ['26px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '500' }],
+        'mkt-eyebrow': [
+          '11.5px',
+          { lineHeight: '1.2', letterSpacing: '0.14em', fontWeight: '500' },
+        ],
       },
       transitionDuration: {
         fast: '120ms',
@@ -132,10 +161,21 @@ const config: Config = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        /* Cortina que desliza para a direita revelando a curva de maré */
+        'tide-reveal': {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(100%)' },
+        },
+        'tide-marker': {
+          '0%, 85%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'tide-reveal': 'tide-reveal 1.25s cubic-bezier(0.22, 0.61, 0.36, 1) forwards',
+        'tide-marker': 'tide-marker 1.5s ease-out backwards',
       },
     },
   },
