@@ -13,6 +13,7 @@ import {
   endOfMonth,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { z } from 'zod'
 
 // Wrapper interno: elimina a repetição de { locale: ptBR } nas funções de formatação.
 // Não usa setDefaultOptions para evitar mutação de estado global (incompatível com Server Components).
@@ -57,6 +58,12 @@ export function todayISOString(): string {
 /** Converts YYYY-MM to YYYY-MM-01 (referenceMonth format for DB). */
 export function yearMonthToReferenceMonth(yearMonth: string): string {
   return `${yearMonth}-01`
+}
+
+/** Normaliza um YYYY-MM vindo de URL; cai no mês atual se ausente ou inválido (ex: "2025-13"). */
+export function normalizeYearMonthParam(raw: string | undefined): string {
+  if (!raw) return currentYearMonth()
+  return z.string().date().safeParse(`${raw}-01`).success ? raw : currentYearMonth()
 }
 
 /** Converts YYYY-MM-01 to YYYY-MM. */
