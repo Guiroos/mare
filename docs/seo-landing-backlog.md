@@ -198,10 +198,12 @@ duas hipóteses acima estavam escritas com confiança e as duas renderam quase n
   saiu de 2,9 s para **3,0 s** — dentro do ruído. O JS nunca esteve no caminho crítico: a landing
   não tem hidratação bloqueante e o TBT já era 20 ms. A mudança fica porque é correta (a landing
   não deve carregar provider que não usa) e porque baixou o peso total, não porque moveu o LCP.
-- **(b) pesos de fonte.** Archivo e IBM Plex Mono são **fontes variáveis** no `next/font`: tirar o
-  peso 700 do Archivo não muda um byte, porque o arquivo é um só e cobre a faixa inteira. A
-  declaração foi enxugada para os pesos realmente usados (400/500/600) — o ganho é impedir que
-  alguém escreva `font-bold` e receba negrito sintetizado, não tamanho.
+- **(b) pesos de fonte.** O Archivo é **fonte variável** no `next/font`: tirar o peso 700 não muda
+  um byte, porque o arquivo é um só e cobre a faixa inteira. A declaração foi enxugada para os
+  pesos realmente usados (400/500/600) — o ganho é impedir que alguém escreva `font-bold` e receba
+  negrito sintetizado, não tamanho. A IBM Plex Mono é a exceção: **não tem versão variável** e sai
+  em dois woff2 estáticos (400 e 500, ~10 KB cada), ambos com preload na landing. Ali o array de
+  pesos é peso de verdade — se um dos dois deixar de ser usado acima da dobra, o corte rende bytes.
 
 **A causa real era o preload do `next/font`, que é por documento e não por rota.** O DM Sans
 (37,9 KB) era pré-carregado em toda visita à landing — que não usa a fonte do app em elemento
@@ -229,7 +231,7 @@ e o Chrome baixava os três. A duplicata de `/icon/md` era a hipótese confirmad
 query de hash, o manifest não, e nenhum dos dois acerta o cache do outro.
 
 `app/icon.tsx` passou a declarar só o 32×32. Os tamanhos de PWA saíram para
-`app/icons/[size]/route.tsx` (`force-static` + `generateStaticParams`, pré-renderizados no build),
+`app/icons/[name]/route.tsx` (`force-static` + `generateStaticParams`, pré-renderizados no build),
 referenciados apenas pelo manifest — só são buscados na instalação. O desenho da onda foi extraído
 para `app/_icon/render.tsx`, compartilhado pelas três superfícies: era a duplicação de exatamente
 esse trecho que deixou o `#1a78c4` sobreviver em uns arquivos e não em outros (§5.3). Ao unificar
@@ -283,6 +285,29 @@ exatamente a classe de marcação que rende manual action do Google. Validar no 
 assim que o domínio estiver no ar (linha aberta na Definition of Done).
 
 ---
+
+### 4.6 Achados da revisão do PR — o que nenhuma medição pegaria
+
+**Resolvidos. Custo: P.** Os dois têm em comum não aparecer em gate nenhum: um é uma classe que o
+Tailwind simplesmente descarta, o outro só se manifesta num dispositivo Android real.
+
+**`pt-4.5` não existe e some em silêncio.** `app/(marketing)/page.tsx` usava `pt-4.5` nos quatro
+cards de "Também vem junto". A escala de spacing do Tailwind 3.4 tem `3.5` mas não `4.5`, e a
+config do projeto não estende — compilando o CSS com a classe no conteúdo saem **zero** regras
+(`mt-3.5`, como controle, sai uma). Os cards ficavam colados na `border-t`. Trocado por `pt-5`.
+O modo de falha é o que interessa: classe inexistente não é erro de build nem de lint, o layout só
+fica um pouco errado. Um `grep -nE '\b[a-z-]+-(4|5|6|7|8|9|1[0-2])\.5\b'` sobre a landing devolve
+zero hoje e é a checagem barata para a próxima vez.
+
+**`purpose: 'maskable'` num ícone que não é maskable.** O manifest declarava o 512 como maskable,
+mas ele é o mesmo desenho do favicon: `borderRadius` (cantos transparentes, que o Android preenche
+por conta própria) e a onda ocupando 86% da largura, bem fora da área segura de 80% que a
+especificação reserva. No recorte circular as pontas da onda somem. Não era regressão deste PR,
+mas o PR reescreveu o renderizador — com `renderIcon(dim, maskable)` a variante custa um
+parâmetro: fundo sangrando até a borda e onda a 56% da largura (meia-diagonal de 0,344·dim contra
+raio de 0,4·dim, com folga). Foi para uma entrada própria em vez de `purpose: 'any maskable'` no
+512 porque o desenho é outro, não o mesmo arquivo com dois papéis. A rota virou `app/icons/[name]`
+— o nome carrega o propósito, não só o tamanho.
 
 ## 5. Gotchas descobertos na implementação
 
@@ -342,10 +367,13 @@ Fonte declarada no root layout com `preload` (o padrão) vira `<link rel="preloa
 página do site, mesmo nas que não usam nenhum glifo dela. Foi o que segurou o LCP da landing em
 2,9 s (§4.2). Regra: fonte que não é usada na rota crítica vai com `preload: false`.
 
-Corolário que economiza uma investigação: **Archivo, DM Sans e IBM Plex Mono chegam como fontes
-variáveis** — um arquivo cobre a faixa inteira de pesos. Enxugar o array `weight` não reduz um
-byte; serve só para impedir peso sintetizado. Quem for cortar bytes de fonte precisa cortar
-famílias ou subsets, não pesos.
+Corolário que economiza uma investigação, com a ressalva que a primeira redação desta seção errou:
+**Archivo e DM Sans chegam como fontes variáveis** — um arquivo cobre a faixa inteira de pesos, e
+enxugar o array `weight` não reduz um byte; serve só para impedir peso sintetizado. **A IBM Plex
+Mono não tem versão variável no Google Fonts**: os dois pesos declarados viram dois woff2 de
+~10 KB, conforme a tabela da §3 sempre mostrou. A regra correta é conferir a família antes de
+supor: para as variáveis, cortar bytes exige cortar famílias ou subsets; para as estáticas,
+cortar peso funciona.
 
 ### 5.6 `generateImageMetadata` emite um `<link>` por entrada
 

@@ -19,7 +19,13 @@ export default function manifest(): MetadataRoute.Manifest {
        lá. */
     icons: [
       { src: '/icons/192', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/icons/512', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/512', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      /* Entrada própria, e não `purpose: 'any maskable'` no 512 acima: o
+         desenho é outro (fundo sangrando, onda na área segura de 80%).
+         Declarar `maskable` sobre o ícone de cantos arredondados fazia o
+         Android recortar as pontas da onda e revelar transparência nos
+         cantos. */
+      { src: '/icons/maskable-512', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   }
 }

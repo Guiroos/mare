@@ -198,7 +198,7 @@ export default function LandingPage() {
           </h2>
           <div className="grid gap-[clamp(24px,3.4vw,40px)] md:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((feature) => (
-              <div key={feature.title} className="pt-4.5 border-t border-border">
+              <div key={feature.title} className="border-t border-border pt-5">
                 <h3 className="mb-1.5 text-[17px] font-semibold leading-snug text-text-primary">
                   {feature.title}
                 </h3>

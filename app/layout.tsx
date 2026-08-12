@@ -22,10 +22,12 @@ const dmSans = DM_Sans({
    self-hospeda ambas: a CSP declara font-src 'self', então o <link> para
    fonts.gstatic.com do protótipo seria bloqueado em produção.
 
-   Os pesos são exatamente os que a landing usa — cada peso extra é um arquivo
-   woff2 a mais no caminho crítico do LCP, e o 700 do Archivo não aparecia em
-   nenhum componente de marketing. Ao introduzir um `font-bold` lá, declarar o
-   peso aqui, senão o browser sintetiza o negrito. */
+   Os pesos são exatamente os que a landing usa, mas o motivo difere por
+   família: o Archivo é fonte variável (um woff2 cobre a faixa toda, então o
+   array só impede negrito sintetizado — o 700 não aparecia em componente de
+   marketing nenhum), enquanto a IBM Plex Mono não tem versão variável e emite
+   um woff2 por peso no caminho crítico do LCP. Ao introduzir um `font-bold`,
+   declarar o peso aqui; no Plex Mono isso custa ~10 KB. */
 const archivo = Archivo({
   subsets: ['latin'],
   weight: ['400', '500', '600'],

@@ -2,19 +2,29 @@ import { ImageResponse } from 'next/og'
 
 /**
  * Renderizador único da marca em PNG, usado pelo favicon (`app/icon.tsx`), pelo
- * ícone iOS (`app/apple-icon.tsx`) e pelos ícones do PWA (`app/icons/[size]`).
+ * ícone iOS (`app/apple-icon.tsx`) e pelos ícones do PWA (`app/icons/[name]`).
  *
  * Pasta com `_` é privada no App Router: não vira rota.
  *
  * Existe porque as três superfícies desenham a mesma onda com o mesmo azul, e
  * antes cada arquivo tinha a sua cópia — o `#1a78c4` que não era a cor da marca
  * sobreviveu justamente assim, corrigido num arquivo e não nos outros.
+ *
+ * `maskable` é a variante do PWA que o Android recorta na forma da plataforma
+ * (círculo, squircle, gota). A especificação reserva só os 80% centrais como
+ * área segura, e tudo fora dela pode ser cortado. A variante padrão viola as
+ * duas condições: o `borderRadius` deixa os cantos transparentes (o sistema
+ * preenche com branco ou aplica uma placa por baixo) e a onda ocupa 86% da
+ * largura, então as pontas somem no recorte circular. Por isso a maskable
+ * desenha o fundo sangrando até a borda e encolhe a onda para caber na área
+ * segura.
  */
-export function renderIcon(dim: number) {
-  /* A onda vem do viewBox 0 0 42 30 do logo da Sidebar. */
-  const scale = dim / 42
-  const waveW = 42 * scale
-  const waveH = 30 * scale
+export function renderIcon(dim: number, maskable = false) {
+  /* A onda vem do viewBox 0 0 42 30 do logo da Sidebar. Na maskable ela cabe
+     inteira no círculo de 80%: meia-diagonal de 0,344·dim contra raio de
+     0,4·dim. */
+  const waveW = maskable ? dim * 0.56 : dim
+  const waveH = (waveW * 30) / 42
 
   return new ImageResponse(
     <div
@@ -24,7 +34,7 @@ export function renderIcon(dim: number) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: Math.round((dim * 7) / 32),
+        borderRadius: maskable ? 0 : Math.round((dim * 7) / 32),
         /* Conversão exata dos tokens --accent e --accent-hover de globals.css.
              O Satori não entende oklch(), então o hex é obrigatório aqui — mas
              ele precisa vir do token, não de um azul escolhido à parte. */
