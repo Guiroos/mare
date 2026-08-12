@@ -6,6 +6,7 @@ import { getUserAutoRollover } from '@/lib/queries/settings'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
   currentYearMonth,
+  normalizeYearMonthParam,
   yearMonthToReferenceMonth,
   prevMonth,
   todayParts,
@@ -33,7 +34,7 @@ export default async function ConfiguracaoMesPage({
 
   const userId = session.user.id
   const { month: rawMonth } = await searchParams
-  const month = rawMonth ?? currentYearMonth()
+  const month = normalizeYearMonthParam(rawMonth)
   const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
   const [displayYear, displayMonth] = month.split('-').map(Number)
   const isCurrentMonth = month === currentYearMonth()

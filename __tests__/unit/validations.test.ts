@@ -150,6 +150,14 @@ describe('yearMonthSchema', () => {
   it('rejects single-digit month without leading zero', () => {
     expect(yearMonthSchema.safeParse('2025-1').success).toBe(false)
   })
+
+  it('is regex-only and does not validate calendar month range — documented, not a bug here', () => {
+    // yearMonthSchema é para formulário (<input type="month"> já garante 01-12).
+    // Como validador de fronteira de URL ele não serve — ver normalizeYearMonthParam
+    // em lib/utils/date.ts, que usa z.string().date() para rejeitar meses fora do range.
+    expect(yearMonthSchema.safeParse('2025-13').success).toBe(true)
+    expect(yearMonthSchema.safeParse('2025-00').success).toBe(true)
+  })
 })
 
 describe('referenceMonthSchema', () => {

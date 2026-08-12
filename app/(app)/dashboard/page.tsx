@@ -7,6 +7,7 @@ import { getUserCreditMode, getOpenFaturas } from '@/lib/queries/fatura'
 import { getMaturityAlerts } from '@/lib/queries/investments'
 import {
   currentYearMonth,
+  normalizeYearMonthParam,
   yearMonthToReferenceMonth,
   todayParts,
   billingCycleDateRange,
@@ -39,7 +40,7 @@ export default async function DashboardPage({
 
   const userId = session.user.id
   const { month: rawMonth, cycleAccount } = await searchParams
-  const month = rawMonth ?? currentYearMonth()
+  const month = normalizeYearMonthParam(rawMonth)
   const referenceMonth = yearMonthToReferenceMonth(month)
 
   const [creditAccounts, creditMode] = await Promise.all([
