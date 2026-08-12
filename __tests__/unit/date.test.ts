@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { format } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
+  normalizeYearMonthParam,
   referenceMonthToYearMonth,
   prevMonth,
   nextMonth,
@@ -33,6 +34,50 @@ describe('yearMonthToReferenceMonth', () => {
     expect(yearMonthToReferenceMonth('2025-03')).toBe('2025-03-01')
     expect(yearMonthToReferenceMonth('2024-12')).toBe('2024-12-01')
     expect(yearMonthToReferenceMonth('2025-01')).toBe('2025-01-01')
+  })
+})
+
+describe('normalizeYearMonthParam', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns the value unchanged when it is a valid YYYY-MM', () => {
+    expect(normalizeYearMonthParam('2025-03')).toBe('2025-03')
+  })
+
+  it('falls back to the current month when the param is undefined', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam(undefined)).toBe('2025-03')
+  })
+
+  it('falls back to the current month when the param is not a date-like string', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam('abc')).toBe('2025-03')
+  })
+
+  it('falls back to the current month for an out-of-range month (2025-13)', () => {
+    // Só a validação de calendário real (z.string().date()) rejeita isso — um regex
+    // \d{4}-\d{2} (yearMonthSchema) aceitaria e deixaria o bug passar.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam('2025-13')).toBe('2025-03')
+  })
+
+  it('falls back to the current month for month zero (2025-00)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam('2025-00')).toBe('2025-03')
+  })
+
+  it('falls back to the current month for a year below the domain floor (0000-01)', () => {
+    // z.string().date() valida calendário, não faixa de ano — '0000-01-01' passa e
+    // reproduziria o mesmo 500 que a issue #56 elimina. Mesmo piso de panorama/page.tsx (> 2000).
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam('0000-01')).toBe('2025-03')
   })
 })
 
