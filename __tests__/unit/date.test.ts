@@ -71,6 +71,14 @@ describe('normalizeYearMonthParam', () => {
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(normalizeYearMonthParam('2025-00')).toBe('2025-03')
   })
+
+  it('falls back to the current month for a year below the domain floor (0000-01)', () => {
+    // z.string().date() valida calendário, não faixa de ano — '0000-01-01' passa e
+    // reproduziria o mesmo 500 que a issue #56 elimina. Mesmo piso de panorama/page.tsx (> 2000).
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearMonthParam('0000-01')).toBe('2025-03')
+  })
 })
 
 describe('referenceMonthToYearMonth', () => {

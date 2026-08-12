@@ -60,10 +60,11 @@ export function yearMonthToReferenceMonth(yearMonth: string): string {
   return `${yearMonth}-01`
 }
 
-/** Normaliza um YYYY-MM vindo de URL; cai no mês atual se ausente ou inválido (ex: "2025-13"). */
+/** Normaliza um YYYY-MM vindo de URL; cai no mês atual se ausente ou inválido (ex: "2025-13", "0000-01"). */
 export function normalizeYearMonthParam(raw: string | undefined): string {
   if (!raw) return currentYearMonth()
-  return z.string().date().safeParse(`${raw}-01`).success ? raw : currentYearMonth()
+  if (!z.string().date().safeParse(`${raw}-01`).success) return currentYearMonth()
+  return Number(raw.slice(0, 4)) > 2000 ? raw : currentYearMonth()
 }
 
 /** Converts YYYY-MM-01 to YYYY-MM. */
