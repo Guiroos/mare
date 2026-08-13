@@ -27,11 +27,14 @@ function ShareLinkContent({
   const [loading, setLoading] = useState(false)
 
   async function generate() {
+    // Na primeira geração não há link anterior — avisar que "o anterior deixou
+    // de funcionar" alarmaria sem motivo.
+    const rotating = url !== null
     setLoading(true)
     try {
       const result = await generateShareLink(personId)
       setUrl(result.url)
-      toast.success('Novo link gerado. O anterior deixou de funcionar.')
+      toast.success(rotating ? 'Novo link gerado. O anterior deixou de funcionar.' : 'Link gerado.')
     } catch {
       toast.error('Não foi possível gerar o link. Tente novamente.')
     } finally {
