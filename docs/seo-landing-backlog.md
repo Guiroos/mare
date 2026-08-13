@@ -1,6 +1,6 @@
 # Landing pública e SEO — estado medido e backlog
 
-**Atualizado:** 2026-08-11 (segunda medição, após a rodada de correções da §4)
+**Atualizado:** 2026-08-13 (Vercel Web Analytics — §6.2)
 **Escopo:** o que foi entregue na construção da landing, o que a medição revelou e o que falta.
 **Relação com os outros documentos:** o `PRD-Mare-Lancamento-Publico.md` define as fases e o
 racional de aquisição. Este arquivo é o registro técnico: números medidos, achados abertos e
@@ -427,7 +427,45 @@ e acrescentá-las ao `app/sitemap.ts`.
   máximo um 308 antes do 200.
 - Google Search Console verificado e sitemap submetido. O histórico só começa na verificação —
   cada semana de atraso é perda permanente.
-- Analytics: escolher a ferramenta **e** liberar o domínio na CSP (§5.4).
+- ~~Analytics: escolher a ferramenta **e** liberar o domínio na CSP (§5.4).~~ **Resolvido:**
+  Vercel Web Analytics (`@vercel/analytics@2.0.1`), montado por route group — `(marketing)`,
+  `(auth)` e `(app)` sim, `(share)` **não**, pelo mesmo motivo que o `SpeedInsights` (§6.2.1).
+  A CSP não precisou de mudança nenhuma: o v2 carrega de um caminho same-origin
+  (`/<unique-path>/script.js`, coberto por `'self'`) e o fallback já era `va.vercel-scripts.com`,
+  liberado em `script-src` e `connect-src` desde o Speed Insights. A ressalva do §5.4 continua
+  valendo para analytics de **terceiro** (Plausible, PostHog, GA) — Vercel é a exceção porque é
+  same-origin.
+
+#### 6.2.1 Por que o Analytics é montado por grupo, e não no root
+
+Mesma razão do `SpeedInsights`: o evento carrega a URL **concreta** (`BeforeSendEvent.url`, campo
+distinto do `route`, que traz só o padrão), e `/e/<token>` tem a credencial no path. Montar na raiz
+mandaria o token de todo extrato compartilhado para o dashboard da Vercel.
+
+A alternativa seria montar na raiz com `beforeSend` derrubando `/e/*`, e ela foi descartada:
+`beforeSend` é prop de função e não atravessa a fronteira RSC, então exigiria um Client Component
+novo só para carregá-la — mais código para o mesmo resultado que a montagem por grupo já dá.
+
+`(auth)` recebe `Analytics` mas não `SpeedInsights`: `/login` é o passo de conversão do funil que
+começa na landing, então a pageview importa; o Core Web Vitals não, porque a rota é `noindex`.
+
+Verificação no build (`VERCEL_ENV=production npm run build`), contando ocorrências em
+`.next/server/app/**/page_client-reference-manifest.js`:
+
+| Rota | `@vercel/analytics` | `@vercel/speed-insights` |
+| --- | --- | --- |
+| `(marketing)/page` | 1 | 1 |
+| `(auth)/login/page` | 1 | 0 |
+| `(app)/dashboard/page` | 1 | 1 |
+| `(share)/e/[token]/page` | **0** | **0** |
+
+**O que o Web Analytics não resolve:** o gate da §6.3. Ele não faz coorte de retenção, e no plano
+Hobby a janela de relatório é de 1 mês — D30 é impossível de ler ali. O que ele entrega é o funil
+de aquisição (visitas na landing, referrer, país, dispositivo, cliques para `/login`). Retenção
+continua sendo a query em `transactions.createdAt`.
+
+**Limites do Hobby:** 50.000 eventos/mês, janela de 1 mês, sem custom events (`track()` exige Pro).
+Ao estourar, a coleta pausa após 3 dias de carência — não há cobrança surpresa.
 
 ### 6.3 O gate que continua aberto
 
