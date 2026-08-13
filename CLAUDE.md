@@ -46,7 +46,7 @@ ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em t
 - **DB**: Neon PostgreSQL via `lib/db/index.ts`. ORM: Drizzle — schema em `lib/db/schema.ts`, migrations em `lib/db/migrations/`
 - **Queries** (`lib/queries/`): lidas direto em Server Components. **Actions** (`lib/actions/`): `"use server"`, mutam e chamam `revalidatePath`
 - `toAmount(val)` em `lib/utils/currency.ts` — sempre usar em vez de `Number(x.amount)`; campos `decimal` do Drizzle retornam string
-- Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas; `getMonthlyEvolution` usa `IN + GROUP BY` (4 queries fixas — não N×4)
+- Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas
 - Gotchas de schema, migrations e Drizzle: **@.claude/db.md**
 - Criptografia de campos (MEK/DEK, API, gotchas de query): **@.claude/crypto.md**
 - Regras de negócio por domínio: **@.claude/domain.md** | Fatura (billing cycle, modos, pagamento): **@.claude/domain-fatura.md**

@@ -30,10 +30,10 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
-- `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`, `getMonthlyEvolution`
+- `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
 - `getPatrimonyTimeline` — `aporte` é capital líquido: desconta resgates brutos (`amount + taxAmount`); `PatrimonyHero` exibe `totalYield` só de tipos ativos
-- `investments.excludeFromCashFlow` — quando `true`, o aporte é excluído do fluxo de caixa em `getDashboardData`, `getMonthlyEvolution` e `getAnnualOverview`; usar em reinvestimentos (resgate de A que vira aporte em B) para evitar dupla contagem
+- `investments.excludeFromCashFlow` — quando `true`, o aporte é excluído do fluxo de caixa em `getDashboardData` e `getAnnualOverview`; usar em reinvestimentos (resgate de A que vira aporte em B) para evitar dupla contagem
 - `investmentWithdrawals.amount` é valor líquido (bruto − imposto); saldo deve somar bruto: `amount + coalesce(taxAmount, 0)`
 - `DEFAULT_INVESTMENT_TYPE_COLOR` / `DEFAULT_INVESTMENT_TYPE_BG_COLOR` em `lib/utils/color.ts` — usar quando `investmentType.color` é null; `deriveBgColor(hex)` gera bgColor como mix 12% cor + 88% branco
 
