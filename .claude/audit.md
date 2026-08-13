@@ -84,7 +84,7 @@ Ao encontrar um predicado de domínio, levantar **todos** os sites que o express
 Timezone `America/Sao_Paulo`. Auditar **apenas** a área do dia — profundidade em 2 arquivos vale mais que varredura em 40.
 
 ### Segunda — Camada de dados e criptografia
-`lib/queries/`, `lib/actions/`, `lib/db/`. Categorias 1 e 2 acima. Comece pelas queries sem cobertura de teste: `getMonthlyEvolution`, `getAnnualOverview` e `getCreditAccounts` hoje não têm nenhuma.
+`lib/queries/`, `lib/actions/`, `lib/db/`. Categorias 1 e 2 acima. Comece pelas queries sem cobertura de teste: `getAnnualOverview` e `getCreditAccounts` hoje não têm nenhuma.
 
 ### Terça — Dependências e supply chain
 47 pacotes diretos e alertas de segurança abertos no Dependabot. Procure o que o Dependabot não reporta:
