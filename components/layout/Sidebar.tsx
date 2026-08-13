@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import {
@@ -44,7 +45,7 @@ const configNav = [
 ]
 
 interface SidebarProps {
-  user?: { name?: string | null; email?: string | null }
+  user?: { name?: string | null; email?: string | null; image?: string | null }
   isAdmin?: boolean
 }
 
@@ -84,6 +85,8 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
   const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Avatar do Google pode falhar (404/429); nesse caso cai nas iniciais.
+  const [avatarFailed, setAvatarFailed] = useState(false)
 
   // If pathname already matches pendingHref, navigation settled — ignore pending
   const isActive = (href: string) => {
@@ -179,14 +182,26 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
               <button className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md p-2 transition-colors hover:bg-bg-subtle">
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
-                  style={{
-                    background: 'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
-                  }}
-                >
-                  {initials}
-                </div>
+                {user?.image && !avatarFailed ? (
+                  <Image
+                    src={user.image}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                    onError={() => setAvatarFailed(true)}
+                  />
+                ) : (
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-caption font-semibold text-white"
+                    style={{
+                      background:
+                        'linear-gradient(135deg, oklch(70% 0.1 180), oklch(55% 0.12 210))',
+                    }}
+                  >
+                    {initials}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1 text-left">
                   <div className="truncate text-small font-semibold text-text-primary">
                     {user?.name ?? '—'}

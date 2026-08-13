@@ -52,6 +52,10 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   turbopack: {},
+  images: {
+    // Avatar do Google vindo de session.user.image (users.image).
+    remotePatterns: [{ protocol: 'https', hostname: 'lh3.googleusercontent.com' }],
+  },
   async headers() {
     return [
       {
