@@ -1,4 +1,3 @@
-import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata, Viewport } from 'next'
 import { Archivo, DM_Sans, IBM_Plex_Mono } from 'next/font/google'
 import { cn } from '@/lib/utils/cn'
@@ -100,8 +99,10 @@ export const viewport: Viewport = {
  * `Toaster` e `NextTopLoader` vivem em `(app)/layout.tsx` e `(auth)/layout.tsx`
  * — a landing não usa nenhum deles e é a única rota cujo LCP é ranqueado.
  *
- * `SpeedInsights` fica aqui de propósito: é justamente na landing que medir
- * Core Web Vitals de usuário real importa.
+ * `SpeedInsights` também não fica aqui: o evento que ele envia carrega a URL
+ * concreta (`BeforeSendEvent.url`, distinta do `route` com o padrão), e
+ * `/e/<token>` tem a credencial no path. Ele vive em `(marketing)/layout.tsx`,
+ * que é a rota cujo Core Web Vitals de usuário real importa.
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -110,10 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
       className={cn(dmSans.variable, archivo.variable, plexMono.variable)}
     >
-      <body className="font-sans">
-        {children}
-        <SpeedInsights />
-      </body>
+      <body className="font-sans">{children}</body>
     </html>
   )
 }

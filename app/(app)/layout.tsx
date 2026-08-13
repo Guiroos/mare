@@ -1,3 +1,4 @@
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import NextTopLoader from 'nextjs-toploader'
@@ -28,7 +29,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
      no root layout: a landing pública não usa nenhum deles e pagava ~100 KB de
      JS por eles em toda visita — é a única rota do site cujo LCP conta para
      ranqueamento. `(auth)/layout.tsx` repete só o ThemeProvider, que /login
-     precisa para respeitar a preferência de tema. */
+     precisa para respeitar a preferência de tema.
+
+     `SpeedInsights` fica por grupo, e não no root, porque o evento que ele
+     envia carrega a URL concreta (`BeforeSendEvent.url`, campo distinto do
+     `route` com o padrão da rota). Aqui é seguro — os ids no path são internos
+     e não abrem nada sem sessão — mas em `(share)` o token de `/e/<token>` é a
+     própria credencial, então aquele grupo fica de fora. */
   return (
     <ThemeProvider>
       <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
@@ -47,6 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </RegistrationDialogProvider>
       </PrivacyModeProvider>
       <Toaster richColors position="top-center" />
+      <SpeedInsights />
     </ThemeProvider>
   )
 }
