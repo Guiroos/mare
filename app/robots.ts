@@ -22,6 +22,7 @@ const PRIVATE_PATHS = [
   '/historico',
   '/contas',
   '/admin',
+  '/e/',
   '/login',
   '/api/',
 ]
