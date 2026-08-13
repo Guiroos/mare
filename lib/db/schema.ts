@@ -472,19 +472,26 @@ export const goalContributionsRelations = relations(goalContributions, ({ one })
   }),
 }))
 
-export const people = pgTable('people', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  email: text('email'),
-  phone: text('phone'),
-  notes: text('notes'),
-  archived: boolean('archived').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-})
+export const people = pgTable(
+  'people',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    notes: text('notes'),
+    archived: boolean('archived').default(false).notNull(),
+    // public statement link: hash is the only lookup path; token is DEK-encrypted, only to re-show the URL
+    shareTokenHash: text('share_token_hash'),
+    shareToken: text('share_token'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex('people_share_token_hash_idx').on(t.shareTokenHash)]
+)
 
 export const debtorEntries = pgTable(
   'debtor_entries',
