@@ -98,7 +98,7 @@ export async function deletePersonIfEmpty(id: string): Promise<ActionResult> {
   if (existing) {
     return {
       ok: false,
-      code: 'PERSON_HAS_ENTRIES',
+      code: 'person_has_entries',
       message: 'Não é possível excluir uma pessoa com lançamentos. Use arquivar.',
     }
   }
@@ -420,10 +420,10 @@ export async function settleCharge(data: SettleChargeInput): Promise<ActionResul
 
   if (!charge) throw new Error('Cobrança não encontrada')
   if (charge.type !== 'charge') {
-    return { ok: false, code: 'ENTRY_NOT_A_CHARGE', message: 'Lançamento não é uma cobrança' }
+    return { ok: false, code: 'entry_not_a_charge', message: 'Lançamento não é uma cobrança' }
   }
   if (charge.status === 'settled') {
-    return { ok: false, code: 'CHARGE_ALREADY_SETTLED', message: 'Cobrança já está quitada' }
+    return { ok: false, code: 'charge_already_settled', message: 'Cobrança já está quitada' }
   }
 
   let incomeId: string | null = null
