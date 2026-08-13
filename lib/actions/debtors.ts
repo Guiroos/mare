@@ -75,9 +75,11 @@ export async function archivePerson(id: string) {
   const userId = await requireUserId()
   await assertOwnsPerson(userId, id)
 
+  // Zera o link público junto: arquivar é o gesto de "essa relação acabou", e
+  // sem isso o extrato continuaria servindo dado vivo para quem tem a URL.
   await db
     .update(people)
-    .set({ archived: true, updatedAt: new Date() })
+    .set({ archived: true, shareTokenHash: null, shareToken: null, updatedAt: new Date() })
     .where(and(eq(people.id, id), eq(people.userId, userId)))
 
   revalidatePath('/devedores')

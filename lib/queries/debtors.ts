@@ -448,6 +448,9 @@ export type SharedDebtStatement = {
 /**
  * Public debt statement, resolved from the share token hash.
  * The userId used downstream always comes from the row found here, never from a URL param.
+ *
+ * `archived: false` no where é defesa em profundidade: `archivePerson` já zera o
+ * hash, mas o filtro também cobre quem foi arquivado antes dessa regra existir.
  */
 export async function getSharedDebtStatement(
   tokenHash: string
@@ -461,7 +464,7 @@ export async function getSharedDebtStatement(
     })
     .from(people)
     .innerJoin(users, eq(people.userId, users.id))
-    .where(eq(people.shareTokenHash, tokenHash))
+    .where(and(eq(people.shareTokenHash, tokenHash), eq(people.archived, false)))
     .limit(1)
 
   const row = rows[0]

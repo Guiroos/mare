@@ -119,3 +119,38 @@ describe('generateShareLink', () => {
     await expect(generateShareLink('nao-e-uuid')).rejects.toThrow()
   })
 })
+
+describe('archivePerson', () => {
+  it('derruba o link público junto', async () => {
+    // pessoa própria: arquivar a do beforeAll invalidaria o link dos outros testes
+    const { id: outroId } = await createPerson(db, userId, 'Ex-colega')
+    await createCharge(db, userId, outroId, { amount: '10.00', description: 'Almoço' })
+
+    const { generateShareLink, archivePerson } = await import('@/lib/actions/debtors')
+    const { getSharedDebtStatement } = await import('@/lib/queries/debtors')
+
+    const token = (await generateShareLink(outroId)).url.split('/e/')[1]
+    expect(await getSharedDebtStatement(hashShareToken(token))).not.toBeNull()
+
+    await archivePerson(outroId)
+
+    expect(await getSharedDebtStatement(hashShareToken(token))).toBeNull()
+    const row = await db.query.people.findFirst({ where: eq(schema.people.id, outroId) })
+    expect(row!.shareTokenHash).toBeNull()
+    expect(row!.shareToken).toBeNull()
+  })
+
+  it('nega o extrato de pessoa arquivada com hash ainda gravado', async () => {
+    // cobre quem foi arquivado antes de `archivePerson` passar a zerar o hash
+    const { id: legadoId } = await createPerson(db, userId, 'Arquivado legado')
+    await createCharge(db, userId, legadoId, { amount: '10.00', description: 'Café' })
+
+    const { generateShareLink } = await import('@/lib/actions/debtors')
+    const { getSharedDebtStatement } = await import('@/lib/queries/debtors')
+
+    const token = (await generateShareLink(legadoId)).url.split('/e/')[1]
+    await db.update(schema.people).set({ archived: true }).where(eq(schema.people.id, legadoId))
+
+    expect(await getSharedDebtStatement(hashShareToken(token))).toBeNull()
+  })
+})
