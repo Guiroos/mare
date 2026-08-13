@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
-import { createUser, createPerson, createCharge } from './helpers/factories'
+import { createUser, createPerson, createCharge, createPayment } from './helpers/factories'
 
 // UUID válido que nunca existirá no banco — passa a validação Zod mas ownership rejeita
 const FOREIGN_UUID = '00000000-0000-0000-0000-000000000000'
@@ -140,9 +140,74 @@ describe('settleCharge', () => {
       .where(eq(schema.debtorEntries.id, charge.id))
 
     const { settleCharge } = await import('@/lib/actions/debtors')
-    await expect(
-      settleCharge({ chargeId: charge.id, personId, entryDate: '2025-05-10', createIncome: false })
-    ).rejects.toThrow('Cobrança já está quitada')
+    const result = await settleCharge({
+      chargeId: charge.id,
+      personId,
+      entryDate: '2025-05-10',
+      createIncome: false,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('charge_already_settled')
+      expect(result.message).toContain('já está quitada')
+    }
+  })
+
+  it('rejeita entry que não é cobrança', async () => {
+    const payment = await createPayment(db, userId, personId, {
+      description: 'Pagamento avulso',
+      amount: '30.00',
+      entryDate: '2025-05-20',
+      referenceMonth: '2025-05-01',
+    })
+
+    const { settleCharge } = await import('@/lib/actions/debtors')
+    const result = await settleCharge({
+      chargeId: payment.id,
+      personId,
+      entryDate: '2025-05-21',
+      createIncome: false,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('entry_not_a_charge')
+      expect(result.message).toContain('não é uma cobrança')
+    }
+  })
+})
+
+describe('deletePersonIfEmpty', () => {
+  it('devolve person_has_entries quando há lançamentos e não deleta a pessoa', async () => {
+    const person = await createPerson(db, userId, `Com histórico ${Date.now()}`)
+    await createCharge(db, userId, person.id)
+
+    const { deletePersonIfEmpty } = await import('@/lib/actions/debtors')
+    const result = await deletePersonIfEmpty(person.id)
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('person_has_entries')
+      expect(result.message).toContain('Use arquivar')
+    }
+
+    const stillExists = await db.query.people.findFirst({
+      where: eq(schema.people.id, person.id),
+    })
+    expect(stillExists).toBeDefined()
+  })
+
+  it('deleta a pessoa quando não há lançamentos', async () => {
+    const person = await createPerson(db, userId, `Sem histórico ${Date.now()}`)
+
+    const { deletePersonIfEmpty } = await import('@/lib/actions/debtors')
+    const result = await deletePersonIfEmpty(person.id)
+
+    expect(result.ok).toBe(true)
+
+    const deleted = await db.query.people.findFirst({ where: eq(schema.people.id, person.id) })
+    expect(deleted).toBeUndefined()
   })
 })
 
