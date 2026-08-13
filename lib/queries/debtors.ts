@@ -1,9 +1,17 @@
 import { db } from '@/lib/db'
-import { people, debtorEntries, transactions, categories, paymentAccounts } from '@/lib/db/schema'
+import {
+  people,
+  debtorEntries,
+  transactions,
+  categories,
+  paymentAccounts,
+  users,
+} from '@/lib/db/schema'
 import { eq, and, desc, asc, gte, inArray, or, isNull } from 'drizzle-orm'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
+import { getUserPixKey } from '@/lib/queries/settings'
 
 export type PersonWithBalance = {
   id: string
@@ -122,6 +130,7 @@ export type PersonDebtDetails = {
     phone: string | null
     notes: string | null
     archived: boolean
+    shareToken: string | null
   }
   summary: {
     balance: number
@@ -296,6 +305,7 @@ export async function getPersonDebtDetails(
       phone: decryptOptional(person.phone, dek),
       notes: decryptOptional(person.notes, dek),
       archived: person.archived,
+      shareToken: decryptOptional(person.shareToken, dek),
     },
     summary: { balance, totalCharged, totalPaid, lastMovement, chargeCount, paymentCount },
     balanceEvolution,
@@ -426,6 +436,49 @@ export async function getOpenChargesForPeople(
     })
   }
   return result
+}
+
+export type SharedDebtStatement = {
+  ownerName: string | null
+  personName: string
+  charges: OpenChargeForLinking[]
+  pixKey: string | null
+}
+
+/**
+ * Public debt statement, resolved from the share token hash.
+ * The userId used downstream always comes from the row found here, never from a URL param.
+ */
+export async function getSharedDebtStatement(
+  tokenHash: string
+): Promise<SharedDebtStatement | null> {
+  const rows = await db
+    .select({
+      personId: people.id,
+      userId: people.userId,
+      personName: people.name,
+      ownerName: users.name,
+    })
+    .from(people)
+    .innerJoin(users, eq(people.userId, users.id))
+    .where(eq(people.shareTokenHash, tokenHash))
+    .limit(1)
+
+  const row = rows[0]
+  if (!row) return null
+
+  const [charges, pixKey, dek] = await Promise.all([
+    getOpenChargesForPerson(row.userId, row.personId),
+    getUserPixKey(row.userId),
+    getDekForUser(row.userId),
+  ])
+
+  return {
+    ownerName: row.ownerName,
+    personName: decryptField(row.personName, dek),
+    charges,
+    pixKey,
+  }
 }
 
 export type DebtorEntryExportRow = {
