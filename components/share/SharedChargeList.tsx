@@ -11,21 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatDate, formatMonthShort } from '@/lib/utils/date'
+import { formatDate, formatMonthShort, uniqueMonthsFromDates } from '@/lib/utils/date'
 import type { OpenChargeForLinking } from '@/lib/queries/debtors'
 
-/**
- * Agrupa por `entryDate`, não por `referenceMonth` — é a mesma derivação de
- * `OpenChargesPicker`, para que o mês visto aqui seja o mesmo que o dono vê no
- * dialog de cobrança.
- */
-function getUniqueMonths(charges: OpenChargeForLinking[]): string[] {
-  const months = new Set(charges.map((c) => c.entryDate.slice(0, 7)))
-  return [...months].sort((a, b) => b.localeCompare(a))
-}
-
 export function SharedChargeList({ charges }: { charges: OpenChargeForLinking[] }) {
-  const months = getUniqueMonths(charges)
+  /* Deriva de `entryDate`, não de `referenceMonth` — o mesmo helper que
+     `OpenChargesPicker` usa, para que o mês visto aqui seja o mesmo que o dono
+     vê no dialog de cobrança. */
+  const months = uniqueMonthsFromDates(charges.map((c) => c.entryDate))
   const [activeMonth, setActiveMonth] = useState<string>('all')
 
   const visible =

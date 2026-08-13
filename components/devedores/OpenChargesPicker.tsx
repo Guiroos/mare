@@ -11,13 +11,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatDate, formatMonthShort } from '@/lib/utils/date'
+import { formatDate, formatMonthShort, uniqueMonthsFromDates } from '@/lib/utils/date'
 import type { OpenChargeForLinking } from '@/lib/queries/debtors'
-
-function getUniqueMonths(charges: OpenChargeForLinking[]): string[] {
-  const months = new Set(charges.map((c) => c.entryDate.slice(0, 7)))
-  return [...months].sort((a, b) => b.localeCompare(a))
-}
 
 type Props = {
   charges: OpenChargeForLinking[]
@@ -34,7 +29,7 @@ export function OpenChargesPicker({
   showBulkControls = false,
   maxHeight = 'max-h-48',
 }: Props) {
-  const months = getUniqueMonths(charges)
+  const months = uniqueMonthsFromDates(charges.map((c) => c.entryDate))
   const [activeMonth, setActiveMonth] = useState<string>(months[0] ?? 'all')
 
   const visibleCharges =

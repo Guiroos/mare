@@ -27,6 +27,7 @@ import {
   futureNMonths,
   calcBaseReferenceMonth,
   calcInstallmentDate,
+  uniqueMonthsFromDates,
 } from '@/lib/utils/date'
 
 describe('yearMonthToReferenceMonth', () => {
@@ -209,6 +210,27 @@ describe('formatMonthShort', () => {
   it('contains abbreviated month name in pt-BR', () => {
     expect(formatMonthShort('2025-03').toLowerCase()).toContain('mar')
     expect(formatMonthShort('2025-01').toLowerCase()).toContain('jan')
+  })
+})
+
+describe('uniqueMonthsFromDates', () => {
+  it('dedups and sorts newest first, regardless of input order', () => {
+    expect(uniqueMonthsFromDates(['2025-01-31', '2025-03-02', '2025-01-05'])).toEqual([
+      '2025-03',
+      '2025-01',
+    ])
+  })
+
+  it('sorts across year boundaries', () => {
+    expect(uniqueMonthsFromDates(['2024-12-31', '2025-01-01', '2024-02-10'])).toEqual([
+      '2025-01',
+      '2024-12',
+      '2024-02',
+    ])
+  })
+
+  it('returns an empty array for no dates', () => {
+    expect(uniqueMonthsFromDates([])).toEqual([])
   })
 })
 
