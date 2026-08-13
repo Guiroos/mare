@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
@@ -31,11 +32,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
      ranqueamento. `(auth)/layout.tsx` repete só o ThemeProvider, que /login
      precisa para respeitar a preferência de tema.
 
-     `SpeedInsights` fica por grupo, e não no root, porque o evento que ele
-     envia carrega a URL concreta (`BeforeSendEvent.url`, campo distinto do
-     `route` com o padrão da rota). Aqui é seguro — os ids no path são internos
-     e não abrem nada sem sessão — mas em `(share)` o token de `/e/<token>` é a
-     própria credencial, então aquele grupo fica de fora. */
+     `SpeedInsights` e `Analytics` ficam por grupo, e não no root, porque o
+     evento que eles enviam carrega a URL concreta (`BeforeSendEvent.url`,
+     campo distinto do `route` com o padrão da rota). Aqui é seguro — os ids no
+     path são internos e não abrem nada sem sessão — mas em `(share)` o token
+     de `/e/<token>` é a própria credencial, então aquele grupo fica de fora.
+
+     Montar na raiz com `beforeSend` filtrando `/e/*` seria a alternativa, mas
+     `beforeSend` é prop de função e não atravessa a fronteira RSC: exigiria um
+     Client Component novo só para isso. */
   return (
     <ThemeProvider>
       <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
@@ -55,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </PrivacyModeProvider>
       <Toaster richColors position="top-center" />
       <SpeedInsights />
+      <Analytics />
     </ThemeProvider>
   )
 }
