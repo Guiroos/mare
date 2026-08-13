@@ -21,6 +21,7 @@ import {
 import { uuidSchema } from '@/lib/validations/utils'
 import { generateShareToken, hashShareToken } from '@/lib/utils/share-token'
 import { getRequestOrigin } from '@/lib/utils/request-origin'
+import type { ActionResult } from '@/lib/actions/types'
 
 // ─── Pessoas ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export async function archivePerson(id: string) {
   revalidatePath('/devedores')
 }
 
-export async function deletePersonIfEmpty(id: string) {
+export async function deletePersonIfEmpty(id: string): Promise<ActionResult> {
   const userId = await requireUserId()
   await assertOwnsPerson(userId, id)
 
@@ -95,12 +96,18 @@ export async function deletePersonIfEmpty(id: string) {
   })
 
   if (existing) {
-    throw new Error('Não é possível excluir uma pessoa com lançamentos. Use arquivar.')
+    return {
+      ok: false,
+      code: 'person_has_entries',
+      message: 'Não é possível excluir uma pessoa com lançamentos. Use arquivar.',
+    }
   }
 
   await db.delete(people).where(and(eq(people.id, id), eq(people.userId, userId)))
 
   revalidatePath('/devedores')
+
+  return { ok: true, data: undefined }
 }
 
 // ─── Lançamentos ──────────────────────────────────────────────────────────────
@@ -388,7 +395,7 @@ export type SettleChargeInput = {
   notes?: string
 }
 
-export async function settleCharge(data: SettleChargeInput): Promise<void> {
+export async function settleCharge(data: SettleChargeInput): Promise<ActionResult> {
   const userId = await requireUserId()
   settleChargeSchema.parse(data)
   const [, dek] = await Promise.all([
@@ -412,8 +419,12 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
   })
 
   if (!charge) throw new Error('Cobrança não encontrada')
-  if (charge.type !== 'charge') throw new Error('Lançamento não é uma cobrança')
-  if (charge.status === 'settled') throw new Error('Cobrança já está quitada')
+  if (charge.type !== 'charge') {
+    return { ok: false, code: 'entry_not_a_charge', message: 'Lançamento não é uma cobrança' }
+  }
+  if (charge.status === 'settled') {
+    return { ok: false, code: 'charge_already_settled', message: 'Cobrança já está quitada' }
+  }
 
   let incomeId: string | null = null
 
@@ -466,6 +477,8 @@ export async function settleCharge(data: SettleChargeInput): Promise<void> {
     revalidatePath('/dashboard')
     revalidatePath('/panorama')
   }
+
+  return { ok: true, data: undefined }
 }
 
 export type DeleteDebtEntryInput = {

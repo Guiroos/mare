@@ -39,11 +39,14 @@ export function DebtorList({ people, openChargesByPerson, pixKey }: Props) {
 
   const handleDelete = async (person: PersonWithBalance) => {
     try {
-      await deletePersonIfEmpty(person.id)
-      toast.success(`${person.name} excluída.`)
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao excluir.'
-      toast.error(msg)
+      const result = await deletePersonIfEmpty(person.id)
+      if (result.ok) {
+        toast.success(`${person.name} excluída.`)
+      } else {
+        toast.error(result.message)
+      }
+    } catch {
+      toast.error('Erro ao excluir.')
     }
   }
 
