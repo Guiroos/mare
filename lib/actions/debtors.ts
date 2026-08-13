@@ -20,7 +20,7 @@ import {
 } from '@/lib/validations/debtors'
 import { uuidSchema } from '@/lib/validations/utils'
 import { generateShareToken, hashShareToken } from '@/lib/utils/share-token'
-import { SITE_URL } from '@/lib/utils/site'
+import { getRequestOrigin } from '@/lib/utils/request-origin'
 
 // ─── Pessoas ──────────────────────────────────────────────────────────────────
 
@@ -566,5 +566,5 @@ export async function generateShareLink(personId: string): Promise<{ url: string
 
   revalidatePath(`/devedores/${id}`)
 
-  return { url: `${SITE_URL}/e/${token}` }
+  return { url: `${await getRequestOrigin()}/e/${token}` }
 }

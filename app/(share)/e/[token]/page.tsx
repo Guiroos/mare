@@ -8,7 +8,7 @@ import { formatCurrency } from '@/lib/utils/currency'
 import { SharedChargeList } from '@/components/share/SharedChargeList'
 import { CopyPixButton } from '@/components/share/CopyPixButton'
 import { EmptyState } from '@/components/ui/empty-state'
-import { Card } from '@/components/ui/card'
+import { SummaryCard } from '@/components/ui/summary-card'
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -35,7 +35,7 @@ export default async function SharedStatementPage({
     <div className="space-y-6">
       <header className="space-y-1">
         <p className="text-small text-text-tertiary">Olá, {statement.personName}</p>
-        <h1 className="text-h2 font-semibold">
+        <h1 className="text-h2">
           {statement.ownerName ? `Você deve para ${statement.ownerName}` : 'Seu extrato'}
         </h1>
       </header>
@@ -49,10 +49,7 @@ export default async function SharedStatementPage({
         />
       ) : (
         <>
-          <Card padding="md">
-            <p className="text-caption text-text-secondary">Total em aberto</p>
-            <p className="text-hero tabular-nums text-text-primary">{formatCurrency(total)}</p>
-          </Card>
+          <SummaryCard variant="balance" label="Total em aberto" amount={formatCurrency(total)} />
 
           {statement.pixKey && <CopyPixButton pixKey={statement.pixKey} />}
 

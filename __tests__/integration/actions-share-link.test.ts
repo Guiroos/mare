@@ -7,6 +7,9 @@ import { createUser, createPerson, createCharge } from './helpers/factories'
 import { hashShareToken } from '@/lib/utils/share-token'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/headers', () => ({
+  headers: vi.fn(async () => new Headers({ host: 'localhost:3000' })),
+}))
 vi.mock('@/lib/auth/require-user', () => ({ requireUserId: vi.fn() }))
 vi.mock('@/lib/auth/ownership', () => ({
   assertOwnsPerson: vi.fn(),
@@ -48,6 +51,9 @@ describe('generateShareLink', () => {
 
     const token = url.split('/e/')[1]
     expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    // origem vem do request, não do SITE_URL fixo — link gerado em dev aponta
+    // para o host de dev, onde o token realmente existe
+    expect(url).toBe(`http://localhost:3000/e/${token}`)
 
     const row = await db.query.people.findFirst({ where: eq(schema.people.id, personId) })
     expect(row!.shareTokenHash).toBe(hashShareToken(token))

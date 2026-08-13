@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { MessageCircle } from 'lucide-react'
+import { Link2, MessageCircle } from 'lucide-react'
 import { RowActions } from '@/components/ui/row-actions'
 import { PersonDialog } from '@/components/devedores/PersonDialog'
 import { CobrancaDialog } from '@/components/devedores/CobrancaDialog'
+import { ShareLinkDialog } from '@/components/devedores/ShareLinkDialog'
 import type { OpenChargeForLinking } from '@/lib/queries/debtors'
 
 interface DevedorDetailActionsProps {
@@ -18,6 +19,7 @@ interface DevedorDetailActionsProps {
   balance: number
   openCharges: OpenChargeForLinking[]
   pixKey: string | null
+  shareUrl: string | null
 }
 
 export function DevedorDetailActions({
@@ -25,9 +27,11 @@ export function DevedorDetailActions({
   balance,
   openCharges,
   pixKey,
+  shareUrl,
 }: DevedorDetailActionsProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [cobrancaOpen, setCobrancaOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
 
   return (
     <>
@@ -38,6 +42,11 @@ export function DevedorDetailActions({
             label: 'Cobrar via WhatsApp',
             icon: MessageCircle,
             onClick: () => setCobrancaOpen(true),
+          },
+          {
+            label: 'Compartilhar extrato',
+            icon: Link2,
+            onClick: () => setShareOpen(true),
           },
         ]}
       />
@@ -60,6 +69,13 @@ export function DevedorDetailActions({
           setCobrancaOpen(false)
           setEditOpen(true)
         }}
+      />
+
+      <ShareLinkDialog
+        personId={person.id}
+        initialUrl={shareUrl}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
       />
     </>
   )

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
+import { Section } from '@/components/ui/section'
 import {
   Select,
   SelectContent,
@@ -31,10 +32,10 @@ export function SharedChargeList({ charges }: { charges: OpenChargeForLinking[] 
     activeMonth === 'all' ? charges : charges.filter((c) => c.entryDate.startsWith(activeMonth))
 
   return (
-    <section className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="text-label text-text-secondary">Cobranças em aberto</h2>
-        {months.length > 1 && (
+    <Section
+      title="Cobranças em aberto"
+      action={
+        months.length > 1 ? (
           <Select value={activeMonth} onValueChange={setActiveMonth}>
             <SelectTrigger className="h-8 w-auto bg-bg-input px-3 text-small">
               <SelectValue />
@@ -48,9 +49,9 @@ export function SharedChargeList({ charges }: { charges: OpenChargeForLinking[] 
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
-
+        ) : undefined
+      }
+    >
       <Card padding="none">
         <ul className="divide-y divide-border">
           {visible.map((charge) => (
@@ -66,6 +67,6 @@ export function SharedChargeList({ charges }: { charges: OpenChargeForLinking[] 
           ))}
         </ul>
       </Card>
-    </section>
+    </Section>
   )
 }
