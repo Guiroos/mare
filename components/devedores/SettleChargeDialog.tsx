@@ -67,11 +67,15 @@ export function SettleChargeDialog({ entry, personId, open, onOpenChange }: Prop
     setErrors({})
     startTransition(async () => {
       try {
-        await settleCharge(result.data)
-        toast.success('Cobrança quitada.')
-        onOpenChange(false)
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Erro ao quitar cobrança.')
+        const actionResult = await settleCharge(result.data)
+        if (actionResult.ok) {
+          toast.success('Cobrança quitada.')
+          onOpenChange(false)
+        } else {
+          toast.error(actionResult.message)
+        }
+      } catch {
+        toast.error('Erro ao quitar cobrança.')
       }
     })
   }

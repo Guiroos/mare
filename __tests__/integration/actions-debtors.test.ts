@@ -140,9 +140,18 @@ describe('settleCharge', () => {
       .where(eq(schema.debtorEntries.id, charge.id))
 
     const { settleCharge } = await import('@/lib/actions/debtors')
-    await expect(
-      settleCharge({ chargeId: charge.id, personId, entryDate: '2025-05-10', createIncome: false })
-    ).rejects.toThrow('Cobrança já está quitada')
+    const result = await settleCharge({
+      chargeId: charge.id,
+      personId,
+      entryDate: '2025-05-10',
+      createIncome: false,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('CHARGE_ALREADY_SETTLED')
+      expect(result.message).toContain('já está quitada')
+    }
   })
 })
 
