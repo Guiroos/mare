@@ -73,6 +73,14 @@ describe('getRegistrationFormData — regime de fatura bate com getDashboardData
       type: 'credit',
       closingDay: 10,
     })
+    // type='credit' mas closingDay<=1: conta de calendário (.claude/domain-fatura.md),
+    // NÃO entra em creditAccountIds — distingue getCreditAccounts (closingDay>1) de um
+    // filtro ingênuo por `type === 'credit'`, que incluiria as duas contas igualmente.
+    const { id: calendarCreditId } = await createAccount(db, userId, {
+      name: 'Cartão sem fechamento',
+      type: 'credit',
+      closingDay: 1,
+    })
     const { id: groupId } = await createCategoryGroup(db, userId)
     const { id: catId } = await createCategory(db, userId, groupId)
 
@@ -84,10 +92,19 @@ describe('getRegistrationFormData — regime de fatura bate com getDashboardData
     })
 
     await createIncome(db, userId, { amount: '3000.00', referenceMonth: MONTH_REF })
-    // Compra no cartão: regime de fatura exclui do saldo do mês (entra só no pagamento da fatura)
+    // Compra no cartão de fatura: regime de fatura exclui do saldo do mês (entra só no
+    // pagamento da fatura)
     await createTransaction(db, userId, creditId, {
       amount: '800.00',
       date: '2025-06-05',
+      referenceMonth: MONTH_REF,
+      categoryId: catId,
+    })
+    // Compra na conta de calendário: NÃO é excluída — se a action usasse um filtro
+    // ingênuo por `type`, essa transação também sumiria do saldo e o teste não notaria
+    await createTransaction(db, userId, calendarCreditId, {
+      amount: '400.00',
+      date: '2025-06-06',
       referenceMonth: MONTH_REF,
       categoryId: catId,
     })
@@ -114,7 +131,9 @@ describe('getRegistrationFormData — regime de fatura bate com getDashboardData
     // Comparado contra o dashboard, não uma constante — é o acoplamento entre
     // as duas telas que está sendo defendido.
     expect(formData.currentBalance).toBeCloseTo(dashboardData.summary.balance, 1)
-    // A compra no cartão não deve ter entrado no saldo do mês
-    expect(formData.currentBalance).toBeCloseTo(3000, 1)
+    // 3000 (renda) − 400 (compra na conta de calendário) = 2600. Os 800 do cartão de
+    // fatura ficam de fora; um filtro ingênuo por `type` também excluiria os 400 e daria
+    // 3000 — é essa diferença que a asserção acima, sozinha, não capturava.
+    expect(formData.currentBalance).toBeCloseTo(2600, 1)
   })
 })
