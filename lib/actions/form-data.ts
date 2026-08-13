@@ -1,47 +1,46 @@
 'use server'
 
-import { getCategoriesWithGroups, getPaymentAccounts } from '@/lib/queries/categories'
-import { getInvestmentTypes, getInvestmentBalances } from '@/lib/queries/investments'
 import {
-  getCategoryGroupProgress,
-  getMonthIncomes,
-  getMonthInvestments,
-} from '@/lib/queries/dashboard'
+  getCategoriesWithGroups,
+  getPaymentAccounts,
+  getCreditAccounts,
+} from '@/lib/queries/categories'
+import { getInvestmentTypes, getInvestmentBalances } from '@/lib/queries/investments'
+import { getDashboardData } from '@/lib/queries/dashboard'
+import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getActivePeople } from '@/lib/queries/debtors'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
-import { toAmount } from '@/lib/utils/currency'
 import { requireUserId } from '@/lib/auth/require-user'
 
 export async function getRegistrationFormData() {
   const userId = await requireUserId()
   const month = yearMonthToReferenceMonth(currentYearMonth())
 
-  const [
-    categoryGroups,
-    accounts,
-    investmentTypes,
-    groupProgress,
-    incomeList,
-    investmentList,
-    people,
-    balances,
-  ] = await Promise.all([
-    getCategoriesWithGroups(userId),
-    getPaymentAccounts(userId),
-    getInvestmentTypes(userId),
-    getCategoryGroupProgress(userId, month),
-    getMonthIncomes(userId, month),
-    getMonthInvestments(userId, month),
-    getActivePeople(userId),
-    getInvestmentBalances(userId),
+  const [creditAccounts, creditMode] = await Promise.all([
+    getCreditAccounts(userId),
+    getUserCreditMode(userId),
   ])
 
-  const totalIncomes = incomeList.reduce((s, i) => s + toAmount(i.amount), 0)
-  const totalExpenses = groupProgress.reduce((s, g) => s + g.totalSpent, 0)
-  const totalInvested = investmentList
-    .filter((i) => !i.excludeFromCashFlow)
-    .reduce((s, i) => s + toAmount(i.amount), 0)
-  const currentBalance = totalIncomes - totalExpenses - totalInvested
+  const faturaCtx =
+    creditMode.creditMode === 'fatura'
+      ? {
+          creditMode: creditMode.creditMode,
+          faturaActiveFrom: creditMode.faturaActiveFrom,
+          creditAccountIds: creditAccounts.map((a) => a.id),
+        }
+      : undefined
+
+  const [categoryGroups, accounts, investmentTypes, people, balances, dashboardData] =
+    await Promise.all([
+      getCategoriesWithGroups(userId),
+      getPaymentAccounts(userId),
+      getInvestmentTypes(userId),
+      getActivePeople(userId),
+      getInvestmentBalances(userId),
+      getDashboardData(userId, month, faturaCtx),
+    ])
+
+  const { groupProgress, summary } = dashboardData
 
   const categorySpends = Object.fromEntries(
     groupProgress.flatMap((g) =>
@@ -56,7 +55,7 @@ export async function getRegistrationFormData() {
     accounts,
     investmentTypes,
     categorySpends,
-    currentBalance,
+    currentBalance: summary.balance,
     people,
     investmentBalances,
   }
