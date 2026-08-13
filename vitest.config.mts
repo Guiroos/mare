@@ -59,6 +59,13 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/utils/share-token.ts — geração/hash de token de link público; 100% atingido.
+        'lib/utils/share-token.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
         // lib/utils/color.ts — deriveBgColor e constantes; 100% atingido.
         'lib/utils/color.ts': {
           statements: 95,

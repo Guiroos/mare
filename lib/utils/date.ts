@@ -108,6 +108,16 @@ export function monthOptions(centerYearMonth: string, back: number, forward: num
   return result
 }
 
+/**
+ * Reduces YYYY-MM-DD dates to their distinct YYYY-MM months, newest first.
+ * Shared by every month filter derived from entry dates so the months shown in
+ * two places can't drift apart.
+ */
+export function uniqueMonthsFromDates(dates: string[]): string[] {
+  const months = new Set(dates.map((d) => d.slice(0, 7)))
+  return [...months].sort((a, b) => b.localeCompare(a))
+}
+
 /** Formats a YYYY-MM as a short chart label, e.g. "jan 25" (pt-BR). */
 export function formatMonthShort(yearMonth: string): string {
   return fmt(parseISO(`${yearMonth}-01`), 'MMM yy')

@@ -50,3 +50,5 @@ export const yearMonthSchema = z.string().regex(/^\d{4}-\d{2}$/, 'Mês inválido
 export const referenceMonthSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-01$/, 'Mês de referência inválido')
+
+export const shareTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/, 'Link inválido')

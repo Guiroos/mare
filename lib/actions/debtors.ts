@@ -18,6 +18,9 @@ import {
   debtPaymentSchema,
   settleChargeSchema,
 } from '@/lib/validations/debtors'
+import { uuidSchema } from '@/lib/validations/utils'
+import { generateShareToken, hashShareToken } from '@/lib/utils/share-token'
+import { getRequestOrigin } from '@/lib/utils/request-origin'
 
 // ─── Pessoas ──────────────────────────────────────────────────────────────────
 
@@ -72,9 +75,11 @@ export async function archivePerson(id: string) {
   const userId = await requireUserId()
   await assertOwnsPerson(userId, id)
 
+  // Zera o link público junto: arquivar é o gesto de "essa relação acabou", e
+  // sem isso o extrato continuaria servindo dado vivo para quem tem a URL.
   await db
     .update(people)
-    .set({ archived: true, updatedAt: new Date() })
+    .set({ archived: true, shareTokenHash: null, shareToken: null, updatedAt: new Date() })
     .where(and(eq(people.id, id), eq(people.userId, userId)))
 
   revalidatePath('/devedores')
@@ -536,4 +541,32 @@ export async function deleteDebtEntry(data: DeleteDebtEntryInput) {
     revalidatePath('/dashboard')
     revalidatePath('/panorama')
   }
+}
+
+// ─── Link público de extrato ──────────────────────────────────────────────────
+
+/**
+ * Generates (or rotates) a person's public statement link.
+ * There is no separate "revoke": writing a new hash already invalidates the previous link.
+ */
+export async function generateShareLink(personId: string): Promise<{ url: string }> {
+  const userId = await requireUserId()
+  const id = uuidSchema.parse(personId)
+  await assertOwnsPerson(userId, id)
+
+  const token = generateShareToken()
+  const dek = await getDekForUser(userId)
+
+  await db
+    .update(people)
+    .set({
+      shareTokenHash: hashShareToken(token),
+      shareToken: encryptField(token, dek),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(people.id, id), eq(people.userId, userId)))
+
+  revalidatePath(`/devedores/${id}`)
+
+  return { url: `${await getRequestOrigin()}/e/${token}` }
 }

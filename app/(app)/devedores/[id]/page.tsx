@@ -18,6 +18,7 @@ import { DevedorDetailActions } from '@/components/devedores/DevedorDetailAction
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ExportButton } from '@/components/export/ExportButton'
+import { getRequestOrigin } from '@/lib/utils/request-origin'
 
 export default async function DevedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [session, { id }] = await Promise.all([auth(), params])
@@ -32,6 +33,8 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
   if (!data) notFound()
 
   const { person, summary, balanceEvolution, entries } = data
+
+  const shareUrl = person.shareToken ? `${await getRequestOrigin()}/e/${person.shareToken}` : null
 
   return (
     <PageLayout>
@@ -61,6 +64,7 @@ export default async function DevedorDetailPage({ params }: { params: Promise<{ 
             balance={summary.balance}
             openCharges={openCharges}
             pixKey={pixKey}
+            shareUrl={shareUrl}
           />
         </div>
       </div>
