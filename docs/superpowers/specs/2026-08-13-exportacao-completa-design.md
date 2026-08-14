@@ -310,11 +310,18 @@ no spec de 2026-07-28.
 
 - **Memória.** Sem teto, o dump inteiro é montado em RAM antes da resposta. Uma conta de cinco anos
   de uso intenso fica na ordem de poucos MB de texto — dentro de qualquer limite de função
-  serverless. Streaming só se justifica com evidência, e não há nenhuma. **Ação:** medir o tamanho
-  do buffer numa conta real antes do merge e registrar o número aqui.
+  serverless. Streaming só se justifica com evidência, e não há nenhuma. **Medido** (conta real de
+  maior volume no banco de dev: 407 transações, 646 linhas somadas nas 12 planilhas): **39,6 KB** em
+  `.xlsx`, **11,6 KB** em `.zip` de CSVs. Duas ordens de grandeza abaixo de qualquer limite —
+  streaming segue sem justificativa.
 - **Latência.** São ~15 queries em `Promise.all` mais o decrypt de tudo em JS. Se passar de alguns
-  segundos, o browser fica sem feedback — é `<a href>`, não há spinner. **Ação:** medir junto com o
-  item acima. Se doer, o próximo passo é o job assíncrono que este spec deixou fora de escopo, não
-  streaming.
+  segundos, o browser fica sem feedback — é `<a href>`, não há spinner. **Medido** na mesma conta:
+  `collectFullExport` em **492 ms**, mais 62 ms para serializar o `.xlsx` (**554 ms** no total) ou
+  6 ms para o `.zip` (**498 ms**). O custo é dominado pelas queries + decrypt, não pela
+  serialização, e fica ~9× abaixo do limiar de ~5 s que dispararia o job assíncrono.
+
+  Ressalva de leitura: a medição roda fora da rota, chamando `collectFullExport` direto contra o
+  banco de dev — não inclui `auth()` nem latência de rede até o cliente. É o custo de servidor, que
+  é justamente o que decide entre resposta síncrona e job assíncrono.
 - **Divergência entre formatos.** Mitigada por construção: os dois saem do mesmo `ExportSheet[]`.
   Vale um teste que gere os dois e compare a contagem de linhas por planilha.

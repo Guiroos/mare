@@ -151,3 +151,59 @@ describe('collectFullExport', () => {
     expect(extrato!.data.length).toBeGreaterThanOrEqual(3)
   })
 })
+
+describe('GET /api/export/completo', () => {
+  it('nenhuma célula do dump vaza ciphertext', async () => {
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+
+    const sheets = await collectFullExport(userId)
+    const dump = sheets.map((s) => sheetToCsv(s.data)).join('\n')
+
+    expect(dump).not.toMatch(/enc:/)
+  })
+
+  it('o dump contém os valores decriptados que foram cifrados no setup', async () => {
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+
+    const sheets = await collectFullExport(userId)
+    const dump = sheets.map((s) => sheetToCsv(s.data)).join('\n')
+
+    // Um valor por domínio cifrado no beforeAll — se algum sumir, a query errou
+    expect(dump).toContain('Nubank')
+    expect(dump).toContain('Mercado')
+    expect(dump).toContain('Supermercado')
+    expect(dump).toContain('Notebook')
+    expect(dump).toContain('CDB')
+    expect(dump).toContain('Reserva')
+    expect(dump).toContain('João')
+  })
+
+  it('o ZIP tem um csv por planilha, com prefixo numérico', async () => {
+    const { unzipSync } = await import('fflate')
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+    const { createZip } = await import('@/lib/export/zip')
+
+    const sheets = await collectFullExport(userId)
+    const buffer = createZip(
+      sheets.map((s) => ({ name: `${s.filename}.csv`, content: sheetToCsv(s.data) }))
+    )
+
+    const names = Object.keys(unzipSync(new Uint8Array(buffer)))
+    expect(names).toHaveLength(12)
+    expect(names).toContain('01-extrato.csv')
+    expect(names).toContain('12-devedores-lancamentos.csv')
+  })
+
+  it('o xlsx sai como buffer não-vazio com assinatura de zip', async () => {
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { writeFullXlsx } = await import('@/lib/export/full/xlsx')
+
+    const buffer = await writeFullXlsx(await collectFullExport(userId))
+
+    expect(buffer.length).toBeGreaterThan(0)
+    expect(Array.from(buffer.subarray(0, 2))).toEqual([0x50, 0x4b]) // "PK"
+  })
+})
