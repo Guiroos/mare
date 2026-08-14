@@ -24,7 +24,17 @@ export type PersonWithBalance = {
   lastMovement: string | null
 }
 
-export async function getPeopleWithBalances(userId: string): Promise<PersonWithBalance[]> {
+/**
+ * includeArchived só é usado pela exportação completa, cujo contrato é "a conta
+ * inteira" — e toda pessoa arquivada tem lançamentos por construção
+ * (deletePersonIfEmpty só apaga quem não tem histórico), então omiti-la aqui
+ * fazia a aba de saldos discordar da aba de lançamentos no mesmo arquivo.
+ * A tela /devedores e /api/export/devedores ficam no default.
+ */
+export async function getPeopleWithBalances(
+  userId: string,
+  { includeArchived = false }: { includeArchived?: boolean } = {}
+): Promise<PersonWithBalance[]> {
   const [personRows, entryRows, dek] = await Promise.all([
     db
       .select({
@@ -36,7 +46,11 @@ export async function getPeopleWithBalances(userId: string): Promise<PersonWithB
         archived: people.archived,
       })
       .from(people)
-      .where(and(eq(people.userId, userId), eq(people.archived, false))),
+      .where(
+        includeArchived
+          ? eq(people.userId, userId)
+          : and(eq(people.userId, userId), eq(people.archived, false))
+      ),
     db
       .select({
         personId: debtorEntries.personId,

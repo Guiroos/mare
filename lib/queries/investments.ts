@@ -140,6 +140,31 @@ export async function getInvestmentHistory(userId: string, investmentTypeId: str
   }))
 }
 
+type WithdrawalDbRow = {
+  id: string
+  investmentTypeId: string
+  amount: string
+  taxAmount: string | null
+  date: string
+  destination: string
+  notes: string | null
+  investmentType: { name: string }
+}
+
+function mapWithdrawal(r: WithdrawalDbRow, dek: Buffer) {
+  return {
+    id: r.id,
+    investmentTypeId: r.investmentTypeId,
+    typeName: decryptField(r.investmentType.name, dek),
+    amount: toAmount(decryptField(r.amount, dek)),
+    taxAmount: r.taxAmount !== null ? toAmount(decryptOptional(r.taxAmount, dek)) : null,
+    date: r.date,
+    destination: r.destination,
+    notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
+  }
+}
+
+/** Últimos 6 meses — o que a tela /investimentos mostra. */
 export async function getInvestmentWithdrawals(userId: string) {
   const firstVisibleMonth = pastNMonths(6)[0]
   const dek = await getDekForUser(userId)
@@ -152,24 +177,56 @@ export async function getInvestmentWithdrawals(userId: string) {
     orderBy: (iw, { desc }) => [desc(iw.date)],
   })
 
+  return rows.map((r) => mapWithdrawal(r, dek))
+}
+
+/** Histórico completo de resgates. Exclusivo da exportação completa. */
+export async function getAllInvestmentWithdrawals(userId: string) {
+  const dek = await getDekForUser(userId)
+  const rows = await db.query.investmentWithdrawals.findMany({
+    where: eq(investmentWithdrawals.userId, userId),
+    with: { investmentType: true },
+    orderBy: (iw, { desc }) => [desc(iw.date)],
+  })
+
+  return rows.map((r) => mapWithdrawal(r, dek))
+}
+
+export type WithdrawalRow = Awaited<ReturnType<typeof getAllInvestmentWithdrawals>>[number]
+
+/**
+ * Todos os aportes, de todos os tipos. getInvestmentHistory é por tipo.
+ *
+ * amount e yieldAmount são nullable no schema — por isso decryptOptional, nunca
+ * decryptField (que lança em null).
+ */
+export async function getAllInvestmentEntries(userId: string) {
+  const dek = await getDekForUser(userId)
+  const rows = await db.query.investments.findMany({
+    where: eq(investments.userId, userId),
+    with: { investmentType: true },
+    orderBy: (i, { desc }) => [desc(i.referenceMonth)],
+  })
+
   return rows.map((r) => ({
     id: r.id,
-    investmentTypeId: r.investmentTypeId,
+    referenceMonth: r.referenceMonth,
     typeName: decryptField(r.investmentType.name, dek),
-    amount: toAmount(decryptField(r.amount, dek)),
-    taxAmount: r.taxAmount !== null ? toAmount(decryptOptional(r.taxAmount, dek)) : null,
-    date: r.date,
-    destination: r.destination,
+    amount: toAmount(decryptOptional(r.amount, dek)),
+    yieldAmount: toAmount(decryptOptional(r.yieldAmount, dek)),
+    excludeFromCashFlow: r.excludeFromCashFlow,
     notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
   }))
 }
 
+export type InvestmentEntryRow = Awaited<ReturnType<typeof getAllInvestmentEntries>>[number]
+
 type InvestmentRow = { referenceMonth: string; amount: string | null; yieldAmount: string | null }
-type WithdrawalRow = { date: string; amount: string; taxAmount: string | null }
+type PatrimonyWithdrawalRow = { date: string; amount: string; taxAmount: string | null }
 
 export function buildPatrimonyTimeline(
   allInvestments: InvestmentRow[],
-  allWithdrawals: WithdrawalRow[]
+  allWithdrawals: PatrimonyWithdrawalRow[]
 ): Array<{ month: string; total: number; aporte: number }> {
   const monthMap = new Map<string, number>()
   const aporteMonthMap = new Map<string, number>()

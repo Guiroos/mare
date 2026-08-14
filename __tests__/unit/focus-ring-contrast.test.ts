@@ -206,3 +206,25 @@ describe('anel de foco — indicador não suprimido nos componentes', () => {
     expect(hero).not.toMatch(/focus:shadow-none/)
   })
 })
+
+// WCAG 4.1.2 (issue #75) — o Combobox não tem nenhum papel ARIA e a navegação
+// por setas não move o foco de DOM, então sem aria-activedescendant não há o
+// que um leitor de tela anuncie. jsx-a11y não pega: as regras de role só
+// disparam quando um role já existe, e aqui a ausência total é o próprio bug.
+// Os sete casos abaixo falham na implementação anterior e só passam com a
+// correção — nenhum é satisfeito por acidente.
+describe('Combobox — papel e estado ARIA (WCAG 4.1.2)', () => {
+  const combobox = readFileSync(join(process.cwd(), 'components/ui/combobox.tsx'), 'utf-8')
+
+  it.each([
+    /role="combobox"/,
+    /aria-expanded=/,
+    /aria-controls=/,
+    /aria-activedescendant=/,
+    /role="listbox"/,
+    /role="option"/,
+    /aria-selected=/,
+  ])('expõe %s', (hook) => {
+    expect(combobox).toMatch(hook)
+  })
+})
