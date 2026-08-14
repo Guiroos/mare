@@ -8,7 +8,7 @@ import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
 // ─── Parcelas ativas (ainda com saldo futuro) ─────────────────────────────────
 
-export async function getActiveInstallmentGroups(userId: string) {
+async function collectInstallmentGroups(userId: string) {
   const currentMonthStr = currentReferenceMonth()
 
   const [groups, txRows, dek] = await Promise.all([
@@ -49,43 +49,57 @@ export async function getActiveInstallmentGroups(userId: string) {
     txByGroup.set(gid, list)
   }
 
-  return groups
-    .map((group) => {
-      const totalAmount = toAmount(decryptField(group.totalAmount, dek))
-      const totalInstallments = group.totalInstallments
-      const installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))
-      const groupTxs = txByGroup.get(group.id) ?? []
+  return groups.map((group) => {
+    const totalAmount = toAmount(decryptField(group.totalAmount, dek))
+    const totalInstallments = group.totalInstallments
+    const installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))
+    const groupTxs = txByGroup.get(group.id) ?? []
 
-      const paidInstallments = groupTxs.filter((t) => t.referenceMonth < currentMonthStr).length
+    const paidInstallments = groupTxs.filter((t) => t.referenceMonth < currentMonthStr).length
 
-      const remainingInstallments = totalInstallments - paidInstallments
-      const remainingAmount = remainingInstallments * installmentAmount
+    const remainingInstallments = totalInstallments - paidInstallments
+    const remainingAmount = remainingInstallments * installmentAmount
 
-      const nextTx = groupTxs
-        .filter((t) => t.referenceMonth >= currentMonthStr)
-        .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))[0]
+    const nextTx = groupTxs
+      .filter((t) => t.referenceMonth >= currentMonthStr)
+      .sort((a, b) => a.referenceMonth.localeCompare(b.referenceMonth))[0]
 
-      return {
-        id: group.id,
-        name: decryptField(group.name, dek),
-        categoryId: group.categoryId,
-        accountId: group.accountId,
-        accountName: decryptField(group.accountName, dek),
-        categoryName: decryptField(group.categoryName, dek),
-        categoryColor: group.categoryColor ?? undefined,
-        startDate: group.startDate,
-        nextChargeMonth: nextTx ? nextTx.referenceMonth.slice(0, 7) : null,
-        nextChargeDate: nextTx?.date ?? null,
-        totalAmount,
-        totalInstallments,
-        paidInstallments,
-        remainingInstallments,
-        installmentAmount,
-        remainingAmount,
-      }
-    })
-    .filter((g) => g.remainingInstallments > 0)
+    return {
+      id: group.id,
+      name: decryptField(group.name, dek),
+      categoryId: group.categoryId,
+      accountId: group.accountId,
+      accountName: decryptField(group.accountName, dek),
+      categoryName: decryptField(group.categoryName, dek),
+      categoryColor: group.categoryColor ?? undefined,
+      startDate: group.startDate,
+      nextChargeMonth: nextTx ? nextTx.referenceMonth.slice(0, 7) : null,
+      nextChargeDate: nextTx?.date ?? null,
+      totalAmount,
+      totalInstallments,
+      paidInstallments,
+      remainingInstallments,
+      installmentAmount,
+      remainingAmount,
+    }
+  })
 }
+
+/** Parcelas com saldo futuro — o que a tela /parcelas mostra. */
+export async function getActiveInstallmentGroups(userId: string) {
+  const groups = await collectInstallmentGroups(userId)
+  return groups.filter((g) => g.remainingInstallments > 0)
+}
+
+/**
+ * Todos os grupos, inclusive os já quitados. Exclusivo da exportação completa:
+ * o histórico quitado é justamente o que o usuário quer levar embora.
+ */
+export async function getAllInstallmentGroups(userId: string) {
+  return collectInstallmentGroups(userId)
+}
+
+export type InstallmentGroupRow = Awaited<ReturnType<typeof getAllInstallmentGroups>>[number]
 
 // ─── Linha do tempo de parcelas (próximos 12 meses) ───────────────────────────
 
