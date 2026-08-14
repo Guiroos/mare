@@ -59,3 +59,57 @@ describe('getAllInstallmentGroups', () => {
     expect(quitado?.remainingInstallments).toBe(0)
   })
 })
+
+describe('getAllInvestmentWithdrawals', () => {
+  it('inclui resgate anterior à janela de 6 meses de getInvestmentWithdrawals', async () => {
+    const { createInvestmentType } = await import('./helpers/factories')
+    const { id: typeId } = await createInvestmentType(db, userId, { name: 'CDB Antigo' })
+
+    await db.insert((await import('@/lib/db/schema')).investmentWithdrawals).values({
+      userId,
+      investmentTypeId: typeId,
+      amount: '900.00',
+      taxAmount: '100.00',
+      date: '2020-05-10',
+      destination: 'income',
+    })
+
+    const { getAllInvestmentWithdrawals, getInvestmentWithdrawals } =
+      await import('@/lib/queries/investments')
+
+    const all = await getAllInvestmentWithdrawals(userId)
+    const recent = await getInvestmentWithdrawals(userId)
+
+    const antigo = all.find((w) => w.date === '2020-05-10')
+    expect(antigo).toBeDefined()
+    expect(antigo?.amount).toBe(900)
+    expect(antigo?.taxAmount).toBe(100)
+    expect(recent.some((w) => w.date === '2020-05-10')).toBe(false)
+  })
+})
+
+describe('getAllInvestmentEntries', () => {
+  it('traz aportes de todos os tipos, com rendimento e flag de fluxo de caixa', async () => {
+    const { createInvestmentType } = await import('./helpers/factories')
+    const { id: typeId } = await createInvestmentType(db, userId, { name: 'Tesouro' })
+
+    await db.insert((await import('@/lib/db/schema')).investments).values({
+      userId,
+      investmentTypeId: typeId,
+      amount: '500.00',
+      yieldAmount: '25.50',
+      referenceMonth: '2021-03-01',
+      excludeFromCashFlow: true,
+      notes: 'rolagem',
+    })
+
+    const { getAllInvestmentEntries } = await import('@/lib/queries/investments')
+    const rows = await getAllInvestmentEntries(userId)
+
+    const entry = rows.find((r) => r.referenceMonth === '2021-03-01')
+    expect(entry?.typeName).toBe('Tesouro')
+    expect(entry?.amount).toBe(500)
+    expect(entry?.yieldAmount).toBe(25.5)
+    expect(entry?.excludeFromCashFlow).toBe(true)
+  })
+})
