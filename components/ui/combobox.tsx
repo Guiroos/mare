@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useId, useState, useRef, useEffect } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +47,13 @@ export function Combobox({
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  // Base própria via useId(), não o `id` externo do Field: o Combobox pode ser
+  // montado várias vezes na mesma tela (uma linha por pessoa em SplitSection) e
+  // aria-activedescendant resolve para o primeiro nó com aquele id no documento —
+  // ids colididos fariam o campo de uma instância apontar para a opção de outra.
+  const baseId = useId()
+  const listId = `${baseId}-listbox`
+  const optionId = (idx: number) => `${baseId}-option-${idx}`
 
   const flatOptions: ComboboxOption[] = groups ? groups.flatMap((g) => g.options) : (options ?? [])
   const selectedOption = flatOptions.find((o) => o.value === value)
@@ -147,6 +154,13 @@ export function Combobox({
       <div className="relative">
         <Input
           id={id}
+          role="combobox"
+          aria-expanded={isOpen && visibleOptions.length > 0}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            isOpen && visibleOptions[highlightedIndex] ? optionId(highlightedIndex) : undefined
+          }
           value={selectedOption ? selectedOption.label : query}
           onChange={handleChange}
           onFocus={handleFocus}
@@ -176,47 +190,69 @@ export function Combobox({
       </div>
 
       {isOpen && (
-        <div
-          ref={listRef}
-          className="max-h-48 overflow-y-auto rounded-md border border-border bg-bg-surface shadow-sm"
-        >
-          {visibleOptions.length === 0 ? (
-            <p className="px-3 py-2 text-small text-text-tertiary">Nenhum resultado encontrado</p>
-          ) : (
-            filteredGroups.map((group) => (
-              <div key={group.id}>
-                {showGroups && group.label && (
-                  <p className="bg-bg-subtle px-3 py-1.5 text-caption font-medium text-text-tertiary">
-                    {group.label}
-                  </p>
-                )}
-                {group.options.map((option) => {
-                  const idx = optionIndexMap.get(option.value) ?? -1
-                  const isHighlighted = idx === highlightedIndex
-                  const isSelected = value === option.value
-                  return (
-                    <Button
-                      key={option.value}
-                      variant="ghost"
-                      type="button"
-                      data-highlighted={isHighlighted ? 'true' : undefined}
-                      className={cn(
-                        'h-9 w-full justify-start rounded-sm px-3 text-body font-normal transition-colors duration-fast',
-                        isHighlighted && !isSelected && 'bg-bg-subtle',
-                        isSelected && 'bg-accent-subtle text-accent-text hover:bg-accent-subtle'
-                      )}
-                      onMouseEnter={() => setHighlightedIndex(idx)}
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        handleSelect(option)
-                      }}
-                    >
-                      {option.label}
-                    </Button>
-                  )
-                })}
-              </div>
-            ))
+        <div className="overflow-hidden rounded-md border border-border bg-bg-surface shadow-sm">
+          {/* Fora do role="listbox" abaixo: listbox só aceita option/group como
+              filho (aria-required-children). Sempre montado enquanto isOpen,
+              mesmo sem mensagem — região viva precisa existir na árvore antes
+              do conteúdo mudar para o anúncio ser confiável; texto entrando no
+              mesmo commit de render que o role não garante o anúncio. */}
+          <p
+            role="status"
+            className={
+              visibleOptions.length === 0 ? 'px-3 py-2 text-small text-text-tertiary' : undefined
+            }
+          >
+            {visibleOptions.length === 0 ? 'Nenhum resultado encontrado' : ''}
+          </p>
+          {visibleOptions.length > 0 && (
+            <div ref={listRef} id={listId} role="listbox" className="max-h-48 overflow-y-auto">
+              {filteredGroups.map((group) => (
+                <div
+                  key={group.id}
+                  role={showGroups && group.label ? 'group' : undefined}
+                  aria-label={showGroups && group.label ? group.label : undefined}
+                >
+                  {showGroups && group.label && (
+                    <p className="bg-bg-subtle px-3 py-1.5 text-caption font-medium text-text-tertiary">
+                      {group.label}
+                    </p>
+                  )}
+                  {group.options.map((option) => {
+                    const idx = optionIndexMap.get(option.value) ?? -1
+                    const isHighlighted = idx === highlightedIndex
+                    const isSelected = value === option.value
+                    return (
+                      <Button
+                        key={option.value}
+                        variant="ghost"
+                        type="button"
+                        id={optionId(idx)}
+                        role="option"
+                        aria-selected={isSelected}
+                        // O padrão aria-activedescendant exige que o foco de DOM
+                        // fique sempre no <input> — uma opção tabulável quebra
+                        // isso: Tab a partir do campo focaria o <button>, disparando
+                        // o onBlur/timer que desmonta a lista com o foco dentro dela.
+                        tabIndex={-1}
+                        data-highlighted={isHighlighted ? 'true' : undefined}
+                        className={cn(
+                          'h-9 w-full justify-start rounded-sm px-3 text-body font-normal transition-colors duration-fast',
+                          isHighlighted && !isSelected && 'bg-bg-subtle',
+                          isSelected && 'bg-accent-subtle text-accent-text hover:bg-accent-subtle'
+                        )}
+                        onMouseEnter={() => setHighlightedIndex(idx)}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          handleSelect(option)
+                        }}
+                      >
+                        {option.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
