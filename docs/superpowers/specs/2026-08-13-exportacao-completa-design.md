@@ -135,9 +135,9 @@ Ordem fixa, do mais usado para o menos. No ZIP, os arquivos recebem prefixo num�
 | 5 | Parcelas | `installmentGroups` | **nova** |
 | 6 | Investimentos — Tipos | `investmentTypes` | `getInvestmentTypes` (existente) |
 | 7 | Investimentos — Aportes | `investments` | **nova** |
-| 8 | Investimentos — Resgates | `investmentWithdrawals` | `getInvestmentWithdrawals` (existente) |
+| 8 | Investimentos — Resgates | `investmentWithdrawals` | **nova** |
 | 9 | Metas | `goals` | `getGoalsWithProgress` (existente) |
-| 10 | Metas — Contribuições | `goalContributions` | **nova** |
+| 10 | Metas — Contribuições | `goalContributions` | `getGoalsWithProgress` (existente) |
 | 11 | Devedores — Saldos | `people` | `getPeopleWithBalances` (existente) |
 | 12 | Devedores — Lançamentos | `debtorEntries` | `getAllDebtorEntries` (existente) |
 
@@ -187,10 +187,17 @@ Cinco, todas pequenas. Todas em `lib/queries/`, todas passando por `getDekForUse
 | Query | Arquivo | Por quê |
 | --- | --- | --- |
 | `getAllInstallmentGroups(userId)` | `lib/queries/parcelas.ts` | `getActiveInstallmentGroups` filtra `remainingInstallments > 0`; no dump isso esconderia todo o histórico já quitado, que é o que o usuário mais quer levar embora |
-| `getAllGoalContributions(userId)` | `lib/queries/goals.ts` | `getGoalsWithProgress` devolve só o agregado por meta; as linhas individuais não têm leitura hoje |
+| `getAllInvestmentWithdrawals(userId)` | `lib/queries/investments.ts` | `getInvestmentWithdrawals` filtra os últimos 6 meses (`pastNMonths(6)[0]`); reusá-la cortaria silenciosamente o histórico de resgates |
 | `getAllInvestmentEntries(userId)` | `lib/queries/investments.ts` | `getInvestmentHistory` é por tipo; chamá-la em laço seria N queries |
 | `getAllBudgetOverrides(userId)` | `lib/queries/categories.ts` | `getCategoriesWithBudgets` é por mês; o dump precisa de todos os meses |
 | `getEarliestActivityDate(userId)` | `lib/queries/historico.ts` | piso do extrato, ver "Recorte temporal" |
+
+A planilha 10 (Contribuições) **não** precisa de query nova: `getGoalsWithProgress` já devolve
+`contributions[]` com `amount` decriptado por meta. O builder achata o aninhamento. Escrever uma
+query nova aqui seria trabalho duplicado — e é o caminho que o nome da planilha sugere.
+
+`getAllInvestmentWithdrawals` e `getInvestmentWithdrawals` compartilham o mesmo mapeador privado;
+só o `where` difere. Não reimplementar o decrypt nem o cálculo do bruto nas duas.
 
 `getAllInstallmentGroups` calcula `paidInstallments` pela mesma regra de `getActiveInstallmentGroups`
 (`referenceMonth < currentMonthStr` — o mês corrente conta como pendente). A regra não é
