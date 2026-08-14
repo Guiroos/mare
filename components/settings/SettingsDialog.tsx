@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
-import { RotateCcw, TriangleAlert } from 'lucide-react'
+import { Download, RotateCcw, TriangleAlert } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
@@ -64,6 +64,30 @@ function SettingsContent({ onClose }: { onClose: () => void }) {
           Oculta valores monetários nas páginas financeiras.
         </p>
         <Switch label="Modo privado" checked={isPrivate} onChange={toggle} />
+      </div>
+
+      {/* Antes da Zona de perigo de propósito: quem está prestes a resetar a
+          conta encontra a saída de dados antes do botão vermelho. */}
+      <div>
+        <p className="mb-1 text-small font-semibold text-text-primary">Seus dados</p>
+        <p className="mb-3 text-small text-text-secondary">
+          Baixa tudo o que está na sua conta — lançamentos, categorias, contas, parcelas,
+          investimentos, metas e devedores. Sem filtro de período.
+        </p>
+        <div className="flex gap-2">
+          <Button variant="outline" asChild>
+            <a href="/api/export/completo" download>
+              <Download className="h-4 w-4" />
+              Excel (.xlsx)
+            </a>
+          </Button>
+          <Button variant="outline" asChild>
+            <a href="/api/export/completo?format=csv" download>
+              <Download className="h-4 w-4" />
+              CSV (.zip)
+            </a>
+          </Button>
+        </div>
       </div>
 
       <div>
