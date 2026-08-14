@@ -113,3 +113,42 @@ describe('getAllInvestmentEntries', () => {
     expect(entry?.excludeFromCashFlow).toBe(true)
   })
 })
+
+describe('getAllBudgetOverrides', () => {
+  it('devolve uma linha por mês, não só o mês corrente', async () => {
+    const schema = await import('@/lib/db/schema')
+    await db.insert(schema.monthlyBudgetOverrides).values([
+      { userId, categoryId, referenceMonth: '2024-01-01', amount: '300.00' },
+      { userId, categoryId, referenceMonth: '2024-02-01', amount: '450.00' },
+    ])
+
+    const { getAllBudgetOverrides } = await import('@/lib/queries/categories')
+    const rows = await getAllBudgetOverrides(userId)
+
+    const meses = rows
+      .filter((r) => r.referenceMonth.startsWith('2024-'))
+      .map((r) => r.referenceMonth)
+    expect(meses.sort()).toEqual(['2024-01-01', '2024-02-01'])
+    expect(rows.find((r) => r.referenceMonth === '2024-02-01')?.amount).toBe(450)
+  })
+})
+
+describe('getEarliestActivityDate', () => {
+  it('devolve a data mais antiga entre as tabelas de movimento', async () => {
+    await createTransaction(db, userId, accountId, {
+      categoryId,
+      date: '2019-07-04',
+      referenceMonth: '2019-07-01',
+      amount: '10.00',
+    })
+
+    const { getEarliestActivityDate } = await import('@/lib/queries/historico')
+    expect(await getEarliestActivityDate(userId)).toBe('2019-07-04')
+  })
+
+  it('devolve null para usuário sem movimento nenhum', async () => {
+    const { id: vazio } = await createUser(db, `vazio-${Date.now()}`)
+    const { getEarliestActivityDate } = await import('@/lib/queries/historico')
+    expect(await getEarliestActivityDate(vazio)).toBeNull()
+  })
+})
