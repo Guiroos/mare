@@ -19,6 +19,7 @@ neonTestingSetup()
 
 let db: TestDb
 let userId: string
+let futureISODate: string
 
 /**
  * Popula um usuário com dado CIFRADO nos 12 domínios.
@@ -101,10 +102,35 @@ beforeAll(async () => {
   })
   await createGoalContribution(db, userId, goalId, { amount: enc('500.00') })
 
+  // 2ª parcela com data futura: createInstallment grava as N linhas de uma vez,
+  // então isso é o estado normal de uma compra parcelada, não caso de borda.
+  const future = new Date()
+  future.setMonth(future.getMonth() + 3)
+  futureISODate = future.toISOString().slice(0, 10)
+  await createTransaction(db, userId, accountId, {
+    categoryId,
+    installmentGroupId: instGroupId,
+    name: enc('Notebook (2/12)'),
+    amount: enc('100.00'),
+    date: futureISODate,
+    referenceMonth: `${futureISODate.slice(0, 7)}-01`,
+  })
+
   const { id: personId } = await createPerson(db, userId, enc('João'))
   await createCharge(db, userId, personId, {
     amount: enc('100.00'),
     description: enc('Almoço'),
+  })
+
+  // Pessoa arquivada: por domínio, só se arquiva quem tem histórico — logo, os
+  // lançamentos dela sempre existem e a aba de saldos precisa concordar.
+  const [arquivada] = await db
+    .insert(schema.people)
+    .values({ userId, name: enc('Maria Arquivada'), archived: true })
+    .returning({ id: schema.people.id })
+  await createCharge(db, userId, arquivada.id, {
+    amount: enc('250.00'),
+    description: enc('Viagem'),
   })
 })
 
@@ -149,6 +175,33 @@ describe('collectFullExport', () => {
 
     // 2 transações criadas em 2025-01, muito além dos 90 dias padrão
     expect(extrato!.data.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('o extrato inclui parcela com data futura', async () => {
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+    const sheets = await collectFullExport(userId)
+    const extrato = sheets.find((s) => s.name === 'Extrato')!
+
+    // Com teto em "hoje" a 2/12 sai do dump e a aba Parcelas passa a mentir:
+    // reporta 12 parcelas enquanto o extrato traz só a 1ª.
+    const csv = sheetToCsv(extrato.data)
+    expect(csv).toContain('Notebook (2/12)')
+    expect(csv).toContain(futureISODate.slice(0, 4))
+  })
+
+  it('pessoa arquivada aparece na aba de saldos, não só na de lançamentos', async () => {
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+    const sheets = await collectFullExport(userId)
+
+    // Assert por aba, não sobre o dump concatenado: contra o dump o teste
+    // passaria pela presença na aba de lançamentos, com o bug intacto.
+    const saldos = sheets.find((s) => s.name === 'Devedores — Saldos')!
+    const lancamentos = sheets.find((s) => s.name === 'Devedores — Lançamentos')!
+
+    expect(sheetToCsv(saldos.data)).toContain('Maria Arquivada')
+    expect(sheetToCsv(lancamentos.data)).toContain('Maria Arquivada')
   })
 })
 

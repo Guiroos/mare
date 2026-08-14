@@ -121,6 +121,17 @@ Nesse caso o extrato sai só com o cabeçalho, e o resto do arquivo continua vá
 Note que essas colunas de data **não são cifradas** — só nome, descrição e valor são. O `MIN` em SQL
 é legítimo aqui, e é a exceção que a regra de `.claude/crypto.md` permite.
 
+**O teto é simétrico, e a primeira redação desta seção errou nisso** — falava só do piso, e a
+implementação saiu com `ate: hoje`. Não serve: `createInstallment` grava as N linhas de uma vez, então
+uma compra em 12x deixa 11 transações datadas no futuro, e `between(transactions.date, de, ate)` as
+cortava do extrato enquanto a aba Parcelas continuava reportando as 12 — duas abas do mesmo arquivo se
+contradizendo. Gasto fixo, entrada e aporte cadastrados em mês futuro caem no mesmo corte.
+
+O teto vem de `getLatestActivityDate(userId)`, `MAX` sobre as mesmas cinco colunas, e só se aplica
+quando é posterior a hoje. `MAX` em vez de folga fixa (`addMonths(hoje, 24)`) por dois motivos: não
+inventa um horizonte que um financiamento longo estoura, e não infla `referenceMonthsInRange` com
+meses vazios — a mesma objeção que descartou `'1970-01-01'` do lado do piso.
+
 ## Conteúdo — 12 planilhas
 
 Ordem fixa, do mais usado para o menos. No ZIP, os arquivos recebem prefixo numérico
@@ -176,8 +187,17 @@ Progresso (%).
 
 **10. Metas — Contribuições** — Meta · Mês de referência · Valor · Origem (Manual/Investimento).
 
-**11 e 12. Devedores** — idênticas às abas atuais, reusando `buildSaldosRows` e
+**11 e 12. Devedores** — mesmas colunas das abas atuais, reusando `buildSaldosRows` e
 `buildLancamentosRows` sem alteração.
+
+O conjunto de pessoas, porém, **não** é o mesmo da tela: `getPeopleWithBalances` esconde arquivados e
+`getAllDebtorEntries` não, o que fazia as duas abas do mesmo arquivo discordarem sobre quem existe — e
+justamente no caso que o domínio manda arquivar, já que `deletePersonIfEmpty` só apaga quem não tem
+histórico. Aqui o contrato é "a conta inteira", então a query ganhou `{ includeArchived }` e o coletor
+passa `true`. A tela `/devedores` e `/api/export/devedores` ficam no default. Parametrizar em vez de
+escrever um `getAllPeopleWithBalances` paralelo porque o cálculo de saldo em JS é o que não pode
+divergir entre as variantes (categoria 5 do `.claude/audit.md`). Sem coluna "Situação": o builder é
+compartilhado com `/api/export/devedores`, onde arquivado não existe e a coluna seria ruído constante.
 
 ## Queries novas
 
@@ -191,6 +211,7 @@ Cinco, todas pequenas. Todas em `lib/queries/`, todas passando por `getDekForUse
 | `getAllInvestmentEntries(userId)` | `lib/queries/investments.ts` | `getInvestmentHistory` é por tipo; chamá-la em laço seria N queries |
 | `getAllBudgetOverrides(userId)` | `lib/queries/categories.ts` | `getCategoriesWithBudgets` é por mês; o dump precisa de todos os meses |
 | `getEarliestActivityDate(userId)` | `lib/queries/historico.ts` | piso do extrato, ver "Recorte temporal" |
+| `getLatestActivityDate(userId)` | `lib/queries/historico.ts` | teto do extrato, ver "Recorte temporal" |
 
 A planilha 10 (Contribuições) **não** precisa de query nova: `getGoalsWithProgress` já devolve
 `contributions[]` com `amount` decriptado por meta. O builder achata o aninhamento. Escrever uma

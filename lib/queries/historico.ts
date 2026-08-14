@@ -331,3 +331,48 @@ export async function getEarliestActivityDate(userId: string): Promise<string | 
   if (candidates.length === 0) return null
   return candidates.sort()[0]
 }
+
+/**
+ * Teto do recorte da exportação completa.
+ *
+ * Simétrico ao piso, e pelo mesmo motivo: o teto não pode ser 'hoje'. Parcela
+ * grava as N linhas de uma vez (createInstallment), então uma compra em 12x
+ * deixa 11 transações datadas no futuro — com teto em hoje elas somem do
+ * extrato enquanto a aba Parcelas continua reportando as 12. Gasto fixo,
+ * entrada e aporte cadastrados em mês futuro caem no mesmo corte.
+ *
+ * MAX real em vez de folga fixa (addMonths(hoje, N)): não inventa horizonte que
+ * um financiamento longo estoura, e não infla referenceMonthsInRange com meses
+ * vazios — a mesma objeção que descartou '1970-01-01' do lado do piso.
+ */
+export async function getLatestActivityDate(userId: string): Promise<string | null> {
+  const [tx, inc, fx, inv, wd] = await Promise.all([
+    db
+      .select({ max: sql<string | null>`max(${transactions.date})` })
+      .from(transactions)
+      .where(eq(transactions.userId, userId)),
+    db
+      .select({ max: sql<string | null>`max(${incomes.referenceMonth})` })
+      .from(incomes)
+      .where(eq(incomes.userId, userId)),
+    db
+      .select({ max: sql<string | null>`max(${fixedExpenses.referenceMonth})` })
+      .from(fixedExpenses)
+      .where(eq(fixedExpenses.userId, userId)),
+    db
+      .select({ max: sql<string | null>`max(${investments.referenceMonth})` })
+      .from(investments)
+      .where(eq(investments.userId, userId)),
+    db
+      .select({ max: sql<string | null>`max(${investmentWithdrawals.date})` })
+      .from(investmentWithdrawals)
+      .where(eq(investmentWithdrawals.userId, userId)),
+  ])
+
+  const candidates = [tx[0]?.max, inc[0]?.max, fx[0]?.max, inv[0]?.max, wd[0]?.max].filter(
+    (d): d is string => d != null
+  )
+
+  if (candidates.length === 0) return null
+  return candidates.sort()[candidates.length - 1]
+}

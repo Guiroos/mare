@@ -7,7 +7,11 @@ import {
   getPaymentAccounts,
 } from '@/lib/queries/categories'
 import { getGoalsWithProgress } from '@/lib/queries/goals'
-import { collectHistoricoItems, getEarliestActivityDate } from '@/lib/queries/historico'
+import {
+  collectHistoricoItems,
+  getEarliestActivityDate,
+  getLatestActivityDate,
+} from '@/lib/queries/historico'
 import {
   getAllInvestmentEntries,
   getAllInvestmentWithdrawals,
@@ -55,7 +59,10 @@ const LANCAMENTOS_WIDTHS = [24, 12, 14, 40, 14, 18, 14, 30]
  */
 export async function collectFullExport(userId: string): Promise<ExportSheet[]> {
   const hoje = todayISOString()
-  const earliest = await getEarliestActivityDate(userId)
+  const [earliest, latest] = await Promise.all([
+    getEarliestActivityDate(userId),
+    getLatestActivityDate(userId),
+  ])
 
   const [
     items,
@@ -72,7 +79,8 @@ export async function collectFullExport(userId: string): Promise<ExportSheet[]> 
   ] = await Promise.all([
     collectHistoricoItems(userId, {
       de: earliest ?? hoje,
-      ate: hoje,
+      // Teto no MAX, não em hoje: parcela futura já está gravada no banco.
+      ate: latest && latest > hoje ? latest : hoje,
       tipos: [...ALL_TIPOS],
       categorias: [],
       contas: [],
@@ -87,7 +95,7 @@ export async function collectFullExport(userId: string): Promise<ExportSheet[]> 
     getAllInvestmentEntries(userId),
     getAllInvestmentWithdrawals(userId),
     getGoalsWithProgress(userId),
-    getPeopleWithBalances(userId),
+    getPeopleWithBalances(userId, { includeArchived: true }),
     getAllDebtorEntries(userId),
   ])
 
