@@ -155,7 +155,7 @@ export function Combobox({
         <Input
           id={id}
           role="combobox"
-          aria-expanded={isOpen}
+          aria-expanded={isOpen && visibleOptions.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={
@@ -190,15 +190,21 @@ export function Combobox({
       </div>
 
       {isOpen && (
-        <div className="rounded-md border border-border bg-bg-surface shadow-sm">
-          {visibleOptions.length === 0 ? (
-            // Fora do role="listbox" abaixo: listbox só aceita option/group como
-            // filho (aria-required-children) — um <p> solto aqui violaria isso.
-            // role="status" faz a mensagem ser anunciada quando aparece.
-            <p role="status" className="px-3 py-2 text-small text-text-tertiary">
-              Nenhum resultado encontrado
-            </p>
-          ) : (
+        <div className="overflow-hidden rounded-md border border-border bg-bg-surface shadow-sm">
+          {/* Fora do role="listbox" abaixo: listbox só aceita option/group como
+              filho (aria-required-children). Sempre montado enquanto isOpen,
+              mesmo sem mensagem — região viva precisa existir na árvore antes
+              do conteúdo mudar para o anúncio ser confiável; texto entrando no
+              mesmo commit de render que o role não garante o anúncio. */}
+          <p
+            role="status"
+            className={
+              visibleOptions.length === 0 ? 'px-3 py-2 text-small text-text-tertiary' : undefined
+            }
+          >
+            {visibleOptions.length === 0 ? 'Nenhum resultado encontrado' : ''}
+          </p>
+          {visibleOptions.length > 0 && (
             <div ref={listRef} id={listId} role="listbox" className="max-h-48 overflow-y-auto">
               {filteredGroups.map((group) => (
                 <div
