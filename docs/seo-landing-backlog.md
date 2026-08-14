@@ -400,23 +400,27 @@ exclusão de conta), acesso a painel externo (DNS, Search Console) e um número 
 Todos da Fase 0.5 do PRD. **Esta é a lista canônica do que falta** — se um item não está aqui, ele
 não está pendente em lugar nenhum.
 
-Os dois em negrito são de outra classe: a landing **já afirma** que existem. Não é escopo futuro,
+O item em negrito é de outra classe: a landing **já afirma** que existe. Não é escopo futuro,
 é declaração falsa em produção. Os pontos exatos estão marcados no código com o comentário
 `PROMESSA SEM LASTRO`, que aponta de volta para cá — `grep -rn "PROMESSA SEM LASTRO"` devolve os
-dois.
+dois arquivos (a mesma frase da landing carrega as duas promessas, então os dois comentários
+seguem de pé falando só da exclusão de conta).
 
 | Item | Estado | O que falta | Onde a landing já promete |
 | --- | --- | --- | --- |
 | Política de Privacidade | não existe | `app/(marketing)/privacidade/` | — (o rodapé está sem links por isso) |
 | Termos de Uso | não existe | `app/(marketing)/termos/` | — |
 | Página de Segurança | não existe | `app/(marketing)/seguranca/` | — (sustenta a cunha "sem conexão bancária") |
-| **Exportação completa** | **parcial** | existem `/api/export/extrato` e `/api/export/devedores`; faltam investimentos, metas, parcelas, categorias e contas | `FaqSection.tsx` ("exportar tudo em CSV") e o card "Seus dados são seus" em `app/(marketing)/page.tsx` |
+| ~~Exportação completa~~ | **resolvida** | `/api/export/completo` entrega as 12 planilhas da conta em `.xlsx` multi-aba ou `.zip` de CSVs; ação no `SettingsDialog` | (promessa cumprida) |
 | **Exclusão de conta** | **não existe** | `lib/actions/reset-account.ts` limpa os dados e **mantém** o usuário — é outra coisa; a ordem de FK de lá é reaproveitável | `FaqSection.tsx` ("apagar sua conta a qualquer momento") e o mesmo card |
 
-Enquanto os dois de negrito não subirem existem duas saídas legítimas, e **o estado atual não é
-nenhuma das duas**: implementar, ou suavizar a copy nos dois pontos marcados. Suavizar custa duas
-frases, mas é decisão de produto — a promessa é parte da cunha "seus dados são seus", que é
+Enquanto a exclusão de conta não subir existem duas saídas legítimas, e **o estado atual não é
+nenhuma das duas**: implementar, ou suavizar a copy nos dois pontos marcados. Suavizar custa uma
+frase, mas é decisão de produto — a promessa é parte da cunha "seus dados são seus", que é
 justamente o diferencial da Fase 2 do PRD.
+
+A metade da promessa que dizia respeito à exportação foi cumprida, não suavizada: a copy visível
+não mudou porque passou a ser verdade.
 
 Ao subir as três páginas, restaurar os links no `MarketingFooter` (há comentário marcando o ponto)
 e acrescentá-las ao `app/sitemap.ts`.

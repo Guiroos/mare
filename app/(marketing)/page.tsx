@@ -76,9 +76,10 @@ const FEATURES = [
   {
     title: 'Seus dados são seus',
     /* PROMESSA SEM LASTRO — segunda ocorrência, ver docs/seo-landing-backlog.md
-       §6.1 e o comentário em FaqSection.tsx. Export é parcial e exclusão de
-       conta não existe. Quem for corrigir a copy precisa mexer nos dois
-       pontos: o FAQ e aqui. */
+       §6.1 e o comentário em FaqSection.tsx. "Exporte tudo em CSV" já tem
+       lastro (/api/export/completo). "Apague a conta" não: `resetAccount` limpa
+       os dados e mantém o usuário, que é outra coisa. Quem for corrigir a copy
+       precisa mexer nos dois pontos: o FAQ e aqui. */
     body: 'Exporte tudo em CSV quando quiser. Apague a conta quando quiser.',
   },
 ]
