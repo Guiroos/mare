@@ -1,8 +1,14 @@
 import { db } from '@/lib/db'
-import { categoryGroups, monthlyBudgetOverrides, paymentAccounts } from '@/lib/db/schema'
+import {
+  categories,
+  categoryGroups,
+  monthlyBudgetOverrides,
+  paymentAccounts,
+} from '@/lib/db/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
+import { toAmount } from '@/lib/utils/currency'
 
 export async function getCategoriesWithGroups(userId: string) {
   const dek = await getDekForUser(userId)
@@ -96,3 +102,40 @@ export async function getCategoriesWithBudgets(userId: string, referenceMonth: s
       })),
     }))
 }
+
+/**
+ * Todos os overrides de orçamento, de todos os meses. getCategoriesWithBudgets
+ * é por mês; a exportação completa precisa da série inteira para permitir
+ * reconstruir o orçamento fora do app.
+ */
+export async function getAllBudgetOverrides(userId: string) {
+  const [rows, dek] = await Promise.all([
+    db
+      .select({
+        referenceMonth: monthlyBudgetOverrides.referenceMonth,
+        amount: monthlyBudgetOverrides.amount,
+        categoryName: categories.name,
+        groupName: categoryGroups.name,
+      })
+      .from(monthlyBudgetOverrides)
+      .innerJoin(categories, eq(monthlyBudgetOverrides.categoryId, categories.id))
+      .innerJoin(categoryGroups, eq(categories.groupId, categoryGroups.id))
+      .where(eq(monthlyBudgetOverrides.userId, userId)),
+    getDekForUser(userId),
+  ])
+
+  return rows
+    .map((r) => ({
+      referenceMonth: r.referenceMonth,
+      groupName: decryptField(r.groupName, dek),
+      categoryName: decryptField(r.categoryName, dek),
+      amount: toAmount(decryptField(r.amount, dek)),
+    }))
+    .sort(
+      (a, b) =>
+        a.referenceMonth.localeCompare(b.referenceMonth) ||
+        a.categoryName.localeCompare(b.categoryName, 'pt-BR')
+    )
+}
+
+export type BudgetOverrideRow = Awaited<ReturnType<typeof getAllBudgetOverrides>>[number]
