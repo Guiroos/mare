@@ -140,6 +140,36 @@ describe('texto — contraste WCAG 1.4.3', () => {
   })
 })
 
+// Cores semânticas sólidas (--positive/--negative/--warning) só tinham valor
+// único no :root — o .dark não redefinia nenhuma, herdando o par calibrado
+// para fundo claro (issue #76). Os seis pares abaixo são exatamente os que
+// reprovavam antes da correção: uma tabela genérica de "toda cor x todo
+// fundo" incluiria dezenas de pares que já passavam e não pegaria o furo.
+describe('cores semânticas sólidas — contraste WCAG 1.4.3', () => {
+  it.each([
+    ['escuro', 'negative', 'bg-surface', darkBlock],
+    ['escuro', 'positive', 'bg-surface', darkBlock],
+    ['claro', 'positive', 'bg-base', rootBlock],
+    ['claro', 'warning', 'bg-surface', rootBlock],
+  ] as const)('%s: --%s sobre --%s atinge >= 4.5:1', (_theme, text, bg, block) => {
+    expect(textContrast(block, text, bg)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // --accent e --warning também são usados como FUNDO com texto claro por
+  // cima (Button primary, botões !bg-warning !text-text-inverse) — o token
+  // sólido puxa os dois papéis em direções opostas, e textContrast() acima
+  // assume dois tokens de CSS, não um par cor-fixa (branco) x token. Composto
+  // manualmente aqui para os dois papéis que a issue #76 mediu.
+  it.each([
+    ['escuro', 'accent', darkBlock],
+    ['claro', 'warning', rootBlock],
+  ] as const)('%s: --text-inverse sobre --%s (fundo) atinge >= 4.5:1', (_theme, bgToken, block) => {
+    const inverse = solidRgb(block, 'text-inverse')
+    const bg = solidRgb(block, bgToken)
+    expect(contrastRatio(inverse, bg)).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
 // O gate acima só cobre o token — sozinho, não pega alguém apagando o
 // `focus-visible:` do Button ou reintroduzindo `focus:shadow-none` no
 // HeroAmountCard com o CSS intacto. As duas juntas fecham as duas metades

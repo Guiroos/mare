@@ -31,7 +31,13 @@ const base =
   'disabled:opacity-45 disabled:pointer-events-none'
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-hover hover:shadow-sm',
+  // text-text-inverse (não text-white): --accent + branco reprova 4,04:1 no
+  // tema escuro (issue #76). --text-inverse acompanha o tema (quase-preto no
+  // escuro) e alcança >= 4,5:1 nos dois. Só nesta variante: em `positive` o
+  // branco atual já passa com folga (4,93:1) e --text-inverse rende menos
+  // margem ali — trocar as duas juntas não tem o mesmo motivo — ver
+  // __tests__/unit/focus-ring-contrast.test.ts.
+  primary: 'bg-accent text-text-inverse hover:bg-accent-hover hover:shadow-sm',
   secondary: 'bg-bg-subtle text-text-primary hover:bg-bg-muted',
   outline: 'bg-transparent text-accent border-2 border-accent hover:bg-accent-subtle',
   ghost: 'bg-transparent text-text-secondary hover:bg-bg-subtle hover:text-text-primary',

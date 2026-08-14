@@ -45,7 +45,10 @@
     --accent-text: oklch(38% 0.12 230);
 
     /* Positive — Income / Maré Alta */
-    --positive: oklch(54% 0.13 172);
+    /* --positive era oklch(54%): 4,21:1 como texto sobre --bg-base, abaixo do
+       piso AA de 4,5:1 (issue #76). 52% alcança 4,56:1 sem regredir --positive
+       como fundo (branco por cima segue em 4,93:1). */
+    --positive: oklch(52% 0.13 172);
     --positive-hover: oklch(48% 0.13 172);
     --positive-subtle: oklch(94% 0.04 170);
     --positive-text: oklch(36% 0.11 170);
@@ -57,7 +60,11 @@
     --negative-text: oklch(38% 0.12 22);
 
     /* Warning */
-    --warning: oklch(72% 0.14 75);
+    /* --warning era oklch(72%): 2,50:1 como texto sobre --bg-surface, e
+       2,40:1 sob --text-inverse nos botões !bg-warning (issue #76). 55%
+       alcança 4,89:1 e 4,68:1 respectivamente — valor claro específico, não
+       herdado pelo .dark (que mantém o 72% original, redefinido lá). */
+    --warning: oklch(55% 0.14 75);
     --warning-subtle: oklch(96% 0.04 75);
     --warning-text: oklch(42% 0.12 70);
 
@@ -120,15 +127,25 @@
     --accent-subtle: oklch(22% 0.07 228);
     --accent-text: oklch(78% 0.1 230);
 
-    /* Positive */
+    /* Positive — --positive era herdado do :root (calibrado para fundo claro):
+       4,04:1 como texto sobre --bg-surface escuro, abaixo do piso AA (issue
+       #76). 57% alcança 4,53:1. */
+    --positive: oklch(57% 0.13 172);
     --positive-subtle: oklch(20% 0.07 172);
     --positive-text: oklch(72% 0.09 172);
 
-    /* Negative */
+    /* Negative — mesmo problema do --positive: herdado do :root, 3,40:1 como
+       texto sobre --bg-surface escuro — o par mais caro da issue #76, pinta a
+       mensagem de erro de todo formulário. 61% alcança 4,56:1. */
+    --negative: oklch(61% 0.13 20);
     --negative-subtle: oklch(20% 0.07 20);
     --negative-text: oklch(74% 0.1 22);
 
-    /* Warning */
+    /* Warning — precisa de valor próprio aqui porque o :root passou a usar
+       55% (mais escuro, calibrado para fundo claro); o escuro herdaria esse
+       valor e cairia de 7,28:1 para 3,73:1. 72% é o valor claro original,
+       agora redeclarado explicitamente em vez de herdado por acidente. */
+    --warning: oklch(72% 0.14 75);
     --warning-subtle: oklch(20% 0.07 75);
     --warning-text: oklch(76% 0.1 70);
 
