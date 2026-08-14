@@ -155,14 +155,32 @@ describe('cores semânticas sólidas — contraste WCAG 1.4.3', () => {
     expect(textContrast(block, text, bg)).toBeGreaterThanOrEqual(4.5)
   })
 
-  // --accent e --warning também são usados como FUNDO com texto claro por
-  // cima (Button primary, botões !bg-warning !text-text-inverse) — o token
-  // sólido puxa os dois papéis em direções opostas, e textContrast() acima
-  // assume dois tokens de CSS, não um par cor-fixa (branco) x token. Composto
-  // manualmente aqui para os dois papéis que a issue #76 mediu.
+  // --accent/--positive/--negative/--warning também são usados como FUNDO com
+  // texto claro por cima (Button primary/positive/danger:hover, botões
+  // !bg-warning !text-text-inverse) — o token sólido puxa os dois papéis em
+  // direções opostas, e textContrast() acima assume dois tokens de CSS, não
+  // um par cor-fixa x token. Composto manualmente aqui.
+  //
+  // Inclui os tokens -hover de Button primary/positive: a revisão do PR #93
+  // pegou que o gate original só cobria o estado de repouso — no escuro,
+  // --accent-hover/--positive-hover continuavam mais ESCUROS que o base
+  // (convenção herdada do tema claro, onde funcionava com texto branco) e
+  // reprovavam assim que o texto por cima virou --text-inverse (quase-preto).
+  // Testar os dois temas em cada token, não só o que reprovava antes da
+  // correção: --accent-hover e --positive-hover do claro não mudaram nesta
+  // PR, mas como o texto por cima deles mudou (branco -> text-inverse em
+  // `positive`), regressão futura só nesse par também precisa de gate.
   it.each([
     ['escuro', 'accent', darkBlock],
     ['claro', 'warning', rootBlock],
+    ['escuro', 'positive', darkBlock],
+    ['claro', 'positive', rootBlock],
+    ['escuro', 'negative', darkBlock],
+    ['claro', 'negative', rootBlock],
+    ['escuro', 'accent-hover', darkBlock],
+    ['claro', 'accent-hover', rootBlock],
+    ['escuro', 'positive-hover', darkBlock],
+    ['claro', 'positive-hover', rootBlock],
   ] as const)('%s: --text-inverse sobre --%s (fundo) atinge >= 4.5:1', (_theme, bgToken, block) => {
     const inverse = solidRgb(block, 'text-inverse')
     const bg = solidRgb(block, bgToken)
