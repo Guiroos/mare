@@ -5,7 +5,7 @@ export async function createUser(db: TestDb, suffix: string | number = Date.now(
   const [user] = await db
     .insert(schema.users)
     .values({ name: 'Test User', email: `test-${suffix}@test.com` })
-    .returning({ id: schema.users.id })
+    .returning({ id: schema.users.id, email: schema.users.email })
   return user
 }
 

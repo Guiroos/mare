@@ -90,7 +90,11 @@ function NavItem({
   )
 }
 
-export function BottomNav() {
+interface BottomNavProps {
+  userEmail?: string | null
+}
+
+export function BottomNav({ userEmail }: BottomNavProps) {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -255,7 +259,7 @@ export function BottomNav() {
       </Dialog>
 
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={userEmail} />
     </>
   )
 }

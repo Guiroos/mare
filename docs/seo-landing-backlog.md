@@ -400,11 +400,9 @@ exclusão de conta), acesso a painel externo (DNS, Search Console) e um número 
 Todos da Fase 0.5 do PRD. **Esta é a lista canônica do que falta** — se um item não está aqui, ele
 não está pendente em lugar nenhum.
 
-O item em negrito é de outra classe: a landing **já afirma** que existe. Não é escopo futuro,
-é declaração falsa em produção. Os pontos exatos estão marcados no código com o comentário
-`PROMESSA SEM LASTRO`, que aponta de volta para cá — `grep -rn "PROMESSA SEM LASTRO"` devolve os
-dois arquivos (a mesma frase da landing carrega as duas promessas, então os dois comentários
-seguem de pé falando só da exclusão de conta).
+Não há mais nenhum comentário `PROMESSA SEM LASTRO` no código — as duas promessas que a landing
+fazia (exportar tudo, apagar a conta) passaram a ter lastro, e os marcadores foram removidos junto.
+`grep -rn "PROMESSA SEM LASTRO"` devolve zero.
 
 | Item | Estado | O que falta | Onde a landing já promete |
 | --- | --- | --- | --- |
@@ -412,15 +410,28 @@ seguem de pé falando só da exclusão de conta).
 | Termos de Uso | não existe | `app/(marketing)/termos/` | — |
 | Página de Segurança | não existe | `app/(marketing)/seguranca/` | — (sustenta a cunha "sem conexão bancária") |
 | ~~Exportação completa~~ | **resolvida** | `/api/export/completo` entrega as 12 planilhas da conta em `.xlsx` multi-aba ou `.zip` de CSVs; ação no `SettingsDialog` | (promessa cumprida) |
-| **Exclusão de conta** | **não existe** | `lib/actions/reset-account.ts` limpa os dados e **mantém** o usuário — é outra coisa; a ordem de FK de lá é reaproveitável | `FaqSection.tsx` ("apagar sua conta a qualquer momento") e o mesmo card |
+| ~~Exclusão de conta~~ | **resolvida** | `lib/actions/delete-account.ts` — hard delete imediato, confirmado por digitação do e-mail; ação no `SettingsDialog` | (promessa cumprida) |
 
-Enquanto a exclusão de conta não subir existem duas saídas legítimas, e **o estado atual não é
-nenhuma das duas**: implementar, ou suavizar a copy nos dois pontos marcados. Suavizar custa uma
-frase, mas é decisão de produto — a promessa é parte da cunha "seus dados são seus", que é
-justamente o diferencial da Fase 2 do PRD.
+As duas promessas foram cumpridas, não suavizadas: a copy visível não mudou porque passou a ser
+verdade.
 
-A metade da promessa que dizia respeito à exportação foi cumprida, não suavizada: a copy visível
-não mudou porque passou a ser verdade.
+**Como a exclusão foi implementada, e por que é uma linha de SQL.** Os 19 FKs que referenciam
+`users.id` são todos `onDelete: 'cascade'`, então `DELETE FROM users WHERE id = $1` derruba a conta
+inteira — incluindo `accounts`, `sessions`, `feedback` e `people` (e com ela o `shareTokenHash` dos
+extratos públicos). Não se reaproveita a ordem manual do `resetAccount`: lá o `users` **sobrevive**,
+por isso a ordem existe; aqui ele sai, e o Postgres resolve o resto.
+
+Os 9 FKs `RESTRICT` do schema (`transactions`/`fixedExpenses`/`installmentGroups` → `categories` e
+`paymentAccounts`; `investments`/`investmentWithdrawals` → `investmentTypes`) **não** bloqueiam esse
+DELETE, ao contrário do que a leitura do schema sugere: o Postgres enfileira cascades e checagens
+como after-triggers do mesmo statement, e os filhos já saíram quando o `RESTRICT` do pai é avaliado.
+Isso foi verificado em teste de integração, não deduzido — e o teste
+(`__tests__/integration/actions-delete-account.test.ts`) existe justamente para pegar a regressão:
+uma tabela nova cujo FK esqueça o `cascade` faz o DELETE estourar violação de FK ali.
+
+A sessão é JWT (`lib/auth.ts:42`), não banco. Apagar a linha de `sessions` **não** invalida o
+cookie — por isso o cliente chama `signOut()` logo após a action. Sem isso o usuário seguiria
+navegando numa conta que não existe mais, com queries vazias e inserts estourando FK.
 
 Ao subir as três páginas, restaurar os links no `MarketingFooter` (há comentário marcando o ponto)
 e acrescentá-las ao `app/sitemap.ts`.

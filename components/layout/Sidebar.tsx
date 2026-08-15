@@ -255,7 +255,7 @@ export function Sidebar({ user, isAdmin }: SidebarProps) {
       </div>
 
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} userEmail={user?.email} />
     </aside>
   )
 }
