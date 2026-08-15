@@ -140,6 +140,54 @@ describe('texto — contraste WCAG 1.4.3', () => {
   })
 })
 
+// Cores semânticas sólidas (--positive/--negative/--warning) só tinham valor
+// único no :root — o .dark não redefinia nenhuma, herdando o par calibrado
+// para fundo claro (issue #76). Os seis pares abaixo são exatamente os que
+// reprovavam antes da correção: uma tabela genérica de "toda cor x todo
+// fundo" incluiria dezenas de pares que já passavam e não pegaria o furo.
+describe('cores semânticas sólidas — contraste WCAG 1.4.3', () => {
+  it.each([
+    ['escuro', 'negative', 'bg-surface', darkBlock],
+    ['escuro', 'positive', 'bg-surface', darkBlock],
+    ['claro', 'positive', 'bg-base', rootBlock],
+    ['claro', 'warning', 'bg-surface', rootBlock],
+  ] as const)('%s: --%s sobre --%s atinge >= 4.5:1', (_theme, text, bg, block) => {
+    expect(textContrast(block, text, bg)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  // --accent/--positive/--negative/--warning também são usados como FUNDO com
+  // texto claro por cima (Button primary/positive/danger:hover, botões
+  // !bg-warning !text-text-inverse) — o token sólido puxa os dois papéis em
+  // direções opostas, e textContrast() acima assume dois tokens de CSS, não
+  // um par cor-fixa x token. Composto manualmente aqui.
+  //
+  // Inclui os tokens -hover de Button primary/positive: a revisão do PR #93
+  // pegou que o gate original só cobria o estado de repouso — no escuro,
+  // --accent-hover/--positive-hover continuavam mais ESCUROS que o base
+  // (convenção herdada do tema claro, onde funcionava com texto branco) e
+  // reprovavam assim que o texto por cima virou --text-inverse (quase-preto).
+  // Testar os dois temas em cada token, não só o que reprovava antes da
+  // correção: --accent-hover e --positive-hover do claro não mudaram nesta
+  // PR, mas como o texto por cima deles mudou (branco -> text-inverse em
+  // `positive`), regressão futura só nesse par também precisa de gate.
+  it.each([
+    ['escuro', 'accent', darkBlock],
+    ['claro', 'warning', rootBlock],
+    ['escuro', 'positive', darkBlock],
+    ['claro', 'positive', rootBlock],
+    ['escuro', 'negative', darkBlock],
+    ['claro', 'negative', rootBlock],
+    ['escuro', 'accent-hover', darkBlock],
+    ['claro', 'accent-hover', rootBlock],
+    ['escuro', 'positive-hover', darkBlock],
+    ['claro', 'positive-hover', rootBlock],
+  ] as const)('%s: --text-inverse sobre --%s (fundo) atinge >= 4.5:1', (_theme, bgToken, block) => {
+    const inverse = solidRgb(block, 'text-inverse')
+    const bg = solidRgb(block, bgToken)
+    expect(contrastRatio(inverse, bg)).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
 // O gate acima só cobre o token — sozinho, não pega alguém apagando o
 // `focus-visible:` do Button ou reintroduzindo `focus:shadow-none` no
 // HeroAmountCard com o CSS intacto. As duas juntas fecham as duas metades

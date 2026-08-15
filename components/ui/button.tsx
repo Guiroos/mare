@@ -31,12 +31,18 @@ const base =
   'disabled:opacity-45 disabled:pointer-events-none'
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-accent text-white hover:bg-accent-hover hover:shadow-sm',
+  // text-text-inverse, não text-white, nas três variantes que escrevem texto
+  // claro sobre um token de fundo sólido (issue #76 + revisão do PR #93):
+  // branco fixo não acompanha o L do token por tema, e --accent/--positive/
+  // --negative no escuro (57%/58%/61%) reprovam 4,5:1 sob branco (4,04-4,07).
+  // --text-inverse acompanha o tema (quase-preto no escuro) e alcança >= 4,5:1
+  // nos três, nos dois temas — ver __tests__/unit/focus-ring-contrast.test.ts.
+  primary: 'bg-accent text-text-inverse hover:bg-accent-hover hover:shadow-sm',
   secondary: 'bg-bg-subtle text-text-primary hover:bg-bg-muted',
   outline: 'bg-transparent text-accent border-2 border-accent hover:bg-accent-subtle',
   ghost: 'bg-transparent text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
-  danger: 'bg-negative-subtle text-negative-text hover:bg-negative hover:text-white',
-  positive: 'bg-positive text-white hover:bg-positive-hover',
+  danger: 'bg-negative-subtle text-negative-text hover:bg-negative hover:text-text-inverse',
+  positive: 'bg-positive text-text-inverse hover:bg-positive-hover',
   surface:
     'bg-bg-surface text-text-primary border border-border shadow-sm hover:-translate-y-px hover:border-border-strong hover:shadow-md',
 }
