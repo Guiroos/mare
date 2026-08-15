@@ -452,8 +452,30 @@ e acrescentá-las ao `app/sitemap.ts`.
 
 ### 6.2 Infra
 
-- Redirect `www` → apex em salto único. Aceite: `curl -sIL https://www.meumare.com.br` com no
-  máximo um 308 antes do 200.
+- ~~Redirect `www` → apex em salto único. Aceite: `curl -sIL https://www.meumare.com.br` com no
+  máximo um 308 antes do 200.~~ **Resolvido** em 2026-08-15, na UI de Domains da Vercel (não há
+  código envolvido). Cadeia medida: `https://www.meumare.com.br` → 308 → `https://meumare.com.br`
+  → 200, e o apex responde 200 direto, sem salto. Por HTTP são dois saltos
+  (`http://www` → `https://www` → apex), mas o primeiro é o upgrade de TLS na borda — o critério é
+  sobre `https://www`.
+
+  Duas armadilhas custaram uma rodada cada, e as duas passam despercebidas sem `curl`:
+
+  - **A configuração inicial estava invertida:** o apex é que redirecionava para o `www`, enquanto
+    `lib/utils/site.ts` fixa o apex como canônico. O resultado é que toda página pública declarava
+    como canônica uma URL que responde 308 — o Google segue o redirect e adota o destino, ou seja,
+    ignora o que foi declarado. Nada no build acusa: `SITE_URL` é fonte única e continua coerente
+    consigo mesma.
+  - **O campo de destino do redirect é um dropdown com todos os domínios do projeto**, incluindo o
+    `.vercel.app`. Na primeira correção o `www` passou a apontar para `mare-blue.vercel.app` — pior
+    que o estado anterior, porque mandava o crawler para um terceiro host que serve o site inteiro
+    com 200.
+
+  Ponta solta relacionada, ainda aberta: **`mare-blue.vercel.app` é indexável.** O `robots.ts`
+  decide por `VERCEL_ENV`, que é `production` também no domínio interno, então o host serve uma
+  cópia completa do site sem `noindex`. O `canonical` das páginas aponta para o apex e resolve na
+  prática, mas o fechamento de verdade é decidir por host (`VERCEL_PROJECT_PRODUCTION_URL`) em vez
+  de por ambiente, ou marcar o `.vercel.app` como redirect na mesma tela.
 - Google Search Console verificado e sitemap submetido. O histórico só começa na verificação —
   cada semana de atraso é perda permanente.
 - ~~Analytics: escolher a ferramenta **e** liberar o domínio na CSP (§5.4).~~ **Resolvido:**
