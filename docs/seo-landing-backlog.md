@@ -406,14 +406,28 @@ fazia (exportar tudo, apagar a conta) passaram a ter lastro, e os marcadores for
 
 | Item | Estado | O que falta | Onde a landing já promete |
 | --- | --- | --- | --- |
-| Política de Privacidade | não existe | `app/(marketing)/privacidade/` | — (o rodapé está sem links por isso) |
-| Termos de Uso | não existe | `app/(marketing)/termos/` | — |
-| Página de Segurança | não existe | `app/(marketing)/seguranca/` | — (sustenta a cunha "sem conexão bancária") |
+| ~~Política de Privacidade~~ | **resolvida** | `app/(marketing)/privacidade/` | (rodapé voltou a linkar) |
+| ~~Termos de Uso~~ | **resolvida** | `app/(marketing)/termos/` | (rodapé voltou a linkar) |
+| ~~Página de Segurança~~ | **resolvida** | `app/(marketing)/seguranca/` | (sustenta a cunha "sem conexão bancária") |
 | ~~Exportação completa~~ | **resolvida** | `/api/export/completo` entrega as 12 planilhas da conta em `.xlsx` multi-aba ou `.zip` de CSVs; ação no `SettingsDialog` | (promessa cumprida) |
 | ~~Exclusão de conta~~ | **resolvida** | `lib/actions/delete-account.ts` — hard delete imediato, confirmado por digitação do e-mail; ação no `SettingsDialog` | (promessa cumprida) |
 
 As duas promessas foram cumpridas, não suavizadas: a copy visível não mudou porque passou a ser
 verdade.
+
+As três páginas subiram em 2026-08-15. O rodapé voltou a linkar as três e o
+`app/sitemap.ts` as declara. `__tests__/unit/paginas-publicas.test.ts` amarra
+os três lados: rota nova sem entrada no sitemap, sem canonical próprio, ou
+link de rodapé apontando para rota inexistente passam a quebrar o gate.
+
+Fica **um** item vermelho de propósito: o teste falha enquanto o e-mail de
+contato e o nome do controlador forem placeholder. É o que impede publicar uma
+seção de direitos que promete um canal inexistente.
+
+Detalhe do gate que só apareceu ao rodá-lo: a asserção do sitemap precisa ancorar em
+`` `${SITE_URL}<rota>` ``, a forma como o arquivo monta a URL — e não na rota solta. O comentário
+de bloco do `app/sitemap.ts` citava as três rotas nominalmente, então a versão com `toContain(rota)`
+passava verde sobre um sitemap que tinha uma entrada só.
 
 **Como a exclusão foi implementada, e por que é uma linha de SQL.** Os 19 FKs que referenciam
 `users.id` são todos `onDelete: 'cascade'`, então `DELETE FROM users WHERE id = $1` derruba a conta
