@@ -117,7 +117,7 @@ export default function TermosPage() {
           para qualquer questão que deles decorra.
         </p>
         <p>
-          Dúvidas: <a href="mailto:placeholder@email.com">placeholder@email.com</a>.
+          Dúvidas: <a href="mailto:guilherme.roosr@gmail.com">guilherme.roosr@gmail.com</a>.
         </p>
       </LegalSection>
     </LegalPage>

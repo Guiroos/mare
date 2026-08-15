@@ -63,8 +63,8 @@ export default function SegurancaPage() {
         </h2>
         <p className="mt-3 max-w-[620px] text-mkt-body text-text-secondary">
           Se você encontrou uma falha de segurança, escreva para{' '}
-          <a className="text-accent-text underline" href="mailto:placeholder@email.com">
-            placeholder@email.com
+          <a className="text-accent-text underline" href="mailto:guilherme.roosr@gmail.com">
+            guilherme.roosr@gmail.com
           </a>
           . Não há programa de recompensa, mas há resposta: todo relato é lido e respondido.
         </p>

@@ -17,12 +17,12 @@ export default function PrivacidadePage() {
     >
       <LegalSection id="controlador" title="1. Quem responde por estes dados">
         <p>
-          O Maré é operado por <strong>[NOME COMPLETO]</strong>, pessoa física, na condição de
-          controlador dos seus dados pessoais nos termos da Lei 13.709/2018 (LGPD).
+          O Maré é operado por <strong>Guilherme Roos Ribeiro</strong>, pessoa física, na condição
+          de controlador dos seus dados pessoais nos termos da Lei 13.709/2018 (LGPD).
         </p>
         <p>
           Contato para qualquer assunto desta política, inclusive para exercer os direitos da seção
-          8: <a href="mailto:placeholder@email.com">placeholder@email.com</a>.
+          8: <a href="mailto:guilherme.roosr@gmail.com">guilherme.roosr@gmail.com</a>.
         </p>
       </LegalSection>
 
@@ -143,7 +143,7 @@ export default function PrivacidadePage() {
         </ul>
         <p>
           Para os demais direitos, escreva para{' '}
-          <a href="mailto:placeholder@email.com">placeholder@email.com</a>.
+          <a href="mailto:guilherme.roosr@gmail.com">guilherme.roosr@gmail.com</a>.
         </p>
       </LegalSection>
 
@@ -161,7 +161,7 @@ export default function PrivacidadePage() {
         <p>
           Se você é uma dessas pessoas e quer que seus dados sejam removidos, procure quem fez o
           cadastro. Se isso não for possível, escreva para{' '}
-          <a href="mailto:placeholder@email.com">placeholder@email.com</a>.
+          <a href="mailto:guilherme.roosr@gmail.com">guilherme.roosr@gmail.com</a>.
         </p>
       </LegalSection>
 
