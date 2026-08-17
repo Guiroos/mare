@@ -205,6 +205,29 @@ describe('anel de foco — indicador não suprimido nos componentes', () => {
     )
     expect(hero).not.toMatch(/focus:shadow-none/)
   })
+
+  // issue #77 — item de menu Radix com outline-none e só hover:, sem focus:
+  // nem data-[highlighted]:; o Radix move o foco de DOM para o item
+  // (MenuItemImpl chama item.focus()), então hover sozinho não cobre teclado.
+  it.each([
+    [
+      'components/ui/multiselect-dropdown.tsx',
+      /focus:bg-bg-subtle|data-\[highlighted\]:bg-bg-subtle/,
+    ],
+    ['components/export/ExportButton.tsx', /focus:bg-bg-subtle|data-\[highlighted\]:bg-bg-subtle/],
+  ])('%s devolve indicador de foco no item de menu', (file, re) => {
+    expect(readFileSync(join(process.cwd(), file), 'utf-8')).toMatch(re)
+  })
+
+  // issue #77 — o input do Switch é 0x0/opacity-0 e a trilha visível não reage
+  // a foco nenhum. Uma asserção genérica por /focus/ passaria com o bug
+  // intacto (o arquivo ganharia a palavra com focus: no próprio input
+  // invisível); peer-focus-visible: só é satisfeito pela correção que
+  // estiliza a trilha.
+  it('switch.tsx devolve indicador de foco na trilha visível', () => {
+    const sw = readFileSync(join(process.cwd(), 'components/ui/switch.tsx'), 'utf-8')
+    expect(sw).toMatch(/peer-focus-visible:/)
+  })
 })
 
 // WCAG 4.1.2 (issue #75) — o Combobox não tem nenhum papel ARIA e a navegação
