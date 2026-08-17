@@ -209,14 +209,19 @@ describe('anel de foco — indicador não suprimido nos componentes', () => {
   // issue #77 — item de menu Radix com outline-none e só hover:, sem focus:
   // nem data-[highlighted]:; o Radix move o foco de DOM para o item
   // (MenuItemImpl chama item.focus()), então hover sozinho não cobre teclado.
-  it.each([
-    [
-      'components/ui/multiselect-dropdown.tsx',
-      /focus:bg-bg-subtle|data-\[highlighted\]:bg-bg-subtle/,
-    ],
-    ['components/export/ExportButton.tsx', /focus:bg-bg-subtle|data-\[highlighted\]:bg-bg-subtle/],
-  ])('%s devolve indicador de foco no item de menu', (file, re) => {
-    expect(readFileSync(join(process.cwd(), file), 'utf-8')).toMatch(re)
+  it('multiselect-dropdown.tsx devolve indicador de foco no item de menu', () => {
+    const md = readFileSync(join(process.cwd(), 'components/ui/multiselect-dropdown.tsx'), 'utf-8')
+    expect(md).toMatch(/focus:bg-bg-subtle|data-\[highlighted\]:bg-bg-subtle/)
+  })
+
+  // Ancorado no ramo `cursor-pointer` (não desabilitado) do `itemCls`, e não
+  // no arquivo inteiro: a #77 já previu que o erro mais provável seria pôr o
+  // `focus:` na string base compartilhada pelos dois ramos, o que realçaria
+  // também o item `disabled`. Um `toMatch` sobre o arquivo inteiro aceitaria
+  // essa implementação errada; ancorar na linha do ramo habilitado não.
+  it('ExportButton.tsx devolve indicador de foco só no item habilitado', () => {
+    const eb = readFileSync(join(process.cwd(), 'components/export/ExportButton.tsx'), 'utf-8')
+    expect(eb).toMatch(/cursor-pointer text-text-primary hover:bg-bg-subtle focus:bg-bg-subtle/)
   })
 
   // issue #77 — o input do Switch é 0x0/opacity-0 e a trilha visível não reage
@@ -227,6 +232,20 @@ describe('anel de foco — indicador não suprimido nos componentes', () => {
   it('switch.tsx devolve indicador de foco na trilha visível', () => {
     const sw = readFileSync(join(process.cwd(), 'components/ui/switch.tsx'), 'utf-8')
     expect(sw).toMatch(/peer-focus-visible:/)
+  })
+
+  // Review do PR #99 — `disabled` era desestruturado só para pintar o
+  // `<label>` (`pointer-events-none opacity-50`) e nunca chegava ao `<input>`.
+  // Antes deste PR era um bug silencioso (input invisível, ninguém via o foco
+  // pousar ali); com `peer-focus-visible:` acima, um switch "desabilitado" na
+  // tela continua no tab order, continua alternável por Espaço, e o anel de
+  // foco herda a opacity-50 do label — abaixo do contraste que este arquivo
+  // de teste existe para defender. Ancorado em `disabled={disabled}` e não em
+  // `/disabled/` genérico: a palavra já aparece hoje na desestruturação e na
+  // className, então um regex solto passaria com o bug intacto.
+  it('switch.tsx propaga disabled para o input, não só para o label', () => {
+    const sw = readFileSync(join(process.cwd(), 'components/ui/switch.tsx'), 'utf-8')
+    expect(sw).toMatch(/disabled=\{disabled\}/)
   })
 })
 

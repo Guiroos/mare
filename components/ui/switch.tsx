@@ -16,6 +16,7 @@ export function Switch({ label, checked, onChange, disabled, id, ...props }: Swi
         type="checkbox"
         id={id}
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="peer absolute h-0 w-0 opacity-0"
         {...props}
