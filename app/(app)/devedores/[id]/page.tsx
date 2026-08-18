@@ -19,10 +19,14 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { ExportButton } from '@/components/export/ExportButton'
 import { getRequestOrigin } from '@/lib/utils/request-origin'
+import { uuidSchema } from '@/lib/validations/utils'
 
 export default async function DevedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [session, { id }] = await Promise.all([auth(), params])
   if (!session) redirect('/login')
+
+  const parsed = uuidSchema.safeParse(id)
+  if (!parsed.success) notFound()
 
   const [data, txForLink, openCharges, pixKey] = await Promise.all([
     getPersonDebtDetails(session.user.id, id),
