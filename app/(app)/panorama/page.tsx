@@ -8,7 +8,7 @@ import {
 import { getPatrimonyTimeline } from '@/lib/queries/investments'
 import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getCreditAccounts } from '@/lib/queries/categories'
-import { currentYear, currentYearMonth } from '@/lib/utils/date'
+import { currentYearMonth, normalizeYearParam } from '@/lib/utils/date'
 import { Card } from '@/components/ui/card'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 import { PatrimonyEvolutionChart } from '@/components/charts/PatrimonyEvolutionChart'
@@ -29,8 +29,7 @@ export default async function PanoramaPage({
   const userId = session.user.id
 
   const { year: rawYear } = await searchParams
-  const parsedYear = parseInt(rawYear ?? '', 10)
-  const year = isFinite(parsedYear) && parsedYear > 2000 ? parsedYear : currentYear()
+  const year = normalizeYearParam(rawYear)
 
   const [creditMode, creditAccounts] = await Promise.all([
     getUserCreditMode(userId),

@@ -3,6 +3,7 @@ import { format } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
+  normalizeYearParam,
   referenceMonthToYearMonth,
   prevMonth,
   nextMonth,
@@ -79,6 +80,42 @@ describe('normalizeYearMonthParam', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2025-03-15T12:00:00'))
     expect(normalizeYearMonthParam('0000-01')).toBe('2025-03')
+  })
+})
+
+describe('normalizeYearParam', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns the value unchanged when it is within the domain', () => {
+    expect(normalizeYearParam('2025')).toBe(2025)
+  })
+
+  it('falls back to the current year when the param is undefined', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearParam(undefined)).toBe(2025)
+  })
+
+  it('falls back to the current year when the param is not numeric', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearParam('abc')).toBe(2025)
+  })
+
+  it('falls back to the current year for a year at or below the domain floor (2000)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearParam('2000')).toBe(2025)
+  })
+
+  it('falls back to the current year when the year overflows the Postgres date domain', () => {
+    // '999999999-01-01' passaria por inArray(...) direto para colunas date e derrubaria a
+    // rota em 500 — o guard evita chegar a esse literal. Ver #83.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-03-15T12:00:00'))
+    expect(normalizeYearParam('999999999')).toBe(2025)
   })
 })
 
