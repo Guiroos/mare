@@ -43,7 +43,7 @@ export function ExportButton({ items, label = 'Exportar', size = 'sm' }: ExportB
               'flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-body outline-none transition duration-fast',
               disabled
                 ? 'cursor-not-allowed text-text-tertiary'
-                : 'cursor-pointer text-text-primary hover:bg-bg-subtle'
+                : 'cursor-pointer text-text-primary hover:bg-bg-subtle focus:bg-bg-subtle'
             )
 
             if (disabled) {

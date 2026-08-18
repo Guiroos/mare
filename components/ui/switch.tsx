@@ -16,13 +16,14 @@ export function Switch({ label, checked, onChange, disabled, id, ...props }: Swi
         type="checkbox"
         id={id}
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        className="absolute h-0 w-0 opacity-0"
+        className="peer absolute h-0 w-0 opacity-0"
         {...props}
       />
       <div
         className={
-          'relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-base ' +
+          'relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-base peer-focus-visible:shadow-[0_0_0_3px_var(--ring-accent)] ' +
           (checked ? 'border-accent bg-accent' : 'border-border bg-bg-muted')
         }
       >

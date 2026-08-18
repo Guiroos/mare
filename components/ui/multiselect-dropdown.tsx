@@ -79,7 +79,7 @@ export function MultiselectDropdown({ label, options, selected, onChange, classN
                 const checked = selected.includes(opt.value)
                 return (
                   <DropdownMenu.Item key={opt.value} asChild onSelect={(e) => e.preventDefault()}>
-                    <Label className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-text-primary outline-none transition duration-fast hover:bg-bg-subtle">
+                    <Label className="flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-text-primary outline-none transition duration-fast hover:bg-bg-subtle focus:bg-bg-subtle">
                       <input
                         type="checkbox"
                         className="accent-accent"
