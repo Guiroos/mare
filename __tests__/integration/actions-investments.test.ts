@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
-import { createUser, createInvestmentType } from './helpers/factories'
+import { createUser, createInvestmentType, createGoal } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
@@ -398,5 +398,29 @@ describe('updateWithdrawal', () => {
     const dek = await getDekForUser(userId)
     expect(decryptField(income!.amount, dek)).toBe('200.00')
     expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('200.00')
+  })
+})
+
+describe('deleteInvestmentType', () => {
+  it('nulifica investmentTypeId de metas vinculadas em vez de deixar id órfão', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Tipo para Deletar' })
+    const goal = await createGoal(db, userId, {
+      name: 'Meta Vinculada',
+      investmentTypeId: type.id,
+    })
+
+    const { deleteInvestmentType } = await import('@/lib/actions/investments')
+    await deleteInvestmentType(type.id)
+
+    const savedGoal = await db.query.goals.findFirst({
+      where: eq(schema.goals.id, goal.id),
+    })
+    expect(savedGoal).toBeDefined()
+    expect(savedGoal?.investmentTypeId).toBeNull()
+
+    const savedType = await db.query.investmentTypes.findFirst({
+      where: eq(schema.investmentTypes.id, type.id),
+    })
+    expect(savedType).toBeUndefined()
   })
 })
