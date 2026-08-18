@@ -116,8 +116,10 @@ export default function PrivacidadePage() {
 
       <LegalSection id="cookies" title="7. Cookies">
         <p>
-          O Maré usa <strong>um</strong> cookie, o de sessão, que mantém você conectado. É
-          essencial: sem ele não há como permanecer autenticado entre páginas.
+          O Maré usa <strong>apenas cookies estritamente necessários</strong>, todos ligados à
+          autenticação: o de sessão, que mantém você conectado entre páginas, e os que protegem e
+          conduzem o login em si — proteção contra CSRF e os valores temporários que o fluxo do
+          Google usa para voltar à página certa. Não há cookie de publicidade nem de perfilamento.
         </p>
         <p>
           A medição de audiência não usa cookies e não acompanha você entre sites — ela conta

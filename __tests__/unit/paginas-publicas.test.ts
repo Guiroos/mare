@@ -53,7 +53,14 @@ describe('páginas públicas', () => {
   })
 
   it('todo link interno do rodapé aponta para rota existente', () => {
-    const hrefs = [...footerSrc.matchAll(/href="(\/[^"]*)"/g)].map((m) => m[1])
+    // Casa as duas formas que o rodapé pode escrever a rota: `href="/x"` em JSX
+    // e `href: '/x'` num array de dados. A primeira versão só cobria o JSX e
+    // era vácuo — o rodapé usa a segunda, e plantar `/rota-que-nao-existe`
+    // passava verde.
+    const hrefs = [...footerSrc.matchAll(/href(?:="|:\s*['"])(\/[^'"]*)['"]/g)].map((m) => m[1])
+    // Sem isto, uma mudança de forma futura volta a esvaziar a lista em
+    // silêncio e o `for` abaixo não itera sobre nada.
+    expect(hrefs.length, 'nenhum link interno encontrado no rodapé').toBeGreaterThan(0)
     const known = ['/', ...publicRoutes()]
     for (const href of hrefs) {
       expect(known, `rodapé aponta para ${href}, que não existe`).toContain(href)
