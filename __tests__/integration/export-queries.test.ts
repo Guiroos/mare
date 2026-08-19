@@ -5,6 +5,7 @@ import {
   createAccount,
   createCategory,
   createCategoryGroup,
+  createFixedExpense,
   createInstallmentGroup,
   createTransaction,
   createUser,
@@ -161,13 +162,9 @@ describe('getLatestActivityDate', () => {
     const grupoFixo = await createCategoryGroup(db, soFixo)
     const { id: categoriaFixo } = await createCategory(db, soFixo, grupoFixo.id)
 
-    const schema = await import('@/lib/db/schema')
     // referenceMonth 2024-06-01 com dueDay=20 exibe em 2024-06-20 — bem depois
     // do referenceMonth cru, que é o que o teto usava antes da correção.
-    await db.insert(schema.fixedExpenses).values({
-      userId: soFixo,
-      accountId: contaFixo,
-      categoryId: categoriaFixo,
+    await createFixedExpense(db, soFixo, contaFixo, categoriaFixo, {
       name: 'Aluguel',
       amount: '1500.00',
       dueDay: 20,
