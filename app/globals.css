@@ -139,7 +139,13 @@
        aqui pelo mesmo motivo do --accent-hover acima: Button positive passou
        a usar --text-inverse por cima, e o valor herdado do claro (48%, mais
        escuro que o repouso) reprovava 3,50:1 no hover — revisão do PR #93.
-       63% alcança 6,25:1. */
+       63% alcança 6,25:1.
+       Ressalva (issue #94): sobre --bg-subtle (hover de linha de lista) dá
+       4,03:1, abaixo de 4,5:1. Subir --positive para fechar esse par muda o
+       verde de valores no app inteiro (decisão de design, fora de escopo
+       desta correção pontual) — mesmo tratamento já dado a --text-tertiary
+       sobre --bg-muted acima: --bg-subtle fica fora do gate de cores
+       semânticas sólidas para este token. */
     --positive: oklch(57% 0.13 172);
     --positive-hover: oklch(63% 0.13 172);
     --positive-subtle: oklch(20% 0.07 172);
@@ -147,7 +153,9 @@
 
     /* Negative — mesmo problema do --positive: herdado do :root, 3,40:1 como
        texto sobre --bg-surface escuro — o par mais caro da issue #76, pinta a
-       mensagem de erro de todo formulário. 61% alcança 4,56:1. */
+       mensagem de erro de todo formulário. 61% alcança 4,56:1.
+       Ressalva (issue #94): sobre --bg-subtle dá 4,05:1, mesma ressalva do
+       --positive acima — --bg-subtle fica fora do gate para este token. */
     --negative: oklch(61% 0.13 20);
     --negative-subtle: oklch(20% 0.07 20);
     --negative-text: oklch(74% 0.1 22);

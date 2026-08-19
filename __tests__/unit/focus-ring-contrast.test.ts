@@ -145,6 +145,12 @@ describe('texto — contraste WCAG 1.4.3', () => {
 // para fundo claro (issue #76). Os seis pares abaixo são exatamente os que
 // reprovavam antes da correção: uma tabela genérica de "toda cor x todo
 // fundo" incluiria dezenas de pares que já passavam e não pegaria o furo.
+//
+// `--bg-subtle` fica fora deste gate para --negative/--positive no escuro
+// (issue #94): 4,05:1 e 4,03:1, abaixo de 4,5:1. Fechar esse par exige subir
+// os dois tokens — muda o vermelho/verde de valores no app inteiro, decisão
+// de design fora do escopo de uma correção pontual — mesmo tratamento já
+// dado a --text-tertiary sobre --bg-muted (comentário em app/globals.css).
 describe('cores semânticas sólidas — contraste WCAG 1.4.3', () => {
   it.each([
     ['escuro', 'negative', 'bg-surface', darkBlock],
