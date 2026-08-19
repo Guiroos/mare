@@ -140,12 +140,12 @@
        a usar --text-inverse por cima, e o valor herdado do claro (48%, mais
        escuro que o repouso) reprovava 3,50:1 no hover — revisão do PR #93.
        63% alcança 6,25:1.
-       Ressalva (issue #94): sobre --bg-subtle (hover de linha de lista) dá
-       4,03:1, abaixo de 4,5:1. Subir --positive para fechar esse par muda o
-       verde de valores no app inteiro (decisão de design, fora de escopo
-       desta correção pontual) — mesmo tratamento já dado a --text-tertiary
-       sobre --bg-muted acima: --bg-subtle fica fora do gate de cores
-       semânticas sólidas para este token. */
+       Ressalva (issue #94): --positive sobre --bg-subtle dá 4,03:1, abaixo de
+       4,5:1. Subir --positive para L >= 60% fecharia o par, mas muda o verde
+       de valores no app inteiro — decisão de design fora de escopo de
+       correção pontual. Não tem site estático conhecido hoje (diferente do
+       --negative abaixo); ver issue #94 para os sites hover ainda sem
+       cobertura (TransactionList.tsx, WithdrawalTable.tsx). */
     --positive: oklch(57% 0.13 172);
     --positive-hover: oklch(63% 0.13 172);
     --positive-subtle: oklch(20% 0.07 172);
@@ -154,8 +154,16 @@
     /* Negative — mesmo problema do --positive: herdado do :root, 3,40:1 como
        texto sobre --bg-surface escuro — o par mais caro da issue #76, pinta a
        mensagem de erro de todo formulário. 61% alcança 4,56:1.
-       Ressalva (issue #94): sobre --bg-subtle dá 4,05:1, mesma ressalva do
-       --positive acima — --bg-subtle fica fora do gate para este token. */
+       Ressalva (issue #94): --negative sobre --bg-subtle dá 4,05:1, mesmo
+       problema do --positive acima (subir para L >= 64% fecha, mas é decisão
+       de design). O site mais caro — os painéis "Ação irreversível" de
+       Resetar/Excluir conta em SettingsDialog.tsx, estáticos e não hover —
+       foi corrigido trocando o fundo do painel para --negative-subtle em vez
+       de --bg-subtle: 4,54:1, sem mexer no token. TransactionList.tsx e
+       WithdrawalTable.tsx continuam usando --bg-subtle só no hover da linha
+       inteira (não é o valor sozinho) — trocar o fundo ali tingiria a linha
+       toda de vermelho por causa de uma célula, então ficou de fora desta
+       correção; rastreado na issue #94. */
     --negative: oklch(61% 0.13 20);
     --negative-subtle: oklch(20% 0.07 20);
     --negative-text: oklch(74% 0.1 22);
