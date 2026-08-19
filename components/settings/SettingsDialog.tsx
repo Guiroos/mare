@@ -158,7 +158,7 @@ function SettingsContent({
         </Button>
 
         {confirming && (
-          <div className="mt-4 space-y-3 rounded-lg border border-negative bg-bg-subtle p-4">
+          <div className="mt-4 space-y-3 rounded-lg border border-negative bg-negative-subtle p-4">
             <div className="flex gap-2">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-negative" />
               <div>
@@ -222,7 +222,7 @@ function SettingsContent({
           </Button>
 
           {deleting && (
-            <div className="mt-4 space-y-3 rounded-lg border border-negative bg-bg-subtle p-4">
+            <div className="mt-4 space-y-3 rounded-lg border border-negative bg-negative-subtle p-4">
               <div className="flex gap-2">
                 <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-negative" />
                 <div>
