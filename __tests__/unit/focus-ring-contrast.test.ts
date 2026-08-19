@@ -145,12 +145,25 @@ describe('texto — contraste WCAG 1.4.3', () => {
 // para fundo claro (issue #76). Os seis pares abaixo são exatamente os que
 // reprovavam antes da correção: uma tabela genérica de "toda cor x todo
 // fundo" incluiria dezenas de pares que já passavam e não pegaria o furo.
+//
+// issue #94 — --negative/--positive sobre --bg-subtle no escuro seguem
+// abaixo de 4,5:1 (4,05:1 e 4,03:1). Subir os dois tokens fecharia o par mas
+// muda o vermelho/verde de valores no app inteiro — decisão de design fora
+// de escopo de correção pontual. O site mais caro (painéis "Ação
+// irreversível" de Resetar/Excluir conta em SettingsDialog.tsx — estático,
+// não hover) foi corrigido trocando o FUNDO do painel de --bg-subtle para
+// --negative-subtle em vez de subir o token: 4,54:1, coberto pelo caso
+// negative/negative-subtle abaixo. --positive não tem site estático
+// conhecido e TransactionList.tsx/WithdrawalTable.tsx (hover da linha
+// inteira, não só do valor) continuam sem cobertura — ver issue #94.
 describe('cores semânticas sólidas — contraste WCAG 1.4.3', () => {
   it.each([
     ['escuro', 'negative', 'bg-surface', darkBlock],
     ['escuro', 'positive', 'bg-surface', darkBlock],
     ['claro', 'positive', 'bg-base', rootBlock],
     ['claro', 'warning', 'bg-surface', rootBlock],
+    ['escuro', 'negative', 'negative-subtle', darkBlock],
+    ['claro', 'negative', 'negative-subtle', rootBlock],
   ] as const)('%s: --%s sobre --%s atinge >= 4.5:1', (_theme, text, bg, block) => {
     expect(textContrast(block, text, bg)).toBeGreaterThanOrEqual(4.5)
   })
