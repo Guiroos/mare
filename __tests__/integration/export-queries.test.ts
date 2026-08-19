@@ -9,6 +9,7 @@ import {
   createTransaction,
   createUser,
 } from './helpers/factories'
+import { ALL_TIPOS } from '@/lib/utils/historico-params'
 
 neonTestingSetup()
 
@@ -150,5 +151,63 @@ describe('getEarliestActivityDate', () => {
     const { id: vazio } = await createUser(db, `vazio-${Date.now()}`)
     const { getEarliestActivityDate } = await import('@/lib/queries/historico')
     expect(await getEarliestActivityDate(vazio)).toBeNull()
+  })
+})
+
+describe('getLatestActivityDate', () => {
+  it('usa a data de exibição do gasto fixo (referenceMonth + dueDay), não o referenceMonth cru', async () => {
+    const { id: soFixo } = await createUser(db, `so-fixo-${Date.now()}`)
+    const { id: contaFixo } = await createAccount(db, soFixo)
+    const grupoFixo = await createCategoryGroup(db, soFixo)
+    const { id: categoriaFixo } = await createCategory(db, soFixo, grupoFixo.id)
+
+    const schema = await import('@/lib/db/schema')
+    // referenceMonth 2024-06-01 com dueDay=20 exibe em 2024-06-20 — bem depois
+    // do referenceMonth cru, que é o que o teto usava antes da correção.
+    await db.insert(schema.fixedExpenses).values({
+      userId: soFixo,
+      accountId: contaFixo,
+      categoryId: categoriaFixo,
+      name: 'Aluguel',
+      amount: '1500.00',
+      dueDay: 20,
+      referenceMonth: '2024-06-01',
+    })
+
+    const { getLatestActivityDate, collectHistoricoItems } = await import('@/lib/queries/historico')
+    const latest = await getLatestActivityDate(soFixo)
+    expect(latest).toBe('2024-06-20')
+
+    // Discriminante: com um teto anterior ao vencimento (a definição antiga,
+    // MAX(referenceMonth) = '2024-06-01'), o gasto fixo continua fora do
+    // recorte de collectHistoricoItems — comprova que fixedExpenseDate
+    // segue sendo a única fonte da data de exibição.
+    const itemsComTetoAntigo = await collectHistoricoItems(soFixo, {
+      de: '2024-01-01',
+      ate: '2024-06-01',
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    })
+    expect(itemsComTetoAntigo.some((i) => i.name === 'Aluguel')).toBe(false)
+
+    const itemsComTetoCorrigido = await collectHistoricoItems(soFixo, {
+      de: '2024-01-01',
+      ate: latest as string,
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    })
+    expect(itemsComTetoCorrigido.some((i) => i.name === 'Aluguel')).toBe(true)
+  })
+
+  it('devolve null para usuário sem movimento nenhum', async () => {
+    const { id: vazio } = await createUser(db, `vazio-latest-${Date.now()}`)
+    const { getLatestActivityDate } = await import('@/lib/queries/historico')
+    expect(await getLatestActivityDate(vazio)).toBeNull()
   })
 })

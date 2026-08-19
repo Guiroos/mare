@@ -7,7 +7,7 @@ import {
   investments,
   investmentWithdrawals,
 } from '@/lib/db/schema'
-import { and, eq, between, inArray, sql } from 'drizzle-orm'
+import { and, desc, eq, between, inArray, sql } from 'drizzle-orm'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField } from '@/lib/crypto/fields'
@@ -346,7 +346,7 @@ export async function getEarliestActivityDate(userId: string): Promise<string | 
  * vazios — a mesma objeção que descartou '1970-01-01' do lado do piso.
  */
 export async function getLatestActivityDate(userId: string): Promise<string | null> {
-  const [tx, inc, fx, inv, wd] = await Promise.all([
+  const [tx, inc, fxCandidates, inv, wd] = await Promise.all([
     db
       .select({ max: sql<string | null>`max(${transactions.date})` })
       .from(transactions)
@@ -355,10 +355,20 @@ export async function getLatestActivityDate(userId: string): Promise<string | nu
       .select({ max: sql<string | null>`max(${incomes.referenceMonth})` })
       .from(incomes)
       .where(eq(incomes.userId, userId)),
+    // Candidato de gasto fixo é a DATA DE EXIBIÇÃO (referenceMonth + dueDay), não o
+    // referenceMonth cru — senão o teto corta gasto fixo com vencimento ainda não
+    // chegado no mês mais recente. Os 2 referenceMonth mais recentes bastam: um
+    // dueDay=31 no mês anterior pode ultrapassar um dueDay=1 no mês seguinte.
     db
-      .select({ max: sql<string | null>`max(${fixedExpenses.referenceMonth})` })
+      .select({
+        referenceMonth: fixedExpenses.referenceMonth,
+        maxDueDay: sql<number>`max(${fixedExpenses.dueDay})`,
+      })
       .from(fixedExpenses)
-      .where(eq(fixedExpenses.userId, userId)),
+      .where(eq(fixedExpenses.userId, userId))
+      .groupBy(fixedExpenses.referenceMonth)
+      .orderBy(desc(fixedExpenses.referenceMonth))
+      .limit(2),
     db
       .select({ max: sql<string | null>`max(${investments.referenceMonth})` })
       .from(investments)
@@ -369,7 +379,12 @@ export async function getLatestActivityDate(userId: string): Promise<string | nu
       .where(eq(investmentWithdrawals.userId, userId)),
   ])
 
-  const candidates = [tx[0]?.max, inc[0]?.max, fx[0]?.max, inv[0]?.max, wd[0]?.max].filter(
+  const fx = fxCandidates
+    .map((c) => fixedExpenseDate(c.referenceMonth, c.maxDueDay))
+    .sort()
+    .at(-1)
+
+  const candidates = [tx[0]?.max, inc[0]?.max, fx, inv[0]?.max, wd[0]?.max].filter(
     (d): d is string => d != null
   )
 
