@@ -6,7 +6,7 @@
 | ---- | --------------------------------------- | --------- |
 | 1    | Preparação e branch                     | concluída |
 | 2    | Upgrade de dependências                 | concluída |
-| 3    | Migração do PWA para @serwist/next      | concluída |
+| 3    | Migração do PWA para @serwist/next      | corrigida (issue #101) |
 | 4    | Migração das Async Request APIs         | concluída |
 | 5    | Ajustes de config e limpeza             | concluída |
 | 6    | Validação e testes                      | concluída |
@@ -146,6 +146,18 @@ Critério de aceite:
 - `public/sw.js` gerado corretamente.
 - App instalável como PWA no navegador.
 - `@ducanh2912/next-pwa` removido do `package.json`.
+
+> **Correção (issue #101):** o critério acima nunca foi verificado — os dois itens de
+> aceite de PWA da Fase 6 (linhas 243-244 abaixo) seguiram desmarcados, e "build conclui
+> sem erros" não implica "gera o artefato": o `@serwist/next` não suporta Turbopack e
+> avisa isso no próprio log do `next build`, mas **não falha o build** — o plugin webpack
+> simplesmente não roda, e `public/sw.js` nunca é escrito. O `npm run build` da Vercel
+> (`next build`, sem `--webpack`) publicava o app sem service worker desde esta fase.
+> Corrigido migrando para o *configurator mode* do `@serwist/next`: o wrapper
+> `withSerwistInit` saiu do `next.config.mjs`, e um `serwist.config.mjs` na raiz alimenta
+> o CLI `@serwist/cli` (`serwist build`), rodado como segunda etapa do script `build`
+> depois do `next build`. O `.github/workflows/ci.yml` ganhou `npm run build` + `test -s
+> public/sw.js` no job `validate`, para que a ausência do artefato quebre o CI.
 
 ---
 
