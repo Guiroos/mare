@@ -42,12 +42,13 @@ function rootConfigFiles(): string[] {
 // servidor em runtime. Uma dependência de produção cujos ÚNICOS importadores
 // estão aqui está classificada errada (deveria ser devDependency): infla a
 // árvore de produção do lockfile e corrompe `npm audit --omit=dev` (issue #102).
-// `next.config.mjs` não casa com `rootConfigFiles()` (não tem `.config.`) e
-// `app/sw.ts` está dentro de `app/` (varrido pela outra checagem como se fosse
-// runtime), então ambos entram explicitamente — o sw.ts compila para
-// `public/sw.js`, artefato estático, e não é módulo de servidor.
+// `next.config.mjs` já casa com `rootConfigFiles()` (a substring `.config.`
+// aparece em `next.config.mjs`). `app/sw.ts` NÃO — está dentro de `app/`
+// (varrido pela outra checagem como se fosse runtime), então entra aqui
+// explicitamente: compila para `public/sw.js`, artefato estático, e não é
+// módulo de servidor.
 function buildEntryPoints(): string[] {
-  return [...rootConfigFiles(), join(ROOT, 'next.config.mjs'), join(ROOT, 'app', 'sw.ts')]
+  return [...rootConfigFiles(), join(ROOT, 'app', 'sw.ts')]
 }
 
 function escapeRegExp(value: string): string {
