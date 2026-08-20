@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import { SerwistProvider } from '@serwist/next/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 import { MarketingHeader } from '@/components/marketing/MarketingHeader'
@@ -18,12 +19,14 @@ import { MarketingHeader } from '@/components/marketing/MarketingHeader'
  */
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="theme-light min-h-screen bg-bg-base font-display text-mkt-body tabular-nums text-text-primary antialiased [color-scheme:light]">
-      <MarketingHeader />
-      <main>{children}</main>
-      <MarketingFooter />
-      <SpeedInsights />
-      <Analytics />
-    </div>
+    <SerwistProvider swUrl="/sw.js">
+      <div className="theme-light min-h-screen bg-bg-base font-display text-mkt-body tabular-nums text-text-primary antialiased [color-scheme:light]">
+        <MarketingHeader />
+        <main>{children}</main>
+        <MarketingFooter />
+        <SpeedInsights />
+        <Analytics />
+      </div>
+    </SerwistProvider>
   )
 }
