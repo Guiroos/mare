@@ -409,6 +409,8 @@ describe('deleteInvestmentType', () => {
       investmentTypeId: type.id,
     })
 
+    vi.mocked(revalidatePath).mockClear()
+
     const { deleteInvestmentType } = await import('@/lib/actions/investments')
     await deleteInvestmentType(type.id)
 
@@ -422,5 +424,9 @@ describe('deleteInvestmentType', () => {
       where: eq(schema.investmentTypes.id, type.id),
     })
     expect(savedType).toBeUndefined()
+
+    // Nulificar investmentTypeId muda o ramo de cálculo de getGoalsWithProgress
+    // (vinculado -> manual): /metas precisa revalidar junto com /investimentos.
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/metas')
   })
 })
