@@ -66,6 +66,7 @@ export async function deleteInvestmentType(id: string) {
     .delete(investmentTypes)
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
+  revalidatePath('/metas')
 }
 
 export async function archiveInvestmentType(id: string) {
