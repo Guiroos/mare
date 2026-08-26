@@ -1,0 +1,2 @@
+UPDATE "goals" SET "investment_type_id" = NULL WHERE "investment_type_id" IS NOT NULL AND "investment_type_id" NOT IN (SELECT "id" FROM "investment_types");--> statement-breakpoint
+ALTER TABLE "goals" ADD CONSTRAINT "goals_investment_type_id_investment_types_id_fk" FOREIGN KEY ("investment_type_id") REFERENCES "public"."investment_types"("id") ON DELETE set null ON UPDATE no action;

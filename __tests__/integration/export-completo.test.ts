@@ -5,6 +5,7 @@ import {
   createAccount,
   createCategory,
   createCategoryGroup,
+  createFixedExpense,
   createGoal,
   createGoalContribution,
   createInstallmentGroup,
@@ -188,6 +189,38 @@ describe('collectFullExport', () => {
     const csv = sheetToCsv(extrato.data)
     expect(csv).toContain('Notebook (2/12)')
     expect(csv).toContain(futureISODate.slice(0, 4))
+  })
+
+  it('o extrato inclui gasto fixo do mês seguinte com vencimento ainda não chegado', async () => {
+    // Usuário isolado: getLatestActivityDate agrega por userId, então o teto
+    // real desse usuário depende só do gasto fixo criado aqui.
+    const { id: fxUserId } = await createUser(db, `export-completo-fx-${Date.now()}`)
+    const { id: fxAccountId } = await createAccount(db, fxUserId)
+    const { id: fxGroupId } = await createCategoryGroup(db, fxUserId)
+    const { id: fxCategoryId } = await createCategory(db, fxUserId, fxGroupId)
+
+    // Mês seguinte, não "hoje + N dias": referenceMonth precisa ser um dia 01,
+    // e dueDay=15 fixo é determinístico em qualquer dia do mês em que o CI rodar
+    // (ao contrário de um dueDay fixo relativo ao dia corrente).
+    const proximoMes = new Date()
+    proximoMes.setMonth(proximoMes.getMonth() + 1)
+    const proximoMesISO = `${proximoMes.toISOString().slice(0, 7)}-01`
+
+    await createFixedExpense(db, fxUserId, fxAccountId, fxCategoryId, {
+      name: 'Aluguel Futuro',
+      dueDay: 15,
+      referenceMonth: proximoMesISO,
+    })
+
+    const { collectFullExport } = await import('@/lib/export/full/collect')
+    const { sheetToCsv } = await import('@/lib/export/csv')
+    const sheets = await collectFullExport(fxUserId)
+    const extrato = sheets.find((s) => s.name === 'Extrato')!
+
+    // Com o teto antigo (MAX(referenceMonth) = dia 01 do mês seguinte, já
+    // "> hoje"), o gasto fixo com vencimento no dia 15 caía fora do recorte
+    // de collectHistoricoItems e sumia do extrato.
+    expect(sheetToCsv(extrato.data)).toContain('Aluguel Futuro')
   })
 
   it('pessoa arquivada aparece na aba de saldos, não só na de lançamentos', async () => {

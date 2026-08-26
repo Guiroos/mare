@@ -23,6 +23,12 @@ jobs:
 
       - run: npm ci
 
+      # tsx executa os scripts de banco (db:dev:seed, scripts/*.ts), inclusive
+      # contra producao. --depth=0 checa a DECLARACAO, nao a presenca resolvida:
+      # `test -x node_modules/.bin/tsx` passaria verde mesmo com tsx apenas
+      # icado transitivamente pelo drizzle-kit, que e o furo que isto cobre.
+      - run: npm ls tsx --depth=0
+
       - run: npm run format:check
 
       - run: npm run lint

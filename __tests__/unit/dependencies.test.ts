@@ -38,6 +38,19 @@ function rootConfigFiles(): string[] {
     .map((entry) => join(ROOT, entry))
 }
 
+// Pontos de entrada que só rodam em tempo de build — nunca são importados pelo
+// servidor em runtime. Uma dependência de produção cujos ÚNICOS importadores
+// estão aqui está classificada errada (deveria ser devDependency): infla a
+// árvore de produção do lockfile e corrompe `npm audit --omit=dev` (issue #102).
+// `next.config.mjs` já casa com `rootConfigFiles()` (a substring `.config.`
+// aparece em `next.config.mjs`). `app/sw.ts` NÃO — está dentro de `app/`
+// (varrido pela outra checagem como se fosse runtime), então entra aqui
+// explicitamente: compila para `public/sw.js`, artefato estático, e não é
+// módulo de servidor.
+function buildEntryPoints(): string[] {
+  return [...rootConfigFiles(), join(ROOT, 'app', 'sw.ts')]
+}
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
@@ -66,5 +79,26 @@ describe('package.json dependencies', () => {
       .filter((dep) => !contents.some((content) => importSpecifierRegex(dep).test(content)))
 
     expect(orphaned).toEqual([])
+  })
+
+  it('no production dependency is imported only from build-time entry points', () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
+    const dependencies = Object.keys(pkg.dependencies as Record<string, string>)
+
+    const runtimeContents = [...SCAN_DIRS.flatMap((dir) => collectFiles(join(ROOT, dir)))]
+      .filter((file) => !buildEntryPoints().includes(file))
+      .map((file) => readFileSync(file, 'utf-8'))
+
+    const buildContents = buildEntryPoints().map((file) => readFileSync(file, 'utf-8'))
+
+    // Uma dependência de produção precisa ter ao menos um importador fora dos
+    // pontos de entrada de build. Se todos os importadores estão em build-time,
+    // ela é build tooling classificada como runtime.
+    const buildOnly = dependencies
+      .filter((dep) => !ALLOWLIST.has(dep))
+      .filter((dep) => buildContents.some((content) => importSpecifierRegex(dep).test(content)))
+      .filter((dep) => !runtimeContents.some((content) => importSpecifierRegex(dep).test(content)))
+
+    expect(buildOnly).toEqual([])
   })
 })
