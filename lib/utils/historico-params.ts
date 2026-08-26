@@ -38,6 +38,12 @@ export function filterUuids(values: string[]): string[] {
   return values.filter((v) => uuidSchema.safeParse(v).success)
 }
 
+export function normalizeDateRange(deRaw: string, ateRaw: string): { de: string; ate: string } {
+  const de = deRaw && isoDateSchema.safeParse(deRaw).success ? deRaw : ninetyDaysAgoStr()
+  const ate = ateRaw && isoDateSchema.safeParse(ateRaw).success ? ateRaw : todayStr()
+  return { de: de <= ate ? de : ate, ate: de <= ate ? ate : de }
+}
+
 export function parseHistoricoParams(
   searchParams: Record<string, string | string[] | undefined>
 ): HistoricoParams {
@@ -56,14 +62,11 @@ export function parseHistoricoParams(
   const categoriasRaw = raw('categorias')
   const contasRaw = raw('contas')
 
-  const deRaw = raw('de')
-  const ateRaw = raw('ate')
-  const de = deRaw && isoDateSchema.safeParse(deRaw).success ? deRaw : ninetyDaysAgoStr()
-  const ate = ateRaw && isoDateSchema.safeParse(ateRaw).success ? ateRaw : todayStr()
+  const { de, ate } = normalizeDateRange(raw('de') ?? '', raw('ate') ?? '')
 
   return {
-    de: de <= ate ? de : ate,
-    ate: de <= ate ? ate : de,
+    de,
+    ate,
     tipos,
     categorias: filterUuids(categoriasRaw ? categoriasRaw.split(',').filter(Boolean) : []),
     contas: filterUuids(contasRaw ? contasRaw.split(',').filter(Boolean) : []),

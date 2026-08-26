@@ -192,4 +192,27 @@ describe('fetchMoreHistorico', () => {
       })
     )
   })
+
+  it('degrada de/ate inválidos para o default de 90 dias antes de consultar o banco', async () => {
+    const { fetchMoreHistorico } = await import('@/lib/actions/historico')
+    const { getHistoricoFeed } = await import('@/lib/queries/historico')
+
+    await fetchMoreHistorico({
+      de: '2025-02-30',
+      ate: '2025-06-31',
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    })
+
+    expect(getHistoricoFeed).toHaveBeenCalledWith(
+      '11111111-1111-4111-8111-111111111111',
+      expect.objectContaining({
+        de: expect.not.stringMatching(/^2025-02-30$/),
+        ate: expect.not.stringMatching(/^2025-06-31$/),
+      })
+    )
+  })
 })
