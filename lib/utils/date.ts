@@ -67,6 +67,16 @@ export function normalizeYearMonthParam(raw: string | undefined): string {
   return Number(raw.slice(0, 4)) > 2000 ? raw : currentYearMonth()
 }
 
+/**
+ * Normaliza um ?year= vindo de URL; cai no ano atual se ausente ou fora do domínio.
+ * Piso (> 2000) e teto (<= 9999) espelham normalizeYearMonthParam, que aplica o mesmo
+ * par via z.string().date() — ver #83.
+ */
+export function normalizeYearParam(raw: string | undefined): number {
+  const parsed = Number.parseInt(raw ?? '', 10)
+  return Number.isInteger(parsed) && parsed > 2000 && parsed <= 9999 ? parsed : currentYear()
+}
+
 /** Converts YYYY-MM-01 to YYYY-MM. */
 export function referenceMonthToYearMonth(referenceMonth: string): string {
   return referenceMonth.slice(0, 7)
