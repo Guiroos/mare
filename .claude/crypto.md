@@ -21,7 +21,11 @@ Módulos: `lib/crypto/keys.ts` (MEK, DEK, `getDekForUser`) e `lib/crypto/fields.
     balance[e.personId] += toAmount(decryptField(e.amount, dek))
   }
   ```
-- **Drizzle relational `with: {}` retorna array vazio silenciosamente** quando tabelas relacionadas têm colunas encriptadas. Substituir por `.select()` explícitos em paralelo + agrupamento com `Map` em JS.
+- **Drizzle relational `with: {}` — o alerta original era largo demais; leia antes de usá-lo como argumento.** A redação anterior dizia que `with: {}` "retorna array vazio silenciosamente quando tabelas relacionadas têm colunas encriptadas", e isso não se sustenta: há **16 call sites** de `with: {}` sobre relações com `name` cifrado rodando em produção hoje, sem contar os aninhados (`dashboard.ts:57,130,160,197`, `historico.ts:117,129,140`, `panorama.ts:198`, `categories.ts:17,75`, `transactions.ts:12,35`, `investments.ts:176,188,207`, `goals.ts:32`) — incluindo o que monta o dashboard inteiro, cujo `dashboard.ts:130` decripta `row.category.name`/`row.account.name` logo abaixo, em `:139-140`. Se a regra valesse como escrita, a tela principal estaria vazia. Não há mecanismo plausível: ciphertext é conteúdo opaco numa coluna `text`, e o query builder relacional não lê valor para montar o join.
+
+  O que de fato aconteceu, uma vez: `getActiveInstallmentGroups` usava `with: { transactions: true, account: true, category: true }` e `group.transactions` vinha vazio (`40636e0`). Era a relação **`many()`**, não as `one()` do mesmo objeto — `account` e `category` (ambas cifradas) funcionavam ali. A causa nunca foi isolada à criptografia; o commit atribuiu a ela e a regra generalizou a partir de um caso. A correção continua certa (`.select()` explícitos em paralelo + `Map` em JS) e `parcelas.ts` segue assim, mas o **motivo** documentado é suspeito.
+
+  Uso prático: não abra achado de auditoria contra `with: {}` invocando esta linha. Se um `many()` vier vazio, reproduza — teste de integração contra branch Neon é o que fecha isso de vez, e ninguém rodou. Este candidato já morreu duas vezes no PASSO 3.5 (2026-08-17 em `panorama.ts:198`, 2026-08-20 em `historico.ts:117`).
 - **Busca/filtro textual**: `WHERE col ILIKE '%termo%'` não funciona em ciphertext. Mover filtro para JS após decrypt; ou manter campo plaintext auxiliar para busca (sem dados sensíveis).
 
 ## Gotchas de escrita e backfill
