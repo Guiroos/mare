@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && serwist build serwist.config.mjs",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
@@ -61,6 +61,7 @@
     "@auth/core": "0.41.3"
   },
   "devDependencies": {
+    "@serwist/cli": "9.5.11",
     "@serwist/next": "9.5.11",
     "@types/node": "24.13.2",
     "@types/react": "19.2.15",

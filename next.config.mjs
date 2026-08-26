@@ -1,11 +1,3 @@
-import withSerwistInit from '@serwist/next'
-
-const withSerwist = withSerwistInit({
-  swSrc: 'app/sw.ts',
-  swDest: 'public/sw.js',
-  disable: process.env.NODE_ENV === 'development',
-})
-
 const isDev = process.env.NODE_ENV === 'development'
 
 // Content-Security-Policy pragmático para Next.js App Router:
@@ -51,7 +43,6 @@ const securityHeaders = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  turbopack: {},
   images: {
     // Avatar do Google vindo de session.user.image (users.image).
     remotePatterns: [{ protocol: 'https', hostname: 'lh3.googleusercontent.com' }],
@@ -66,4 +57,4 @@ const nextConfig = {
   },
 }
 
-export default withSerwist(nextConfig)
+export default nextConfig

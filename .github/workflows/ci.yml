@@ -37,6 +37,12 @@ jobs:
 
       - run: npm test
 
+      - run: npm run build
+        env:
+          VERCEL_ENV: production
+
+      - run: test -s public/sw.js
+
   integration:
     name: Integration Tests
     runs-on: ubuntu-latest

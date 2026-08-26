@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import { SerwistProvider } from '@serwist/next/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
@@ -42,29 +43,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
      `beforeSend` é prop de função e não atravessa a fronteira RSC: exigiria um
      Client Component novo só para isso. */
   return (
-    <ThemeProvider>
-      <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
-      <PrivacyModeProvider>
-        <RegistrationDialogProvider>
-          <div className="min-h-screen bg-bg-base">
-            <Sidebar
-              user={{
-                name: session.user?.name,
-                email: session.user?.email,
-                image: session.user?.image,
-              }}
-              isAdmin={isAdmin}
-            />
-            <main className="pb-20 lg:pb-0 lg:pl-60">
-              <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
-            </main>
-            <BottomNav userEmail={session.user?.email} />
-          </div>
-        </RegistrationDialogProvider>
-      </PrivacyModeProvider>
-      <Toaster richColors position="top-center" />
-      <SpeedInsights />
-      <Analytics />
-    </ThemeProvider>
+    <SerwistProvider swUrl="/sw.js">
+      <ThemeProvider>
+        <NextTopLoader color="var(--accent)" height={2} showSpinner={false} />
+        <PrivacyModeProvider>
+          <RegistrationDialogProvider>
+            <div className="min-h-screen bg-bg-base">
+              <Sidebar
+                user={{
+                  name: session.user?.name,
+                  email: session.user?.email,
+                  image: session.user?.image,
+                }}
+                isAdmin={isAdmin}
+              />
+              <main className="pb-20 lg:pb-0 lg:pl-60">
+                <div className="px-4 py-6 lg:px-8 lg:py-7">{children}</div>
+              </main>
+              <BottomNav userEmail={session.user?.email} />
+            </div>
+          </RegistrationDialogProvider>
+        </PrivacyModeProvider>
+        <Toaster richColors position="top-center" />
+        <SpeedInsights />
+        <Analytics />
+      </ThemeProvider>
+    </SerwistProvider>
   )
 }
