@@ -36,7 +36,6 @@
     "@radix-ui/react-select": "2.2.6",
     "@radix-ui/react-separator": "1.1.8",
     "@radix-ui/react-slot": "1.2.4",
-    "@serwist/next": "9.5.11",
     "@vercel/analytics": "2.0.1",
     "@vercel/speed-insights": "2.0.0",
     "clsx": "2.1.1",
@@ -51,10 +50,8 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "recharts": "2.15.4",
-    "serwist": "9.5.11",
     "sonner": "2.0.7",
     "tailwind-merge": "3.5.0",
-    "tailwindcss-animate": "1.0.7",
     "vaul": "1.1.2",
     "write-excel-file": "4.1.1",
     "zod": "4.3.6"
@@ -64,6 +61,7 @@
     "@auth/core": "0.41.3"
   },
   "devDependencies": {
+    "@serwist/next": "9.5.11",
     "@types/node": "24.13.2",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
@@ -79,7 +77,9 @@
     "postcss": "8.5.25",
     "prettier": "3.8.3",
     "prettier-plugin-tailwindcss": "0.7.2",
+    "serwist": "9.5.11",
     "tailwindcss": "3.4.19",
+    "tailwindcss-animate": "1.0.7",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
     "vitest": "4.1.9"
