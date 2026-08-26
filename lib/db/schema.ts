@@ -218,7 +218,9 @@ export const goals = pgTable('goals', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
-  investmentTypeId: uuid('investment_type_id'),
+  investmentTypeId: uuid('investment_type_id').references((): AnyPgColumn => investmentTypes.id, {
+    onDelete: 'set null',
+  }),
   name: text('name').notNull(),
   targetAmount: text('target_amount').notNull(),
   targetDate: date('target_date'),
