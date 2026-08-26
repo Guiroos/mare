@@ -37,6 +37,7 @@ export function Segment<T extends string>({
           <button
             key={opt.value}
             type="button"
+            aria-pressed={isActive}
             onClick={(e) => {
               setInternal(opt.value)
               onChange?.(opt.value)
