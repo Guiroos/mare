@@ -158,6 +158,25 @@ Critério de aceite:
 > o CLI `@serwist/cli` (`serwist build`), rodado como segunda etapa do script `build`
 > depois do `next build`. O `.github/workflows/ci.yml` ganhou `npm run build` + `test -s
 > public/sw.js` no job `validate`, para que a ausência do artefato quebre o CI.
+>
+> Duas peças que o *configurator mode* transfere para o app, e que a primeira versão da
+> correção deixou de fora:
+>
+> 1. **Registro no cliente.** O `withSerwistInit` injetava `register()` automaticamente
+>    (via `sw-entry.mjs` no bundle client); a CLI não injeta nada. Sem
+>    `<SerwistProvider swUrl="/sw.js">` o artefato é servido e nenhum browser o registra —
+>    mesmo efeito de usuário do bug original, com o CI verde. O provider vive apenas em
+>    `(app)/layout.tsx`: o escopo default é `'/'`, então o SW controla a origem inteira, e
+>    manter a landing sem Client Component preserva o trabalho do §4.2 do
+>    `docs/seo-landing-backlog.md`.
+> 2. **O SW precisa fazer alguma coisa.** O `app/sw.ts` herdado da Fase 3 tinha
+>    `runtimeCaching: []` e nenhum fallback — precache de asset de build e nada mais.
+>    Ganhou `/~offline` como fallback de navegação e um `runtimeCaching` estreito, escrito
+>    à mão em vez do `defaultCache` do `@serwist/next/worker`: o default grava HTML
+>    autenticado, payloads RSC e GETs em `/api/*` — inclusive `/api/export/completo` — em
+>    `CacheStorage`, que sobrevive ao logout e à exclusão de conta. O raciocínio está no
+>    comentário de bloco do `app/sw.ts` e tem gate em
+>    `__tests__/unit/service-worker-registro.test.ts`.
 
 ---
 
@@ -254,6 +273,16 @@ Critério de aceite:
 - [ ] Marcar gasto fixo como pago — revalidação funciona
 - [ ] PWA: verificar que o app é instalável (`manifest.json` presente, `sw.js` registrado)
 - [ ] PWA: inspecionar Network no DevTools — service worker ativo
+
+> Os dois itens de PWA continuam desmarcados **de propósito** depois da correção da issue
+> #101, e não por esquecimento. O que passou a ter gate automático é a cadeia de fonte e
+> artefato: `test -s public/sw.js` no CI prova que o SW é emitido, e
+> `__tests__/unit/service-worker-registro.test.ts` prova que o `(app)/layout.tsx` o
+> registra e que o fallback aponta para uma rota prerenderizada. O que nenhum dos dois vê
+> é o runtime: escopo errado, CSP bloqueando, 404 no `swUrl`, ou o prompt de instalação
+> não disparando no Android. Fechar estas duas linhas exige browser —
+> `navigator.serviceWorker.getRegistrations()` num Playwright, mais um teste manual de
+> instalação — e não há infra de browser no CI hoje.
 
 ### Validação de performance (opcional mas recomendado)
 
