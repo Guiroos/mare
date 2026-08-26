@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { uuidSchema } from '@/lib/validations/utils'
 
 const isoDateSchema = z.string().date()
 
@@ -33,6 +34,10 @@ function ninetyDaysAgoStr(): string {
   return d.toISOString().slice(0, 10)
 }
 
+export function filterUuids(values: string[]): string[] {
+  return values.filter((v) => uuidSchema.safeParse(v).success)
+}
+
 export function parseHistoricoParams(
   searchParams: Record<string, string | string[] | undefined>
 ): HistoricoParams {
@@ -60,8 +65,8 @@ export function parseHistoricoParams(
     de: de <= ate ? de : ate,
     ate: de <= ate ? ate : de,
     tipos,
-    categorias: categoriasRaw ? categoriasRaw.split(',').filter(Boolean) : [],
-    contas: contasRaw ? contasRaw.split(',').filter(Boolean) : [],
+    categorias: filterUuids(categoriasRaw ? categoriasRaw.split(',').filter(Boolean) : []),
+    contas: filterUuids(contasRaw ? contasRaw.split(',').filter(Boolean) : []),
     q: raw('q') ?? '',
     cursor: raw('cursor') ?? null,
   }
