@@ -27,7 +27,7 @@ Referência: `.claude/crypto.md`.
 - `inArray`/`notInArray` sem guard de array vazio — gera `IN ()`, SQL inválido
 - `findFirst` dentro de `db.transaction` cujo `null` não é verificado
 - Mutação em múltiplas tabelas fora de `db.transaction`
-- `revalidatePath` faltando num caminho que a mudança afeta — em especial `/panorama`, que toda action de dado financeiro precisa revalidar junto com `/dashboard`
+- `revalidatePath` faltando num caminho que a mudança afeta **e que é servido de cache** — em especial `/panorama`, que toda action de dado financeiro precisa revalidar junto com `/dashboard`. Atenção ao limite: toda rota de `(app)` é dinâmica (passa por `auth()`, que lê cookies) e o projeto não configura `staleTimes`, cujo default `dynamic: 0` no Next ≥ 15 refaz o fetch em toda navegação. Em rota dinâmica a ausência da chamada **não** produz render obsoleto — é quebra de convenção, não bug, e precisa de outro impacto para se sustentar
 - Agregação que poderia ser N+1 quando já existe variante batch (`getOpenChargesForPeople` vs. chamar `getOpenChargesForPerson` em loop)
 - `toAmount()` ausente em campo `decimal` — `Number(x.amount)` sobre string
 
@@ -79,6 +79,44 @@ Ao encontrar um predicado de domínio, levantar **todos** os sites que o express
 
 ---
 
+## Candidatos já falsificados
+
+Consultar **antes** de gastar a falsificação do PASSO 3.5. Cada linha aqui já morreu em pelo menos duas execuções independentes, sempre pela mesma checagem — 11 candidatos, ~24 re-derivações entre 2026-08-04 e 2026-08-25. Recandidatar um deles sem trazer fato novo é gastar um ciclo para chegar à mesma conclusão.
+
+Isso não é uma lista de "não olhe": é uma lista de **o que já foi verificado e com qual evidência**. A coluna final diz o que precisaria mudar para o candidato voltar a valer.
+
+| Candidato | Onde | Morre por | Volta a valer se |
+| --- | --- | --- | --- |
+| `notInArray(accountId, creditAccountIds)` some com linha de `accountId` NULL | `dashboard.ts`, `panorama.ts` | `accountId` é `.notNull()` em `transactions` (`schema.ts:174`) e `fixedExpenses` (`schema.ts:135`) | alguma migration tornar a coluna nullable |
+| `overrides` do `package.json` sem justificativa | `package.json` | `9a2b0b4` documenta os dois na mensagem, inclusive o no-op do `form-data` | entrar override novo cujo commit não explique |
+| `revalidatePath` ausente nas actions de `paymentAccounts` | `lib/actions/categories.ts` | rota dinâmica sob `staleTimes.dynamic: 0` — sem render obsoleto demonstrável (ver categoria 2) | o projeto passar a configurar `staleTimes` ou a rota virar estática |
+| `formatGroupDate`/`groupByDate` duplicados byte a byte | `HistoricoClient.tsx:39`, `TransactionList.tsx:98` | cópias idênticas, zero divergência, custo de bundle zero | as duas divergirem — aí é categoria 5, foco de sexta |
+| `TxItem` com `onClick` em `<div>` sem `role`/`tabIndex` | `tx-list.tsx:79` | nenhum call site passa `onClick` (`CategoryGroupProgress.tsx:74,84`) | algum call site passar `onClick` |
+| `CategoryPicker` variante `grid` sem estado acessível | `components/forms/transaction/CategoryPicker.tsx:80` | variante não renderizada: os 5 call sites e o default passam `'combobox'` | alguém passar `categoryVariant="grid"` |
+| `?cycleAccount=` cru sem validação de UUID | `app/(app)/dashboard/page.tsx:50` | `creditAccounts.find((a) => a.id === cycleAccount)` — array em memória, não chega ao Postgres | o parâmetro passar a alimentar uma query |
+| `installmentAmount` sem compensação de arredondamento no create | `transactions.ts:273` vs. `:444-451` | fórmula documentada em `.claude/domain.md`; erro de no máximo (n−1) centavos | a magnitude mudar, ou o `domain.md` mudar de posição |
+| `settleCharge`/`createDebtPayment` aceitam `personId` divergente do da cobrança | `debtors.ts` | ownership correto; só alcançável por request forjado do usuário contra os próprios dados (exigência 4) | surgir caminho de UI que envie o par divergente |
+| fórmula de saldo de investimento replicada em 4 sites | `queries/investments.ts:44,234`, `queries/goals.ts:74`, `actions/investments.ts:72` | as quatro dão o mesmo valor — duplicação sem divergência | qualquer uma divergir |
+| `copyFixedExpensesFromPrevMonth` vs. cron de rollover | `actions/transactions.ts:222`, `api/cron/rollover-fixed-expenses/route.ts:49` | mesmos 6 campos, mesmo `paid: false`; a diferença de comportamento é documentada em `.claude/domain.md` | os inserts divergirem em campo |
+
+Duas dessas linhas escondem um sinal que **não** está morto e vale registro separado: `formatGroupDate` duplicado é a única razão pela qual `HistoricoClient` e `TransactionList` importam `format`/`ptBR` direto do `date-fns` em vez do wrapper `fmt` de `lib/utils/date.ts:20`; e `getInvestmentBalances` é N+1 (1 + 2×tipos) rodando em todo load de `/dashboard` e `/registro`, com o precedente batch já existindo no repo (`getGoalsWithProgress`, `goals.ts:47-70`). Os dois viram issue no dia em que alguém medir — não antes.
+
+## Ferramental
+
+Descoberto de novo do zero em quatro execuções diferentes. A sessão da Routine **não tem `node_modules` instalado**, o que remove a checagem mais forte do PASSO 3.5 ("rode o código; se não falhar, o achado morre"). O que funciona sem instalar nada:
+
+- **Árvore de acessibilidade real** (foco de quarta): o Chromium do Playwright está em `/opt/pw-browsers/chromium-1194/chrome-linux/chrome`; subir com `--headless=new --remote-debugging-port=N` e chamar `Accessibility.getFullAXTree` via CDP pelo `WebSocket` nativo do Node 22. Foi assim que a #75 mediu papéis e a #106/#107 mediram nome e estado — e foi assim que morreu o candidato do `MultiselectDropdown`, cuja hipótese era citável em spec e falsa no motor real. Custa ~5 min e não erra.
+- **Comportamento real de uma dependência** (foco de terça): `npm pack <pacote>@<versão>` + `tar xzf`, em vez de supor pelo README. Foi como se confirmou que o `lucide-react@1.8.0` emite `aria-hidden="true"` nos ícones.
+- **Provar que o banco rejeita uma entrada**: `npm ci` + `initdb` num Postgres local, extraindo o statement com `QueryBuilder.toSQL()` do Drizzle e executando para ver o `22P02` de verdade. Custou ~10 min na #110 e é repetível para qualquer achado cuja evidência seja "o Postgres estoura".
+- **Custo de bundle** (foco de terça): o bullet "pacote pesado em Client Component" exige custo mensurável, e a única medição válida é `npm run build` + inspeção dos chunks por marcador exclusivo do pacote. São ~2 min antes de poder afirmar qualquer coisa — e foi o que matou os candidatos do `date-fns/locale` e do `zod`, ambos tree-shaken na prática.
+- **Gate existente com escopo declarado é fonte de achado.** O que um gate *não* mede costuma estar escrito na mensagem do commit que o criou: `57a83f4` diz "3 tokens × 3 fundos × 2 temas", e rodar a mesma maquinaria contra os pares fora daquele recorte produziu a #76.
+
+## Vazão por área
+
+Auditar uma área cujo backlog anterior ainda não foi mergeado rende zero: em 2026-08-25 a terça fechou com 0 issues tendo 3 issues abertas (#71, #101, #102) e 3 PRs em voo (#104, #111, #112) na mesma área. O gargalo ali é aprovação/merge, não descoberta. Se a área do dia tiver fila própria não drenada e a varredura não produzir nada, registre isso na #45 e considere ceder o slot para a área com fila mais curta — respeitando a rotação no ciclo seguinte.
+
+---
+
 ## Rotação de foco por dia da semana
 
 Timezone `America/Sao_Paulo`. Auditar **apenas** a área do dia — profundidade em 2 arquivos vale mais que varredura em 40.
@@ -93,7 +131,7 @@ Timezone `America/Sao_Paulo`. Auditar **apenas** a área do dia — profundidade
 - Pacote pesado importado inteiro em Client Component quando só uma função é usada (custo de bundle real, mensurável)
 - Versão presa por peer dependency que bloqueia upgrades em cadeia
 - Duplicata de função já existente em `lib/utils/`
-- `overrides`/`resolutions` no `package.json` sem comentário explicando por que existem
+- `overrides`/`resolutions` cuja razão de existir não esteja no commit que os introduziu — ou que o `git log` mostre já resolvidos (no-op) sem terem sido removidos. Não peça comentário no `package.json`: JSON não aceita comentário, e a justificativa mora na mensagem de commit (`9a2b0b4` é o exemplar do repo)
 
 Aponte a versão-alvo e o que quebra ao subir. Não abra issue que apenas replica o alerta do Dependabot.
 
@@ -106,6 +144,10 @@ Tipos que são verdade sintática e mentira semântica: a assinatura diz `string
 ### Sexta — Arquitetura e acoplamento
 Categoria 5 acima. Dependência circular, camada vazando (page fazendo trabalho de `lib/queries/`), duplicação estrutural.
 
+Comece em `app/**/page.tsx` e nos componentes que **recebem** resultado de query — não em `lib/`. O acoplamento mais caro encontrado nesta rotação foi sempre page/componente reimplementando o que `lib/` já calcula (#113, #114). A exigência 7 obriga a olhar o consumidor de todo achado; aqui o rendimento vem do inverso — partir do consumidor e voltar para a query.
+
+Antes de julgar um comportamento como errado, leia o `docs/<domínio>/05-roadmap.md` da área. Achado que contradiz decisão já registrada ali vale muito mais que achado que abre discussão de produto — foi o que transformou o #113 de "acho que devia ser assim" em "a implementação contradiz o que ficou decidido".
+
 ---
 
 ## Exigências de todo achado
@@ -114,12 +156,24 @@ Valem em qualquer dia, independentemente do foco.
 
 1. **Evidência no código, não em tese.** Caminho e linha, trecho real, e por que é problema *aqui*.
 2. **Tentativa de falsificação registrada.** Antes de abrir, tente derrubar o próprio achado: leia o schema, rode `git log -S` no trecho para ver se foi decisão deliberada, levante a convenção do repo. Se a hipótese sobreviver, registre o que foi verificado. Se morrer, não abra.
+
+   Quando o achado depende do comportamento de **artefato de terceiro** — uma dependência, o diff de um PR do Dependabot, o código dentro de `node_modules` — a falsificação é ler o artefato, não raciocinar sobre o que o nome ou o título sugere. Dois candidatos de 2026-08-11 morreram exatamente aí: o título do PR #62 citava só a versão 1.x e o diff do lockfile subia as três cópias; e mover `@serwist/next` para `devDependencies` parecia seguro até `node_modules/next/dist/server/next.js:220` mostrar que o Next carrega `next.config` no boot do servidor de produção, não só no build. Nos dois casos a hipótese era plausível, bem-formada, ancorada em precedente ratificado — e falsa.
 3. **Nota de cobertura.** Diga se existe teste que pegaria isso — e, se não existe, qual caso específico cobriria. Isso substitui "faltam testes" como issue própria. O caso proposto precisa incluir a entrada que **só a correção certa rejeita**: se o teste também passaria com a implementação errada mais provável, ele não cobre nada — a suíte fica verde sobre o furo e a revisão perde o único sinal automático que tinha.
+
+   **Gate automático conta como teste.** O que importa é a propriedade — falhar hoje e não passar com a correção errada — não ser um `it()` sobre a função. Regra de lint, asserção sobre token de `globals.css` e asserção sobre string de classe são formas válidas, e às vezes as únicas: não há `@testing-library/react` no projeto, então propor "teste de render" em achado de componente significa propor a instalação da infra inteira, que é maior que qualquer correção e transforma a nota de cobertura na issue própria que a exigência 3 existe para evitar. Precedentes versionados: `__tests__/unit/focus-ring-contrast.test.ts` (contraste de token) e `__tests__/unit/paginas-publicas.test.ts` (rota × sitemap × rodapé).
+
+   **Se já existe teste sobre a função defeituosa, diga o que ele está garantindo.** "Coberto" não é "protegido", e os dois modos de falha custam ao implementador se não estiverem na issue: o teste pode **afirmar o bug** (`historico-params.test.ts:34` assere `result.categorias` igual a `['uuid1','uuid2']`, que não são UUIDs; a #90 encontrou em `date.test.ts` uma asserção do comportamento errado com o caso de fronteira já nomeado) — e aí a correção certa deixa a suíte vermelha, o que precisa estar declarado como esperado, ou alguém vai "consertar" a correção. Ou o teste cobre **uma instância por vez** de uma propriedade que só quebra entre duas (a #91 testa `closingDay=31` em fevereiro e passa; o defeito só existe entre dois ciclos consecutivos). Nenhum dos dois aparece como lacuna de cobertura. Descobrir qual é o caso custa um `grep`.
 4. **Impacto para quem, em que cenário.** Se não der para descrever um usuário afetado, o achado provavelmente não passa do teto de relevância.
 5. **Custo estimado**: P (1 arquivo) / M (2-4) / G (estrutural).
 6. **Helper nomeado, motivo declarado.** Quando a proposta depende de um helper ou schema específico, dizer *por que aquele* e não o similar mais óbvio do repo. Sem isso, quem implementa reusa o helper conhecido — que é o caminho natural e pode ser exatamente o errado.
 7. **Superfície citada tem consumidor.** Antes de afirmar que algo "some da tela X", "não aparece no gráfico Y" ou "quebra o componente Z", `grep` pelo componente e confirme que ele é importado em algum lugar. Impacto declarado sobre tela que não é renderizada é ficção, e custa caro: quem implementa escreve teste para o caminho morto. Se a superfície não tem consumidor, ou o achado muda de impacto, ou o achado vira outro (o código morto em si).
 8. **Achado multi-site diz quantos são — e fecha por inteiro.** Quando o achado se repete em N lugares, enumere os N no corpo, explicitamente. O PR que fecha ou cobre os N, ou lista na descrição quais ficaram de fora e por quê. `closes #N` num PR que cobre parte da lista é erro de contrato: use `refs #N` e deixe a issue aberta. Vale para quem audita (enumerar) e para quem revisa (conferir a lista antes de aprovar o `closes`).
+
+   **O fechamento manual está sujeito à mesma regra.** Issue multi-site só fecha quando a lista da seção **Onde** estiver inteira; fechar com itens pendentes exige comentário dizendo quais e por quê. A exigência nasceu governando PR e não alcançava o botão de fechar da UI — e o efeito é idêntico: em 2026-08-10 a #34 foi fechada à mão, sem PR vinculado e sem comentário, com dois sites ainda em produção e o último registro escrito na issue dizendo o contrário ("devolvendo a issue à fila para esse restante").
+
+   **Enumere por conteúdo, não por caminho.** Caminho apodrece: `EditChargeDialog.tsx` deixou de existir três dias depois de ser listado na #34, e quem fizesse `grep` pelo nome acharia zero ocorrências e concluiria que estava resolvido. Enumere pela mensagem, pelo predicado, pela chamada — e reconfira por eles.
+
+   **Site sem consumidor não vota.** Quando a enumeração alimenta o argumento da categoria 5 ("a maioria segue uma forma, a minoria é o bug"), marque quais dos N são renderizados: código morto entra como precedente do predicado, não como tela afetada. E conte a maioria **no mesmo recorte do achado**, não no repo inteiro — na #106 o placar global era 19 × 9, confortável, enquanto no subconjunto que importava (o lápis de "editar") era empate 6 × 6. O placar global transforma uma falha normativa, que se sustenta sozinha, numa alegação de convenção que não se sustenta.
 
 Zero achados com evidência suficiente = zero issues. Issue fraca é pior que issue nenhuma.
 
@@ -155,3 +209,19 @@ Mudanças de critério já ratificadas. Não registrar aqui o balanço diário (
 - **2026-08-06** — Entrou a exigência 8 (achado multi-site fecha por inteiro ou declara o resto). Origem: segundo caso da classe "achado bom, revisão aprovada, bug sobrevive". A issue #34 enumerava 5 componentes exibindo `err.message` que nunca chega ao usuário em produção; o commit `34d9690` corrigiu 1 (`createFaturaPayment`), escreveu `closes #34` no rodapé, e a issue fechou sozinha. O texto do commit descreve corretamente o que fez — o erro é o `closes` afirmar mais do que o diff entrega, com ninguém entre a issue e o merge conferindo a lista. A lacuna só apareceu porque a auditoria do dia seguinte foi reler uma issue **fechada** procurando duplicatas. A #34 foi reaberta e o fatiamento registrado nela.
 
 - **2026-08-07** — Entrou a exigência 7 (superfície citada tem consumidor). Origem: a issue #36 declarou impacto em duas telas — "some do gráfico de evolução e do Panorama" — e o gráfico de evolução não existe na UI: `MonthlyEvolutionChart` está definido em `components/charts/MonthlyEvolutionChart.tsx` e nunca é importado, enquanto `getMonthlyEvolution` roda em todo load do dashboard (`lib/queries/dashboard.ts:231`) com o resultado descartado. Metade do impacto declarado era ficção e ninguém pegou: nem a auditoria, nem a revisão, nem o PR #55, que ainda escreveu 63 linhas de teste de integração para a metade morta. A checagem que teria evitado custa um `grep`. O código morto virou a issue #58.
+
+- **2026-08-25** — Revisão dos 14 comentários acumulados na #45 (2026-08-04 a 2026-08-25). Seis mudanças, todas com o gatilho já satisfeito e nenhuma promovida antes por subcontagem:
+
+  **Nova seção "Candidatos já falsificados"**, e é o achado principal da revisão. Onze candidatos morreram em duas ou mais execuções independentes — 24 re-derivações no total — sempre pela mesma checagem, porque o registro delas mora na #45 e ninguém relê a #45 durante uma execução. O arquivo afirma que "o que a auditoria decide NÃO reportar é o dado mais valioso que ela produz" e, até aqui, era o único dado que ele não guardava. A seção também absorve as duas exceções úteis (`formatGroupDate` e o N+1 de `getInvestmentBalances`), que não estão mortas — estão à espera de medição.
+
+  **Categoria 2, `revalidatePath`** — qualificado para "e que é servido de cache". Quatro repetições (08-07, 08-10, 08-17, 08-24), não uma: o balanço de 08-24 concluiu "uma repetição, não três" sem cruzar com os anteriores. O critério foi escrito em Next 14; hoje é Next 16 sem `staleTimes`, e em rota dinâmica a ausência da chamada não produz render obsoleto. Como estava, convidava a abrir issue que morria na exigência 4.
+
+  **Rotação de terça, `overrides`** — quatro repetições (08-04, 08-11, 08-18, 08-25). O critério pedia comentário num arquivo JSON, que é incapaz de aceitar comentário: marcava todo override de todo repo, para sempre. Passou a mirar o que tem valor real (override zumbi ou sem razão no commit que o introduziu).
+
+  **Exigência 8 alcança fechamento manual** — promoção imediata, não sujeita às três repetições, pela regra do próprio arquivo: o custo já foi pago em código mergeado. A #34 foi fechada à mão em 2026-08-10, sem PR e sem comentário, com dois sites vivos em produção. É a terceira vez que a mesma issue perde escopo em silêncio, e o terceiro modo de falha distinto — a exigência 8 governava o que um PR pode afirmar e não alcançava o botão de fechar. Entraram junto os dois adendos que a #34 e a #106 expuseram: enumerar por conteúdo (caminhos apodrecem — `EditChargeDialog.tsx` sumiu três dias depois de ser listado) e contar a maioria no recorte do achado (19 × 9 no repo virava empate 6 × 6 no subconjunto que importava).
+
+  **Exigência 3 ganhou duas sub-regras.** "Gate automático conta como teste" (08-05): não há `@testing-library/react` no projeto, então exigir `it()` de render em achado de componente transforma a nota de cobertura na issue própria que a exigência existe para evitar. E "diga o que o teste existente está garantindo" (08-14, 08-20): duas ocorrências de "coberto mas não protegido" em formas distintas — asserção que **afirma o bug** e propriedade testada uma instância por vez. Nenhuma aparece como lacuna de cobertura; descobrir qual é o caso custa um `grep` e muda o que a issue precisa pedir.
+
+  **Exigência 2 passou a nomear artefato de terceiro.** Ela dizia "leia o schema, rode `git log -S`" — todos artefatos *deste* repo. Em 08-11 dois candidatos morreram por ler o diff do lockfile do PR e o código dentro de `node_modules`; sem essa leitura, um deles teria virado issue confiante recomendando uma mudança que quebra o boot do servidor de produção.
+
+  Entraram também, sem força de critério: a seção **Ferramental** (como medir sem `node_modules`, redescoberto do zero em quatro execuções) e a nota de **vazão por área**; e a rotação de sexta passou a começar em `app/**/page.tsx` com leitura prévia do `docs/<domínio>/05-roadmap.md`.
