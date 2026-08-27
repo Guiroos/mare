@@ -22,6 +22,7 @@ import {
 import { uuidSchema, referenceMonthSchema } from '@/lib/validations/utils'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField, encryptOptional } from '@/lib/crypto/fields'
+import type { ActionResult } from '@/lib/actions/types'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
@@ -229,19 +230,47 @@ export async function createPaymentAccount(data: AccountInput) {
   revalidatePath('/contas')
 }
 
-export async function updatePaymentAccount(id: string, data: AccountInput) {
+export async function updatePaymentAccount(id: string, data: AccountInput): Promise<ActionResult> {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+
+  const current = await db.query.paymentAccounts.findFirst({
+    where: (a, { and: andOp }) => andOp(eq(a.id, id), eq(a.userId, userId)),
+    columns: { type: true, closingDay: true },
+  })
+  if (!current) {
+    return { ok: false, code: 'not_found', message: 'Conta não encontrada.' }
+  }
+
+  const newClosingDay = data.closingDay || null
+  const configChanged = data.type !== current.type || newClosingDay !== current.closingDay
+
+  if (configChanged) {
+    const hasFaturaPayments = await db.query.transactions.findFirst({
+      where: (t, { and: andOp }) => andOp(eq(t.faturaAccountId, id), eq(t.userId, userId)),
+      columns: { id: true },
+    })
+    if (hasFaturaPayments) {
+      return {
+        ok: false,
+        code: 'fatura_payments_exist',
+        message:
+          'Não é possível alterar o tipo ou o dia de fechamento desta conta enquanto houver pagamentos de fatura registrados. Delete os pagamentos e tente novamente.',
+      }
+    }
+  }
+
   const dek = await getDekForUser(userId)
   await db
     .update(paymentAccounts)
     .set({
       name: encryptField(data.name, dek),
       type: data.type,
-      closingDay: data.closingDay || null,
+      closingDay: newClosingDay,
     })
     .where(and(eq(paymentAccounts.id, id), eq(paymentAccounts.userId, userId)))
   revalidatePath('/contas')
+  return { ok: true, data: undefined }
 }
 
 export async function deletePaymentAccount(id: string) {
