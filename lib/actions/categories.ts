@@ -243,9 +243,14 @@ export async function updatePaymentAccount(id: string, data: AccountInput): Prom
   }
 
   const newClosingDay = data.closingDay || null
-  const configChanged = data.type !== current.type || newClosingDay !== current.closingDay
+  const isFaturaEligible = (type: string, closingDay: number | null) =>
+    type === 'credit' && (closingDay ?? 0) > 1
+  const wasEligible = isFaturaEligible(current.type, current.closingDay)
+  const breaksFaturaConfig =
+    wasEligible &&
+    (!isFaturaEligible(data.type, newClosingDay) || newClosingDay !== current.closingDay)
 
-  if (configChanged) {
+  if (breaksFaturaConfig) {
     const hasFaturaPayments = await db.query.transactions.findFirst({
       where: (t, { and: andOp }) => andOp(eq(t.faturaAccountId, id), eq(t.userId, userId)),
       columns: { id: true },

@@ -251,4 +251,34 @@ describe('updatePaymentAccount — guard contra corromper regime de fatura (issu
     })
     expect(found?.type).toBe('debit')
   })
+
+  it('permite reconfigurar como crédito uma conta já corrompida (type=debit) que ainda tem pagamento de fatura', async () => {
+    const { id: brokenId } = await createAccount(db, userId, {
+      name: 'Cartão Corrompido',
+      type: 'debit',
+    })
+    const { id: debitId } = await createAccount(db, userId, { name: 'Conta Débito Guard 4' })
+    await createTransaction(db, userId, debitId, {
+      faturaAccountId: brokenId,
+      faturaCycleMonth: '2025-02-01',
+      categoryId: null,
+      name: 'Pagamento fatura',
+      date: '2025-03-10',
+      referenceMonth: '2025-03-01',
+    })
+
+    const { updatePaymentAccount } = await import('@/lib/actions/categories')
+    const result = await updatePaymentAccount(brokenId, {
+      name: 'Cartão Corrompido',
+      type: 'credit',
+      closingDay: 10,
+    })
+
+    expect(result.ok).toBe(true)
+    const found = await db.query.paymentAccounts.findFirst({
+      where: eq(schema.paymentAccounts.id, brokenId),
+    })
+    expect(found?.type).toBe('credit')
+    expect(found?.closingDay).toBe(10)
+  })
 })
