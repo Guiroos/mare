@@ -10,18 +10,24 @@ import { join } from 'node:path'
 // fixo — `aria-pressed="true"` fixo passaria num `toMatch(/aria-pressed/)`
 // genérico e anunciaria todos os chips/segmentos como selecionados, um
 // resultado pior que o bug original.
+//
+// As asserções ancoram na linha inteira (`^\s*...$` com flag `m`), não em
+// qualquer ocorrência do arquivo — senão o atributo comentado (`// aria-
+// pressed={active}`) deixaria o teste verde com o botão de volta sem estado,
+// mesmo modo de falha que row-actions.test.ts documenta para a className do
+// gatilho.
 
 const chip = readFileSync(join(process.cwd(), 'components/ui/chip.tsx'), 'utf-8')
 const segment = readFileSync(join(process.cwd(), 'components/ui/segment.tsx'), 'utf-8')
 
 describe('Chip — aria-pressed amarrado ao estado (#107)', () => {
-  it('expõe aria-pressed ligado à expressão `active`, não a um literal fixo', () => {
-    expect(chip).toMatch(/aria-pressed=\{active\}/)
+  it('expõe aria-pressed ligado à expressão `active`, não a um literal fixo nem comentado', () => {
+    expect(chip).toMatch(/^\s*aria-pressed=\{active\}$/m)
   })
 })
 
 describe('Segment — aria-pressed amarrado ao estado (#107)', () => {
-  it('expõe aria-pressed ligado à expressão `isActive`, não a um literal fixo', () => {
-    expect(segment).toMatch(/aria-pressed=\{isActive\}/)
+  it('expõe aria-pressed ligado à expressão `isActive`, não a um literal fixo nem comentado', () => {
+    expect(segment).toMatch(/^\s*aria-pressed=\{isActive\}$/m)
   })
 })
