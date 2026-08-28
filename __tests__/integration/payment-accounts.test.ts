@@ -281,4 +281,39 @@ describe('updatePaymentAccount — guard contra corromper regime de fatura (issu
     expect(found?.type).toBe('credit')
     expect(found?.closingDay).toBe(10)
   })
+
+  it('recusa recuperar uma conta corrompida com closingDay incompatível com pagamento já registrado', async () => {
+    const { id: brokenId } = await createAccount(db, userId, {
+      name: 'Cartão Corrompido Incompatível',
+      type: 'debit',
+    })
+    const { id: debitId } = await createAccount(db, userId, { name: 'Conta Débito Guard 5' })
+    // Pagamento do ciclo 2025-03: com closingDay=25, o ciclo recalculado vai até 2025-03-24 —
+    // data do pagamento (2025-03-05) cairia dentro do próprio ciclo, não depois dele.
+    await createTransaction(db, userId, debitId, {
+      faturaAccountId: brokenId,
+      faturaCycleMonth: '2025-03-01',
+      categoryId: null,
+      name: 'Pagamento fatura',
+      date: '2025-03-05',
+      referenceMonth: '2025-03-01',
+    })
+
+    const { updatePaymentAccount } = await import('@/lib/actions/categories')
+    const result = await updatePaymentAccount(brokenId, {
+      name: 'Cartão Corrompido Incompatível',
+      type: 'credit',
+      closingDay: 25,
+    })
+
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.code).toBe('fatura_payments_incompatible')
+    }
+
+    const found = await db.query.paymentAccounts.findFirst({
+      where: eq(schema.paymentAccounts.id, brokenId),
+    })
+    expect(found?.type).toBe('debit')
+  })
 })
