@@ -184,13 +184,13 @@ describe('fetchMoreHistorico', () => {
       cursor: null,
     })
 
-    expect(getHistoricoFeed).toHaveBeenCalledWith(
-      '11111111-1111-4111-8111-111111111111',
-      expect.objectContaining({
-        categorias: ['11111111-1111-4111-8111-111111111111'],
-        contas: [],
-      })
-    )
+    // Lê a última chamada em vez de toHaveBeenCalledWith: o mock não é limpo
+    // entre os `it` deste describe, e toHaveBeenCalledWith casaria contra
+    // qualquer chamada acumulada, não só a deste teste.
+    const [uid, passed] = vi.mocked(getHistoricoFeed).mock.calls.at(-1)!
+    expect(uid).toBe('11111111-1111-4111-8111-111111111111')
+    expect(passed.categorias).toEqual(['11111111-1111-4111-8111-111111111111'])
+    expect(passed.contas).toEqual([])
   })
 
   it('degrada de/ate inválidos para o default de 90 dias antes de consultar o banco', async () => {
@@ -207,12 +207,14 @@ describe('fetchMoreHistorico', () => {
       cursor: null,
     })
 
-    expect(getHistoricoFeed).toHaveBeenCalledWith(
-      '11111111-1111-4111-8111-111111111111',
-      expect.objectContaining({
-        de: expect.not.stringMatching(/^2025-02-30$/),
-        ate: expect.not.stringMatching(/^2025-06-31$/),
-      })
+    const [, passed] = vi.mocked(getHistoricoFeed).mock.calls.at(-1)!
+    expect(passed.de).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(passed.de).not.toBe('2025-02-30')
+    expect(passed.ate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(passed.ate).not.toBe('2025-06-31')
+    const diffDays = Math.round(
+      (new Date(passed.ate).getTime() - new Date(passed.de).getTime()) / 86400000
     )
+    expect(diffDays).toBe(90)
   })
 })
