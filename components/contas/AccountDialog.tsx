@@ -75,10 +75,15 @@ function AccountForm({ props, onSuccess }: { props: Props; onSuccess: () => void
         }
         if (props.mode === 'create') {
           await createPaymentAccount(data)
+          onSuccess()
         } else {
-          await updatePaymentAccount(props.account.id, data)
+          const result = await updatePaymentAccount(props.account.id, data)
+          if (!result.ok) {
+            toast.error(result.message)
+            return
+          }
+          onSuccess()
         }
-        onSuccess()
       } catch {
         toast.error('Erro ao salvar.')
       }

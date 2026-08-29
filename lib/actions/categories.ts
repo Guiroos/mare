@@ -7,8 +7,10 @@ import {
   categories,
   monthlyBudgetOverrides,
   paymentAccounts,
+  transactions,
 } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { billingCycleDateRange, referenceMonthToYearMonth } from '@/lib/utils/date'
 import { z } from 'zod'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsCategoryGroup, assertOwnsCategory } from '@/lib/auth/ownership'
@@ -22,6 +24,7 @@ import {
 import { uuidSchema, referenceMonthSchema } from '@/lib/validations/utils'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField, encryptOptional } from '@/lib/crypto/fields'
+import type { ActionResult } from '@/lib/actions/types'
 
 // ─── Grupos ───────────────────────────────────────────────────────────────────
 
@@ -229,19 +232,80 @@ export async function createPaymentAccount(data: AccountInput) {
   revalidatePath('/contas')
 }
 
-export async function updatePaymentAccount(id: string, data: AccountInput) {
+export async function updatePaymentAccount(id: string, data: AccountInput): Promise<ActionResult> {
   const userId = await requireUserId()
   accountActionSchema.parse(data)
+
+  const current = await db.query.paymentAccounts.findFirst({
+    where: (a, { and: andOp }) => andOp(eq(a.id, id), eq(a.userId, userId)),
+    columns: { type: true, closingDay: true },
+  })
+  if (!current) {
+    return { ok: false, code: 'not_found', message: 'Conta não encontrada.' }
+  }
+
+  const newClosingDay = data.closingDay || null
+  const isFaturaEligible = (type: string, closingDay: number | null) =>
+    type === 'credit' && (closingDay ?? 0) > 1
+  const wasEligible = isFaturaEligible(current.type, current.closingDay)
+  const breaksFaturaConfig =
+    wasEligible &&
+    (!isFaturaEligible(data.type, newClosingDay) || newClosingDay !== current.closingDay)
+
+  if (breaksFaturaConfig) {
+    const hasFaturaPayments = await db.query.transactions.findFirst({
+      where: (t, { and: andOp }) => andOp(eq(t.faturaAccountId, id), eq(t.userId, userId)),
+      columns: { id: true },
+    })
+    if (hasFaturaPayments) {
+      return {
+        ok: false,
+        code: 'fatura_payments_exist',
+        message:
+          'Não é possível alterar o tipo ou o dia de fechamento desta conta enquanto houver pagamentos de fatura registrados. Delete os pagamentos e tente novamente.',
+      }
+    }
+  }
+
+  // Recuperação de conta já corrompida (wasEligible=false) para o regime de fatura: o novo
+  // closingDay precisa ser compatível com os pagamentos de fatura já registrados nesta conta —
+  // mesma regra de createFaturaPayment (payment.date > cycleEnd do ciclo recalculado).
+  if (!wasEligible && data.type === 'credit' && newClosingDay !== null && newClosingDay > 1) {
+    const existingPayments = await db
+      .select({ faturaCycleMonth: transactions.faturaCycleMonth, date: transactions.date })
+      .from(transactions)
+      .where(and(eq(transactions.faturaAccountId, id), eq(transactions.userId, userId)))
+
+    const incompatiblePayment = existingPayments.find((p) => {
+      if (!p.faturaCycleMonth) return false
+      const range = billingCycleDateRange(
+        referenceMonthToYearMonth(p.faturaCycleMonth),
+        newClosingDay
+      )
+      return !range || p.date <= range.end
+    })
+
+    if (incompatiblePayment) {
+      return {
+        ok: false,
+        code: 'fatura_payments_incompatible',
+        message:
+          'O dia de fechamento informado é incompatível com pagamentos de fatura já registrados nesta conta. Ajuste o dia de fechamento ou delete os pagamentos e tente novamente.',
+      }
+    }
+  }
+
   const dek = await getDekForUser(userId)
   await db
     .update(paymentAccounts)
     .set({
       name: encryptField(data.name, dek),
       type: data.type,
-      closingDay: data.closingDay || null,
+      closingDay: newClosingDay,
     })
     .where(and(eq(paymentAccounts.id, id), eq(paymentAccounts.userId, userId)))
   revalidatePath('/contas')
+  return { ok: true, data: undefined }
 }
 
 export async function deletePaymentAccount(id: string) {
