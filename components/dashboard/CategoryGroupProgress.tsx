@@ -98,14 +98,31 @@ function CategoryTransactionsList({
   )
 }
 
+function countForCategory(
+  categoryId: string,
+  transactions: Transaction[],
+  fixedExpenses: FixedExpense[]
+) {
+  return (
+    transactions.filter((t) => t.categoryId === categoryId).length +
+    fixedExpenses.filter((fe) => fe.categoryId === categoryId).length
+  )
+}
+
 export function CategoryGroupProgress({
   groups,
   transactions = [],
   fixedExpenses = [],
+  allTransactions,
+  allFixedExpenses = [],
+  creditFilteredFromBudget = false,
 }: {
   groups: Group[]
   transactions?: Transaction[]
   fixedExpenses?: FixedExpense[]
+  allTransactions?: Transaction[]
+  allFixedExpenses?: FixedExpense[]
+  creditFilteredFromBudget?: boolean
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [selectedCategory, setSelectedCategory] = useState<{
@@ -119,6 +136,18 @@ export function CategoryGroupProgress({
   if (groups.length === 0) {
     return <EmptyState title="Nenhum grupo de categoria criado ainda." />
   }
+
+  // `creditFilteredFromBudget` vem da mesma decisão de servidor que montou
+  // transactions/fixedExpenses (budget) x allTransactions/allFixedExpenses (cru) —
+  // sem ele, os dois conjuntos podem divergir por outro motivo (ex: visão de ciclo,
+  // onde divergem por janela de datas e conta, não por crédito) e a contagem sozinha
+  // afirmaria uma exclusão que não ocorreu.
+  const hasHiddenCreditItems =
+    creditFilteredFromBudget &&
+    !!selectedCategory &&
+    !!allTransactions &&
+    countForCategory(selectedCategory.id, allTransactions, allFixedExpenses) >
+      countForCategory(selectedCategory.id, transactions, fixedExpenses)
 
   return (
     <>
@@ -274,6 +303,11 @@ export function CategoryGroupProgress({
                     </span>
                   </p>
                 )}
+                {hasHiddenCreditItems && (
+                  <p className="px-1 text-caption text-text-tertiary">
+                    Compras no cartão de crédito entram na fatura e não aparecem nesta lista.
+                  </p>
+                )}
                 <CategoryTransactionsList
                   categoryId={selectedCategory.id}
                   transactions={transactions}
@@ -306,6 +340,11 @@ export function CategoryGroupProgress({
                     <span className="font-semibold tabular-nums text-text-primary">
                       {formatCurrency(selectedCategory.spent)}
                     </span>
+                  </p>
+                )}
+                {hasHiddenCreditItems && (
+                  <p className="px-1 text-caption text-text-tertiary">
+                    Compras no cartão de crédito entram na fatura e não aparecem nesta lista.
                   </p>
                 )}
                 <div className="mt-4">

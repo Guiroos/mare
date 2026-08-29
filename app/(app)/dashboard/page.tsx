@@ -177,8 +177,11 @@ export default async function DashboardPage({
         <Section title="Orçamento por categoria">
           <CategoryGroupProgress
             groups={data.groupProgress}
-            transactions={data.transactions}
-            fixedExpenses={data.fixedExpenses}
+            transactions={data.budgetTransactions}
+            fixedExpenses={data.budgetFixedExpenses}
+            allTransactions={data.transactions}
+            allFixedExpenses={data.fixedExpenses}
+            creditFilteredFromBudget={data.creditFilteredFromBudget}
           />
         </Section>
 
