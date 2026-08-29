@@ -1,5 +1,17 @@
-import { describe, it, expect } from 'vitest'
-import { parseHistoricoParams, buildHistoricoUrl, ALL_TIPOS } from '@/lib/utils/historico-params'
+import { describe, it, expect, vi } from 'vitest'
+import {
+  parseHistoricoParams,
+  buildHistoricoUrl,
+  filterUuids,
+  ALL_TIPOS,
+} from '@/lib/utils/historico-params'
+
+vi.mock('@/lib/auth/require-user', () => ({
+  requireUserId: vi.fn().mockResolvedValue('11111111-1111-4111-8111-111111111111'),
+}))
+vi.mock('@/lib/queries/historico', () => ({
+  getHistoricoFeed: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+}))
 
 describe('parseHistoricoParams', () => {
   it('usa defaults quando sem params', () => {
@@ -29,10 +41,36 @@ describe('parseHistoricoParams', () => {
     expect(result.tipos).toEqual(['entrada'])
   })
 
-  it('parseia categorias e contas como arrays', () => {
-    const result = parseHistoricoParams({ categorias: 'uuid1,uuid2', contas: 'uuid3' })
-    expect(result.categorias).toEqual(['uuid1', 'uuid2'])
-    expect(result.contas).toEqual(['uuid3'])
+  it('parseia categorias e contas como arrays de uuid', () => {
+    const result = parseHistoricoParams({
+      categorias: '11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222',
+      contas: '33333333-3333-4333-8333-333333333333',
+    })
+    expect(result.categorias).toEqual([
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
+    ])
+    expect(result.contas).toEqual(['33333333-3333-4333-8333-333333333333'])
+  })
+
+  it('descarta categorias/contas que não são uuid', () => {
+    const result = parseHistoricoParams({ categorias: 'abc', contas: "' OR 1=1--" })
+    expect(result.categorias).toEqual([])
+    expect(result.contas).toEqual([])
+  })
+
+  it('descarta uuid truncado (35 caracteres hex)', () => {
+    const result = parseHistoricoParams({
+      categorias: '00000000-0000-0000-0000-00000000000',
+    })
+    expect(result.categorias).toEqual([])
+  })
+
+  it('filtra por item em vez de descartar o array inteiro', () => {
+    const result = parseHistoricoParams({
+      categorias: `abc,11111111-1111-4111-8111-111111111111`,
+    })
+    expect(result.categorias).toEqual(['11111111-1111-4111-8111-111111111111'])
   })
 
   it('parseia datas explícitas', () => {
@@ -116,5 +154,67 @@ describe('buildHistoricoUrl', () => {
       cursor: '2025-03-10_uuid-abc',
     })
     expect(url).toContain('cursor=2025-03-10_uuid-abc')
+  })
+})
+
+describe('filterUuids', () => {
+  it('mantém só entradas que são uuid válido', () => {
+    expect(
+      filterUuids([
+        '11111111-1111-4111-8111-111111111111',
+        'abc',
+        '00000000-0000-0000-0000-00000000000',
+      ])
+    ).toEqual(['11111111-1111-4111-8111-111111111111'])
+  })
+})
+
+describe('fetchMoreHistorico', () => {
+  it('descarta categorias/contas que não são uuid antes de consultar o banco', async () => {
+    const { fetchMoreHistorico } = await import('@/lib/actions/historico')
+    const { getHistoricoFeed } = await import('@/lib/queries/historico')
+
+    await fetchMoreHistorico({
+      de: '2025-01-15',
+      ate: '2025-06-14',
+      tipos: [...ALL_TIPOS],
+      categorias: ['abc', '11111111-1111-4111-8111-111111111111'],
+      contas: ['abc'],
+      q: '',
+      cursor: null,
+    })
+
+    // Lê a última chamada em vez de toHaveBeenCalledWith: o mock não é limpo
+    // entre os `it` deste describe, e toHaveBeenCalledWith casaria contra
+    // qualquer chamada acumulada, não só a deste teste.
+    const [uid, passed] = vi.mocked(getHistoricoFeed).mock.calls.at(-1)!
+    expect(uid).toBe('11111111-1111-4111-8111-111111111111')
+    expect(passed.categorias).toEqual(['11111111-1111-4111-8111-111111111111'])
+    expect(passed.contas).toEqual([])
+  })
+
+  it('degrada de/ate inválidos para o default de 90 dias antes de consultar o banco', async () => {
+    const { fetchMoreHistorico } = await import('@/lib/actions/historico')
+    const { getHistoricoFeed } = await import('@/lib/queries/historico')
+
+    await fetchMoreHistorico({
+      de: '2025-02-30',
+      ate: '2025-06-31',
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    })
+
+    const [, passed] = vi.mocked(getHistoricoFeed).mock.calls.at(-1)!
+    expect(passed.de).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(passed.de).not.toBe('2025-02-30')
+    expect(passed.ate).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    expect(passed.ate).not.toBe('2025-06-31')
+    const diffDays = Math.round(
+      (new Date(passed.ate).getTime() - new Date(passed.de).getTime()) / 86400000
+    )
+    expect(diffDays).toBe(90)
   })
 })
