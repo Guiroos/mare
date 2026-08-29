@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeEqualShare, resolveSplitAmounts } from '@/lib/utils/split'
+import { computeEqualShare, resolveSplitAmounts, selectSubmittableSplits } from '@/lib/utils/split'
 
 describe('computeEqualShare', () => {
   it('divide o total entre as pessoas mais você', () => {
@@ -75,5 +75,21 @@ describe('resolveSplitAmounts', () => {
       { uid: 'b', personId: 'p2', amountCents: 3000 },
     ]
     expect(resolveSplitAmounts(entries, 0, 'igual').map((e) => e.amountCents)).toEqual([0, 0])
+  })
+})
+
+describe('selectSubmittableSplits', () => {
+  it('derruba linha sem pessoa selecionada', () => {
+    expect(selectSubmittableSplits([{ uid: 'a', personId: '', amountCents: 4500 }])).toEqual([])
+  })
+
+  it('derruba linha com valor zero', () => {
+    expect(selectSubmittableSplits([{ uid: 'a', personId: 'p1', amountCents: 0 }])).toEqual([])
+  })
+
+  it('mantém apenas as linhas que viram cobrança', () => {
+    const ok = { uid: 'a', personId: 'p1', amountCents: 3000 }
+    const orfa = { uid: 'b', personId: '', amountCents: 3000 }
+    expect(selectSubmittableSplits([ok, orfa])).toEqual([ok])
   })
 })

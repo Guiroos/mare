@@ -10,7 +10,12 @@ import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/currency'
-import { resolveSplitAmounts, SplitEntry, SplitMode } from '@/lib/utils/split'
+import {
+  resolveSplitAmounts,
+  selectSubmittableSplits,
+  SplitEntry,
+  SplitMode,
+} from '@/lib/utils/split'
 import type { TransactionSplit } from '@/lib/actions/transactions'
 
 type Person = { id: string; name: string }
@@ -51,12 +56,10 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
       return
     }
     onChange(
-      resolveSplitAmounts(entries, totalCents, mode)
-        .filter((e) => e.personId && e.amountCents > 0)
-        .map((e) => ({
-          personId: e.personId,
-          amount: (e.amountCents / 100).toFixed(2),
-        }))
+      selectSubmittableSplits(resolveSplitAmounts(entries, totalCents, mode)).map((e) => ({
+        personId: e.personId,
+        amount: (e.amountCents / 100).toFixed(2),
+      }))
     )
   }, [entries, totalCents, mode, open, onChange])
 
@@ -75,7 +78,11 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
   function setAmount(uid: string, amountCents: number) {
     // Congela as partes derivadas antes de sair do modo igual: as demais
     // linhas mantêm o valor que já estava na tela.
-    setEntries(resolved.map((e) => (e.uid === uid ? { ...e, amountCents } : e)))
+    setEntries((prev) =>
+      resolveSplitAmounts(prev, totalCents, mode).map((e) =>
+        e.uid === uid ? { ...e, amountCents } : e
+      )
+    )
     if (mode === 'igual') {
       setFrozenKey(valueKey)
       setMode('custom')
@@ -106,7 +113,9 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
     onIntegralChange?.(v)
   }
 
-  const totalSplitCents = resolved.reduce((s, e) => s + e.amountCents, 0)
+  // Soma o mesmo conjunto que o submit: linha sem pessoa não vira cobrança e
+  // não pode descontar da sua parte.
+  const totalSplitCents = selectSubmittableSplits(resolved).reduce((s, e) => s + e.amountCents, 0)
   const yourShareCents = totalCents - totalSplitCents
 
   const usedPersonIds = new Set(entries.map((e) => e.personId).filter(Boolean))

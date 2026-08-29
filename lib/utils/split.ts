@@ -35,3 +35,15 @@ export function resolveSplitAmounts(
   const equalShare = computeEqualShare(totalCents, entries.length)
   return entries.map((e) => ({ ...e, amountCents: equalShare }))
 }
+
+/**
+ * Linhas que de fato viram cobrança em Devedores: precisam ter pessoa
+ * selecionada e valor positivo.
+ *
+ * Existe como função porque o painel de divisão e o submit precisam somar o
+ * *mesmo* conjunto — duplicar o predicado inline já produziu divergência entre
+ * o "Sua parte" exibido e o valor registrado.
+ */
+export function selectSubmittableSplits(entries: SplitEntry[]): SplitEntry[] {
+  return entries.filter((e) => e.personId && e.amountCents > 0)
+}
