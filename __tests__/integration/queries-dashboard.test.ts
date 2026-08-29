@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeAll } from 'vitest'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
+import { billingCycleDateRange } from '@/lib/utils/date'
 import {
   createUser,
   createCategoryGroup,
@@ -37,6 +38,8 @@ const MONTH_BUDGET_DEFAULT = '2025-06-01'
 const MONTH_BUDGET_OVERRIDE = '2025-07-01'
 const MONTH_SPENT_ACCUMULATION = '2025-08-01'
 const MONTH_SPENT_ISOLATION = '2025-09-01'
+const MONTH_FATURA_BUDGET_MATCH = '2025-10-01'
+const YEAR_MONTH_CYCLE_BUDGET_MATCH = '2025-11'
 
 beforeAll(async () => {
   db = createTestDb()
@@ -276,5 +279,112 @@ describe('getCategoryGroupProgress — orçamento padrão e override mensal', ()
     // totalSpent do grupo de A reflete apenas os R$ 300
     const group = data.find((g) => g.id === groupAId)
     expect(group!.totalSpent).toBeCloseTo(300, 1)
+  })
+})
+
+// ─── getDashboardData / getDashboardDataBillingCycle — orçamento e drill-down
+// vêm do mesmo conjunto (issue #113) ──────────────────────────────────────────
+
+describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions bate com groupProgress', () => {
+  let accountCreditId: string
+
+  beforeAll(async () => {
+    ;({ id: accountCreditId } = await createAccount(db, userAId, {
+      type: 'credit',
+      closingDay: 10,
+    }))
+  })
+
+  it('em regime de fatura, budgetTransactions exclui crédito e soma exatamente o spent de groupProgress', async () => {
+    await createTransaction(db, userAId, accountAId, {
+      amount: '250.00',
+      referenceMonth: MONTH_FATURA_BUDGET_MATCH,
+      date: '2025-10-05',
+      categoryId: catAId,
+    })
+    await createTransaction(db, userAId, accountCreditId, {
+      amount: '300.00',
+      referenceMonth: MONTH_FATURA_BUDGET_MATCH,
+      date: '2025-10-12',
+      categoryId: catAId,
+    })
+    await createTransaction(db, userAId, accountCreditId, {
+      amount: '400.00',
+      referenceMonth: MONTH_FATURA_BUDGET_MATCH,
+      date: '2025-10-20',
+      categoryId: catAId,
+    })
+
+    const { getDashboardData } = await import('@/lib/queries/dashboard')
+    const data = await getDashboardData(userAId, MONTH_FATURA_BUDGET_MATCH, {
+      creditMode: 'fatura',
+      faturaActiveFrom: '2025-01-01',
+      creditAccountIds: [accountCreditId],
+    })
+
+    const group = data.groupProgress.find((g) => g.id === groupAId)
+    const cat = group?.categories.find((c) => c.id === catAId)
+    expect(cat).toBeDefined()
+    expect(cat!.spent).toBeCloseTo(250, 1)
+
+    // O conjunto do drill-down precisa somar exatamente o mesmo valor da barra —
+    // não a lista crua, que ainda tem os itens de crédito (usados por TransactionList).
+    const budgetSum = data.budgetTransactions
+      .filter((t) => t.categoryId === catAId)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    expect(budgetSum).toBeCloseTo(cat!.spent, 1)
+
+    // A lista crua continua com os itens de crédito — é o que TransactionList usa
+    // para exibir o selo "via fatura"; não deve ser usada pelo dialog de orçamento.
+    const rawSum = data.transactions
+      .filter((t) => t.categoryId === catAId)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    expect(rawSum).toBeCloseTo(950, 1)
+  })
+
+  it('na visão de ciclo, budgetTransactions reflete o mês de calendário inteiro, não o ciclo de uma conta', async () => {
+    const closingDay = 10
+    const cycleRange = billingCycleDateRange(YEAR_MONTH_CYCLE_BUDGET_MATCH, closingDay)!
+
+    // Fora do ciclo (que termina em 2025-11-09), mas dentro do mês de calendário
+    await createTransaction(db, userAId, accountAId, {
+      amount: '550.00',
+      referenceMonth: '2025-11-01',
+      date: '2025-11-15',
+      categoryId: catAId,
+    })
+    // Dentro do ciclo
+    await createTransaction(db, userAId, accountCreditId, {
+      amount: '400.00',
+      referenceMonth: '2025-11-01',
+      date: '2025-11-05',
+      categoryId: catAId,
+    })
+
+    const { getDashboardDataBillingCycle } = await import('@/lib/queries/dashboard')
+    const data = await getDashboardDataBillingCycle(
+      userAId,
+      YEAR_MONTH_CYCLE_BUDGET_MATCH,
+      closingDay,
+      cycleRange,
+      accountCreditId
+    )
+
+    const group = data.groupProgress.find((g) => g.id === groupAId)
+    const cat = group?.categories.find((c) => c.id === catAId)
+    expect(cat).toBeDefined()
+    // groupProgress aqui é o mês de calendário inteiro, todas as contas: 550 + 400
+    expect(cat!.spent).toBeCloseTo(950, 1)
+
+    const budgetSum = data.budgetTransactions
+      .filter((t) => t.categoryId === catAId)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    expect(budgetSum).toBeCloseTo(cat!.spent, 1)
+
+    // A lista do ciclo (TransactionList) continua restrita à conta e à janela do ciclo
+    const cycleSum = data.transactions
+      .filter((t) => t.categoryId === catAId)
+      .reduce((s, t) => s + Number(t.amount), 0)
+    expect(cycleSum).toBeCloseTo(400, 1)
   })
 })

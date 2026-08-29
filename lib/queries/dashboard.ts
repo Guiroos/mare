@@ -263,6 +263,8 @@ export async function getDashboardData(
     groupProgress,
     transactions: monthTransactions,
     fixedExpenses: fixedExpenseList,
+    budgetTransactions: expenseTransactions,
+    budgetFixedExpenses: expenseFixedExpenses,
     incomes: incomeList,
     investments: investmentList,
   }
@@ -349,14 +351,23 @@ export async function getDashboardDataBillingCycle(
 ) {
   const referenceMonth = yearMonthToReferenceMonth(yearMonth)
 
-  const [cycleTransactions, cycleFixedExpenses, groupProgress, incomeList, investmentList] =
-    await Promise.all([
-      getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end, accountId),
-      getFixedExpensesByBillingCycle(userId, yearMonth, closingDay, accountId),
-      getCategoryGroupProgress(userId, referenceMonth),
-      getMonthIncomes(userId, referenceMonth),
-      getMonthInvestments(userId, referenceMonth),
-    ])
+  const [
+    cycleTransactions,
+    cycleFixedExpenses,
+    groupProgress,
+    incomeList,
+    investmentList,
+    monthTransactions,
+    monthFixedExpenses,
+  ] = await Promise.all([
+    getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end, accountId),
+    getFixedExpensesByBillingCycle(userId, yearMonth, closingDay, accountId),
+    getCategoryGroupProgress(userId, referenceMonth),
+    getMonthIncomes(userId, referenceMonth),
+    getMonthInvestments(userId, referenceMonth),
+    getMonthTransactions(userId, referenceMonth),
+    getMonthFixedExpenses(userId, referenceMonth),
+  ])
 
   const totalExpenses =
     cycleTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
@@ -380,6 +391,8 @@ export async function getDashboardDataBillingCycle(
     groupProgress,
     transactions: cycleTransactions,
     fixedExpenses: cycleFixedExpenses,
+    budgetTransactions: monthTransactions,
+    budgetFixedExpenses: monthFixedExpenses,
     incomes: incomeList,
     investments: investmentList,
   }
