@@ -31,6 +31,13 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/utils/split.ts — divisão de gasto entre devedores; 100% atingido.
+        'lib/utils/split.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
         // lib/utils/date.ts — helpers de data; 100% atingido.
         'lib/utils/date.ts': {
           statements: 95,

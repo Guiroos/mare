@@ -12,6 +12,7 @@ export const Chip = forwardRef<HTMLButtonElement, ChipProps>(
     <button
       ref={ref}
       type="button"
+      aria-pressed={active}
       className={cn(
         'inline-flex cursor-pointer items-center gap-2 rounded-full px-3 py-1.5 font-sans text-small font-medium',
         'border-2 transition-[background,border-color,color] duration-fast',
