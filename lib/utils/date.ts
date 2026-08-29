@@ -97,6 +97,11 @@ export function nextMonth(yearMonth: string): string {
   return format(addMonths(parseISO(`${yearMonth}-01`), 1), 'yyyy-MM')
 }
 
+/** Returns yearMonth plus n months, as YYYY-MM. Generalization of nextMonth. */
+export function addMonthsToYearMonth(yearMonth: string, n: number): string {
+  return format(addMonths(parseISO(`${yearMonth}-01`), n), 'yyyy-MM')
+}
+
 /** Formats a YYYY-MM as "janeiro de 2025" (pt-BR). */
 export function formatMonthName(yearMonth: string): string {
   return fmt(parseISO(`${yearMonth}-01`), "MMMM 'de' yyyy")

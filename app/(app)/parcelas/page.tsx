@@ -10,15 +10,7 @@ import { Section } from '@/components/ui/section'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { formatCurrency } from '@/lib/utils/currency'
-import { currentYearMonth, formatMonthShort } from '@/lib/utils/date'
-
-function calcEndLabel(currentYM: string, remainingInstallments: number): string {
-  const [year, month] = currentYM.split('-').map(Number)
-  const totalMonths = year * 12 + (month - 1) + (remainingInstallments - 1)
-  const endYear = Math.floor(totalMonths / 12)
-  const endMonth = String((totalMonths % 12) + 1).padStart(2, '0')
-  return formatMonthShort(`${endYear}-${endMonth}`)
-}
+import { addMonthsToYearMonth, currentYearMonth, formatMonthShort } from '@/lib/utils/date'
 
 export default async function ParcelasPage() {
   const session = await auth()
@@ -40,7 +32,9 @@ export default async function ParcelasPage() {
 
   const groupsWithEnd = groups.map((g) => ({
     ...g,
-    endLabel: calcEndLabel(currentYM, g.remainingInstallments),
+    endLabel: formatMonthShort(
+      addMonthsToYearMonth(g.nextChargeMonth ?? currentYM, g.remainingInstallments - 1)
+    ),
   }))
 
   const endLabels = groupsWithEnd.map((g) => g.endLabel).sort()

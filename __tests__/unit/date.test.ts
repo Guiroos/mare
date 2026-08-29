@@ -29,6 +29,7 @@ import {
   calcBaseReferenceMonth,
   calcInstallmentDate,
   uniqueMonthsFromDates,
+  addMonthsToYearMonth,
 } from '@/lib/utils/date'
 
 describe('yearMonthToReferenceMonth', () => {
@@ -150,6 +151,27 @@ describe('nextMonth', () => {
 
   it('wraps from December to January of the next year', () => {
     expect(nextMonth('2025-12')).toBe('2026-01')
+  })
+})
+
+describe('addMonthsToYearMonth', () => {
+  it('adds n months within the same year', () => {
+    expect(addMonthsToYearMonth('2025-03', 2)).toBe('2025-05')
+  })
+
+  it('n=0 returns the same month', () => {
+    expect(addMonthsToYearMonth('2025-06', 0)).toBe('2025-06')
+  })
+
+  it('crosses the year boundary', () => {
+    expect(addMonthsToYearMonth('2025-11', 3)).toBe('2026-02')
+  })
+
+  it('issue #114: nextChargeMonth 2026-09 + 11 restantes termina em 2027-08, não 2027-07', () => {
+    // Âncora errada (mês atual 2026-08) daria 2027-07 — a correção precisa ancorar
+    // em nextChargeMonth, não no mês corrente.
+    expect(addMonthsToYearMonth('2026-09', 11)).toBe('2027-08')
+    expect(addMonthsToYearMonth('2026-08', 11)).toBe('2027-07')
   })
 })
 
