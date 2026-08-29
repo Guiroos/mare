@@ -102,6 +102,18 @@ export function addMonthsToYearMonth(yearMonth: string, n: number): string {
   return format(addMonths(parseISO(`${yearMonth}-01`), n), 'yyyy-MM')
 }
 
+/**
+ * Returns the YYYY-MM in which the last of `remainingInstallments` installments lands,
+ * anchored on `nextChargeMonth` (the month of the next pending installment). Falls back to
+ * the current month when there is no pending installment (`nextChargeMonth === null`).
+ */
+export function installmentEndYearMonth(
+  nextChargeMonth: string | null,
+  remainingInstallments: number
+): string {
+  return addMonthsToYearMonth(nextChargeMonth ?? currentYearMonth(), remainingInstallments - 1)
+}
+
 /** Formats a YYYY-MM as "janeiro de 2025" (pt-BR). */
 export function formatMonthName(yearMonth: string): string {
   return fmt(parseISO(`${yearMonth}-01`), "MMMM 'de' yyyy")
