@@ -265,6 +265,11 @@ export async function getDashboardData(
     fixedExpenses: fixedExpenseList,
     budgetTransactions: expenseTransactions,
     budgetFixedExpenses: expenseFixedExpenses,
+    // Diz se budgetTransactions/budgetFixedExpenses excluem crédito em relação a
+    // transactions/fixedExpenses — é o mesmo predicado usado para montar os dois
+    // conjuntos acima, exposto para quem precisa saber *por que* podem divergir
+    // (ex: nota informativa no drill-down) sem reexpressar o filtro por conta.
+    creditFilteredFromBudget: shouldFilterCredit,
     incomes: incomeList,
     investments: investmentList,
   }
@@ -393,6 +398,9 @@ export async function getDashboardDataBillingCycle(
     fixedExpenses: cycleFixedExpenses,
     budgetTransactions: monthTransactions,
     budgetFixedExpenses: monthFixedExpenses,
+    // groupProgress aqui é chamado sem faturaCtx (mês de calendário, todas as contas) —
+    // budgetTransactions/budgetFixedExpenses nunca excluem crédito nesta visão.
+    creditFilteredFromBudget: false,
     incomes: incomeList,
     investments: investmentList,
   }

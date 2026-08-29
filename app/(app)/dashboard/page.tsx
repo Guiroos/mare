@@ -181,6 +181,7 @@ export default async function DashboardPage({
             fixedExpenses={data.budgetFixedExpenses}
             allTransactions={data.transactions}
             allFixedExpenses={data.fixedExpenses}
+            creditFilteredFromBudget={data.creditFilteredFromBudget}
           />
         </Section>
 

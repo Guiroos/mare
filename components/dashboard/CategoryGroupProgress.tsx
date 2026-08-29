@@ -115,12 +115,14 @@ export function CategoryGroupProgress({
   fixedExpenses = [],
   allTransactions,
   allFixedExpenses = [],
+  creditFilteredFromBudget = false,
 }: {
   groups: Group[]
   transactions?: Transaction[]
   fixedExpenses?: FixedExpense[]
   allTransactions?: Transaction[]
   allFixedExpenses?: FixedExpense[]
+  creditFilteredFromBudget?: boolean
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [selectedCategory, setSelectedCategory] = useState<{
@@ -135,7 +137,13 @@ export function CategoryGroupProgress({
     return <EmptyState title="Nenhum grupo de categoria criado ainda." />
   }
 
+  // `creditFilteredFromBudget` vem da mesma decisão de servidor que montou
+  // transactions/fixedExpenses (budget) x allTransactions/allFixedExpenses (cru) —
+  // sem ele, os dois conjuntos podem divergir por outro motivo (ex: visão de ciclo,
+  // onde divergem por janela de datas e conta, não por crédito) e a contagem sozinha
+  // afirmaria uma exclusão que não ocorreu.
   const hasHiddenCreditItems =
+    creditFilteredFromBudget &&
     !!selectedCategory &&
     !!allTransactions &&
     countForCategory(selectedCategory.id, allTransactions, allFixedExpenses) >
