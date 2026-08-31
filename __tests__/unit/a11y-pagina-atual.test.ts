@@ -12,22 +12,27 @@ import { join } from 'node:path'
 // `aria-current="false"` no item inativo, que ARIA trata como estado
 // presente (não ausência) — React só omite `aria-*` para `undefined`/`null`.
 // Ambas as correções erradas passariam num `toMatch(/aria-current/)` genérico.
+// As asserções ancoram na linha inteira (`^\s*...$` com flag `m`), não em
+// qualquer ocorrência do arquivo — senão o atributo comentado deixaria o
+// teste verde com os 22 links de volta a se anunciar idênticos, mesmo modo
+// de falha que `a11y-estado-selecao.test.ts` (#107) documenta para
+// `aria-pressed`.
 
 const sidebar = readFileSync(join(process.cwd(), 'components/layout/Sidebar.tsx'), 'utf-8')
 const bottomNav = readFileSync(join(process.cwd(), 'components/layout/BottomNav.tsx'), 'utf-8')
 
 describe('Sidebar — aria-current amarrado ao estado (#118, site 1)', () => {
   it('expõe aria-current="page" no item ativo do NavItem, e undefined nos demais', () => {
-    expect(sidebar).toMatch(/aria-current=\{active \? 'page' : undefined\}/)
+    expect(sidebar).toMatch(/^\s*aria-current=\{active \? 'page' : undefined\}$/m)
   })
 })
 
 describe('BottomNav — aria-current amarrado ao estado (#118, sites 2 e 3)', () => {
   it('expõe aria-current="page" no NavItem da barra inferior', () => {
-    expect(bottomNav).toMatch(/aria-current=\{active \? 'page' : undefined\}/)
+    expect(bottomNav).toMatch(/^\s*aria-current=\{active \? 'page' : undefined\}$/m)
   })
 
   it('expõe aria-current="page" nos links inline do dialog "Menu"', () => {
-    expect(bottomNav).toMatch(/aria-current=\{isActive\(href\) \? 'page' : undefined\}/)
+    expect(bottomNav).toMatch(/^\s*aria-current=\{isActive\(href\) \? 'page' : undefined\}$/m)
   })
 })
