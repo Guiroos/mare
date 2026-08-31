@@ -66,6 +66,7 @@ function NavItem({
     <Link
       href={href}
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={cn(
         'relative flex items-center gap-3 rounded-md px-3 py-2 text-small font-medium transition-all duration-fast',
         active
