@@ -191,4 +191,26 @@ describe('resetAccount', () => {
 
     expect(cats).toHaveLength(17)
   })
+
+  it('mantém o feedback legível depois do reset', async () => {
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { encryptField, decryptField } = await import('@/lib/crypto/fields')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    const dekAntiga = await getDekForUser(userId)
+    await db.insert(schema.feedback).values({
+      userId,
+      category: 'melhoria',
+      page: '/dashboard',
+      message: encryptField('Adoraria um app nativo', dekAntiga),
+    })
+
+    await resetAccount()
+
+    const [row] = await db.select().from(schema.feedback).where(eq(schema.feedback.userId, userId))
+    const dekNova = await getDekForUser(userId)
+
+    expect(row).toBeDefined()
+    expect(decryptField(row!.message, dekNova)).toBe('Adoraria um app nativo')
+  })
 })

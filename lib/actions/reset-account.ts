@@ -20,10 +20,11 @@ import {
   goalContributions,
   people,
   debtorEntries,
+  feedback,
 } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
-import { getDekForUser } from '@/lib/crypto/keys'
-import { encryptField, encryptOptional } from '@/lib/crypto/fields'
+import { getDekForUser, decryptDek } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional, decryptField } from '@/lib/crypto/fields'
 
 type GroupSeed = {
   name: string
@@ -65,6 +66,23 @@ const DEFAULT_GROUPS: GroupSeed[] = [
 
 export async function resetAccount() {
   const userId = await requireUserId()
+
+  // DEK antiga: leitura direta de userSettings, nunca via getDekForUser — o cache() por
+  // request faria a Fase 2 devolver essa mesma DEK (já deletada) em vez da nova.
+  const [settings] = await db
+    .select({ encryptedDek: userSettings.encryptedDek })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+  const dekAntiga = settings?.encryptedDek ? decryptDek(settings.encryptedDek) : null
+
+  // feedback não é apagado na Fase 1 (é dado de produto, não financeiro) — capturar antes
+  // do delete para recifrar com a DEK nova depois, senão fica ilegível para sempre
+  const pendingFeedback = dekAntiga
+    ? await db
+        .select({ id: feedback.id, message: feedback.message })
+        .from(feedback)
+        .where(eq(feedback.userId, userId))
+    : []
 
   // Phase 1: Delete everything in a transaction (including userSettings/encryptedDek)
   await db.transaction(async (tx) => {
@@ -117,6 +135,19 @@ export async function resetAccount() {
         bgColor: cat.bgColor,
       }))
     )
+  }
+
+  // Phase 4: recifrar o feedback pendente com a DEK nova — a rotação de chave existe para
+  // cripto-apagar os dados financeiros, não para tornar o feedback do usuário ilegível
+  for (const f of pendingFeedback) {
+    try {
+      await db
+        .update(feedback)
+        .set({ message: encryptField(decryptField(f.message, dekAntiga!), dek) })
+        .where(eq(feedback.id, f.id))
+    } catch (err) {
+      console.error('[resetAccount] falha ao recifrar feedback', { feedbackId: f.id, err })
+    }
   }
 
   revalidatePath('/', 'layout')
