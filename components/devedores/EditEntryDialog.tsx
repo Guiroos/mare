@@ -71,7 +71,8 @@ export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
         toast.success('Lançamento atualizado.')
         onOpenChange(false)
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Erro ao editar lançamento.')
+        console.error('[EditEntryDialog] updateDebtEntry falhou', err)
+        toast.error('Erro ao editar lançamento.')
       }
     })
   }
