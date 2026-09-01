@@ -3,12 +3,12 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 // Gate por string sobre o código-fonte (#122). `err.message`/`error.message`
-// dentro de um `catch` de componente é sempre o parágrafo genérico do React
-// em produção — erro que atravessa a fronteira de Server Action chega ao
-// cliente como um `Error` reconstruído por `resolveErrorProd`, então
-// `err instanceof Error` é sempre verdadeiro e `.message` nunca é a
-// mensagem lançada pela action. Precedente: __tests__/unit/row-actions.test.ts
-// (mesma técnica de readFileSync + asserção sobre o conteúdo do arquivo).
+// exibido via `toast.*` é sempre o parágrafo genérico do React em produção —
+// erro que atravessa a fronteira de Server Action chega ao cliente como um
+// `Error` reconstruído por `resolveErrorProd`, então `err instanceof Error` é
+// sempre verdadeiro e `.message` nunca é a mensagem lançada pela action.
+// Precedente: __tests__/unit/row-actions.test.ts (mesma técnica de
+// readFileSync + asserção sobre o conteúdo do arquivo).
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'components']
@@ -30,17 +30,22 @@ function collectTsxFiles(dir: string): string[] {
   return files
 }
 
-// Âncora em `catch` para não pegar `errors.message`/`next.message` usados
-// como chave de mapa de erros de formulário (ex: FeedbackDialog.tsx), que
-// não têm relação com mensagem de exceção mascarada em produção.
-const CATCH_ERR_MESSAGE = /catch[\s\S]{0,200}?\b(?:err|error|e)\s*\.\s*message\b/
+// Âncora no sink (`toast.*(...)`), não numa distância de `catch`: o defeito
+// da #122 não é ler `err.message`, é exibi-lo ao usuário, e `toast.*` é o
+// sink em todos os sites que a #34 enumerou. Uma janela de distância a partir
+// de `catch` fica cega assim que um `console.error(...)` (o próprio remédio
+// que este arquivo institui) empurra o `toast.error(...)` para fora dela —
+// e o falso-positivo que a janela existia para evitar (`errors.message`,
+// `next.message` como chave de mapa de erros de formulário) já não ocorre:
+// `\b` antes de `err`/`error`/`e` não casa no meio de "errors"/"next".
+const TOAST_ERR_MESSAGE = /toast\.\w+\([^)]*\b(?:err|error|e)\s*\.\s*message\b/
 
-describe('nenhum componente exibe err.message em catch (#122)', () => {
+describe('nenhum componente exibe err.message em toast (#122)', () => {
   it('a mensagem de erro de Server Action é mascarada em produção — ler err.message nunca mostra a mensagem real', () => {
-    const files = [...SCAN_DIRS.flatMap((dir) => collectTsxFiles(join(ROOT, dir)))]
+    const files = SCAN_DIRS.flatMap((dir) => collectTsxFiles(join(ROOT, dir)))
 
     const ofensores = files
-      .filter((file) => CATCH_ERR_MESSAGE.test(readFileSync(file, 'utf-8')))
+      .filter((file) => TOAST_ERR_MESSAGE.test(readFileSync(file, 'utf-8')))
       .map((file) => file.replace(ROOT + '/', ''))
 
     expect(ofensores).toEqual([])
