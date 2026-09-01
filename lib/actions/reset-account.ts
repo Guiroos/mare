@@ -73,7 +73,17 @@ export async function resetAccount() {
     .select({ encryptedDek: userSettings.encryptedDek })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
-  const dekAntiga = settings?.encryptedDek ? decryptDek(settings.encryptedDek) : null
+  // decryptDek pode lançar (DEK cifrada com uma MEK que não é mais a do ambiente) — um
+  // throw aqui, antes da Fase 1, abortaria o reset inteiro sem apagar nem provisionar nada,
+  // pior do que o estado que esta issue corrige. Sem DEK antiga, feedback não é recifrado.
+  let dekAntiga: Buffer | null = null
+  if (settings?.encryptedDek) {
+    try {
+      dekAntiga = decryptDek(settings.encryptedDek)
+    } catch (err) {
+      console.error('[resetAccount] DEK antiga ilegível — feedback não será recifrado', { err })
+    }
+  }
 
   // feedback não é apagado na Fase 1 (é dado de produto, não financeiro) — capturar antes
   // do delete para recifrar com a DEK nova depois, senão fica ilegível para sempre
