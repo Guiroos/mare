@@ -213,4 +213,24 @@ describe('resetAccount', () => {
     expect(row).toBeDefined()
     expect(decryptField(row!.message, dekNova)).toBe('Adoraria um app nativo')
   })
+
+  // Precisa ser o último it() do describe: corrompe o encryptedDek do userId compartilhado
+  // pelo arquivo, o que faria os testes seguintes verem dekAntiga = null.
+  it('completa o reset mesmo com a DEK antiga ilegível', async () => {
+    const { randomBytes } = await import('crypto')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    await db
+      .update(schema.userSettings)
+      .set({ encryptedDek: 'enc:' + randomBytes(60).toString('base64') })
+      .where(eq(schema.userSettings.userId, userId))
+
+    await expect(resetAccount()).resolves.toBeUndefined()
+
+    const cats = await db
+      .select()
+      .from(schema.categories)
+      .where(eq(schema.categories.userId, userId))
+    expect(cats).toHaveLength(17)
+  })
 })

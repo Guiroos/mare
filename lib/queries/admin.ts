@@ -47,12 +47,11 @@ export async function getAllFeedbacks() {
   // Group by userId to minimize DEK lookups
   const dekMap = new Map<string, Buffer>()
   const getDecryptedMessage = async (userId: string, feedbackId: string, message: string) => {
-    if (!dekMap.has(userId)) {
-      dekMap.set(userId, await getDekForUser(userId))
-    }
-    const dek = dekMap.get(userId)!
     try {
-      return decryptField(message, dek)
+      if (!dekMap.has(userId)) {
+        dekMap.set(userId, await getDekForUser(userId))
+      }
+      return decryptField(message, dekMap.get(userId)!)
     } catch (err) {
       console.error('[getAllFeedbacks] mensagem ilegível', { feedbackId, err })
       return '[mensagem ilegível — chave rotacionada]'

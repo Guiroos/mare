@@ -38,4 +38,32 @@ describe('getAllFeedbacks', () => {
       '[mensagem ilegível — chave rotacionada]'
     )
   })
+
+  it('não derruba a lista quando a DEK do usuário está ilegível', async () => {
+    const { getAllFeedbacks } = await import('@/lib/queries/admin')
+
+    const [outro] = await db
+      .insert(schema.users)
+      .values({ email: `dek-ilegivel-${Date.now()}@t.com` })
+      .returning({ id: schema.users.id })
+
+    // 'enc:' + bytes aleatórios: passa o guard de prefixo e falha no auth tag do GCM,
+    // que é o estado de uma DEK cifrada com uma MEK que não é mais a do ambiente.
+    await db.insert(schema.userSettings).values({
+      userId: outro!.id,
+      encryptedDek: 'enc:' + randomBytes(60).toString('base64'),
+      creditMode: 'accrual',
+      faturaActiveFrom: null,
+    })
+    const [linha] = await db
+      .insert(schema.feedback)
+      .values({ userId: outro!.id, category: 'outros', page: '/x', message: 'qualquer' })
+      .returning({ id: schema.feedback.id })
+
+    const todos = await getAllFeedbacks()
+
+    expect(todos.find((f) => f.id === linha!.id)?.message).toBe(
+      '[mensagem ilegível — chave rotacionada]'
+    )
+  })
 })
