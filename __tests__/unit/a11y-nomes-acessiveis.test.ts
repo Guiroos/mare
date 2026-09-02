@@ -10,18 +10,25 @@ import { join } from 'node:path'
 //
 // A asserção precisa ancorar no <Button> que envolve o ícone, não no arquivo
 // inteiro — senão um aria-label em qualquer outro botão do mesmo arquivo
-// deixaria o teste verde com o gatilho de exclusão ainda sem nome.
+// deixaria o teste verde com o gatilho ainda sem nome.
+
+function findClosestButtonWithIcon(source: string, iconTag: string): string | undefined {
+  // Ancora no <Button> MAIS PRÓXIMO do ícone: a lookahead negativa impede o
+  // match de atravessar outro "<Button" antes de alcançar o ícone-alvo — sem
+  // isso um regex guloso/lazy simples poderia casar a partir de um <Button>
+  // anterior no mesmo arquivo, desde que os marcadores (onClick, ícone,
+  // </Button>) só existam depois dele.
+  const pattern = new RegExp(
+    `<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b[\\s\\S]*?<\\/Button>`
+  )
+  return source.match(pattern)?.[0]
+}
 
 describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () => {
   const source = readFileSync(join(process.cwd(), 'components/ui/delete-button.tsx'), 'utf-8')
+  const trigger = findClosestButtonWithIcon(source, 'Trash2')
 
-  // Bloco do <Button> que é o gatilho (contém o onClick={() => setOpen(true)}
-  // e o ícone Trash2) — não o botão "Excluir" do Dialog/Drawer, nem "Cancelar".
-  const trigger = source.match(
-    /<Button\b[^]*?onClick=\{\(\) => setOpen\(true\)\}[^]*?<Trash2[^]*?<\/Button>/
-  )?.[0]
-
-  it('encontra o bloco do gatilho', () => {
+  it('encontra o bloco do botão gatilho (o mais próximo do ícone Trash2)', () => {
     expect(trigger).toBeDefined()
   })
 
