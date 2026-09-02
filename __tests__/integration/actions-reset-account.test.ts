@@ -214,23 +214,30 @@ describe('resetAccount', () => {
     expect(decryptField(row!.message, dekNova)).toBe('Adoraria um app nativo')
   })
 
-  // Precisa ser o último it() do describe: corrompe o encryptedDek do userId compartilhado
-  // pelo arquivo, o que faria os testes seguintes verem dekAntiga = null.
   it('completa o reset mesmo com a DEK antiga ilegível', async () => {
     const { randomBytes } = await import('crypto')
+    const { requireUserId } = await import('@/lib/auth/require-user')
     const { resetAccount } = await import('@/lib/actions/reset-account')
 
-    await db
-      .update(schema.userSettings)
-      .set({ encryptedDek: 'enc:' + randomBytes(60).toString('base64') })
-      .where(eq(schema.userSettings.userId, userId))
+    // Usuário próprio, não o userId compartilhado pelo arquivo: resetAccount() provisiona
+    // uma DEK nova e válida na Fase 2, então corromper o encryptedDek do userId
+    // compartilhado não deixaria dekAntiga = null para os testes seguintes — deixaria a
+    // linha de feedback do it() anterior órfã (cifrada com a DEK que este teste destruiu).
+    const { id: outroId } = await createUser(db, `reset-dek-ilegivel-${Date.now()}`)
+    await db.insert(schema.userSettings).values({
+      userId: outroId,
+      encryptedDek: 'enc:' + randomBytes(60).toString('base64'),
+      creditMode: 'accrual',
+      faturaActiveFrom: null,
+    })
 
+    vi.mocked(requireUserId).mockResolvedValueOnce(outroId)
     await expect(resetAccount()).resolves.toBeUndefined()
 
     const cats = await db
       .select()
       .from(schema.categories)
-      .where(eq(schema.categories.userId, userId))
+      .where(eq(schema.categories.userId, outroId))
     expect(cats).toHaveLength(17)
   })
 })

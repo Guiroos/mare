@@ -53,8 +53,12 @@ export async function getAllFeedbacks() {
       }
       return decryptField(message, dekMap.get(userId)!)
     } catch (err) {
+      // getDekForUser também pode lançar aqui (MEK ausente/malformada, falha no upsert) —
+      // esse catch não sabe distinguir DEK rotacionada de ambiente quebrado, então o texto
+      // não pode afirmar uma causa específica; a causa real fica só no log (categoria 4 do
+      // .claude/audit.md — "catch que afirma causa que o código não conhece")
       console.error('[getAllFeedbacks] mensagem ilegível', { feedbackId, err })
-      return '[mensagem ilegível — chave rotacionada]'
+      return '[mensagem ilegível]'
     }
   }
 

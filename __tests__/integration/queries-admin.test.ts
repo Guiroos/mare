@@ -34,9 +34,7 @@ describe('getAllFeedbacks', () => {
 
     const todos = await getAllFeedbacks()
 
-    expect(todos.find((f) => f.id === orfa!.id)?.message).toBe(
-      '[mensagem ilegível — chave rotacionada]'
-    )
+    expect(todos.find((f) => f.id === orfa!.id)?.message).toBe('[mensagem ilegível]')
   })
 
   it('não derruba a lista quando a DEK do usuário está ilegível', async () => {
@@ -62,8 +60,6 @@ describe('getAllFeedbacks', () => {
 
     const todos = await getAllFeedbacks()
 
-    expect(todos.find((f) => f.id === linha!.id)?.message).toBe(
-      '[mensagem ilegível — chave rotacionada]'
-    )
+    expect(todos.find((f) => f.id === linha!.id)?.message).toBe('[mensagem ilegível]')
   })
 })
