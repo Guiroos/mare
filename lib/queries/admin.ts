@@ -46,19 +46,27 @@ export async function getAllFeedbacks() {
 
   // Group by userId to minimize DEK lookups
   const dekMap = new Map<string, Buffer>()
-  const getDecryptedMessage = async (userId: string, message: string) => {
-    if (!dekMap.has(userId)) {
-      dekMap.set(userId, await getDekForUser(userId))
+  const getDecryptedMessage = async (userId: string, feedbackId: string, message: string) => {
+    try {
+      if (!dekMap.has(userId)) {
+        dekMap.set(userId, await getDekForUser(userId))
+      }
+      return decryptField(message, dekMap.get(userId)!)
+    } catch (err) {
+      // getDekForUser também pode lançar aqui (MEK ausente/malformada, falha no upsert) —
+      // esse catch não sabe distinguir DEK rotacionada de ambiente quebrado, então o texto
+      // não pode afirmar uma causa específica; a causa real fica só no log (categoria 4 do
+      // .claude/audit.md — "catch que afirma causa que o código não conhece")
+      console.error('[getAllFeedbacks] mensagem ilegível', { feedbackId, err })
+      return '[mensagem ilegível]'
     }
-    const dek = dekMap.get(userId)!
-    return decryptField(message, dek)
   }
 
   const decrypted = await Promise.all(
     rows.map(async (row) => ({
       id: row.id,
       category: row.category,
-      message: await getDecryptedMessage(row.userId, row.message),
+      message: await getDecryptedMessage(row.userId, row.id, row.message),
       page: row.page,
       status: row.status,
       createdAt: row.createdAt,
