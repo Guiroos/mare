@@ -47,8 +47,19 @@ describe('BudgetOverrideDialog — lápis de "Editar orçamento" (#128, site 6)'
     'utf-8'
   )
 
+  // O gatilho aqui não é ramo de ternário — é o único <Button> do bloco de
+  // abertura, mas o arquivo tem outros dois <Button> fora dele (submit e
+  // "Usar padrão"). `toMatch` sobre `source` cru passaria com o rótulo em
+  // qualquer um dos três; a captura precisa mirar o <Button> mais próximo do
+  // ícone Pencil, não a primeira ocorrência de `aria-label` no arquivo.
+  const trigger = source.match(/<Button\b(?:(?!<Button\b)[\s\S])*?<Pencil\b[\s\S]*?<\/Button>/)?.[0]
+
+  it('encontra o bloco do botão de editar (o mais próximo do ícone Pencil)', () => {
+    expect(trigger).toBeDefined()
+  })
+
   it('rotula o botão do lápis de editar, não o ícone', () => {
-    expect(source).toMatch(/^\s*aria-label="Editar orçamento"$/m)
+    expect(trigger).toMatch(/^\s*aria-label="Editar orçamento"$/m)
   })
 })
 
