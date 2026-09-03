@@ -148,6 +148,7 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
           variant="ghost"
           size="icon"
           onClick={handleClose}
+          aria-label="Fechar divisão"
           className="text-text-tertiary hover:text-text-primary"
         >
           <X className="h-4 w-4" />
@@ -186,6 +187,7 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
                 variant="ghost"
                 size="icon"
                 onClick={() => removePerson(entry.uid)}
+                aria-label="Remover pessoa da divisão"
                 className="mb-0.5 flex-shrink-0 text-text-tertiary hover:text-negative"
               >
                 <X className="h-4 w-4" />
