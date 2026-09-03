@@ -127,6 +127,7 @@ export function BudgetOverrideDialog({
         variant="ghost"
         className="h-6 w-6 text-text-tertiary hover:text-text-primary"
         onClick={() => setOpen(true)}
+        aria-label="Editar orçamento"
       >
         <Pencil className="h-3 w-3" />
       </Button>
