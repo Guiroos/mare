@@ -18,9 +18,12 @@ function findClosestButtonWithIcon(source: string, iconTag: string): string | un
   // isso um regex guloso/lazy simples pegaria o botão de criar ("+ Categoria",
   // "+ Novo grupo", "+ Nova conta"), que abre antes do de editar no mesmo
   // arquivo e também usa onClick={() => setOpen(true)}.
-  const pattern = new RegExp(
-    `<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b[\\s\\S]*?<\\/Button>`
-  )
+  //
+  // Para no início da tag do ícone (não em "</Button>"): estender até o fechamento
+  // incluiria os atributos do próprio ícone no trecho, e um aria-label colocado
+  // ali por engano (o erro que esta issue existe para barrar) passaria a asserção
+  // de linha isolada sempre que o prettier quebrasse os atributos do ícone.
+  const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`)
   return source.match(pattern)?.[0]
 }
 
