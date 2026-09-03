@@ -189,6 +189,7 @@ export function InvestmentEntryDialog({
         variant="ghost"
         className="h-7 w-7 text-text-tertiary hover:text-text-primary"
         onClick={() => setOpen(true)}
+        aria-label="Editar registro"
       >
         <Pencil className="h-3 w-3" />
       </Button>
