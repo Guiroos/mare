@@ -42,7 +42,7 @@ describe('applySort', () => {
     const a = group('A', { endYM: undefined })
     const b = group('B', { endYM: '2026-01' })
 
-    const sorted = applySort([a, b], 'soonest-end')
+    const sorted = applySort([b, a], 'soonest-end')
 
     expect(sorted.map((g) => g.id)).toEqual(['A', 'B'])
   })
