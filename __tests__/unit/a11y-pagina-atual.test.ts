@@ -16,23 +16,32 @@ import { join } from 'node:path'
 // qualquer ocorrência do arquivo — senão o atributo comentado deixaria o
 // teste verde com os 22 links de volta a se anunciar idênticos, mesmo modo
 // de falha que `a11y-estado-selecao.test.ts` (#107) documenta para
-// `aria-pressed`.
+// `aria-pressed`. Ancoram também no elemento (`<Link\b[^<]*`) — sem isso, o
+// mesmo atributo movido para um filho do `<Link>` (ex: a `<div>`/`<Icon>`
+// que já carrega o destaque visual do item ativo) mantém a asserção verde
+// com o `<a>` sem `aria-current` na árvore, a mesma classe de correção
+// errada que a família #126/#127/#128 nomeia como "aria-label no ícone em
+// vez do botão". `[^<]*`, não `[^>]*`: o `<Link>` do dialog "Menu" tem
+// `onClick={() => {...}}` na tag de abertura, e a seta `=>` contém um `>`
+// que faria `[^>]*` parar cedo demais e reprovar o fonte correto.
 
 const sidebar = readFileSync(join(process.cwd(), 'components/layout/Sidebar.tsx'), 'utf-8')
 const bottomNav = readFileSync(join(process.cwd(), 'components/layout/BottomNav.tsx'), 'utf-8')
 
 describe('Sidebar — aria-current amarrado ao estado (#118, site 1)', () => {
   it('expõe aria-current="page" no item ativo do NavItem, e undefined nos demais', () => {
-    expect(sidebar).toMatch(/^\s*aria-current=\{active \? 'page' : undefined\}$/m)
+    expect(sidebar).toMatch(/<Link\b[^<]*^\s*aria-current=\{active \? 'page' : undefined\}$/m)
   })
 })
 
 describe('BottomNav — aria-current amarrado ao estado (#118, sites 2 e 3)', () => {
   it('expõe aria-current="page" no NavItem da barra inferior', () => {
-    expect(bottomNav).toMatch(/^\s*aria-current=\{active \? 'page' : undefined\}$/m)
+    expect(bottomNav).toMatch(/<Link\b[^<]*^\s*aria-current=\{active \? 'page' : undefined\}$/m)
   })
 
   it('expõe aria-current="page" nos links inline do dialog "Menu"', () => {
-    expect(bottomNav).toMatch(/^\s*aria-current=\{isActive\(href\) \? 'page' : undefined\}$/m)
+    expect(bottomNav).toMatch(
+      /<Link\b[^<]*^\s*aria-current=\{isActive\(href\) \? 'page' : undefined\}$/m
+    )
   })
 })
