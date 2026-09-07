@@ -37,7 +37,10 @@ describe('SplitSection — os dois botões "X" têm nomes distintos (#129)', () 
     )
     const rotulos = gatilhos.map((g) => g.match(/^\s*aria-label="([^"]+)"$/m)?.[1])
 
+    // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+    // encontrado é atributo do próprio botão, não de um wrapper interno.
+    expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
     expect(rotulos.every(Boolean)).toBe(true)
-    expect(new Set(rotulos).size).toBe(2)
+    expect(new Set(rotulos).size).toBe(rotulos.length)
   })
 })
