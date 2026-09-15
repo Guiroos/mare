@@ -105,11 +105,12 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
     setIsOpen(true)
   }, [])
 
+  // Recarrega a cada abertura: o provider vive no layout e sobrevive à navegação, então
+  // viagem/categoria/conta criada em outra página não apareceria. O dado anterior segue
+  // na tela enquanto o novo chega, sem voltar ao "Carregando...".
   useEffect(() => {
-    if (isOpen && !formData) {
-      getRegistrationFormData().then(setFormData)
-    }
-  }, [isOpen, formData])
+    if (isOpen) getRegistrationFormData().then(setFormData)
+  }, [isOpen])
 
   return (
     <ctx.Provider value={{ open: openDialog }}>
