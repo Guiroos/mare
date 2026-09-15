@@ -28,7 +28,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 ## Investimentos
 
-- `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income)
+- `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
 - `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
@@ -42,12 +42,14 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `GoalWithProgress` tem dois modos de saldo: vinculado a `investmentType` (total aportes + rendimentos − resgates brutos) vs manual (soma de `goalContributions`)
 - `projectedCompletionYearMonth`: média dos últimos 3 meses de aporte/rendimento; `null` se sem histórico ou meta já atingida
 - `goalContributions.source = 'manual'` — único valor atual; campo reservado para futuras integrações automáticas
-- Assimetria de FK: `investmentTypes.goalId` é `ON DELETE SET NULL`; `goalContributions.goalId` é `ON DELETE CASCADE`
+- Assimetria de FK: `investmentTypes.goalId` e `trips.goalId` são `ON DELETE SET NULL`; `goalContributions.goalId` é `ON DELETE CASCADE`
 
 ## Viagens
 
 - `trips` agrupa `transactions`, `installmentGroups` e `incomes` via `tripId`; `goalId` opcional liga a uma meta
-- Resgate não tem `tripId`: o vínculo mora na **entrada** que o resgate cria (`investmentWithdrawals.incomeId → incomes.tripId`). Só destino `'income'` aceita viagem — `'reinvest'` não vira dinheiro gastável e `'transfer'` não cria entrada; `withdrawalSchema` (refine) e `updateWithdrawal` rejeitam o resto
+- Todos os `tripId` são `ON DELETE SET NULL`: `deleteTrip` preserva os lançamentos e só desfaz o vínculo
+- `TripPicker` aparece em saída avulsa/parcelada, entrada e resgate com destino caixa — gasto fixo fica de fora (`fixedExpenses` não tem `tripId`). A lista vem de `getTripOptions` → `getActiveTrips`, que apesar do nome devolve **todas** as viagens do usuário
+- Resgate não tem `tripId`: o vínculo mora na **entrada** que o resgate cria (`investmentWithdrawals.incomeId → incomes.tripId`); `mapWithdrawal` expõe `tripId` lendo `income.tripId`. Só destino `'income'` aceita viagem — `'reinvest'` não vira dinheiro gastável e `'transfer'` não cria entrada. São **três** caminhos de escrita e os três rejeitam o resto: `withdrawalSchema` (refine), `updateWithdrawal` e `updateIncome` — este porque a entrada do resgate aparece no dashboard e é editável pelo `IncomeEditDialog`
 - Para gastar dinheiro da caixinha, o destino tem que ser `'income'`: com `'reinvest'` o capital some das entradas e o mês fica negativo pelos gastos da viagem
 - `goalSaved` ("Guardado para a viagem") = saldo atual da meta + resgates **brutos** (`amount + taxAmount`) marcados com a viagem **e do mesmo `investmentTypeId` da meta**. Resgate da caixinha para outro fim continua descontado; resgate de outro investimento marcado com a viagem entra só em `totalWithdrawn`
 - `totalIncome` do detalhe exclui entradas que vieram de resgate (senão o resgate conta duas vezes); o total de resgate usa `investmentWithdrawals.amount`, não `incomes.amount` — editar a entrada pelo `IncomeEditDialog` não atualiza o resgate
@@ -76,7 +78,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 ## Reset de Conta
 
 - 3 fases: (1) delete completo em `db.transaction` incluindo `userSettings`/`encryptedDek`; (2) `getDekForUser` provisiona nova DEK (cria `userSettings` do zero); (3) seed de categorias padrão com nomes encriptados
-- Ordem de delete importa por FK: `goalContributions` → `investmentWithdrawals` → `investments` → `investmentTypes`; `transactions` → `installmentGroups`; depois `incomes`, `fixedExpenses`, `userSettings`, `paymentAccounts`, `categories`, `categoryGroups`
+- Ordem de delete importa por FK: `debtorEntries` → `people`; `goalContributions` → `investmentWithdrawals` → `investments` → `investmentTypes` → `goals` → `trips`; `transactions` → `installmentGroups`; depois `incomes`, `fixedExpenses`, `userSettings`, `monthlyBudgetOverrides`, `paymentAccounts`, `categories`, `categoryGroups`
 - `revalidatePath('/', 'layout')` ao final — invalida todo o shell autenticado
 
 ## Feedback
