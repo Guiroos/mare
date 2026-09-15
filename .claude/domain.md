@@ -44,6 +44,14 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `goalContributions.source = 'manual'` — único valor atual; campo reservado para futuras integrações automáticas
 - Assimetria de FK: `investmentTypes.goalId` é `ON DELETE SET NULL`; `goalContributions.goalId` é `ON DELETE CASCADE`
 
+## Viagens
+
+- `trips` agrupa `transactions`, `installmentGroups` e `incomes` via `tripId`; `goalId` opcional liga a uma meta
+- Resgate não tem `tripId`: o vínculo mora na **entrada** que o resgate cria (`investmentWithdrawals.incomeId → incomes.tripId`). Só destino `'income'` aceita viagem — `'reinvest'` não vira dinheiro gastável e `'transfer'` não cria entrada; `withdrawalSchema` (refine) e `updateWithdrawal` rejeitam o resto
+- Para gastar dinheiro da caixinha, o destino tem que ser `'income'`: com `'reinvest'` o capital some das entradas e o mês fica negativo pelos gastos da viagem
+- `goalSaved` ("Guardado para a viagem") = saldo atual da meta + resgates **brutos** (`amount + taxAmount`) marcados com a viagem **e do mesmo `investmentTypeId` da meta**. Resgate da caixinha para outro fim continua descontado; resgate de outro investimento marcado com a viagem entra só em `totalWithdrawn`
+- `totalIncome` do detalhe exclui entradas que vieram de resgate (senão o resgate conta duas vezes); o total de resgate usa `investmentWithdrawals.amount`, não `incomes.amount` — editar a entrada pelo `IncomeEditDialog` não atualiza o resgate
+
 ## Panorama
 
 - **activeMonths**: `overview.filter(m => m.month <= currentYearMonth())` — nunca `m.totalIncomes > 0`
