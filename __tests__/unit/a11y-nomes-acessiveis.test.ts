@@ -18,9 +18,7 @@ function findClosestButtonWithIcon(source: string, iconTag: string): string | un
   // isso um regex guloso/lazy simples poderia casar a partir de um <Button>
   // anterior no mesmo arquivo, desde que os marcadores (onClick, ícone,
   // </Button>) só existam depois dele.
-  const pattern = new RegExp(
-    `<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b[\\s\\S]*?<\\/Button>`
-  )
+  const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`)
   return source.match(pattern)?.[0]
 }
 
@@ -36,7 +34,7 @@ describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () 
     // aria-label={title}, não literal fixo — a prop `title` já é o que os
     // call sites (inclusive os de /viagens) usam para diferenciar o rótulo
     // por tela; aceita tanto `{expressão}` quanto `"literal"`.
-    expect(trigger).toMatch(/^\s*aria-label=(?:\{[^{}]+\}|"[^"]*")\s*$/m)
+    expect(trigger).toMatch(/^\s*aria-label=(?:\{[^{}]+\}|"[^"]+")\s*$/m)
   })
 })
 
