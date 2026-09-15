@@ -44,11 +44,17 @@ type Props =
 export function TripDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const [goalId, setGoalId] = useState(
-    props.mode === 'edit' ? (props.trip.goalId ?? 'none') : 'none'
-  )
+  const initialGoalId = props.mode === 'edit' ? (props.trip.goalId ?? 'none') : 'none'
+  const [goalId, setGoalId] = useState(initialGoalId)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const isDesktop = useMediaQuery('(min-width: 1024px)')
+
+  // Nome e datas são defaultValue e resetam ao remontar; goalId é state e precisa de reset explícito
+  const openDialog = () => {
+    setGoalId(initialGoalId)
+    setErrors({})
+    setOpen(true)
+  }
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -147,7 +153,7 @@ export function TripDialog(props: Props) {
           size={props.triggerSize ?? 'sm'}
           variant={props.triggerVariant ?? 'outline'}
           className={(props.triggerSize ?? 'sm') === 'md' ? 'gap-2' : 'gap-1.5'}
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
         >
           <Plus className="h-4 w-4" />
           Nova viagem
@@ -157,7 +163,7 @@ export function TripDialog(props: Props) {
           size="icon"
           variant="ghost"
           className="h-7 w-7 text-text-tertiary hover:text-text-primary"
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
         >
           <Pencil className="h-3.5 w-3.5" />
         </Button>
