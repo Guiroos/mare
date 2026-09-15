@@ -17,6 +17,7 @@ type Group = {
   name: string
   categoryId: string
   accountId: string
+  tripId: string | null
   accountName: string
   categoryName: string
   categoryColor?: string
@@ -68,6 +69,7 @@ export function InstallmentGroupCard({ group }: { group: Group }) {
               name: group.name,
               categoryId: group.categoryId,
               accountId: group.accountId,
+              tripId: group.tripId,
               totalAmount: group.totalAmount,
             }}
             open={editOpen}

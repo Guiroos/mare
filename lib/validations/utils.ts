@@ -11,6 +11,12 @@ export function formatZodErrors(error: z.ZodError): Record<string, string> {
 
 export const uuidSchema = z.string().uuid('ID inválido')
 
+// '' e null viram undefined (picker limpo / campo não enviado); string não-vazia precisa ser UUID válido
+export const optionalUuidSchema = z.preprocess(
+  (v) => (v === '' || v === null ? undefined : v),
+  z.string().uuid('ID inválido').optional()
+)
+
 export const positiveAmountSchema = z
   .string()
   .min(1, 'Valor é obrigatório')

@@ -108,6 +108,13 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/validations/trips.ts — schemas de viagem/grupo de gasto; 100% atingido.
+        'lib/validations/trips.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
         // lib/validations/investments.ts — schemas de investimento e resgate; 100% atingido.
         'lib/validations/investments.ts': {
           statements: 95,
