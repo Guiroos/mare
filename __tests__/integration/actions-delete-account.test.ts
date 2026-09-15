@@ -17,6 +17,7 @@ import {
   createGoalContribution,
   createPerson,
   createCharge,
+  createTrip,
 } from './helpers/factories'
 
 vi.mock('@/lib/auth/require-user', () => ({
@@ -51,12 +52,14 @@ async function seedFullAccount(suffix: string) {
   const category = await createCategory(db, userId, group.id)
   const account = await createAccount(db, userId)
 
-  await createTransaction(db, userId, account.id, { categoryId: category.id })
-  await createFixedExpense(db, userId, account.id, category.id)
-  const income = await createIncome(db, userId)
-  await createInstallmentGroup(db, userId, account.id, category.id)
-
   const goal = await createGoal(db, userId)
+  const trip = await createTrip(db, userId, { goalId: goal.id })
+
+  await createTransaction(db, userId, account.id, { categoryId: category.id, tripId: trip.id })
+  await createFixedExpense(db, userId, account.id, category.id)
+  const income = await createIncome(db, userId, { tripId: trip.id })
+  await createInstallmentGroup(db, userId, account.id, category.id, { tripId: trip.id })
+
   const investType = await createInvestmentType(db, userId)
   await db.insert(schema.investments).values({
     userId,
@@ -134,6 +137,7 @@ async function countRemaining(userId: string) {
     people,
     debtorEntries,
     feedback,
+    trips,
   ] = await Promise.all([
     db.select().from(schema.users).where(eq(schema.users.id, userId)),
     db.select().from(schema.userSettings).where(eq(schema.userSettings.userId, userId)),
@@ -161,6 +165,7 @@ async function countRemaining(userId: string) {
     db.select().from(schema.people).where(eq(schema.people.userId, userId)),
     db.select().from(schema.debtorEntries).where(eq(schema.debtorEntries.userId, userId)),
     db.select().from(schema.feedback).where(eq(schema.feedback.userId, userId)),
+    db.select().from(schema.trips).where(eq(schema.trips.userId, userId)),
   ])
 
   return {
@@ -184,6 +189,7 @@ async function countRemaining(userId: string) {
     people: people.length,
     debtorEntries: debtorEntries.length,
     feedback: feedback.length,
+    trips: trips.length,
   }
 }
 
