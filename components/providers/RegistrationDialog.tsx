@@ -29,6 +29,11 @@ type Person = {
   name: string
 }
 
+type Trip = {
+  id: string
+  name: string
+}
+
 type RegistrationDialogCtx = {
   open: (month?: string, date?: string) => void
 }
@@ -51,6 +56,7 @@ function FormContent({
     accounts: Account[]
     investmentTypes: InvestmentType[]
     people: Person[]
+    trips: Trip[]
   } | null
   month: string | undefined
   date: string | undefined
@@ -70,6 +76,7 @@ function FormContent({
       accounts={formData.accounts}
       investmentTypes={formData.investmentTypes}
       people={formData.people}
+      trips={formData.trips}
       defaultMonth={month}
       defaultDate={date}
       onSuccess={onSuccess}
@@ -87,6 +94,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
     accounts: Account[]
     investmentTypes: InvestmentType[]
     people: Person[]
+    trips: Trip[]
   } | null>(null)
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
