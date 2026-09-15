@@ -20,6 +20,7 @@ import {
   goalContributions,
   people,
   debtorEntries,
+  trips,
 } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
 import { getDekForUser } from '@/lib/crypto/keys'
@@ -78,6 +79,7 @@ export async function resetAccount() {
     await tx.delete(investments).where(eq(investments.userId, userId))
     await tx.delete(investmentTypes).where(eq(investmentTypes.userId, userId))
     await tx.delete(goals).where(eq(goals.userId, userId))
+    await tx.delete(trips).where(eq(trips.userId, userId))
 
     // Transações e receitas
     await tx.delete(transactions).where(eq(transactions.userId, userId))
