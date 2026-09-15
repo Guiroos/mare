@@ -508,6 +508,27 @@ describe('tripSchema', () => {
       false
     )
   })
+
+  it('rejects endDate before startDate, with the error on endDate', () => {
+    const result = tripSchema.safeParse({
+      name: 'Rock in Rio 2026',
+      startDate: '2026-10-10',
+      endDate: '2026-10-01',
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['endDate'])
+  })
+
+  it('accepts endDate equal to startDate (evento de um dia)', () => {
+    expect(
+      tripSchema.safeParse({ name: 'Show', startDate: '2026-10-10', endDate: '2026-10-10' }).success
+    ).toBe(true)
+  })
+
+  it('accepts only one of the dates', () => {
+    expect(tripSchema.safeParse({ name: 'Show', endDate: '2026-10-01' }).success).toBe(true)
+    expect(tripSchema.safeParse({ name: 'Show', startDate: '2026-10-10' }).success).toBe(true)
+  })
 })
 
 describe('upsertTripActionSchema', () => {
@@ -525,6 +546,13 @@ describe('upsertTripActionSchema', () => {
     expect(upsertTripActionSchema.safeParse({ ...base, existingId: 'not-uuid' }).success).toBe(
       false
     )
+  })
+
+  it('rejects endDate before startDate', () => {
+    expect(
+      upsertTripActionSchema.safeParse({ ...base, startDate: '2026-10-10', endDate: '2026-10-01' })
+        .success
+    ).toBe(false)
   })
 })
 

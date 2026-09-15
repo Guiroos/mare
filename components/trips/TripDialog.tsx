@@ -112,11 +112,12 @@ export function TripDialog(props: Props) {
             defaultValue={props.mode === 'edit' ? (props.trip.startDate ?? '') : ''}
           />
         </Field>
-        <Field label="Fim" hint="Opcional">
+        <Field label="Fim" hint="Opcional" error={errors.endDate}>
           <Input
             name="endDate"
             type="date"
             defaultValue={props.mode === 'edit' ? (props.trip.endDate ?? '') : ''}
+            error={!!errors.endDate}
           />
         </Field>
       </div>
