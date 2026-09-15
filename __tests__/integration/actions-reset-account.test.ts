@@ -17,6 +17,7 @@ import {
   createGoalContribution,
   createPerson,
   createCharge,
+  createTrip,
 } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -45,23 +46,30 @@ describe('resetAccount', () => {
     const category = await createCategory(db, userId, group.id)
     const account = await createAccount(db, userId)
 
-    await createTransaction(db, userId, account.id, { categoryId: category.id })
-    await createFixedExpense(db, userId, account.id, category.id)
-    await createIncome(db, userId)
+    const goal = await createGoal(db, userId)
+    // Viagem vinculada a meta e a lançamentos: o reset esquecia a tabela `trips`
+    // (67827ca), e ela sobrevivia porque nenhum FK a derruba junto dos filhos.
+    const trip = await createTrip(db, userId, { goalId: goal.id })
 
-    const installGroup = await createInstallmentGroup(db, userId, account.id, category.id)
+    await createTransaction(db, userId, account.id, { categoryId: category.id, tripId: trip.id })
+    await createFixedExpense(db, userId, account.id, category.id)
+    await createIncome(db, userId, { tripId: trip.id })
+
+    const installGroup = await createInstallmentGroup(db, userId, account.id, category.id, {
+      tripId: trip.id,
+    })
     await db.insert(schema.transactions).values({
       userId,
       accountId: account.id,
       categoryId: category.id,
       installmentGroupId: installGroup.id,
+      tripId: trip.id,
       name: 'Parcela 1/2',
       amount: '150.00',
       date: '2025-01-10',
       referenceMonth: '2025-01-01',
     })
 
-    const goal = await createGoal(db, userId)
     const investType = await createInvestmentType(db, userId)
     await db.insert(schema.investments).values({
       userId,
@@ -91,6 +99,7 @@ describe('resetAccount', () => {
       debtorEntries,
       people,
       accounts,
+      trips,
     ] = await Promise.all([
       db.select().from(schema.transactions).where(eq(schema.transactions.userId, userId)),
       db.select().from(schema.fixedExpenses).where(eq(schema.fixedExpenses.userId, userId)),
@@ -107,6 +116,7 @@ describe('resetAccount', () => {
       db.select().from(schema.debtorEntries).where(eq(schema.debtorEntries.userId, userId)),
       db.select().from(schema.people).where(eq(schema.people.userId, userId)),
       db.select().from(schema.paymentAccounts).where(eq(schema.paymentAccounts.userId, userId)),
+      db.select().from(schema.trips).where(eq(schema.trips.userId, userId)),
     ])
 
     expect(txs).toHaveLength(0)
@@ -121,6 +131,7 @@ describe('resetAccount', () => {
     expect(debtorEntries).toHaveLength(0)
     expect(people).toHaveLength(0)
     expect(accounts).toHaveLength(0)
+    expect(trips).toHaveLength(0)
   })
 
   it('recria os 2 grupos e 17 categorias padrão com os orçamentos corretos', async () => {
@@ -167,17 +178,19 @@ describe('resetAccount', () => {
     const { id: otherUserId } = await createUser(db, `reset-other-${Date.now()}`)
     const otherGroup = await createCategoryGroup(db, otherUserId, 'Grupo Outro')
     await createCategory(db, otherUserId, otherGroup.id, { name: 'Cat Outro' })
+    await createTrip(db, otherUserId, { name: 'Viagem Outro' })
 
     const { resetAccount } = await import('@/lib/actions/reset-account')
     await resetAccount()
 
-    const otherCats = await db
-      .select()
-      .from(schema.categories)
-      .where(eq(schema.categories.userId, otherUserId))
+    const [otherCats, otherTrips] = await Promise.all([
+      db.select().from(schema.categories).where(eq(schema.categories.userId, otherUserId)),
+      db.select().from(schema.trips).where(eq(schema.trips.userId, otherUserId)),
+    ])
 
     expect(otherCats).toHaveLength(1)
     expect(otherCats[0]!.name).toBe('Cat Outro')
+    expect(otherTrips).toHaveLength(1)
   })
 
   it('é idempotente — resetar duas vezes mantém as categorias padrão', async () => {

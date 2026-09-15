@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
+import type { TripOption } from '@/components/forms/transaction/TripPicker'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
@@ -28,6 +29,7 @@ type Transaction = {
   date: string
   categoryId: string | null
   accountId: string | null
+  tripId: string | null
 }
 
 function FormLoader({
@@ -40,6 +42,7 @@ function FormLoader({
   const [formData, setFormData] = useState<{
     categoryGroups: CategoryGroup[]
     accounts: Account[]
+    trips: TripOption[]
   } | null>(null)
 
   useEffect(() => {
@@ -59,6 +62,7 @@ function FormLoader({
       mode="edit"
       categoryGroups={formData.categoryGroups}
       accounts={formData.accounts}
+      trips={formData.trips}
       categoryVariant="combobox"
       editContext={{
         entityId: transaction.id,
@@ -70,6 +74,7 @@ function FormLoader({
           date: transaction.date,
           categoryId: transaction.categoryId ?? undefined,
           accountId: transaction.accountId ?? undefined,
+          tripId: transaction.tripId,
         },
       }}
       onSuccess={onSuccess}

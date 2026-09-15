@@ -17,6 +17,7 @@ type Group = {
   name: string
   categoryId: string
   accountId: string
+  tripId: string | null
   accountName: string
   categoryName: string
   categoryColor?: string
