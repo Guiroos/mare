@@ -8,6 +8,7 @@ const group = (id: string, overrides: Partial<Group> = {}): Group => ({
   name: `Grupo ${id}`,
   categoryId: 'cat-1',
   accountId: 'acc-1',
+  tripId: null,
   accountName: 'Conta',
   categoryName: 'Categoria',
   startDate: '2026-01-01',
