@@ -29,6 +29,11 @@ type Person = {
   name: string
 }
 
+type Trip = {
+  id: string
+  name: string
+}
+
 type RegistrationDialogCtx = {
   open: (month?: string, date?: string) => void
 }
@@ -51,6 +56,7 @@ function FormContent({
     accounts: Account[]
     investmentTypes: InvestmentType[]
     people: Person[]
+    trips: Trip[]
   } | null
   month: string | undefined
   date: string | undefined
@@ -70,6 +76,7 @@ function FormContent({
       accounts={formData.accounts}
       investmentTypes={formData.investmentTypes}
       people={formData.people}
+      trips={formData.trips}
       defaultMonth={month}
       defaultDate={date}
       onSuccess={onSuccess}
@@ -87,6 +94,7 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
     accounts: Account[]
     investmentTypes: InvestmentType[]
     people: Person[]
+    trips: Trip[]
   } | null>(null)
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
@@ -97,11 +105,12 @@ export function RegistrationDialogProvider({ children }: { children: ReactNode }
     setIsOpen(true)
   }, [])
 
+  // Recarrega a cada abertura: o provider vive no layout e sobrevive à navegação, então
+  // viagem/categoria/conta criada em outra página não apareceria. O dado anterior segue
+  // na tela enquanto o novo chega, sem voltar ao "Carregando...".
   useEffect(() => {
-    if (isOpen && !formData) {
-      getRegistrationFormData().then(setFormData)
-    }
-  }, [isOpen, formData])
+    if (isOpen) getRegistrationFormData().then(setFormData)
+  }, [isOpen])
 
   return (
     <ctx.Provider value={{ open: openDialog }}>
