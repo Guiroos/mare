@@ -97,6 +97,18 @@ export async function createGoal(
   return goal
 }
 
+export async function createTrip(
+  db: TestDb,
+  userId: string,
+  overrides: Partial<typeof schema.trips.$inferInsert> = {}
+) {
+  const [trip] = await db
+    .insert(schema.trips)
+    .values({ userId, name: 'Viagem Teste', ...overrides })
+    .returning({ id: schema.trips.id })
+  return trip
+}
+
 export async function createIncome(
   db: TestDb,
   userId: string,

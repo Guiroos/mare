@@ -10,6 +10,7 @@ import {
   referenceMonthSchema,
   formatZodErrors,
   uuidSchema,
+  optionalUuidSchema,
 } from '@/lib/validations/utils'
 import {
   transactionSchema,
@@ -251,6 +252,28 @@ describe('uuidSchema', () => {
   })
 })
 
+// ─── optionalUuidSchema ────────────────────────────────────────────────────────
+
+describe('optionalUuidSchema', () => {
+  it('accepts a valid UUID', () => {
+    const result = optionalUuidSchema.safeParse('550e8400-e29b-41d4-a716-446655440000')
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data).toBe('550e8400-e29b-41d4-a716-446655440000')
+  })
+
+  it('normalizes empty string, null and undefined to undefined', () => {
+    for (const v of ['', null, undefined]) {
+      const result = optionalUuidSchema.safeParse(v)
+      expect(result.success).toBe(true)
+      if (result.success) expect(result.data).toBeUndefined()
+    }
+  })
+
+  it('rejects a non-empty invalid UUID', () => {
+    expect(optionalUuidSchema.safeParse('not-a-uuid').success).toBe(false)
+  })
+})
+
 // ─── Transaction schemas ──────────────────────────────────────────────────────
 
 const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000'
@@ -290,6 +313,19 @@ describe('transactionSchema', () => {
 
   it('rejects invalid UUID for accountId', () => {
     expect(transactionSchema.safeParse({ ...base, accountId: 'not-uuid' }).success).toBe(false)
+  })
+
+  it('accepts a valid tripId', () => {
+    expect(transactionSchema.safeParse({ ...base, tripId: VALID_UUID }).success).toBe(true)
+  })
+
+  it('accepts an absent or empty tripId (sem viagem vinculada)', () => {
+    expect(transactionSchema.safeParse(base).success).toBe(true)
+    expect(transactionSchema.safeParse({ ...base, tripId: '' }).success).toBe(true)
+  })
+
+  it('rejects an invalid tripId', () => {
+    expect(transactionSchema.safeParse({ ...base, tripId: 'not-uuid' }).success).toBe(false)
   })
 })
 

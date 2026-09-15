@@ -23,6 +23,7 @@ import { getRegistrationFormData } from '@/lib/actions/form-data'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { installmentGroupSchema } from '@/lib/validations/transactions'
 import { formatZodErrors } from '@/lib/validations/utils'
+import { TripPicker, type TripOption } from '@/components/forms/transaction/TripPicker'
 
 type CategoryGroup = {
   id: string
@@ -41,6 +42,7 @@ type InstallmentGroup = {
   name: string
   categoryId: string
   accountId: string
+  tripId: string | null
   totalAmount: number
 }
 
@@ -48,15 +50,18 @@ function EditForm({
   group,
   categoryGroups,
   accounts,
+  trips,
   onSuccess,
 }: {
   group: InstallmentGroup
   categoryGroups: CategoryGroup[]
   accounts: Account[]
+  trips: TripOption[]
   onSuccess: () => void
 }) {
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [tripId, setTripId] = useState(group.tripId ?? '')
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -67,6 +72,7 @@ function EditForm({
       name: str('name'),
       categoryId: str('categoryId'),
       accountId: str('accountId'),
+      tripId,
       newTotalAmount: str('newTotalAmount') || undefined,
     })
 
@@ -135,6 +141,8 @@ function EditForm({
         />
       </Field>
 
+      <TripPicker trips={trips} tripId={tripId} onTripChange={setTripId} error={errors.tripId} />
+
       <Button type="submit" className="w-full" disabled={isPending}>
         {isPending ? 'Salvando...' : 'Salvar alterações'}
       </Button>
@@ -146,6 +154,7 @@ function FormLoader({ group, onSuccess }: { group: InstallmentGroup; onSuccess: 
   const [formData, setFormData] = useState<{
     categoryGroups: CategoryGroup[]
     accounts: Account[]
+    trips: TripOption[]
   } | null>(null)
 
   useEffect(() => {
@@ -165,6 +174,7 @@ function FormLoader({ group, onSuccess }: { group: InstallmentGroup; onSuccess: 
       group={group}
       categoryGroups={formData.categoryGroups}
       accounts={formData.accounts}
+      trips={formData.trips}
       onSuccess={onSuccess}
     />
   )

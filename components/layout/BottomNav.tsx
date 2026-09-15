@@ -19,6 +19,7 @@ import {
   History,
   Eye,
   EyeOff,
+  Plane,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -39,6 +40,7 @@ const primaryNav = [
 const menuItems = [
   { href: '/historico', label: 'Histórico', icon: History },
   { href: '/metas', label: 'Metas', icon: Target },
+  { href: '/viagens', label: 'Viagens', icon: Plane },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
   { href: '/devedores', label: 'Devedores', icon: HandCoins },
   { href: '/categorias', label: 'Categorias e Grupos', icon: Tags },

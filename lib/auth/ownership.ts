@@ -7,6 +7,7 @@ import {
   goals,
   people,
   debtorEntries,
+  trips,
 } from '@/lib/db/schema'
 import { and, eq } from 'drizzle-orm'
 
@@ -76,6 +77,15 @@ export async function assertOwnsDebtEntry(userId: string, entryId: string): Prom
     .select({ id: debtorEntries.id })
     .from(debtorEntries)
     .where(and(eq(debtorEntries.id, entryId), eq(debtorEntries.userId, userId)))
+    .limit(1)
+  if (!row) unauthorized()
+}
+
+export async function assertOwnsTrip(userId: string, tripId: string): Promise<void> {
+  const [row] = await db
+    .select({ id: trips.id })
+    .from(trips)
+    .where(and(eq(trips.id, tripId), eq(trips.userId, userId)))
     .limit(1)
   if (!row) unauthorized()
 }
