@@ -127,6 +127,13 @@
       "when": 1787072725288,
       "tag": "0017_dizzy_the_leader",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789434317327,
+      "tag": "0018_quiet_blade",
+      "breakpoints": true
     }
   ]
 }

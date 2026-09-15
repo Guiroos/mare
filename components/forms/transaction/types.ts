@@ -45,5 +45,6 @@ export type EditContext = {
     dueDay?: number
     categoryId?: string
     accountId?: string
+    tripId?: string | null
   }
 }

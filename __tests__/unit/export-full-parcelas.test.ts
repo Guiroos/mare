@@ -12,6 +12,7 @@ function grupo(overrides: Partial<InstallmentGroupRow> = {}): InstallmentGroupRo
     name: 'Notebook',
     categoryId: 'c1',
     accountId: 'a1',
+    tripId: null,
     accountName: 'Nubank',
     categoryName: 'Eletrônicos',
     categoryColor: undefined,

@@ -158,6 +158,7 @@ export const installmentGroups = pgTable('installment_groups', {
   categoryId: uuid('category_id')
     .notNull()
     .references(() => categories.id, { onDelete: 'restrict' }),
+  tripId: uuid('trip_id').references((): AnyPgColumn => trips.id, { onDelete: 'set null' }),
   name: text('name').notNull(),
   totalAmount: text('total_amount').notNull(),
   totalInstallments: integer('total_installments').notNull(),
@@ -178,6 +179,7 @@ export const transactions = pgTable(
     installmentGroupId: uuid('installment_group_id').references(() => installmentGroups.id, {
       onDelete: 'set null',
     }),
+    tripId: uuid('trip_id').references((): AnyPgColumn => trips.id, { onDelete: 'set null' }),
     faturaAccountId: uuid('fatura_account_id').references(() => paymentAccounts.id, {
       onDelete: 'restrict',
     }),
@@ -209,6 +211,7 @@ export const incomes = pgTable(
     amount: text('amount').notNull(),
     referenceMonth: date('reference_month').notNull(),
     investmentReturnCapital: text('investment_return_capital'),
+    tripId: uuid('trip_id').references((): AnyPgColumn => trips.id, { onDelete: 'set null' }),
   },
   (t) => [index('incomes_user_month_idx').on(t.userId, t.referenceMonth)]
 )
@@ -301,6 +304,17 @@ export const goalContributions = pgTable('goal_contributions', {
   source: varchar('source', { length: 20 }).notNull(), // manual | investment
 })
 
+export const trips = pgTable('trips', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  goalId: uuid('goal_id').references(() => goals.id, { onDelete: 'set null' }),
+  name: text('name').notNull(),
+  startDate: date('start_date'),
+  endDate: date('end_date'),
+})
+
 // Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   settings: one(userSettings, { fields: [users.id], references: [userSettings.userId] }),
@@ -318,6 +332,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   goalContributions: many(goalContributions),
   people: many(people),
   debtorEntries: many(debtorEntries),
+  trips: many(trips),
 }))
 
 export const userSettingsRelations = relations(userSettings, ({ one }) => ({
@@ -387,6 +402,10 @@ export const installmentGroupsRelations = relations(installmentGroups, ({ one, m
     fields: [installmentGroups.categoryId],
     references: [categories.id],
   }),
+  trip: one(trips, {
+    fields: [installmentGroups.tripId],
+    references: [trips.id],
+  }),
   transactions: many(transactions),
 }))
 
@@ -410,11 +429,19 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     fields: [transactions.installmentGroupId],
     references: [installmentGroups.id],
   }),
+  trip: one(trips, {
+    fields: [transactions.tripId],
+    references: [trips.id],
+  }),
   debtorEntries: many(debtorEntries),
 }))
 
 export const incomesRelations = relations(incomes, ({ one, many }) => ({
   user: one(users, { fields: [incomes.userId], references: [users.id] }),
+  trip: one(trips, {
+    fields: [incomes.tripId],
+    references: [trips.id],
+  }),
   debtorEntries: many(debtorEntries),
 }))
 
@@ -472,6 +499,17 @@ export const goalContributionsRelations = relations(goalContributions, ({ one })
     fields: [goalContributions.userId],
     references: [users.id],
   }),
+}))
+
+export const tripsRelations = relations(trips, ({ one, many }) => ({
+  user: one(users, { fields: [trips.userId], references: [users.id] }),
+  goal: one(goals, {
+    fields: [trips.goalId],
+    references: [goals.id],
+  }),
+  transactions: many(transactions),
+  incomes: many(incomes),
+  installmentGroups: many(installmentGroups),
 }))
 
 export const people = pgTable(

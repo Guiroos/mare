@@ -240,6 +240,7 @@ export function RegistroPageClient({ formData }: { formData: FormDataType }) {
             accounts={formData.accounts}
             investmentTypes={formData.investmentTypes}
             people={formData.people}
+            trips={formData.trips}
             onFormChange={setPreviewState}
             categoryVariant="combobox"
           />
