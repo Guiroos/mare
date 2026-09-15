@@ -17,6 +17,8 @@ type Trip = {
   goalId: string | null
   goalName: string | null
   goalBalance: number | null
+  goalSaved: number | null
+  totalWithdrawn: number
   totalSpent: number
 }
 
@@ -63,9 +65,14 @@ export function TripsList({ trips, goals }: { trips: Trip[]; goals: GoalOption[]
               <span className="tabular-nums">
                 Gasto: <SensitiveAmount value={trip.totalSpent} />
               </span>
-              {trip.goalBalance !== null && (
+              {trip.goalSaved !== null && (
                 <span className="tabular-nums">
-                  Guardado: <SensitiveAmount value={trip.goalBalance} />
+                  Guardado: <SensitiveAmount value={trip.goalSaved} />
+                </span>
+              )}
+              {trip.totalWithdrawn > 0 && (
+                <span className="tabular-nums">
+                  Resgatado: <SensitiveAmount value={trip.totalWithdrawn} />
                 </span>
               )}
             </div>
