@@ -51,7 +51,7 @@ export function DeleteButton({
       variant="ghost"
       className="h-7 w-7 text-text-secondary hover:text-negative"
       onClick={() => setOpen(true)}
-      aria-label="Excluir"
+      aria-label={title}
     >
       <Trash2 className="h-3.5 w-3.5" />
     </Button>

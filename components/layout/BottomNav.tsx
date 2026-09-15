@@ -19,6 +19,7 @@ import {
   History,
   Eye,
   EyeOff,
+  Plane,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { useState } from 'react'
@@ -39,6 +40,7 @@ const primaryNav = [
 const menuItems = [
   { href: '/historico', label: 'Histórico', icon: History },
   { href: '/metas', label: 'Metas', icon: Target },
+  { href: '/viagens', label: 'Viagens', icon: Plane },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
   { href: '/devedores', label: 'Devedores', icon: HandCoins },
   { href: '/categorias', label: 'Categorias e Grupos', icon: Tags },
@@ -63,6 +65,7 @@ function NavItem({
     <Link
       href={href}
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className="flex flex-1 flex-col items-center gap-1 px-1 py-2"
     >
       <div
@@ -198,6 +201,7 @@ export function BottomNav({ userEmail }: BottomNavProps) {
                   setPendingHref(href)
                   setMenuOpen(false)
                 }}
+                aria-current={isActive(href) ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 rounded-lg border px-4 py-3 text-small font-medium transition-colors',
                   isActive(href)

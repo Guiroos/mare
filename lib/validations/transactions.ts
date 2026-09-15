@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   uuidSchema,
+  optionalUuidSchema,
   positiveAmountSchema,
   optionalPositiveAmountSchema,
   dateSchema,
@@ -16,6 +17,7 @@ export const transactionSchema = z.object({
   date: dateSchema,
   categoryId: uuidSchema,
   accountId: uuidSchema,
+  tripId: optionalUuidSchema,
 })
 
 const fixedExpenseBase = z.object({
@@ -46,11 +48,13 @@ export const installmentSchema = z.object({
   startDate: dateSchema,
   categoryId: uuidSchema,
   accountId: uuidSchema,
+  tripId: optionalUuidSchema,
 })
 
 const incomeBase = z.object({
   source: z.string().min(1, 'Origem é obrigatória').max(200),
   amount: positiveAmountSchema,
+  tripId: optionalUuidSchema,
 })
 
 export const incomeEditSchema = incomeBase
@@ -64,6 +68,7 @@ export const installmentGroupSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
   categoryId: uuidSchema,
   accountId: uuidSchema,
+  tripId: optionalUuidSchema,
   newTotalAmount: optionalPositiveAmountSchema,
 })
 
@@ -89,6 +94,7 @@ export const createInstallmentActionSchema = z.object({
   startDate: dateSchema,
   categoryId: uuidSchema,
   accountId: uuidSchema,
+  tripId: optionalUuidSchema,
 })
 
 export const updateInstallmentGroupActionSchema = z.object({
@@ -96,6 +102,7 @@ export const updateInstallmentGroupActionSchema = z.object({
   name: z.string().min(1).max(200),
   categoryId: uuidSchema,
   accountId: uuidSchema,
+  tripId: optionalUuidSchema,
   newTotalAmount: optionalPositiveAmountSchema,
 })
 
