@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   HandCoins,
   History,
+  Plane,
 } from 'lucide-react'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import { signOut } from 'next-auth/react'
@@ -34,6 +35,7 @@ const mainNav = [
   { href: '/parcelas', label: 'Parcelas Futuras', icon: CalendarDays },
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/metas', label: 'Metas', icon: Target },
+  { href: '/viagens', label: 'Viagens', icon: Plane },
   { href: '/panorama', label: 'Panorama Anual', icon: BarChart3 },
   { href: '/devedores', label: 'Devedores', icon: HandCoins },
 ]
