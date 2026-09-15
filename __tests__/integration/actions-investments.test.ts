@@ -4,7 +4,7 @@ import { eq, and } from 'drizzle-orm'
 import * as schema from '@/lib/db/schema'
 import { neonTestingSetup } from './setup'
 import { createTestDb, type TestDb } from './helpers/db'
-import { createUser, createInvestmentType, createGoal } from './helpers/factories'
+import { createUser, createInvestmentType, createGoal, createTrip } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 
@@ -13,6 +13,7 @@ vi.mock('@/lib/auth/require-user', () => ({
 }))
 vi.mock('@/lib/auth/ownership', () => ({
   assertOwnsInvestmentType: vi.fn(),
+  assertOwnsTrip: vi.fn(),
 }))
 
 neonTestingSetup()
@@ -27,9 +28,19 @@ beforeAll(async () => {
   const { requireUserId } = await import('@/lib/auth/require-user')
   vi.mocked(requireUserId).mockResolvedValue(userId)
 
-  const { assertOwnsInvestmentType } = await import('@/lib/auth/ownership')
+  const { assertOwnsInvestmentType, assertOwnsTrip } = await import('@/lib/auth/ownership')
   vi.mocked(assertOwnsInvestmentType).mockResolvedValue(undefined)
+  vi.mocked(assertOwnsTrip).mockResolvedValue(undefined)
 })
+
+async function findWithdrawal(investmentTypeId: string) {
+  return db.query.investmentWithdrawals.findFirst({
+    where: and(
+      eq(schema.investmentWithdrawals.userId, userId),
+      eq(schema.investmentWithdrawals.investmentTypeId, investmentTypeId)
+    ),
+  })
+}
 
 describe('archiveInvestmentType', () => {
   it('arquiva tipo com saldo zero', async () => {
@@ -398,6 +409,115 @@ describe('updateWithdrawal', () => {
     const dek = await getDekForUser(userId)
     expect(decryptField(income!.amount, dek)).toBe('200.00')
     expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('200.00')
+  })
+})
+
+describe('resgate vinculado a viagem', () => {
+  it('createWithdrawal para o caixa marca a entrada com a viagem', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Viagem' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    const { assertOwnsTrip } = await import('@/lib/auth/ownership')
+    vi.mocked(revalidatePath).mockClear()
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Caixinha Viagem',
+      amount: '800.00',
+      date: '2025-07-01',
+      destination: 'income',
+      tripId: trip.id,
+    })
+
+    const withdrawal = await findWithdrawal(type.id)
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(income?.tripId).toBe(trip.id)
+    expect(vi.mocked(assertOwnsTrip)).toHaveBeenCalledWith(userId, trip.id)
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/viagens')
+  })
+
+  it('createWithdrawal rejeita viagem em resgate de reinvestimento', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Rolagem' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await expect(
+      createWithdrawal({
+        investmentTypeId: type.id,
+        investmentTypeName: 'Caixinha Rolagem',
+        amount: '800.00',
+        date: '2025-07-01',
+        destination: 'reinvest',
+        tripId: trip.id,
+      })
+    ).rejects.toThrow()
+
+    expect(await findWithdrawal(type.id)).toBeUndefined()
+  })
+
+  it('updateWithdrawal troca e remove a viagem da entrada', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Edição' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Caixinha Edição',
+      amount: '300.00',
+      date: '2025-07-02',
+      destination: 'income',
+    })
+    const withdrawal = await findWithdrawal(type.id)
+    const edit = {
+      id: withdrawal!.id,
+      investmentTypeId: type.id,
+      amount: '300.00',
+      date: '2025-07-02',
+    }
+
+    await updateWithdrawal({ ...edit, tripId: trip.id })
+    const tagged = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(tagged?.tripId).toBe(trip.id)
+
+    await updateWithdrawal(edit)
+    const untagged = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(untagged?.tripId).toBeNull()
+  })
+
+  it('updateWithdrawal rejeita viagem em resgate de reinvestimento', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Rolagem Edição' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Caixinha Rolagem Edição',
+      amount: '300.00',
+      date: '2025-07-03',
+      destination: 'reinvest',
+    })
+    const withdrawal = await findWithdrawal(type.id)
+
+    await expect(
+      updateWithdrawal({
+        id: withdrawal!.id,
+        investmentTypeId: type.id,
+        amount: '300.00',
+        date: '2025-07-03',
+        tripId: trip.id,
+      })
+    ).rejects.toThrow('Só resgates para o caixa podem ser vinculados a uma viagem')
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(income?.tripId).toBeNull()
   })
 })
 
