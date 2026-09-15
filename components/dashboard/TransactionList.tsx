@@ -28,6 +28,7 @@ type Transaction = {
   date: string
   categoryId: string | null
   accountId: string | null
+  tripId: string | null
   faturaAccountId: string | null
   installmentNumber: number | null
   totalInstallments: number | null
