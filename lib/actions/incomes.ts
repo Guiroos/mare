@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { incomes } from '@/lib/db/schema'
+import { incomes, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { createIncomeActionSchema, updateIncomeActionSchema } from '@/lib/validations/transactions'
@@ -47,7 +47,26 @@ export type UpdateIncomeInput = {
 export async function updateIncome(data: UpdateIncomeInput) {
   const userId = await requireUserId()
   const parsed = updateIncomeActionSchema.parse(data)
-  if (parsed.tripId) await assertOwnsTrip(userId, parsed.tripId)
+  if (parsed.tripId) {
+    // Entrada criada por resgate segue a regra do resgate: só destino "caixa" aceita
+    // viagem — mesma checagem de withdrawalSchema e updateWithdrawal
+    const [, [withdrawal]] = await Promise.all([
+      assertOwnsTrip(userId, parsed.tripId),
+      db
+        .select({ destination: investmentWithdrawals.destination })
+        .from(investmentWithdrawals)
+        .where(
+          and(
+            eq(investmentWithdrawals.incomeId, parsed.id),
+            eq(investmentWithdrawals.userId, userId)
+          )
+        )
+        .limit(1),
+    ])
+    if (withdrawal && withdrawal.destination !== 'income') {
+      throw new Error('Só resgates para o caixa podem ser vinculados a uma viagem')
+    }
+  }
   const dek = await getDekForUser(userId)
 
   await db

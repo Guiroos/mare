@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, SyntheticEvent } from 'react'
+import { useEffect, useState, useTransition, SyntheticEvent } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
@@ -16,8 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TripPicker, type TripOption } from '@/components/forms/transaction/TripPicker'
 import { toast } from 'sonner'
 import { createWithdrawal } from '@/lib/actions/investments'
+import { getTripOptions } from '@/lib/actions/trips'
 import { withdrawalSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -46,6 +48,8 @@ export function WithdrawalDialog({
     initialDestination ?? 'income'
   )
   const [typeId, setTypeId] = useState(initialTypeId ?? '')
+  const [tripId, setTripId] = useState('')
+  const [trips, setTrips] = useState<TripOption[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasTax, setHasTax] = useState(false)
   const [grossCents, setGrossCents] = useState(() =>
@@ -60,6 +64,12 @@ export function WithdrawalDialog({
   const netCents = grossCents - taxCents
   const netAmount = netCents / 100
 
+  // Dialog é aberto de /investimentos e do alerta de vencimento no dashboard — carregar
+  // as viagens na abertura evita propagar a lista pelas duas árvores
+  useEffect(() => {
+    if (open) getTripOptions().then(setTrips)
+  }, [open])
+
   const handleOpenChange = (v: boolean) => {
     if (!v) {
       setErrors({})
@@ -67,6 +77,7 @@ export function WithdrawalDialog({
       setGrossCents(0)
       setTaxCents(0)
       if (!initialTypeId) setTypeId('')
+      setTripId('')
       setDestination('income')
     }
     if (isControlled) {
@@ -86,6 +97,7 @@ export function WithdrawalDialog({
       date: (fd.get('date') as string).trim(),
       destination,
       taxAmount: hasTax ? (fd.get('taxAmount') as string) || null : null,
+      tripId: destination === 'income' ? tripId : undefined,
     })
 
     if (!result.success) {
@@ -106,6 +118,7 @@ export function WithdrawalDialog({
           destination: result.data.destination,
           taxAmount: result.data.taxAmount ?? null,
           notes: (fd.get('notes') as string).trim() || null,
+          tripId: result.data.tripId,
         })
         handleOpenChange(false)
       } catch {
@@ -190,6 +203,10 @@ export function WithdrawalDialog({
           </SelectContent>
         </Select>
       </Field>
+
+      {destination === 'income' && (
+        <TripPicker trips={trips} tripId={tripId} onTripChange={setTripId} error={errors.tripId} />
+      )}
 
       {destination === 'reinvest' && (
         <p className="text-caption text-text-secondary">
