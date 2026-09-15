@@ -519,6 +519,66 @@ describe('resgate vinculado a viagem', () => {
     })
     expect(income?.tripId).toBeNull()
   })
+
+  // A entrada do resgate aparece no dashboard e é editável pelo IncomeEditDialog —
+  // o terceiro caminho que grava incomes.tripId precisa da mesma regra
+  it('updateIncome rejeita viagem na entrada de um resgate de reinvestimento', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Rolagem Entrada' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    const { updateIncome } = await import('@/lib/actions/incomes')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Caixinha Rolagem Entrada',
+      amount: '300.00',
+      date: '2025-07-04',
+      destination: 'reinvest',
+    })
+    const withdrawal = await findWithdrawal(type.id)
+
+    await expect(
+      updateIncome({
+        id: withdrawal!.incomeId!,
+        source: 'Resgate investimento Caixinha Rolagem Entrada',
+        amount: '300.00',
+        tripId: trip.id,
+      })
+    ).rejects.toThrow('Só resgates para o caixa podem ser vinculados a uma viagem')
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(income?.tripId).toBeNull()
+  })
+
+  it('updateIncome aceita viagem na entrada de um resgate para o caixa', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Caixinha Caixa Entrada' })
+    const trip = await createTrip(db, userId)
+
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    const { updateIncome } = await import('@/lib/actions/incomes')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Caixinha Caixa Entrada',
+      amount: '300.00',
+      date: '2025-07-05',
+      destination: 'income',
+    })
+    const withdrawal = await findWithdrawal(type.id)
+
+    await updateIncome({
+      id: withdrawal!.incomeId!,
+      source: 'Resgate investimento Caixinha Caixa Entrada',
+      amount: '300.00',
+      tripId: trip.id,
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+    expect(income?.tripId).toBe(trip.id)
+  })
 })
 
 describe('deleteInvestmentType', () => {
