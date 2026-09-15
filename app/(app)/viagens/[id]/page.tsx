@@ -10,10 +10,14 @@ import { PageLayout } from '@/components/ui/page-layout'
 import { PageHeader } from '@/components/ui/page-header'
 import { Section } from '@/components/ui/section'
 import { formatDisplayDate } from '@/lib/utils/date'
+import { uuidSchema } from '@/lib/validations/utils'
 
 export default async function ViagemDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const [session, { id }] = await Promise.all([auth(), params])
   if (!session) redirect('/login')
+
+  const parsed = uuidSchema.safeParse(id)
+  if (!parsed.success) notFound()
 
   const userId = session.user.id
 
