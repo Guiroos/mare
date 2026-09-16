@@ -53,6 +53,10 @@ describe('Lápis de editar — cadastro (#127)', () => {
       })
 
       it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
+        // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+        // encontrado é atributo do próprio botão, não de um wrapper interno
+        // nem de um <Button> anterior que o recorte atravessou.
+        expect((trigger!.match(/</g) ?? []).length).toBe(2)
         expect(trigger).toMatch(/^\s*aria-label="[^"]+"\s*$/m)
       })
     })
