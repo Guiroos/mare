@@ -149,6 +149,7 @@ type WithdrawalDbRow = {
   destination: string
   notes: string | null
   investmentType: { name: string }
+  income: { tripId: string | null } | null
 }
 
 function mapWithdrawal(r: WithdrawalDbRow, dek: Buffer) {
@@ -161,6 +162,8 @@ function mapWithdrawal(r: WithdrawalDbRow, dek: Buffer) {
     date: r.date,
     destination: r.destination,
     notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
+    // A viagem é marcada na entrada que o resgate cria, não no resgate
+    tripId: r.income?.tripId ?? null,
   }
 }
 
@@ -173,7 +176,7 @@ export async function getInvestmentWithdrawals(userId: string) {
       eq(investmentWithdrawals.userId, userId),
       gte(investmentWithdrawals.date, firstVisibleMonth)
     ),
-    with: { investmentType: true },
+    with: { investmentType: true, income: { columns: { tripId: true } } },
     orderBy: (iw, { desc }) => [desc(iw.date)],
   })
 
@@ -185,7 +188,7 @@ export async function getAllInvestmentWithdrawals(userId: string) {
   const dek = await getDekForUser(userId)
   const rows = await db.query.investmentWithdrawals.findMany({
     where: eq(investmentWithdrawals.userId, userId),
-    with: { investmentType: true },
+    with: { investmentType: true, income: { columns: { tripId: true } } },
     orderBy: (iw, { desc }) => [desc(iw.date)],
   })
 

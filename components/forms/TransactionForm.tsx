@@ -118,6 +118,7 @@ export function TransactionForm({
   const month = defaultMonth ?? currentYearMonth()
   const today = defaultDate ?? todayISOString()
   const isEdit = mode === 'edit'
+  const canLinkTrip = editContext?.canLinkTrip ?? true
 
   const [primaryType, setPrimaryType] = useState<PrimaryType>(editContext?.primaryType ?? 'saida')
   const [subType, setSubType] = useState<SaidaSubType>(editContext?.subType ?? 'avulsa')
@@ -215,7 +216,8 @@ export function TransactionForm({
         const result = incomeEditSchema.safeParse({
           source: str('source'),
           amount: str('amount'),
-          tripId,
+          // Picker escondido: não reenviar a viagem, senão updateIncome recusaria o save
+          tripId: canLinkTrip ? tripId : undefined,
         })
         if (!result.success) {
           setErrors(formatZodErrors(result.error))
@@ -440,6 +442,9 @@ export function TransactionForm({
         amount: str('amount'),
         date: str('date'),
         destination,
+        // Picker só aparece com destino "caixa"; um tripId que sobrou de antes da troca
+        // de destino não pode chegar ao schema, que o rejeitaria num campo invisível
+        tripId: destination === 'income' ? tripId : undefined,
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
@@ -457,6 +462,7 @@ export function TransactionForm({
             date: result.data.date,
             destination: result.data.destination,
             notes: str('notes') || null,
+            tripId: result.data.tripId,
           })
           resetForm()
           onSuccess?.()
@@ -612,8 +618,10 @@ export function TransactionForm({
           />
         )}
 
-        {/* Viagem — saída avulsa/parcelada e entrada; gasto fixo fica de fora */}
-        {((primaryType === 'saida' && resolvedType !== 'fixo') || resolvedType === 'entrada') && (
+        {/* Viagem — saída avulsa/parcelada, entrada e resgate para o caixa; gasto fixo fica de fora */}
+        {((primaryType === 'saida' && resolvedType !== 'fixo') ||
+          (resolvedType === 'entrada' && canLinkTrip) ||
+          (resolvedType === 'resgate' && destination === 'income')) && (
           <TripPicker
             trips={trips}
             tripId={tripId}

@@ -39,7 +39,7 @@ ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em t
 
 - `app/(auth)/login` — entry point (Google OAuth via NextAuth)
 - `app/(app)/` — shell autenticado; `layout.tsx` renderiza `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
-- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`, `historico`, `contas`
+- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`, `historico`, `contas`, `viagens`
 
 ### Data layer
 
