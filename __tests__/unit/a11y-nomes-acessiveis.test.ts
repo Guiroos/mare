@@ -18,21 +18,34 @@ import { join } from 'node:path'
 // braços), então uma asserção genérica passaria com qualquer um deles
 // rotulado, deixando o lápis de editar intacto.
 
+/**
+ * Fatia do <Button> mais próximo do ícone, terminando ANTES da tag do ícone:
+ * o que estiver no <svg> não conta como nome do controle — uma correção
+ * errada que ponha `aria-label` no ícone em vez do `<Button>` não deve
+ * passar. A barreira `(?!<\/Button>)` impede a fatia de atravessar um
+ * fechamento e ancorar num botão anterior quando o `<Button>` mais próximo
+ * do ícone não é, na verdade, o que o envolve.
+ */
+function gatilhoDoIcone(source: string, icone: string): string | undefined {
+  return source.match(
+    new RegExp(`<Button\\b(?:(?!<Button\\b)(?!<\\/Button>)[\\s\\S])*?<${icone}\\b`)
+  )?.[0]
+}
+
 describe('InvestmentEntryDialog — lápis de "Editar registro" (#128, site 2)', () => {
   const source = readFileSync(
     join(process.cwd(), 'components/investimentos/InvestmentEntryDialog.tsx'),
     'utf-8'
   )
 
-  // Ramo `existing` do ternário de três braços (existing / isGlobal / default)
-  const existingBranch = source.match(/existing \? \(([\s\S]*?)\) : isGlobal \? \(/)?.[1]
+  const trigger = gatilhoDoIcone(source, 'Pencil')
 
-  it('encontra o ramo `existing` do trigger', () => {
-    expect(existingBranch).toBeDefined()
+  it('encontra o bloco do botão de editar (o mais próximo do ícone Pencil)', () => {
+    expect(trigger).toBeDefined()
   })
 
   it('rotula o botão do lápis de editar, não o ícone', () => {
-    expect(existingBranch).toMatch(/^\s*aria-label="Editar registro"$/m)
+    expect(trigger).toMatch(/^\s*aria-label="Editar registro"$/m)
   })
 
   it('não rotula os outros dois ramos do ternário (isGlobal / default) com o mesmo texto', () => {
@@ -52,7 +65,7 @@ describe('BudgetOverrideDialog — lápis de "Editar orçamento" (#128, site 6)'
   // "Usar padrão"). `toMatch` sobre `source` cru passaria com o rótulo em
   // qualquer um dos três; a captura precisa mirar o <Button> mais próximo do
   // ícone Pencil, não a primeira ocorrência de `aria-label` no arquivo.
-  const trigger = source.match(/<Button\b(?:(?!<Button\b)[\s\S])*?<Pencil\b[\s\S]*?<\/Button>/)?.[0]
+  const trigger = gatilhoDoIcone(source, 'Pencil')
 
   it('encontra o bloco do botão de editar (o mais próximo do ícone Pencil)', () => {
     expect(trigger).toBeDefined()
@@ -66,13 +79,9 @@ describe('BudgetOverrideDialog — lápis de "Editar orçamento" (#128, site 6)'
 describe('GoalDialog — lápis de "Editar meta" (#128, site 7)', () => {
   const source = readFileSync(join(process.cwd(), 'components/metas/GoalDialog.tsx'), 'utf-8')
 
-  // Ramo `else` do ternário `mode === 'create' ? (...) : (...)` — captura até
-  // o primeiro `</Button>` após o separador, não até o primeiro `)}`: o botão
-  // tem `onClick={() => setOpen(true)}`, que termina em `)}` e cortaria a
-  // captura antes do `aria-label` se o limite fosse esse.
-  const editBranch = source.match(/\) : \(([\s\S]*?<\/Button>)/)?.[1]
+  const editBranch = gatilhoDoIcone(source, 'Pencil')
 
-  it('encontra o ramo de edição do trigger', () => {
+  it('encontra o bloco do botão de editar (o mais próximo do ícone Pencil)', () => {
     expect(editBranch).toBeDefined()
   })
 
@@ -82,7 +91,7 @@ describe('GoalDialog — lápis de "Editar meta" (#128, site 7)', () => {
 
   it('não rotula o ramo `create` (Nova meta) com o mesmo texto', () => {
     const createBranch = source.match(/mode === 'create' \? \(([\s\S]*?)\) : \(/)?.[1]
-    expect(createBranch).not.toMatch(/aria-label/)
+    expect(createBranch).not.toMatch(/aria-label="Editar meta"/)
   })
 })
 
