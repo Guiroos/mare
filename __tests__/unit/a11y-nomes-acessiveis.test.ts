@@ -31,6 +31,10 @@ describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () 
   })
 
   it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
+    // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+    // encontrado é atributo do próprio botão, não de um wrapper interno
+    // (ex: um Tooltip envolvendo o Trash2).
+    expect((trigger!.match(/</g) ?? []).length).toBe(2)
     // aria-label={title}, não literal fixo — a prop `title` já é o que os
     // call sites (inclusive os de /viagens) usam para diferenciar o rótulo
     // por tela; aceita tanto `{expressão}` quanto `"literal"`.
