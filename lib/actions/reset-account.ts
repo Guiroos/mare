@@ -24,7 +24,7 @@ import {
   trips,
 } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
-import { getDekForUser, decryptDek } from '@/lib/crypto/keys'
+import { getDekForUser, decryptDek, assertMekConfigured } from '@/lib/crypto/keys'
 import { encryptField, encryptOptional, decryptField } from '@/lib/crypto/fields'
 
 type GroupSeed = {
@@ -68,15 +68,21 @@ const DEFAULT_GROUPS: GroupSeed[] = [
 export async function resetAccount() {
   const userId = await requireUserId()
 
+  // Falha de configuração da MEK aborta antes de apagar: a Fase 2 não conseguiria
+  // provisionar DEK nova (encryptDek chama getMek antes de qualquer I/O), então seguir
+  // adiante só troca "reset recusado" por "conta destruída e reset recusado".
+  assertMekConfigured()
+
   // DEK antiga: leitura direta de userSettings, nunca via getDekForUser — o cache() por
   // request faria a Fase 2 devolver essa mesma DEK (já deletada) em vez da nova.
   const [settings] = await db
     .select({ encryptedDek: userSettings.encryptedDek })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
-  // decryptDek pode lançar (DEK cifrada com uma MEK que não é mais a do ambiente) — um
-  // throw aqui, antes da Fase 1, abortaria o reset inteiro sem apagar nem provisionar nada,
-  // pior do que o estado que esta issue corrige. Sem DEK antiga, feedback não é recifrado.
+  // A MEK já está confirmada acima — um decryptDek que ainda assim lança é a DEK deste
+  // usuário ilegível (ciphertext corrompido, prefixo enc: ausente), não configuração. Aqui
+  // vale engolir: sem isso o usuário fica preso, sem poder resetar a conta cujas chaves se
+  // perderam. Sem DEK antiga, feedback simplesmente não é recifrado.
   let dekAntiga: Buffer | null = null
   if (settings?.encryptedDek) {
     try {

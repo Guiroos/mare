@@ -253,4 +253,32 @@ describe('resetAccount', () => {
       .where(eq(schema.categories.userId, outroId))
     expect(cats).toHaveLength(17)
   })
+
+  it('recusa o reset sem apagar nada quando a MEK do ambiente está malformada', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    // Usuário próprio: a asserção depende do estado ANTES do reset sobreviver, então não
+    // pode compartilhar o userId do arquivo com testes que já resetaram essa conta.
+    const { id: outroId } = await createUser(db, `reset-mek-invalida-${Date.now()}`)
+    const group = await createCategoryGroup(db, outroId)
+    await createCategory(db, outroId, group.id)
+
+    const mekOriginal = process.env.ENCRYPTION_MASTER_KEY
+    process.env.ENCRYPTION_MASTER_KEY = 'zz'
+    try {
+      vi.mocked(requireUserId).mockResolvedValueOnce(outroId)
+      await expect(resetAccount()).rejects.toThrow(/64 hex chars/)
+    } finally {
+      process.env.ENCRYPTION_MASTER_KEY = mekOriginal
+    }
+
+    // A correção errada mais provável (deixar a Fase 1 rodar e só a Fase 2 estourar) também
+    // rejeita — só a sonda antes da Fase 1 mantém a categoria semeada viva.
+    const cats = await db
+      .select()
+      .from(schema.categories)
+      .where(eq(schema.categories.userId, outroId))
+    expect(cats).toHaveLength(1)
+  })
 })
