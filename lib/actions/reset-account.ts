@@ -79,10 +79,11 @@ export async function resetAccount() {
     .select({ encryptedDek: userSettings.encryptedDek })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
-  // A MEK já está confirmada acima — um decryptDek que ainda assim lança é a DEK deste
-  // usuário ilegível (ciphertext corrompido, prefixo enc: ausente), não configuração. Aqui
-  // vale engolir: sem isso o usuário fica preso, sem poder resetar a conta cujas chaves se
-  // perderam. Sem DEK antiga, feedback simplesmente não é recifrado.
+  // assertMekConfigured() acima só garante que a MEK existe e é bem formada, não que é a
+  // MEK certa: um decryptDek que ainda assim lança é ou a DEK deste usuário corrompida, ou
+  // — o caso mais provável — uma MEK rotacionada sem re-wrap das DEKs. Os dois são
+  // indistinguíveis daqui, e nos dois vale engolir: é justamente quando as chaves se
+  // perderam que o usuário precisa poder resetar. Sem DEK antiga, feedback não é recifrado.
   let dekAntiga: Buffer | null = null
   if (settings?.encryptedDek) {
     try {

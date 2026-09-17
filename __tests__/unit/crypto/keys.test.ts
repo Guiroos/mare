@@ -49,4 +49,24 @@ describe('assertMekConfigured', () => {
     expect(() => assertMekConfigured()).toThrow('64 hex chars')
     process.env.ENCRYPTION_MASTER_KEY = original
   })
+
+  it('não distingue MEK rotacionada de MEK certa — só verifica forma', async () => {
+    // Trava a leitura que resetAccount.ts faz do comportamento: a sonda passa mesmo quando
+    // a MEK trocou (bem-formada, mas não é a que cifrou a DEK), e é o decryptDek posterior
+    // que descobre isso pelo auth tag do GCM. Se este teste quebrar por "fortalecer" a sonda
+    // para também validar contra uma DEK, releia o comentário em reset-account.ts:82-86 —
+    // essa mudança fecharia a saída de emergência que o guard existe para manter aberta.
+    const { generateDek, encryptDek, decryptDek, assertMekConfigured } =
+      await import('@/lib/crypto/keys')
+    const original = process.env.ENCRYPTION_MASTER_KEY
+
+    process.env.ENCRYPTION_MASTER_KEY = randomBytes(32).toString('hex')
+    const dekCifrada = encryptDek(generateDek())
+
+    process.env.ENCRYPTION_MASTER_KEY = randomBytes(32).toString('hex') // rotação, bem-formada
+    expect(() => assertMekConfigured()).not.toThrow()
+    expect(() => decryptDek(dekCifrada)).toThrow()
+
+    process.env.ENCRYPTION_MASTER_KEY = original
+  })
 })
