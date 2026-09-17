@@ -4,6 +4,7 @@ import {
   fixedExpenses,
   incomes,
   investments,
+  investmentWithdrawals,
   categoryGroups,
   monthlyBudgetOverrides,
 } from '@/lib/db/schema'
@@ -174,17 +175,32 @@ export async function getMonthFixedExpenses(userId: string, referenceMonth: stri
 // ─── Entradas do mês ─────────────────────────────────────────────────────────
 
 export async function getMonthIncomes(userId: string, referenceMonth: string) {
-  const [rows, dek] = await Promise.all([
+  const [rows, withdrawalRows, dek] = await Promise.all([
     db.query.incomes.findMany({
       where: and(eq(incomes.userId, userId), eq(incomes.referenceMonth, referenceMonth)),
     }),
+    db
+      .select({
+        incomeId: investmentWithdrawals.incomeId,
+        destination: investmentWithdrawals.destination,
+      })
+      .from(investmentWithdrawals)
+      .innerJoin(incomes, eq(investmentWithdrawals.incomeId, incomes.id))
+      .where(
+        and(eq(investmentWithdrawals.userId, userId), eq(incomes.referenceMonth, referenceMonth))
+      ),
     getDekForUser(userId),
   ])
+  // Entrada de resgate só aceita viagem com destino "caixa" (updateIncome rejeita o resto).
+  // investmentReturnCapital não serve de sinal: resgates para o caixa anteriores ao
+  // destino 'reinvest' (6ec05c0) também o gravavam.
+  const withdrawalDestination = new Map(withdrawalRows.map((r) => [r.incomeId, r.destination]))
   return rows.map((row) => ({
     ...row,
     source: decryptField(row.source, dek),
     amount: decryptField(row.amount, dek),
     investmentReturnCapital: decryptOptional(row.investmentReturnCapital, dek),
+    canLinkTrip: (withdrawalDestination.get(row.id) ?? 'income') === 'income',
   }))
 }
 

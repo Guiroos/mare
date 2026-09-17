@@ -24,6 +24,7 @@ describe('buildResgatesRows', () => {
         date: '2025-04-10',
         destination: 'income',
         notes: null,
+        tripId: null,
       },
     ])
 
@@ -43,6 +44,7 @@ describe('buildResgatesRows', () => {
         date: '2025-05-10',
         destination: 'reinvest',
         notes: null,
+        tripId: null,
       },
     ])
 

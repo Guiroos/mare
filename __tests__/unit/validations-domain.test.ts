@@ -695,6 +695,25 @@ describe('withdrawalSchema', () => {
   it('rejects negative taxAmount', () => {
     expect(withdrawalSchema.safeParse({ ...base, taxAmount: '-1' }).success).toBe(false)
   })
+
+  it('accepts tripId with destination=income', () => {
+    expect(withdrawalSchema.safeParse({ ...base, tripId: VALID_UUID }).success).toBe(true)
+  })
+
+  it('treats empty tripId as absent', () => {
+    const result = withdrawalSchema.safeParse({ ...base, destination: 'reinvest', tripId: '' })
+    expect(result.success).toBe(true)
+    expect(result.data?.tripId).toBeUndefined()
+  })
+
+  it.each(['reinvest', 'transfer'] as const)(
+    'rejects tripId with destination=%s',
+    (destination) => {
+      const result = withdrawalSchema.safeParse({ ...base, destination, tripId: VALID_UUID })
+      expect(result.success).toBe(false)
+      expect(result.error?.issues[0]?.path).toEqual(['tripId'])
+    }
+  )
 })
 
 describe('upsertInvestmentActionSchema — at-least-one refine', () => {

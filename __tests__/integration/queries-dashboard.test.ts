@@ -12,6 +12,7 @@ import {
   createTransaction,
   createFixedExpense,
   createIncome,
+  createInvestmentType,
 } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -423,5 +424,54 @@ describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions b
       .filter((t) => t.categoryId === catCycleId)
       .reduce((s, t) => s + toAmount(t.amount), 0)
     expect(cycleSum).toBeCloseTo(400, 1)
+  })
+})
+
+// ─── getMonthIncomes — canLinkTrip segue o destino do resgate ─────────────────
+
+describe('getMonthIncomes — canLinkTrip', () => {
+  const MONTH = '2025-12-01'
+
+  it('só entrada de resgate que não é para o caixa perde o vínculo com viagem', async () => {
+    const type = await createInvestmentType(db, userAId, { name: 'Caixinha canLinkTrip' })
+
+    const manual = await createIncome(db, userAId, { referenceMonth: MONTH })
+    const reinvest = await createIncome(db, userAId, {
+      referenceMonth: MONTH,
+      investmentReturnCapital: '100.00',
+    })
+    // Resgate para o caixa gravado antes de 'reinvest' existir (6ec05c0) também tem
+    // investmentReturnCapital — o sinal precisa ser o destino, não esse campo
+    const legacyCash = await createIncome(db, userAId, {
+      referenceMonth: MONTH,
+      investmentReturnCapital: '100.00',
+    })
+
+    await db.insert(schema.investmentWithdrawals).values([
+      {
+        userId: userAId,
+        investmentTypeId: type.id,
+        amount: '100.00',
+        date: '2025-12-05',
+        destination: 'reinvest',
+        incomeId: reinvest.id,
+      },
+      {
+        userId: userAId,
+        investmentTypeId: type.id,
+        amount: '100.00',
+        date: '2025-12-06',
+        destination: 'income',
+        incomeId: legacyCash.id,
+      },
+    ])
+
+    const { getMonthIncomes } = await import('@/lib/queries/dashboard')
+    const rows = await getMonthIncomes(userAId, MONTH)
+    const canLinkTrip = new Map(rows.map((r) => [r.id, r.canLinkTrip]))
+
+    expect(canLinkTrip.get(manual.id)).toBe(true)
+    expect(canLinkTrip.get(reinvest.id)).toBe(false)
+    expect(canLinkTrip.get(legacyCash.id)).toBe(true)
   })
 })

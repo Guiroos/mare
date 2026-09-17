@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, type FormEvent } from 'react'
+import { useEffect, useState, useTransition, type FormEvent } from 'react'
 import { Pencil } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
@@ -16,8 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TripPicker, type TripOption } from '@/components/forms/transaction/TripPicker'
 import { toast } from 'sonner'
 import { updateWithdrawal } from '@/lib/actions/investments'
+import { getTripOptions } from '@/lib/actions/trips'
 import { withdrawalEditSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency } from '@/lib/utils/currency'
@@ -29,7 +31,9 @@ type Withdrawal = {
   amount: number | string
   taxAmount: number | null
   date: string
+  destination: string
   notes: string | null
+  tripId: string | null
 }
 
 type Props = {
@@ -45,6 +49,8 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [typeId, setTypeId] = useState(withdrawal.investmentTypeId)
+  const [tripId, setTripId] = useState(withdrawal.tripId ?? '')
+  const [trips, setTrips] = useState<TripOption[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasTax, setHasTax] = useState(hasTaxInitial)
   const [grossCents, setGrossCents] = useState(Math.round(grossInitial * 100))
@@ -52,6 +58,12 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const netCents = grossCents - taxCents
+  // Só resgate para o caixa gera entrada — é nela que a viagem fica marcada
+  const canLinkTrip = withdrawal.destination === 'income'
+
+  useEffect(() => {
+    if (open && canLinkTrip) getTripOptions().then(setTrips)
+  }, [open, canLinkTrip])
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -61,6 +73,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
       setGrossCents(Math.round(grossInitial * 100))
       setTaxCents(Math.round(taxInitial * 100))
       setTypeId(withdrawal.investmentTypeId)
+      setTripId(withdrawal.tripId ?? '')
     }
   }
 
@@ -74,6 +87,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
       amount: str('amount'),
       date: str('date'),
       taxAmount: hasTax ? str('taxAmount') || null : null,
+      tripId: canLinkTrip ? tripId : undefined,
     })
 
     if (!result.success) {
@@ -91,6 +105,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
           date: result.data.date,
           taxAmount: result.data.taxAmount ?? null,
           notes: str('notes') || null,
+          tripId: result.data.tripId,
         })
         setOpen(false)
       } catch {
@@ -167,6 +182,10 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
           required
         />
       </Field>
+
+      {canLinkTrip && (
+        <TripPicker trips={trips} tripId={tripId} onTripChange={setTripId} error={errors.tripId} />
+      )}
 
       <Field label="Observações">
         <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
