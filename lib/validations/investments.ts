@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   uuidSchema,
+  optionalUuidSchema,
   positiveAmountSchema,
   nullishNonNegativeAmountSchema,
   dateSchema,
@@ -49,11 +50,20 @@ const withdrawalBase = z.object({
   taxAmount: nullishNonNegativeAmountSchema,
 })
 
-export const withdrawalEditSchema = withdrawalBase
+// Viagem mora na entrada que o resgate cria (incomes.tripId). Só o destino "caixa"
+// vira dinheiro gastável: reinvestimento não sai da carteira e transferência não
+// cria entrada nenhuma para marcar.
+export const withdrawalEditSchema = withdrawalBase.extend({ tripId: optionalUuidSchema })
 
-export const withdrawalSchema = withdrawalBase.extend({
-  destination: z.enum(['income', 'reinvest', 'transfer']),
-})
+export const withdrawalSchema = withdrawalBase
+  .extend({
+    destination: z.enum(['income', 'reinvest', 'transfer']),
+    tripId: optionalUuidSchema,
+  })
+  .refine((data) => !data.tripId || data.destination === 'income', {
+    message: 'Só resgates para o caixa podem ser vinculados a uma viagem',
+    path: ['tripId'],
+  })
 
 // ─── Action schemas ───────────────────────────────────────────────────────────
 
@@ -75,4 +85,4 @@ export const upsertInvestmentActionSchema = z
     }
   )
 
-export const updateWithdrawalActionSchema = withdrawalBase.extend({ id: uuidSchema })
+export const updateWithdrawalActionSchema = withdrawalEditSchema.extend({ id: uuidSchema })

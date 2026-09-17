@@ -1,10 +1,10 @@
 import { db } from '@/lib/db'
-import { trips, transactions, incomes } from '@/lib/db/schema'
+import { trips, transactions, incomes, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
-import { decryptField } from '@/lib/crypto/fields'
-import { getGoalsWithProgress } from './goals'
+import { decryptField, decryptOptional } from '@/lib/crypto/fields'
+import { getGoalsWithProgress, GoalWithProgress } from './goals'
 
 // Lista leve para popular o TripPicker — sem agregação de totais
 export async function getActiveTrips(userId: string) {
@@ -15,6 +15,79 @@ export async function getActiveTrips(userId: string) {
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
 }
 
+// Resgates cuja entrada foi marcada com a viagem. O vínculo mora na entrada
+// (investmentWithdrawals.incomeId → incomes.tripId), não no resgate — por isso só
+// resgates com destino "caixa" aparecem aqui.
+function selectTripWithdrawals(userId: string, tripIds: string[]) {
+  return db
+    .select({
+      tripId: incomes.tripId,
+      incomeId: incomes.id,
+      investmentTypeId: investmentWithdrawals.investmentTypeId,
+      amount: investmentWithdrawals.amount,
+      taxAmount: investmentWithdrawals.taxAmount,
+    })
+    .from(investmentWithdrawals)
+    .innerJoin(incomes, eq(investmentWithdrawals.incomeId, incomes.id))
+    .where(
+      and(
+        eq(investmentWithdrawals.userId, userId),
+        eq(incomes.userId, userId),
+        inArray(incomes.tripId, tripIds)
+      )
+    )
+}
+
+type TripWithdrawal = { investmentTypeId: string; net: number; tax: number }
+
+function decryptTripWithdrawal(
+  r: Awaited<ReturnType<typeof selectTripWithdrawals>>[number],
+  dek: Buffer
+): TripWithdrawal {
+  return {
+    investmentTypeId: r.investmentTypeId,
+    // amount é líquido; o saldo da caixinha caiu pelo bruto (amount + taxAmount)
+    net: toAmount(decryptField(r.amount, dek)),
+    tax: toAmount(decryptOptional(r.taxAmount, dek)),
+  }
+}
+
+type TripFunding = {
+  goalName: string | null
+  goalBalance: number | null
+  goalSaved: number | null
+  totalWithdrawn: number
+  withdrawnTax: number
+}
+
+// "Guardado para a viagem" = saldo atual da caixinha + o que já saiu dela para a
+// viagem. Resgates para outros fins continuam descontados: esse dinheiro deixou de
+// estar disponível. Só resgates do mesmo tipo da meta voltam para a conta — resgate
+// de outro investimento marcado com a viagem entra em "Resgatado", não no guardado.
+function summarizeTripFunding(
+  withdrawals: TripWithdrawal[],
+  goal: GoalWithProgress | undefined
+): TripFunding {
+  const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.net, 0)
+  const withdrawnTax = withdrawals.reduce((sum, w) => sum + w.tax, 0)
+
+  if (!goal) {
+    return { goalName: null, goalBalance: null, goalSaved: null, totalWithdrawn, withdrawnTax }
+  }
+
+  const withdrawnFromGoal = withdrawals
+    .filter((w) => goal.investmentTypeId !== null && w.investmentTypeId === goal.investmentTypeId)
+    .reduce((sum, w) => sum + w.net + w.tax, 0)
+
+  return {
+    goalName: goal.name,
+    goalBalance: goal.currentBalance,
+    goalSaved: goal.currentBalance + withdrawnFromGoal,
+    totalWithdrawn,
+    withdrawnTax,
+  }
+}
+
 export type TripSummary = {
   id: string
   name: string
@@ -23,6 +96,8 @@ export type TripSummary = {
   goalId: string | null
   goalName: string | null
   goalBalance: number | null
+  goalSaved: number | null
+  totalWithdrawn: number
   totalSpent: number
 }
 
@@ -35,11 +110,12 @@ export async function getTrips(userId: string): Promise<TripSummary[]> {
   const tripIds = allTrips.map((t) => t.id)
   const hasGoalLink = allTrips.some((t) => t.goalId !== null)
 
-  const [txRows, goalsProgress] = await Promise.all([
+  const [txRows, withdrawalRows, goalsProgress] = await Promise.all([
     db
       .select({ tripId: transactions.tripId, amount: transactions.amount })
       .from(transactions)
       .where(and(eq(transactions.userId, userId), inArray(transactions.tripId, tripIds))),
+    selectTripWithdrawals(userId, tripIds),
     hasGoalLink ? getGoalsWithProgress(userId) : Promise.resolve([]),
   ])
 
@@ -50,19 +126,30 @@ export async function getTrips(userId: string): Promise<TripSummary[]> {
     spentByTrip.set(r.tripId, prev + toAmount(decryptField(r.amount, dek)))
   }
 
+  const withdrawalsByTrip = new Map<string, TripWithdrawal[]>()
+  for (const r of withdrawalRows) {
+    if (!r.tripId) continue
+    const list = withdrawalsByTrip.get(r.tripId) ?? []
+    list.push(decryptTripWithdrawal(r, dek))
+    withdrawalsByTrip.set(r.tripId, list)
+  }
+
   const goalById = new Map(goalsProgress.map((g) => [g.id, g]))
 
   return allTrips
     .map((trip) => {
       const goal = trip.goalId ? goalById.get(trip.goalId) : undefined
+      const funding = summarizeTripFunding(withdrawalsByTrip.get(trip.id) ?? [], goal)
       return {
         id: trip.id,
         name: decryptField(trip.name, dek),
         startDate: trip.startDate,
         endDate: trip.endDate,
         goalId: trip.goalId,
-        goalName: goal?.name ?? null,
-        goalBalance: goal?.currentBalance ?? null,
+        goalName: funding.goalName,
+        goalBalance: funding.goalBalance,
+        goalSaved: funding.goalSaved,
+        totalWithdrawn: funding.totalWithdrawn,
         totalSpent: spentByTrip.get(trip.id) ?? 0,
       }
     })
@@ -88,6 +175,7 @@ export type TripDetailIncome = {
   source: string
   amount: number
   referenceMonth: string
+  fromWithdrawal: boolean
 }
 
 export type TripDetail = {
@@ -98,8 +186,12 @@ export type TripDetail = {
   goalId: string | null
   goalName: string | null
   goalBalance: number | null
+  goalSaved: number | null
   totalSpent: number
+  /** Entradas que não vieram de resgate (reembolso, rateio...) — resgates ficam em totalWithdrawn */
   totalIncome: number
+  totalWithdrawn: number
+  withdrawnTax: number
   categoryBreakdown: Array<{ categoryId: string; categoryName: string; amount: number }>
   transactions: TripDetailTransaction[]
   incomes: TripDetailIncome[]
@@ -108,7 +200,7 @@ export type TripDetail = {
 export async function getTripDetail(userId: string, tripId: string): Promise<TripDetail | null> {
   const dek = await getDekForUser(userId)
 
-  const [trip, txRows, incomeRows] = await Promise.all([
+  const [trip, txRows, incomeRows, withdrawalRows] = await Promise.all([
     db.query.trips.findFirst({
       where: and(eq(trips.id, tripId), eq(trips.userId, userId)),
     }),
@@ -121,9 +213,12 @@ export async function getTripDetail(userId: string, tripId: string): Promise<Tri
       where: and(eq(incomes.tripId, tripId), eq(incomes.userId, userId)),
       orderBy: (i, { desc }) => [desc(i.referenceMonth)],
     }),
+    selectTripWithdrawals(userId, [tripId]),
   ])
 
   if (!trip) return null
+
+  const withdrawalIncomeIds = new Set(withdrawalRows.map((r) => r.incomeId))
 
   const decryptedTransactions: TripDetailTransaction[] = txRows.map((t) => ({
     id: t.id,
@@ -139,10 +234,13 @@ export async function getTripDetail(userId: string, tripId: string): Promise<Tri
     source: decryptField(i.source, dek),
     amount: toAmount(decryptField(i.amount, dek)),
     referenceMonth: i.referenceMonth,
+    fromWithdrawal: withdrawalIncomeIds.has(i.id),
   }))
 
   const totalSpent = decryptedTransactions.reduce((sum, t) => sum + t.amount, 0)
-  const totalIncome = decryptedIncomes.reduce((sum, i) => sum + i.amount, 0)
+  const totalIncome = decryptedIncomes
+    .filter((i) => !i.fromWithdrawal)
+    .reduce((sum, i) => sum + i.amount, 0)
 
   const categoryMap = new Map<string, { categoryName: string; amount: number }>()
   for (const t of decryptedTransactions) {
@@ -160,16 +258,13 @@ export async function getTripDetail(userId: string, tripId: string): Promise<Tri
     .map(([categoryId, v]) => ({ categoryId, categoryName: v.categoryName, amount: v.amount }))
     .sort((a, b) => b.amount - a.amount)
 
-  let goalName: string | null = null
-  let goalBalance: number | null = null
-  if (trip.goalId) {
-    const goalsProgress = await getGoalsWithProgress(userId)
-    const goal = goalsProgress.find((g) => g.id === trip.goalId)
-    if (goal) {
-      goalName = goal.name
-      goalBalance = goal.currentBalance
-    }
-  }
+  const goal = trip.goalId
+    ? (await getGoalsWithProgress(userId)).find((g) => g.id === trip.goalId)
+    : undefined
+  const funding = summarizeTripFunding(
+    withdrawalRows.map((r) => decryptTripWithdrawal(r, dek)),
+    goal
+  )
 
   return {
     id: trip.id,
@@ -177,10 +272,13 @@ export async function getTripDetail(userId: string, tripId: string): Promise<Tri
     startDate: trip.startDate,
     endDate: trip.endDate,
     goalId: trip.goalId,
-    goalName,
-    goalBalance,
+    goalName: funding.goalName,
+    goalBalance: funding.goalBalance,
+    goalSaved: funding.goalSaved,
     totalSpent,
     totalIncome,
+    totalWithdrawn: funding.totalWithdrawn,
+    withdrawnTax: funding.withdrawnTax,
     categoryBreakdown,
     transactions: decryptedTransactions,
     incomes: decryptedIncomes,

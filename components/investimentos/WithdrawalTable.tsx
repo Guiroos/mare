@@ -16,6 +16,7 @@ type Withdrawal = {
   taxAmount: number | null
   destination: string
   notes: string | null
+  tripId: string | null
 }
 
 type InvestmentTypeOption = { id: string; name: string }

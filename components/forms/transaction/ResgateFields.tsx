@@ -29,7 +29,6 @@ export function ResgateFields({ errors, today, destination, onDestinationChange 
           <SelectContent>
             <SelectItem value="income">Caixa (uso pessoal / emergência)</SelectItem>
             <SelectItem value="reinvest">Reinvestimento (mostrar só rendimento)</SelectItem>
-            <SelectItem value="transfer">Transferência entre investimentos</SelectItem>
           </SelectContent>
         </Select>
       </Field>
