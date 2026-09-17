@@ -15,6 +15,7 @@ type Income = {
   source: string
   amount: string
   tripId: string | null
+  canLinkTrip: boolean
 }
 
 export function IncomeEditButton({
@@ -35,8 +36,8 @@ export function IncomeEditButton({
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
   useEffect(() => {
-    if (open) getTripOptions().then(setTrips)
-  }, [open])
+    if (open && income.canLinkTrip) getTripOptions().then(setTrips)
+  }, [open, income.canLinkTrip])
 
   const content = (
     <TransactionForm
@@ -47,6 +48,7 @@ export function IncomeEditButton({
       editContext={{
         entityId: income.id,
         primaryType: 'entrada',
+        canLinkTrip: income.canLinkTrip,
         initialValues: { source: income.source, amount: income.amount, tripId: income.tripId },
       }}
       onSuccess={() => setOpen(false)}

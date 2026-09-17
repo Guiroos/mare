@@ -17,6 +17,30 @@ type TripIncome = {
   source: string
   amount: number
   referenceMonth: string
+  fromWithdrawal: boolean
+}
+
+function IncomeSection({ title, incomes }: { title: string; incomes: TripIncome[] }) {
+  if (incomes.length === 0) return null
+  return (
+    <Section title={title}>
+      <TxList>
+        {incomes.map((i) => (
+          <TxItem
+            key={i.id}
+            name={i.source}
+            meta={formatMonthName(referenceMonthToYearMonth(i.referenceMonth))}
+            amount={
+              <>
+                + <SensitiveAmount value={i.amount} />
+              </>
+            }
+            amountTone="pos"
+          />
+        ))}
+      </TxList>
+    </Section>
+  )
 }
 
 export function TripEntriesList({
@@ -58,25 +82,8 @@ export function TripEntriesList({
         </Section>
       )}
 
-      {incomes.length > 0 && (
-        <Section title="Entradas">
-          <TxList>
-            {incomes.map((i) => (
-              <TxItem
-                key={i.id}
-                name={i.source}
-                meta={formatMonthName(referenceMonthToYearMonth(i.referenceMonth))}
-                amount={
-                  <>
-                    + <SensitiveAmount value={i.amount} />
-                  </>
-                }
-                amountTone="pos"
-              />
-            ))}
-          </TxList>
-        </Section>
-      )}
+      <IncomeSection title="Resgates" incomes={incomes.filter((i) => i.fromWithdrawal)} />
+      <IncomeSection title="Entradas" incomes={incomes.filter((i) => !i.fromWithdrawal)} />
     </div>
   )
 }
