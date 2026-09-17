@@ -47,6 +47,9 @@ export default async function ViagemDetalhePage({ params }: { params: Promise<{ 
       <TripStatCards
         totalSpent={trip.totalSpent}
         totalIncome={trip.totalIncome}
+        totalWithdrawn={trip.totalWithdrawn}
+        withdrawnTax={trip.withdrawnTax}
+        goalSaved={trip.goalSaved}
         goalBalance={trip.goalBalance}
       />
 

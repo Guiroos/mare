@@ -9,6 +9,7 @@ import {
   createCategory,
   createAccount,
   createGoal,
+  createInvestmentType,
 } from './helpers/factories'
 
 neonTestingSetup()
@@ -232,6 +233,123 @@ describe('getTripDetail', () => {
 
     expect(detail?.goalName).toBe('Fundo viagem')
     expect(detail?.goalBalance).toBeCloseTo(750, 2)
+  })
+})
+
+describe('resgates vinculados à viagem', () => {
+  // Resgate marcado com a viagem = resgate cuja entrada tem tripId (é onde o vínculo mora)
+  async function seedWithdrawal(opts: {
+    investmentTypeId: string
+    amount: string
+    taxAmount?: string
+    tripId: string | null
+    owner?: string
+    encrypt?: (v: string) => string
+  }) {
+    const owner = opts.owner ?? userId
+    const e = opts.encrypt ?? enc
+    const [income] = await db
+      .insert(schema.incomes)
+      .values({
+        userId: owner,
+        tripId: opts.tripId,
+        source: e('Resgate investimento'),
+        amount: e(opts.amount),
+        referenceMonth: '2025-06-01',
+      })
+      .returning({ id: schema.incomes.id })
+    await db.insert(schema.investmentWithdrawals).values({
+      userId: owner,
+      investmentTypeId: opts.investmentTypeId,
+      amount: e(opts.amount),
+      taxAmount: opts.taxAmount ? e(opts.taxAmount) : null,
+      date: '2025-06-10',
+      destination: 'income',
+      incomeId: income!.id,
+    })
+  }
+
+  it('soma o guardado com os resgates da caixinha e separa resgate de outras entradas', async () => {
+    const caixinha = await createInvestmentType(db, userId, { name: enc('Caixinha viagem') })
+    const outroTipo = await createInvestmentType(db, userId, { name: enc('Tesouro') })
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: caixinha.id,
+      referenceMonth: '2025-01-01',
+      amount: enc('5000.00'),
+      yieldAmount: enc('200.00'),
+    })
+    const goal = await createGoal(db, userId, {
+      name: enc('Meta Japão'),
+      investmentTypeId: caixinha.id,
+    })
+    const trip = await seedTrip({ name: enc('Japão'), goalId: goal.id })
+
+    // Resgate da caixinha para a viagem, com IR: saldo cai pelo bruto (3000)
+    await seedWithdrawal({
+      investmentTypeId: caixinha.id,
+      amount: '2970.00',
+      taxAmount: '30.00',
+      tripId: trip.id,
+    })
+    // Resgate da mesma caixinha para outro fim: continua descontado do guardado
+    await seedWithdrawal({ investmentTypeId: caixinha.id, amount: '500.00', tripId: null })
+    // Resgate de outro investimento marcado com a viagem: conta em "Resgatado", não no guardado
+    await seedWithdrawal({ investmentTypeId: outroTipo.id, amount: '100.00', tripId: trip.id })
+    await db.insert(schema.incomes).values({
+      userId,
+      tripId: trip.id,
+      source: enc('Reembolso'),
+      amount: enc('150.00'),
+      referenceMonth: '2025-06-01',
+    })
+
+    // Resgate de outro usuário cuja entrada aponta para a viagem: só o filtro por userId o exclui
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { encryptField } = await import('@/lib/crypto/fields')
+    const otherDek = await getDekForUser(otherUserId)
+    const otherType = await createInvestmentType(db, otherUserId)
+    await seedWithdrawal({
+      investmentTypeId: otherType.id,
+      amount: '9000.00',
+      tripId: trip.id,
+      owner: otherUserId,
+      encrypt: (v) => encryptField(v, otherDek),
+    })
+
+    const detail = await getTripDetail(userId, trip.id)
+
+    expect(detail?.goalBalance).toBeCloseTo(1700, 2) // 5200 − 3000 − 500
+    // Bruto (não líquido), só da caixinha da meta e só dos marcados: 1700 + 3000
+    expect(detail?.goalSaved).toBeCloseTo(4700, 2)
+    expect(detail?.totalWithdrawn).toBeCloseTo(3070, 2)
+    expect(detail?.withdrawnTax).toBeCloseTo(30, 2)
+    // Resgates não entram de novo como entrada
+    expect(detail?.totalIncome).toBeCloseTo(150, 2)
+    expect(detail?.incomes.filter((i) => i.fromWithdrawal)).toHaveLength(2)
+    expect(detail?.incomes.find((i) => !i.fromWithdrawal)?.source).toBe('Reembolso')
+
+    const summary = (await getTrips(userId)).find((t) => t.id === trip.id)
+    expect(summary?.goalSaved).toBeCloseTo(4700, 2)
+    expect(summary?.totalWithdrawn).toBeCloseTo(3070, 2)
+  })
+
+  it('sem resgate, o guardado é o saldo da meta e resgatado é zero', async () => {
+    const goal = await createGoal(db, userId, { name: enc('Meta manual') })
+    await db.insert(schema.goalContributions).values({
+      userId,
+      goalId: goal.id,
+      amount: enc('400.00'),
+      referenceMonth: '2025-01-01',
+      source: 'manual',
+    })
+    const trip = await seedTrip({ goalId: goal.id })
+
+    const detail = await getTripDetail(userId, trip.id)
+
+    expect(detail?.goalSaved).toBeCloseTo(400, 2)
+    expect(detail?.goalBalance).toBeCloseTo(400, 2)
+    expect(detail?.totalWithdrawn).toBe(0)
   })
 })
 

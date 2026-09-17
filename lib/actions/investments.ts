@@ -8,7 +8,7 @@ import { dateToReferenceMonth } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { DEFAULT_INVESTMENT_TYPE_COLOR, deriveBgColor } from '@/lib/utils/color'
 import { requireUserId } from '@/lib/auth/require-user'
-import { assertOwnsInvestmentType } from '@/lib/auth/ownership'
+import { assertOwnsInvestmentType, assertOwnsTrip } from '@/lib/auth/ownership'
 import {
   investmentTypeSchema,
   upsertInvestmentActionSchema,
@@ -190,13 +190,17 @@ export type CreateWithdrawalInput = {
   destination: 'income' | 'reinvest' | 'transfer'
   taxAmount?: string | null
   notes?: string | null
+  tripId?: string
 }
 
 export async function createWithdrawal(data: CreateWithdrawalInput) {
   const userId = await requireUserId()
-  withdrawalSchema.parse(data)
+  const { tripId } = withdrawalSchema.parse(data)
 
-  await assertOwnsInvestmentType(userId, data.investmentTypeId)
+  await Promise.all([
+    assertOwnsInvestmentType(userId, data.investmentTypeId),
+    ...(tripId ? [assertOwnsTrip(userId, tripId)] : []),
+  ])
 
   const dek = await getDekForUser(userId)
 
@@ -227,6 +231,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
           amount: encryptField(data.amount, dek),
           referenceMonth: dateToReferenceMonth(data.date),
           investmentReturnCapital: encryptOptional(investmentReturnCapital, dek),
+          tripId: tripId ?? null,
         })
         .returning({ id: incomes.id })
       incomeId = income.id
@@ -247,6 +252,7 @@ export async function createWithdrawal(data: CreateWithdrawalInput) {
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  if (tripId) revalidatePath('/viagens')
 }
 
 export type UpdateWithdrawalInput = {
@@ -256,25 +262,31 @@ export type UpdateWithdrawalInput = {
   date: string
   taxAmount?: string | null
   notes?: string | null
+  tripId?: string
 }
 
 export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   const userId = await requireUserId()
-  updateWithdrawalActionSchema.parse(data)
+  const { tripId } = updateWithdrawalActionSchema.parse(data)
 
   const dek = await getDekForUser(userId)
 
-  // Fetch do resgate e ownership check do novo tipo em paralelo
+  // Fetch do resgate e ownership checks em paralelo
   const [withdrawals] = await Promise.all([
     db.query.investmentWithdrawals.findMany({
       where: and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)),
       limit: 1,
     }),
     assertOwnsInvestmentType(userId, data.investmentTypeId),
+    ...(tripId ? [assertOwnsTrip(userId, tripId)] : []),
   ])
 
   const withdrawal = withdrawals[0]
   if (!withdrawal) throw new Error('Resgate não encontrado')
+  // O destino não muda na edição — mesma regra do withdrawalSchema na criação
+  if (tripId && withdrawal.destination !== 'income') {
+    throw new Error('Só resgates para o caixa podem ser vinculados a uma viagem')
+  }
 
   await db.transaction(async (tx) => {
     await tx
@@ -319,6 +331,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
             amount: encryptField(data.amount, dek),
             referenceMonth: dateToReferenceMonth(data.date),
             investmentReturnCapital: null,
+            tripId: tripId ?? null,
           })
           .where(and(eq(incomes.id, withdrawal.incomeId), eq(incomes.userId, userId)))
       }
@@ -328,6 +341,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  if (withdrawal.incomeId) revalidatePath('/viagens')
 }
 
 export async function deleteWithdrawal(id: string) {
@@ -355,4 +369,5 @@ export async function deleteWithdrawal(id: string) {
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  if (withdrawal.incomeId) revalidatePath('/viagens')
 }
