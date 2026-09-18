@@ -20,6 +20,7 @@ const group = (id: string, overrides: Partial<Group> = {}): Group => ({
   remainingInstallments: 1,
   installmentAmount: 0,
   remainingAmount: 0,
+  endYM: '2026-01',
   ...overrides,
 })
 
@@ -39,9 +40,11 @@ describe('applySort', () => {
     expect(sorted.map((g) => g.id)).toEqual(['A', 'B'])
   })
 
-  it('soonest-end com endYM ausente cai para string vazia (não quebra o sort)', () => {
-    const a = group('A', { endYM: undefined })
-    const b = group('B', { endYM: '2026-01' })
+  it('soonest-end é cronológico na virada de ano (YYYY-MM é ano-major)', () => {
+    // Mesma propriedade em que lastEnd se apoia: comparar YYYY-MM é cronológico,
+    // comparar o rótulo formatado ('dez 26' / 'jan 27') não é.
+    const a = group('A', { remainingInstallments: 5, endYM: '2026-12' })
+    const b = group('B', { remainingInstallments: 2, endYM: '2027-01' })
 
     const sorted = applySort([b, a], 'soonest-end')
 

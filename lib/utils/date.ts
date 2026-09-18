@@ -87,19 +87,19 @@ export function dateToReferenceMonth(dateStr: string): string {
   return format(startOfMonth(parseDate(dateStr)), 'yyyy-MM-dd')
 }
 
+/** Returns yearMonth plus n months (negative walks back), as YYYY-MM. */
+export function addMonthsToYearMonth(yearMonth: string, n: number): string {
+  return format(addMonths(parseISO(`${yearMonth}-01`), n), 'yyyy-MM')
+}
+
 /** Returns the previous month as YYYY-MM. */
 export function prevMonth(yearMonth: string): string {
-  return format(subMonths(parseISO(`${yearMonth}-01`), 1), 'yyyy-MM')
+  return addMonthsToYearMonth(yearMonth, -1)
 }
 
 /** Returns the next month as YYYY-MM. */
 export function nextMonth(yearMonth: string): string {
-  return format(addMonths(parseISO(`${yearMonth}-01`), 1), 'yyyy-MM')
-}
-
-/** Returns yearMonth plus n months, as YYYY-MM. Generalization of nextMonth. */
-export function addMonthsToYearMonth(yearMonth: string, n: number): string {
-  return format(addMonths(parseISO(`${yearMonth}-01`), n), 'yyyy-MM')
+  return addMonthsToYearMonth(yearMonth, 1)
 }
 
 /**

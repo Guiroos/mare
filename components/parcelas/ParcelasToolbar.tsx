@@ -31,7 +31,7 @@ type Group = {
   installmentAmount: number
   remainingAmount: number
   endLabel?: string
-  endYM?: string
+  endYM: string
 }
 
 type Sort = 'expensive' | 'highest-balance' | 'soonest-end'
@@ -44,7 +44,7 @@ export function applySort(groups: Group[], sort: Sort): Group[] {
     case 'highest-balance':
       return copy.sort((a, b) => b.remainingAmount - a.remainingAmount)
     case 'soonest-end':
-      return copy.sort((a, b) => (a.endYM ?? '').localeCompare(b.endYM ?? ''))
+      return copy.sort((a, b) => a.endYM.localeCompare(b.endYM))
     default:
       return copy
   }
