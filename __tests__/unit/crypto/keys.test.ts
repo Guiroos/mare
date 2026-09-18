@@ -51,11 +51,13 @@ describe('assertMekConfigured', () => {
   })
 
   it('não distingue MEK rotacionada de MEK certa — só verifica forma', async () => {
-    // Trava a leitura que resetAccount.ts faz do comportamento: a sonda passa mesmo quando
-    // a MEK trocou (bem-formada, mas não é a que cifrou a DEK), e é o decryptDek posterior
-    // que descobre isso pelo auth tag do GCM. Se este teste quebrar por "fortalecer" a sonda
-    // para também validar contra uma DEK, releia o comentário em reset-account.ts:82-86 —
-    // essa mudança fecharia a saída de emergência que o guard existe para manter aberta.
+    // Caracteriza o comportamento que reset-account.ts:82-86 documenta: a sonda passa mesmo
+    // quando a MEK trocou (bem-formada, mas não é a que cifrou a DEK), e é o decryptDek
+    // posterior que descobre isso pelo auth tag do GCM. Este teste NÃO trava o contrato de
+    // resetAccount — chamar assertMekConfigured() com uma DEK específica não quebraria nada
+    // aqui, já que ele não passa argumento nenhum. Quem protege o call site (chamada sem
+    // argumento, antes da Fase 1 de delete) é
+    // __tests__/unit/reset-account-mek-guard.test.ts.
     const { generateDek, encryptDek, decryptDek, assertMekConfigured } =
       await import('@/lib/crypto/keys')
     const original = process.env.ENCRYPTION_MASTER_KEY
