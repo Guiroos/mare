@@ -78,7 +78,10 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 ## Reset de Conta
 
-- 3 fases: (1) delete completo em `db.transaction` incluindo `userSettings`/`encryptedDek`; (2) `getDekForUser` provisiona nova DEK (cria `userSettings` do zero); (3) seed de categorias padrão com nomes encriptados
+- `assertMekConfigured()` **antes** de tudo: MEK ausente/malformada aborta sem apagar nada — a Fase 2 não conseguiria provisionar DEK nova (`encryptDek` chama `getMek` antes de qualquer I/O), então seguir adiante só trocaria "reset recusado" por "conta destruída **e** reset recusado"
+- 4 fases: (1) delete completo em `db.transaction` incluindo `userSettings`/`encryptedDek`; (2) `getDekForUser` provisiona nova DEK (cria `userSettings` do zero); (3) seed de categorias padrão com nomes encriptados; (4) recifra `feedback` com a DEK nova
+- `feedback` é a única tabela com coluna cifrada por DEK que **sobrevive** ao reset (é dado de produto, não financeiro) — a DEK antiga e as linhas pendentes são capturadas antes da Fase 1 e recifradas na Fase 4, senão ficariam ilegíveis para sempre e derrubariam o `/admin`
+- Captura da DEK antiga lê `userSettings.encryptedDek` direto + `decryptDek` — **nunca** `getDekForUser`: ele é `cache()` por request, então a chamada da Fase 2 devolveria a DEK já deletada e as categorias da Fase 3 sairiam cifradas com uma chave inexistente
 - Ordem de delete importa por FK: `debtorEntries` → `people`; `goalContributions` → `investmentWithdrawals` → `investments` → `investmentTypes` → `goals` → `trips`; `transactions` → `installmentGroups`; depois `incomes`, `fixedExpenses`, `userSettings`, `monthlyBudgetOverrides`, `paymentAccounts`, `categories`, `categoryGroups`
 - `revalidatePath('/', 'layout')` ao final — invalida todo o shell autenticado
 
