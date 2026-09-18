@@ -4,9 +4,12 @@ import { join } from 'node:path'
 
 // ─── Botões só de ícone sem nome acessível (#106) ──────────────────────────
 //
-// Não há infra de render de componente no projeto (sem jsdom/testing-library).
-// O gate possível é sobre o texto-fonte, padrão já usado em row-actions.test.ts
-// (#54) e a11y-estado-selecao.test.ts (#107).
+// `lucide-react@1.8.0` (package.json:45) marca o <svg> do ícone como
+// `aria-hidden="true"` quando ele não recebe filho nem prop de a11y — então
+// um <Button size="icon"> cujo único filho é um ícone chega ao leitor de tela
+// como `role=button name=""`. Não há infra de render de componente no projeto
+// (sem jsdom/testing-library); o gate possível é sobre o texto-fonte, padrão
+// já usado em row-actions.test.ts (#54) e a11y-estado-selecao.test.ts (#107).
 //
 // A asserção precisa ancorar no <Button> que envolve o ícone, não no arquivo
 // inteiro — senão um aria-label em qualquer outro botão do mesmo arquivo
@@ -17,7 +20,9 @@ function findButtonsWithIcon(source: string, iconTag: string): string[] {
   // match de atravessar outro "<Button" antes de alcançar o ícone-alvo — sem
   // isso um regex guloso/lazy simples poderia casar a partir de um <Button>
   // anterior no mesmo arquivo, desde que os marcadores (onClick, ícone,
-  // </Button>) só existam depois dele.
+  // </Button>) só existam depois dele. A barreira `(?!<\/Button>)` fecha o
+  // outro lado: impede a fatia de atravessar um fechamento e ancorar num botão
+  // já encerrado quando o ícone não está dentro de <Button> nenhum.
   //
   // Devolve TODOS os recortes, não o primeiro: um `match` não-global mediria
   // só o primeiro gatilho e deixaria qualquer ícone seguinte descoberto em
@@ -29,7 +34,10 @@ function findButtonsWithIcon(source: string, iconTag: string): string[] {
   // aria-label colocado ali por engano — a correção errada que estas issues
   // existem para barrar — passaria a asserção sempre que o prettier quebrasse
   // os atributos do ícone em linhas.
-  const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`, 'g')
+  const pattern = new RegExp(
+    `<Button\\b(?:(?!<Button\\b)(?!<\\/Button>)[\\s\\S])*?<${iconTag}\\b`,
+    'g'
+  )
   return [...source.matchAll(pattern)].map((m) => m[0])
 }
 
@@ -100,6 +108,55 @@ describe('Lápis de editar — cadastro (#127)', () => {
         // nem de um <Button> anterior que o recorte atravessou.
         expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
         expect(gatilhos.every((g) => /^\s*aria-label="[^"]+"$/m.test(g))).toBe(true)
+      })
+    })
+  }
+})
+
+// ─── Lápis de editar — metas, orçamento e investimentos (#128) ─────────────
+//
+// Os três componentes desta fatia têm mais de um <Button> no mesmo trecho
+// (ternário de 2 ou 3 braços), então uma asserção genérica sobre o arquivo
+// passaria com qualquer um deles rotulado, deixando o lápis de editar intacto.
+
+describe('Lápis de editar — metas, orçamento e investimentos (#128)', () => {
+  const cases = [
+    {
+      name: 'InvestmentEntryDialog — editar registro (site 2)',
+      path: 'components/investimentos/InvestmentEntryDialog.tsx',
+      rotulo: 'Editar registro',
+    },
+    {
+      name: 'BudgetOverrideDialog — editar orçamento (site 6)',
+      path: 'components/configuracao-mes/BudgetOverrideDialog.tsx',
+      rotulo: 'Editar orçamento',
+    },
+    {
+      name: 'GoalDialog — editar meta (site 7)',
+      path: 'components/metas/GoalDialog.tsx',
+      rotulo: 'Editar meta',
+    },
+  ]
+
+  for (const { name, path, rotulo } of cases) {
+    describe(name, () => {
+      const source = readFileSync(join(process.cwd(), path), 'utf-8')
+      const gatilhos = findButtonsWithIcon(source, 'Pencil')
+
+      it('tem exatamente um <Button> envolvendo um <Pencil>', () => {
+        expect(gatilhos).toHaveLength(1)
+      })
+
+      it('expõe o rótulo esperado no <Button> do gatilho, não no ícone', () => {
+        // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+        // encontrado é atributo do próprio botão, não de um wrapper interno
+        // nem de um <Button> anterior que o recorte atravessou.
+        expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+        expect(gatilhos[0]).toMatch(new RegExp(`^\\s*aria-label="${rotulo}"$`, 'm'))
+      })
+
+      it('nenhum outro ramo do ternário usa o mesmo rótulo', () => {
+        expect(source.match(new RegExp(`aria-label="${rotulo}"`, 'g'))).toHaveLength(1)
       })
     })
   }
