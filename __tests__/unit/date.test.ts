@@ -29,6 +29,8 @@ import {
   calcBaseReferenceMonth,
   calcInstallmentDate,
   uniqueMonthsFromDates,
+  addMonthsToYearMonth,
+  installmentEndYearMonth,
 } from '@/lib/utils/date'
 
 describe('yearMonthToReferenceMonth', () => {
@@ -150,6 +152,41 @@ describe('nextMonth', () => {
 
   it('wraps from December to January of the next year', () => {
     expect(nextMonth('2025-12')).toBe('2026-01')
+  })
+})
+
+describe('addMonthsToYearMonth', () => {
+  it('adds n months within the same year', () => {
+    expect(addMonthsToYearMonth('2025-03', 2)).toBe('2025-05')
+  })
+
+  it('n=0 returns the same month', () => {
+    expect(addMonthsToYearMonth('2025-06', 0)).toBe('2025-06')
+  })
+
+  it('crosses the year boundary', () => {
+    expect(addMonthsToYearMonth('2025-11', 3)).toBe('2026-02')
+  })
+})
+
+describe('installmentEndYearMonth', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('issue #114: ancora em nextChargeMonth, não no mês corrente', () => {
+    // Mês corrente 2026-08, mas a 1a parcela pendente só cai em 2026-09 (compra feita
+    // depois do fechamento do cartão). Ancorar no mês corrente daria 2027-07 — a
+    // correção precisa ancorar em nextChargeMonth e devolver 2027-08.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-15T12:00:00'))
+    expect(installmentEndYearMonth('2026-09', 12)).toBe('2027-08')
+  })
+
+  it('sem parcela pendente (nextChargeMonth null): cai no fallback do mês corrente', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-15T12:00:00'))
+    expect(installmentEndYearMonth(null, 12)).toBe('2027-07')
   })
 })
 
