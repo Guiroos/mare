@@ -6,13 +6,22 @@ allowed-tools: Read, Edit, Write, Bash(git:*)
 Atividade desta sessão:
 !`git log --oneline -8`
 
-Mudanças não commitadas:
-!`git diff HEAD --stat 2>/dev/null || echo "(nenhuma)"`
+Escopo desta sessão (trabalho commitado na branch + working tree):
+!`git diff $(git merge-base HEAD origin/main 2>/dev/null || echo HEAD) --stat 2>/dev/null || echo "(nenhuma)"`
 
 Diff completo (truncado em 400 linhas):
-!`git diff HEAD 2>/dev/null | head -400`
+!`git diff $(git merge-base HEAD origin/main 2>/dev/null || echo HEAD) 2>/dev/null | head -400`
 
 ---
+
+O diff acima parte do **merge-base com `origin/main`**, não de `HEAD`. Isto é
+deliberado: `git diff HEAD` mostra só o que ainda não foi commitado, e é vazio
+justamente no momento em que esta triagem mais importa — ao fim de uma
+implementação, com o trabalho já commitado, antes de abrir o PR. Foi assim que a
+defasagem se acumulou no #136 (`.claude/domain.md` descrevendo 3 fases quando o
+código passou a ter 4, e `assertMekConfigured` fora da § API do `.claude/crypto.md`):
+o comando existia e não enxergava nada. Em branch já mergeada ou sem `origin/main`
+o `merge-base` falha e o fallback devolve o comportamento antigo.
 
 Leia os arquivos destino antes de extrair qualquer aprendizado:
 - `CLAUDE.md` — seções Architecture e Gotchas
