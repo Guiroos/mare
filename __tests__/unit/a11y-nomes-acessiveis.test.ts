@@ -40,6 +40,16 @@ describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () 
     // por tela; aceita tanto `{expressão}` quanto `"literal"`.
     expect(trigger).toMatch(/^\s*aria-label=(?:\{[^{}]+\}|"[^"]+")\s*$/m)
   })
+
+  it('a prop title tem default — o rótulo não vira undefined nos call sites sem title', () => {
+    // aria-label={title} só nomeia de verdade se `title` tiver um valor em
+    // runtime. 6 dos 8 pontos de render não passam `title` (dependem
+    // inteiramente do default); sem ele, aria-label={undefined} faz o React
+    // omitir o atributo e o gatilho volta a ficar sem nome acessível — e as
+    // duas asserções acima continuam verdes, porque `aria-label={title}` é
+    // sintaticamente idêntico com ou sem default.
+    expect(source).toMatch(/^\s*title = '[^']+',$/m)
+  })
 })
 
 // ─── SplitSection — dois "X" idênticos sem nome acessível (#129) ──────────
