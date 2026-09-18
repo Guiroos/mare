@@ -23,6 +23,12 @@ function findButtonsWithIcon(source: string, iconTag: string): string[] {
   // só o primeiro gatilho e deixaria qualquer ícone seguinte descoberto em
   // silêncio, que é o modo de falha que o gate do SplitSection (abaixo) já
   // existia para impedir.
+  //
+  // Para no início da tag do ícone (não em "</Button>"): estender até o
+  // fechamento incluiria os atributos do próprio ícone no recorte, e um
+  // aria-label colocado ali por engano — a correção errada que estas issues
+  // existem para barrar — passaria a asserção sempre que o prettier quebrasse
+  // os atributos do ícone em linhas.
   const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`, 'g')
   return [...source.matchAll(pattern)].map((m) => m[0])
 }
@@ -61,6 +67,42 @@ describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () 
     // sintaticamente idêntico com ou sem default.
     expect(source).toMatch(/^\s*title = '[^']+',$/m)
   })
+})
+
+describe('Lápis de editar — cadastro (#127)', () => {
+  const cases = [
+    {
+      name: 'CategoryDialog — editar categoria',
+      path: 'components/categorias/CategoryDialog.tsx',
+    },
+    {
+      name: 'GroupDialog — editar grupo',
+      path: 'components/categorias/GroupDialog.tsx',
+    },
+    {
+      name: 'AccountDialog — editar conta',
+      path: 'components/contas/AccountDialog.tsx',
+    },
+  ]
+
+  for (const { name, path } of cases) {
+    describe(name, () => {
+      const source = readFileSync(join(process.cwd(), path), 'utf-8')
+      const gatilhos = findButtonsWithIcon(source, 'Pencil')
+
+      it('tem exatamente um <Button> envolvendo um <Pencil>', () => {
+        expect(gatilhos).toHaveLength(1)
+      })
+
+      it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
+        // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+        // encontrado é atributo do próprio botão, não de um wrapper interno
+        // nem de um <Button> anterior que o recorte atravessou.
+        expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+        expect(gatilhos.every((g) => /^\s*aria-label="[^"]+"$/m.test(g))).toBe(true)
+      })
+    })
+  }
 })
 
 // ─── SplitSection — dois "X" idênticos sem nome acessível (#129) ──────────
