@@ -20,11 +20,12 @@ import {
   goalContributions,
   people,
   debtorEntries,
+  feedback,
   trips,
 } from '@/lib/db/schema'
 import { requireUserId } from '@/lib/auth/require-user'
-import { getDekForUser } from '@/lib/crypto/keys'
-import { encryptField, encryptOptional } from '@/lib/crypto/fields'
+import { getDekForUser, decryptDek, assertMekConfigured } from '@/lib/crypto/keys'
+import { encryptField, encryptOptional, decryptField } from '@/lib/crypto/fields'
 
 type GroupSeed = {
   name: string
@@ -66,6 +67,40 @@ const DEFAULT_GROUPS: GroupSeed[] = [
 
 export async function resetAccount() {
   const userId = await requireUserId()
+
+  // Falha de configuração da MEK aborta antes de apagar: a Fase 2 não conseguiria
+  // provisionar DEK nova (encryptDek chama getMek antes de qualquer I/O), então seguir
+  // adiante só troca "reset recusado" por "conta destruída e reset recusado".
+  assertMekConfigured()
+
+  // DEK antiga: leitura direta de userSettings, nunca via getDekForUser — o cache() por
+  // request faria a Fase 2 devolver essa mesma DEK (já deletada) em vez da nova.
+  const [settings] = await db
+    .select({ encryptedDek: userSettings.encryptedDek })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+  // assertMekConfigured() acima só garante que a MEK existe e é bem formada, não que é a
+  // MEK certa: um decryptDek que ainda assim lança é ou a DEK deste usuário corrompida, ou
+  // — o caso mais provável — uma MEK rotacionada sem re-wrap das DEKs. Os dois são
+  // indistinguíveis daqui, e nos dois vale engolir: é justamente quando as chaves se
+  // perderam que o usuário precisa poder resetar. Sem DEK antiga, feedback não é recifrado.
+  let dekAntiga: Buffer | null = null
+  if (settings?.encryptedDek) {
+    try {
+      dekAntiga = decryptDek(settings.encryptedDek)
+    } catch (err) {
+      console.error('[resetAccount] DEK antiga ilegível — feedback não será recifrado', { err })
+    }
+  }
+
+  // feedback não é apagado na Fase 1 (é dado de produto, não financeiro) — capturar antes
+  // do delete para recifrar com a DEK nova depois, senão fica ilegível para sempre
+  const pendingFeedback = dekAntiga
+    ? await db
+        .select({ id: feedback.id, message: feedback.message })
+        .from(feedback)
+        .where(eq(feedback.userId, userId))
+    : []
 
   // Phase 1: Delete everything in a transaction (including userSettings/encryptedDek)
   await db.transaction(async (tx) => {
@@ -119,6 +154,19 @@ export async function resetAccount() {
         bgColor: cat.bgColor,
       }))
     )
+  }
+
+  // Phase 4: recifrar o feedback pendente com a DEK nova — a rotação de chave existe para
+  // cripto-apagar os dados financeiros, não para tornar o feedback do usuário ilegível
+  for (const f of pendingFeedback) {
+    try {
+      await db
+        .update(feedback)
+        .set({ message: encryptField(decryptField(f.message, dekAntiga!), dek) })
+        .where(eq(feedback.id, f.id))
+    } catch (err) {
+      console.error('[resetAccount] falha ao recifrar feedback', { feedbackId: f.id, err })
+    }
   }
 
   revalidatePath('/', 'layout')

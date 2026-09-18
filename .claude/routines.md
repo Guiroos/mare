@@ -56,6 +56,12 @@ O comentário do link deve ter **exatamente** este formato na primeira linha, po
 PR aberta: #<n>
 ```
 
+**Antes do PASSO 6 — a doc versionada entra no mesmo PR.** O prompt vai da implementação direto para a abertura do PR, e nada no caminho olha para `.claude/**/*.md`. O resultado medido é que a doc só alcança o código quando a revisão cobra, um ou mais rounds depois: `883f162` ("remove stale `getMonthlyEvolution` references left after #58"), os dois follow-ups do #157 (`3960ff5`, `04884e5`) e o #136, onde `.claude/domain.md` descrevia o reset como 3 fases depois de o código passar a ter 4, e `assertMekConfigured` — API nova exportada — ficou fora da § API do `.claude/crypto.md`.
+
+Antes de abrir o PR, rodar a triagem de `/session-review` sobre o escopo da branch e commitar junto o que ela rotear. Não é "documentar a mudança": é conferir se alguma **afirmação já escrita** deixou de ser verdade — contagem de fases, lista de arquivos, símbolo exportado que a § API não lista, convenção que a mudança passou a contradizer. Doc que descreve o estado errado é pior que doc ausente, porque a próxima sessão a lê como autoridade.
+
+**O corpo do PR também defasa, e a lista de arquivos não se escreve à mão.** Gerar de `git diff --name-only origin/main...HEAD` e **re-derivar a cada push** — no #136 o corpo declarava 3 arquivos quando o diff entregava 6, e não mencionava a API nova. Quem aprova lê o corpo; as threads que registram as decisões ficam resolvidas e colapsadas.
+
 ## Cadência e vazão
 
 A fila é alimentada pela `auditoria-diaria` (1×/dia útil) e drenada pela `implementacao-diaria`. Medido entre 2026-07-30 e 2026-08-07: a auditoria produziu 1,7 issues por execução e a implementação entregou 1 PR por execução — saldo de +0,7/dia, com 7 issues `claude-ready` acumuladas ao fim da primeira semana.

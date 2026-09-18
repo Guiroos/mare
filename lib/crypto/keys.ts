@@ -22,6 +22,12 @@ export function generateDek(): Buffer {
   return randomBytes(KEY_LEN)
 }
 
+/** Lança se a MEK do ambiente está ausente ou malformada. Sonda de configuração,
+ *  independente do ciphertext de qualquer usuário. */
+export function assertMekConfigured(): void {
+  getMek()
+}
+
 export function encryptDek(dek: Buffer): string {
   const mek = getMek()
   const iv = randomBytes(IV_LEN)
