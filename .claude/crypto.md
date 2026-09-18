@@ -14,6 +14,7 @@ Esta lista é gate: `__tests__/unit/docs-crypto-api.test.ts` exige que todo sím
 - `decryptField(value, dek)` — backward-compat: se `value` não começa com `enc:`, retorna o valor sem decrypt. Plaintext antigo é legível sem re-migration.
 - `decryptOptional(value, dek)` — para campos nullable em JOINs LEFT; retorna `null` quando value é null. Nunca usar `decryptField` em campo que pode ser null (`decryptField(null)` lança).
 - `encryptOptional(value, dek)` — retorna `null` se value é null.
+- `assertMekConfigured()` — sonda de configuração: lança se `ENCRYPTION_MASTER_KEY` está ausente ou malformada, sem tocar ciphertext de usuário nenhum. Usar antes de fluxo destrutivo que depende da MEK para reconstruir (`resetAccount`). Não distingue MEK **rotacionada** de MEK certa: uma chave bem-formada porém trocada passa na sonda e só é descoberta pelo auth tag do GCM no `decryptDek` seguinte — endurecê-la para validar contra a DEK de um usuário quebra o caso em que ela mais importa (chaves perdidas é justamente quando o usuário precisa poder resetar).
 
 ## Gotchas de queries com colunas encriptadas
 
