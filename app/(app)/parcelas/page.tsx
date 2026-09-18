@@ -10,15 +10,7 @@ import { Section } from '@/components/ui/section'
 import { PageHeader } from '@/components/ui/page-header'
 import { PageLayout } from '@/components/ui/page-layout'
 import { formatCurrency } from '@/lib/utils/currency'
-import { currentYearMonth, formatMonthShort } from '@/lib/utils/date'
-
-function calcEndLabel(currentYM: string, remainingInstallments: number): string {
-  const [year, month] = currentYM.split('-').map(Number)
-  const totalMonths = year * 12 + (month - 1) + (remainingInstallments - 1)
-  const endYear = Math.floor(totalMonths / 12)
-  const endMonth = String((totalMonths % 12) + 1).padStart(2, '0')
-  return formatMonthShort(`${endYear}-${endMonth}`)
-}
+import { currentYearMonth, formatMonthShort, installmentEndYearMonth } from '@/lib/utils/date'
 
 export default async function ParcelasPage() {
   const session = await auth()
@@ -38,13 +30,17 @@ export default async function ParcelasPage() {
   const totalAll = groups.reduce((sum, g) => sum + g.totalAmount, 0)
   const paidPct = totalAll > 0 ? Math.round((totalPago / totalAll) * 100) : 0
 
-  const groupsWithEnd = groups.map((g) => ({
-    ...g,
-    endLabel: calcEndLabel(currentYM, g.remainingInstallments),
-  }))
+  const groupsWithEnd = groups.map((g) => {
+    const endYM = installmentEndYearMonth(g.nextChargeMonth, g.remainingInstallments)
+    return { ...g, endYM, endLabel: formatMonthShort(endYM) }
+  })
 
-  const endLabels = groupsWithEnd.map((g) => g.endLabel).sort()
-  const lastEnd = endLabels[endLabels.length - 1] ?? null
+  const lastEndYM =
+    groupsWithEnd
+      .map((g) => g.endYM)
+      .sort()
+      .at(-1) ?? null
+  const lastEnd = lastEndYM ? formatMonthShort(lastEndYM) : null
 
   const categoryData = Object.values(
     groups.reduce<Record<string, { name: string; value: number; color?: string }>>((acc, g) => {

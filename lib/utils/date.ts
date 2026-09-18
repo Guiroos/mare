@@ -87,14 +87,31 @@ export function dateToReferenceMonth(dateStr: string): string {
   return format(startOfMonth(parseDate(dateStr)), 'yyyy-MM-dd')
 }
 
+/** Returns yearMonth plus n months (negative walks back), as YYYY-MM. */
+export function addMonthsToYearMonth(yearMonth: string, n: number): string {
+  return format(addMonths(parseISO(`${yearMonth}-01`), n), 'yyyy-MM')
+}
+
 /** Returns the previous month as YYYY-MM. */
 export function prevMonth(yearMonth: string): string {
-  return format(subMonths(parseISO(`${yearMonth}-01`), 1), 'yyyy-MM')
+  return addMonthsToYearMonth(yearMonth, -1)
 }
 
 /** Returns the next month as YYYY-MM. */
 export function nextMonth(yearMonth: string): string {
-  return format(addMonths(parseISO(`${yearMonth}-01`), 1), 'yyyy-MM')
+  return addMonthsToYearMonth(yearMonth, 1)
+}
+
+/**
+ * Returns the YYYY-MM in which the last of `remainingInstallments` installments lands,
+ * anchored on `nextChargeMonth` (the month of the next pending installment). Falls back to
+ * the current month when there is no pending installment (`nextChargeMonth === null`).
+ */
+export function installmentEndYearMonth(
+  nextChargeMonth: string | null,
+  remainingInstallments: number
+): string {
+  return addMonthsToYearMonth(nextChargeMonth ?? currentYearMonth(), remainingInstallments - 1)
 }
 
 /** Formats a YYYY-MM as "janeiro de 2025" (pt-BR). */
