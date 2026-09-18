@@ -12,33 +12,44 @@ import { join } from 'node:path'
 // inteiro — senão um aria-label em qualquer outro botão do mesmo arquivo
 // deixaria o teste verde com o gatilho ainda sem nome.
 
-function findClosestButtonWithIcon(source: string, iconTag: string): string | undefined {
+function findButtonsWithIcon(source: string, iconTag: string): string[] {
   // Ancora no <Button> MAIS PRÓXIMO do ícone: a lookahead negativa impede o
   // match de atravessar outro "<Button" antes de alcançar o ícone-alvo — sem
   // isso um regex guloso/lazy simples poderia casar a partir de um <Button>
   // anterior no mesmo arquivo, desde que os marcadores (onClick, ícone,
   // </Button>) só existam depois dele.
-  const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`)
-  return source.match(pattern)?.[0]
+  //
+  // Devolve TODOS os recortes, não o primeiro: um `match` não-global mediria
+  // só o primeiro gatilho e deixaria qualquer ícone seguinte descoberto em
+  // silêncio, que é o modo de falha que o gate do SplitSection (abaixo) já
+  // existia para impedir.
+  const pattern = new RegExp(`<Button\\b(?:(?!<Button\\b)[\\s\\S])*?<${iconTag}\\b`, 'g')
+  return [...source.matchAll(pattern)].map((m) => m[0])
 }
 
 describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () => {
   const source = readFileSync(join(process.cwd(), 'components/ui/delete-button.tsx'), 'utf-8')
-  const trigger = findClosestButtonWithIcon(source, 'Trash2')
+  const gatilhos = findButtonsWithIcon(source, 'Trash2')
 
-  it('encontra o bloco do botão gatilho (o mais próximo do ícone Trash2)', () => {
-    expect(trigger).toBeDefined()
+  it('tem exatamente um <Button> envolvendo um <Trash2>', () => {
+    expect(gatilhos).toHaveLength(1)
   })
 
   it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
     // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
     // encontrado é atributo do próprio botão, não de um wrapper interno
     // (ex: um Tooltip envolvendo o Trash2).
-    expect((trigger!.match(/</g) ?? []).length).toBe(2)
-    // aria-label={title}, não literal fixo — a prop `title` já é o que os
-    // call sites (inclusive os de /viagens) usam para diferenciar o rótulo
-    // por tela; aceita tanto `{expressão}` quanto `"literal"`.
-    expect(trigger).toMatch(/^\s*aria-label=(?:\{[^{}]+\}|"[^"]+")\s*$/m)
+    expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+    // Prende a expressão a `title`, não a "alguma expressão": os call sites
+    // usam `title` para diferenciar o rótulo por tela, e qualquer outra prop
+    // do componente (`errorMessage`, por exemplo) satisfaria um regex genérico
+    // enquanto rende aria-label={undefined} em runtime — React omite o
+    // atributo e o gatilho volta ao name="" medido na #126.
+    //
+    // Sem âncora de linha de propósito: exigir o atributo em linha própria
+    // deixaria o gate vermelho sobre um gatilho correto que o prettier tenha
+    // colapsado numa linha só (cabe em 100 colunas com menos props).
+    expect(gatilhos.every((g) => /\baria-label=\{title\}/.test(g))).toBe(true)
   })
 
   it('a prop title tem default — o rótulo não vira undefined nos call sites sem title', () => {
@@ -74,17 +85,13 @@ const splitSection = readFileSync(
 )
 
 describe('SplitSection — os dois botões "X" têm nomes distintos (#129)', () => {
+  const gatilhos = findButtonsWithIcon(splitSection, 'X')
+
   it('tem exatamente dois <Button> envolvendo um <X>', () => {
-    const gatilhos = [...splitSection.matchAll(/<Button\b(?:(?!<Button)[\s\S])*?<X\b/g)].map(
-      (m) => m[0]
-    )
     expect(gatilhos).toHaveLength(2)
   })
 
   it('cada gatilho tem aria-label, e os dois rótulos são distintos', () => {
-    const gatilhos = [...splitSection.matchAll(/<Button\b(?:(?!<Button)[\s\S])*?<X\b/g)].map(
-      (m) => m[0]
-    )
     const rotulos = gatilhos.map((g) => g.match(/^\s*aria-label="([^"]+)"$/m)?.[1])
 
     // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
