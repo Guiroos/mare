@@ -2,6 +2,166 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+// ─── Botões só de ícone sem nome acessível (#106) ──────────────────────────
+//
+// `lucide-react@1.8.0` (package.json:45) marca o <svg> do ícone como
+// `aria-hidden="true"` quando ele não recebe filho nem prop de a11y — então
+// um <Button size="icon"> cujo único filho é um ícone chega ao leitor de tela
+// como `role=button name=""`. Não há infra de render de componente no projeto
+// (sem jsdom/testing-library); o gate possível é sobre o texto-fonte, padrão
+// já usado em row-actions.test.ts (#54) e a11y-estado-selecao.test.ts (#107).
+//
+// A asserção precisa ancorar no <Button> que envolve o ícone, não no arquivo
+// inteiro — senão um aria-label em qualquer outro botão do mesmo arquivo
+// deixaria o teste verde com o gatilho ainda sem nome.
+
+function findButtonsWithIcon(source: string, iconTag: string): string[] {
+  // Ancora no <Button> MAIS PRÓXIMO do ícone: a lookahead negativa impede o
+  // match de atravessar outro "<Button" antes de alcançar o ícone-alvo — sem
+  // isso um regex guloso/lazy simples poderia casar a partir de um <Button>
+  // anterior no mesmo arquivo, desde que os marcadores (onClick, ícone,
+  // </Button>) só existam depois dele. A barreira `(?!<\/Button>)` fecha o
+  // outro lado: impede a fatia de atravessar um fechamento e ancorar num botão
+  // já encerrado quando o ícone não está dentro de <Button> nenhum.
+  //
+  // Devolve TODOS os recortes, não o primeiro: um `match` não-global mediria
+  // só o primeiro gatilho e deixaria qualquer ícone seguinte descoberto em
+  // silêncio, que é o modo de falha que o gate do SplitSection (abaixo) já
+  // existia para impedir.
+  //
+  // Para no início da tag do ícone (não em "</Button>"): estender até o
+  // fechamento incluiria os atributos do próprio ícone no recorte, e um
+  // aria-label colocado ali por engano — a correção errada que estas issues
+  // existem para barrar — passaria a asserção sempre que o prettier quebrasse
+  // os atributos do ícone em linhas.
+  const pattern = new RegExp(
+    `<Button\\b(?:(?!<Button\\b)(?!<\\/Button>)[\\s\\S])*?<${iconTag}\\b`,
+    'g'
+  )
+  return [...source.matchAll(pattern)].map((m) => m[0])
+}
+
+describe('DeleteButton — gatilho de exclusão com nome acessível (#126)', () => {
+  const source = readFileSync(join(process.cwd(), 'components/ui/delete-button.tsx'), 'utf-8')
+  const gatilhos = findButtonsWithIcon(source, 'Trash2')
+
+  it('tem exatamente um <Button> envolvendo um <Trash2>', () => {
+    expect(gatilhos).toHaveLength(1)
+  })
+
+  it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
+    // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+    // encontrado é atributo do próprio botão, não de um wrapper interno
+    // (ex: um Tooltip envolvendo o Trash2).
+    expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+    // Prende a expressão a `title`, não a "alguma expressão": os call sites
+    // usam `title` para diferenciar o rótulo por tela, e qualquer outra prop
+    // do componente (`errorMessage`, por exemplo) satisfaria um regex genérico
+    // enquanto rende aria-label={undefined} em runtime — React omite o
+    // atributo e o gatilho volta ao name="" medido na #126.
+    //
+    // Sem âncora de linha de propósito: exigir o atributo em linha própria
+    // deixaria o gate vermelho sobre um gatilho correto que o prettier tenha
+    // colapsado numa linha só (cabe em 100 colunas com menos props).
+    expect(gatilhos.every((g) => /\baria-label=\{title\}/.test(g))).toBe(true)
+  })
+
+  it('a prop title tem default — o rótulo não vira undefined nos call sites sem title', () => {
+    // aria-label={title} só nomeia de verdade se `title` tiver um valor em
+    // runtime. 6 dos 8 pontos de render não passam `title` (dependem
+    // inteiramente do default); sem ele, aria-label={undefined} faz o React
+    // omitir o atributo e o gatilho volta a ficar sem nome acessível — e as
+    // duas asserções acima continuam verdes, porque `aria-label={title}` é
+    // sintaticamente idêntico com ou sem default.
+    expect(source).toMatch(/^\s*title = '[^']+',$/m)
+  })
+})
+
+describe('Lápis de editar — cadastro (#127)', () => {
+  const cases = [
+    {
+      name: 'CategoryDialog — editar categoria',
+      path: 'components/categorias/CategoryDialog.tsx',
+    },
+    {
+      name: 'GroupDialog — editar grupo',
+      path: 'components/categorias/GroupDialog.tsx',
+    },
+    {
+      name: 'AccountDialog — editar conta',
+      path: 'components/contas/AccountDialog.tsx',
+    },
+  ]
+
+  for (const { name, path } of cases) {
+    describe(name, () => {
+      const source = readFileSync(join(process.cwd(), path), 'utf-8')
+      const gatilhos = findButtonsWithIcon(source, 'Pencil')
+
+      it('tem exatamente um <Button> envolvendo um <Pencil>', () => {
+        expect(gatilhos).toHaveLength(1)
+      })
+
+      it('expõe aria-label no <Button> do gatilho, não no ícone', () => {
+        // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+        // encontrado é atributo do próprio botão, não de um wrapper interno
+        // nem de um <Button> anterior que o recorte atravessou.
+        expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+        expect(gatilhos.every((g) => /^\s*aria-label="[^"]+"$/m.test(g))).toBe(true)
+      })
+    })
+  }
+})
+
+// ─── Lápis de editar — metas, orçamento e investimentos (#128) ─────────────
+//
+// Os três componentes desta fatia têm mais de um <Button> no mesmo trecho
+// (ternário de 2 ou 3 braços), então uma asserção genérica sobre o arquivo
+// passaria com qualquer um deles rotulado, deixando o lápis de editar intacto.
+
+describe('Lápis de editar — metas, orçamento e investimentos (#128)', () => {
+  const cases = [
+    {
+      name: 'InvestmentEntryDialog — editar registro (site 2)',
+      path: 'components/investimentos/InvestmentEntryDialog.tsx',
+      rotulo: 'Editar registro',
+    },
+    {
+      name: 'BudgetOverrideDialog — editar orçamento (site 6)',
+      path: 'components/configuracao-mes/BudgetOverrideDialog.tsx',
+      rotulo: 'Editar orçamento',
+    },
+    {
+      name: 'GoalDialog — editar meta (site 7)',
+      path: 'components/metas/GoalDialog.tsx',
+      rotulo: 'Editar meta',
+    },
+  ]
+
+  for (const { name, path, rotulo } of cases) {
+    describe(name, () => {
+      const source = readFileSync(join(process.cwd(), path), 'utf-8')
+      const gatilhos = findButtonsWithIcon(source, 'Pencil')
+
+      it('tem exatamente um <Button> envolvendo um <Pencil>', () => {
+        expect(gatilhos).toHaveLength(1)
+      })
+
+      it('expõe o rótulo esperado no <Button> do gatilho, não no ícone', () => {
+        // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label
+        // encontrado é atributo do próprio botão, não de um wrapper interno
+        // nem de um <Button> anterior que o recorte atravessou.
+        expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
+        expect(gatilhos[0]).toMatch(new RegExp(`^\\s*aria-label="${rotulo}"$`, 'm'))
+      })
+
+      it('nenhum outro ramo do ternário usa o mesmo rótulo', () => {
+        expect(source.match(new RegExp(`aria-label="${rotulo}"`, 'g'))).toHaveLength(1)
+      })
+    })
+  }
+})
+
 // ─── SplitSection — dois "X" idênticos sem nome acessível (#129) ──────────
 //
 // `lucide-react@1.8.0` (pinado em package.json) marca o <svg> do ícone como
@@ -24,17 +184,13 @@ const splitSection = readFileSync(
 )
 
 describe('SplitSection — os dois botões "X" têm nomes distintos (#129)', () => {
+  const gatilhos = findButtonsWithIcon(splitSection, 'X')
+
   it('tem exatamente dois <Button> envolvendo um <X>', () => {
-    const gatilhos = [...splitSection.matchAll(/<Button\b(?:(?!<Button)[\s\S])*?<X\b/g)].map(
-      (m) => m[0]
-    )
     expect(gatilhos).toHaveLength(2)
   })
 
   it('cada gatilho tem aria-label, e os dois rótulos são distintos', () => {
-    const gatilhos = [...splitSection.matchAll(/<Button\b(?:(?!<Button)[\s\S])*?<X\b/g)].map(
-      (m) => m[0]
-    )
     const rotulos = gatilhos.map((g) => g.match(/^\s*aria-label="([^"]+)"$/m)?.[1])
 
     // Nenhum elemento entre o <Button> e o ícone: garante que o aria-label

@@ -166,6 +166,7 @@ export function AccountDialog(props: Props) {
         variant="ghost"
         className="h-7 w-7 text-text-tertiary hover:text-text-primary"
         onClick={() => setOpen(true)}
+        aria-label="Editar conta"
       >
         <Pencil className="h-3.5 w-3.5" />
       </Button>
