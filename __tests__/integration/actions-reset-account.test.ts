@@ -17,6 +17,7 @@ import {
   createGoalContribution,
   createPerson,
   createCharge,
+  createTrip,
 } from './helpers/factories'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
@@ -45,23 +46,30 @@ describe('resetAccount', () => {
     const category = await createCategory(db, userId, group.id)
     const account = await createAccount(db, userId)
 
-    await createTransaction(db, userId, account.id, { categoryId: category.id })
-    await createFixedExpense(db, userId, account.id, category.id)
-    await createIncome(db, userId)
+    const goal = await createGoal(db, userId)
+    // Viagem vinculada a meta e a lançamentos: o reset esquecia a tabela `trips`
+    // (67827ca), e ela sobrevivia porque nenhum FK a derruba junto dos filhos.
+    const trip = await createTrip(db, userId, { goalId: goal.id })
 
-    const installGroup = await createInstallmentGroup(db, userId, account.id, category.id)
+    await createTransaction(db, userId, account.id, { categoryId: category.id, tripId: trip.id })
+    await createFixedExpense(db, userId, account.id, category.id)
+    await createIncome(db, userId, { tripId: trip.id })
+
+    const installGroup = await createInstallmentGroup(db, userId, account.id, category.id, {
+      tripId: trip.id,
+    })
     await db.insert(schema.transactions).values({
       userId,
       accountId: account.id,
       categoryId: category.id,
       installmentGroupId: installGroup.id,
+      tripId: trip.id,
       name: 'Parcela 1/2',
       amount: '150.00',
       date: '2025-01-10',
       referenceMonth: '2025-01-01',
     })
 
-    const goal = await createGoal(db, userId)
     const investType = await createInvestmentType(db, userId)
     await db.insert(schema.investments).values({
       userId,
@@ -91,6 +99,7 @@ describe('resetAccount', () => {
       debtorEntries,
       people,
       accounts,
+      trips,
     ] = await Promise.all([
       db.select().from(schema.transactions).where(eq(schema.transactions.userId, userId)),
       db.select().from(schema.fixedExpenses).where(eq(schema.fixedExpenses.userId, userId)),
@@ -107,6 +116,7 @@ describe('resetAccount', () => {
       db.select().from(schema.debtorEntries).where(eq(schema.debtorEntries.userId, userId)),
       db.select().from(schema.people).where(eq(schema.people.userId, userId)),
       db.select().from(schema.paymentAccounts).where(eq(schema.paymentAccounts.userId, userId)),
+      db.select().from(schema.trips).where(eq(schema.trips.userId, userId)),
     ])
 
     expect(txs).toHaveLength(0)
@@ -121,6 +131,7 @@ describe('resetAccount', () => {
     expect(debtorEntries).toHaveLength(0)
     expect(people).toHaveLength(0)
     expect(accounts).toHaveLength(0)
+    expect(trips).toHaveLength(0)
   })
 
   it('recria os 2 grupos e 17 categorias padrão com os orçamentos corretos', async () => {
@@ -167,17 +178,19 @@ describe('resetAccount', () => {
     const { id: otherUserId } = await createUser(db, `reset-other-${Date.now()}`)
     const otherGroup = await createCategoryGroup(db, otherUserId, 'Grupo Outro')
     await createCategory(db, otherUserId, otherGroup.id, { name: 'Cat Outro' })
+    await createTrip(db, otherUserId, { name: 'Viagem Outro' })
 
     const { resetAccount } = await import('@/lib/actions/reset-account')
     await resetAccount()
 
-    const otherCats = await db
-      .select()
-      .from(schema.categories)
-      .where(eq(schema.categories.userId, otherUserId))
+    const [otherCats, otherTrips] = await Promise.all([
+      db.select().from(schema.categories).where(eq(schema.categories.userId, otherUserId)),
+      db.select().from(schema.trips).where(eq(schema.trips.userId, otherUserId)),
+    ])
 
     expect(otherCats).toHaveLength(1)
     expect(otherCats[0]!.name).toBe('Cat Outro')
+    expect(otherTrips).toHaveLength(1)
   })
 
   it('é idempotente — resetar duas vezes mantém as categorias padrão', async () => {
@@ -190,5 +203,82 @@ describe('resetAccount', () => {
       .where(eq(schema.categories.userId, userId))
 
     expect(cats).toHaveLength(17)
+  })
+
+  it('mantém o feedback legível depois do reset', async () => {
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { encryptField, decryptField } = await import('@/lib/crypto/fields')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    const dekAntiga = await getDekForUser(userId)
+    await db.insert(schema.feedback).values({
+      userId,
+      category: 'melhoria',
+      page: '/dashboard',
+      message: encryptField('Adoraria um app nativo', dekAntiga),
+    })
+
+    await resetAccount()
+
+    const [row] = await db.select().from(schema.feedback).where(eq(schema.feedback.userId, userId))
+    const dekNova = await getDekForUser(userId)
+
+    expect(row).toBeDefined()
+    expect(decryptField(row!.message, dekNova)).toBe('Adoraria um app nativo')
+  })
+
+  it('completa o reset mesmo com a DEK antiga ilegível', async () => {
+    const { randomBytes } = await import('crypto')
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    // Usuário próprio, não o userId compartilhado pelo arquivo: resetAccount() provisiona
+    // uma DEK nova e válida na Fase 2, então corromper o encryptedDek do userId
+    // compartilhado não deixaria dekAntiga = null para os testes seguintes — deixaria a
+    // linha de feedback do it() anterior órfã (cifrada com a DEK que este teste destruiu).
+    const { id: outroId } = await createUser(db, `reset-dek-ilegivel-${Date.now()}`)
+    await db.insert(schema.userSettings).values({
+      userId: outroId,
+      encryptedDek: 'enc:' + randomBytes(60).toString('base64'),
+      creditMode: 'accrual',
+      faturaActiveFrom: null,
+    })
+
+    vi.mocked(requireUserId).mockResolvedValueOnce(outroId)
+    await expect(resetAccount()).resolves.toBeUndefined()
+
+    const cats = await db
+      .select()
+      .from(schema.categories)
+      .where(eq(schema.categories.userId, outroId))
+    expect(cats).toHaveLength(17)
+  })
+
+  it('recusa o reset sem apagar nada quando a MEK do ambiente está malformada', async () => {
+    const { requireUserId } = await import('@/lib/auth/require-user')
+    const { resetAccount } = await import('@/lib/actions/reset-account')
+
+    // Usuário próprio: a asserção depende do estado ANTES do reset sobreviver, então não
+    // pode compartilhar o userId do arquivo com testes que já resetaram essa conta.
+    const { id: outroId } = await createUser(db, `reset-mek-invalida-${Date.now()}`)
+    const group = await createCategoryGroup(db, outroId)
+    await createCategory(db, outroId, group.id)
+
+    const mekOriginal = process.env.ENCRYPTION_MASTER_KEY
+    process.env.ENCRYPTION_MASTER_KEY = 'zz'
+    try {
+      vi.mocked(requireUserId).mockResolvedValueOnce(outroId)
+      await expect(resetAccount()).rejects.toThrow(/64 hex chars/)
+    } finally {
+      process.env.ENCRYPTION_MASTER_KEY = mekOriginal
+    }
+
+    // A correção errada mais provável (deixar a Fase 1 rodar e só a Fase 2 estourar) também
+    // rejeita — só a sonda antes da Fase 1 mantém a categoria semeada viva.
+    const cats = await db
+      .select()
+      .from(schema.categories)
+      .where(eq(schema.categories.userId, outroId))
+    expect(cats).toHaveLength(1)
   })
 })

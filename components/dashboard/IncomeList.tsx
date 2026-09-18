@@ -13,6 +13,8 @@ type Income = {
   id: string
   source: string
   amount: string
+  tripId: string | null
+  canLinkTrip: boolean
 }
 
 function IncomeRow({ income }: { income: Income }) {

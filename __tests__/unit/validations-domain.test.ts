@@ -21,6 +21,7 @@ import {
   addContributionActionSchema,
   updateContributionActionSchema,
 } from '@/lib/validations/goals'
+import { tripSchema, upsertTripActionSchema } from '@/lib/validations/trips'
 import {
   investmentTypeSchema,
   investmentEntrySchema,
@@ -469,6 +470,92 @@ describe('updateContributionActionSchema', () => {
   })
 })
 
+// ─── trips.ts ─────────────────────────────────────────────────────────────────
+
+describe('tripSchema', () => {
+  it('accepts minimal valid data (só nome)', () => {
+    expect(tripSchema.safeParse({ name: 'Rock in Rio 2026' }).success).toBe(true)
+  })
+
+  it('rejects empty name', () => {
+    expect(tripSchema.safeParse({ name: '' }).success).toBe(false)
+  })
+
+  it('accepts startDate, endDate and goalId', () => {
+    expect(
+      tripSchema.safeParse({
+        name: 'Rock in Rio 2026',
+        startDate: '2026-09-11',
+        endDate: '2026-09-20',
+        goalId: VALID_UUID,
+      }).success
+    ).toBe(true)
+  })
+
+  it('accepts null startDate/endDate/goalId', () => {
+    expect(
+      tripSchema.safeParse({
+        name: 'Rock in Rio 2026',
+        startDate: null,
+        endDate: null,
+        goalId: null,
+      }).success
+    ).toBe(true)
+  })
+
+  it('rejects invalid goalId', () => {
+    expect(tripSchema.safeParse({ name: 'Rock in Rio 2026', goalId: 'not-uuid' }).success).toBe(
+      false
+    )
+  })
+
+  it('rejects endDate before startDate, with the error on endDate', () => {
+    const result = tripSchema.safeParse({
+      name: 'Rock in Rio 2026',
+      startDate: '2026-10-10',
+      endDate: '2026-10-01',
+    })
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0].path).toEqual(['endDate'])
+  })
+
+  it('accepts endDate equal to startDate (evento de um dia)', () => {
+    expect(
+      tripSchema.safeParse({ name: 'Show', startDate: '2026-10-10', endDate: '2026-10-10' }).success
+    ).toBe(true)
+  })
+
+  it('accepts only one of the dates', () => {
+    expect(tripSchema.safeParse({ name: 'Show', endDate: '2026-10-01' }).success).toBe(true)
+    expect(tripSchema.safeParse({ name: 'Show', startDate: '2026-10-10' }).success).toBe(true)
+  })
+})
+
+describe('upsertTripActionSchema', () => {
+  const base = { name: 'Rock in Rio 2026' }
+
+  it('accepts minimal valid data', () => {
+    expect(upsertTripActionSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('accepts existingId for updates', () => {
+    expect(upsertTripActionSchema.safeParse({ ...base, existingId: VALID_UUID }).success).toBe(true)
+  })
+
+  it('rejects invalid existingId', () => {
+    expect(upsertTripActionSchema.safeParse({ ...base, existingId: 'not-uuid' }).success).toBe(
+      false
+    )
+  })
+
+  it('rejects endDate before startDate', () => {
+    expect(
+      upsertTripActionSchema.safeParse({ ...base, startDate: '2026-10-10', endDate: '2026-10-01' })
+        .success
+    ).toBe(false)
+  })
+})
+
 // ─── investments.ts ───────────────────────────────────────────────────────────
 
 describe('investmentTypeSchema', () => {
@@ -608,6 +695,25 @@ describe('withdrawalSchema', () => {
   it('rejects negative taxAmount', () => {
     expect(withdrawalSchema.safeParse({ ...base, taxAmount: '-1' }).success).toBe(false)
   })
+
+  it('accepts tripId with destination=income', () => {
+    expect(withdrawalSchema.safeParse({ ...base, tripId: VALID_UUID }).success).toBe(true)
+  })
+
+  it('treats empty tripId as absent', () => {
+    const result = withdrawalSchema.safeParse({ ...base, destination: 'reinvest', tripId: '' })
+    expect(result.success).toBe(true)
+    expect(result.data?.tripId).toBeUndefined()
+  })
+
+  it.each(['reinvest', 'transfer'] as const)(
+    'rejects tripId with destination=%s',
+    (destination) => {
+      const result = withdrawalSchema.safeParse({ ...base, destination, tripId: VALID_UUID })
+      expect(result.success).toBe(false)
+      expect(result.error?.issues[0]?.path).toEqual(['tripId'])
+    }
+  )
 })
 
 describe('upsertInvestmentActionSchema — at-least-one refine', () => {

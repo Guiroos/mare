@@ -9,6 +9,7 @@ import { getInvestmentTypes, getInvestmentBalances } from '@/lib/queries/investm
 import { getDashboardData } from '@/lib/queries/dashboard'
 import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getActivePeople } from '@/lib/queries/debtors'
+import { getActiveTrips } from '@/lib/queries/trips'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { requireUserId } from '@/lib/auth/require-user'
 
@@ -30,7 +31,7 @@ export async function getRegistrationFormData() {
         }
       : undefined
 
-  const [categoryGroups, accounts, investmentTypes, people, balances, dashboardData] =
+  const [categoryGroups, accounts, investmentTypes, people, balances, dashboardData, trips] =
     await Promise.all([
       getCategoriesWithGroups(userId),
       getPaymentAccounts(userId),
@@ -38,6 +39,7 @@ export async function getRegistrationFormData() {
       getActivePeople(userId),
       getInvestmentBalances(userId),
       getDashboardData(userId, month, faturaCtx),
+      getActiveTrips(userId),
     ])
 
   const { groupProgress, summary } = dashboardData
@@ -58,5 +60,6 @@ export async function getRegistrationFormData() {
     currentBalance: summary.balance,
     people,
     investmentBalances,
+    trips,
   }
 }

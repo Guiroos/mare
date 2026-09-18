@@ -37,6 +37,8 @@ export type EditContext = {
   entityId: string
   primaryType: 'saida' | 'entrada'
   subType?: 'avulsa' | 'fixa'
+  /** false esconde o TripPicker e limpa a viagem — entrada de resgate que não é para o caixa */
+  canLinkTrip?: boolean
   initialValues: {
     name?: string
     source?: string
@@ -45,5 +47,6 @@ export type EditContext = {
     dueDay?: number
     categoryId?: string
     accountId?: string
+    tripId?: string | null
   }
 }

@@ -22,6 +22,7 @@ import {
   assertOwnsCategory,
   assertOwnsPaymentAccount,
   assertOwnsPerson,
+  assertOwnsTrip,
 } from '@/lib/auth/ownership'
 import {
   transactionSchema,
@@ -48,6 +49,7 @@ export type CreateTransactionInput = {
   date: string
   categoryId: string
   accountId: string
+  tripId?: string
   splits?: TransactionSplit[]
 }
 
@@ -58,6 +60,7 @@ export async function createTransaction(data: CreateTransactionInput) {
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
     assertOwnsPaymentAccount(userId, data.accountId),
+    ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
     ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
@@ -74,6 +77,7 @@ export async function createTransaction(data: CreateTransactionInput) {
         referenceMonth: dateToReferenceMonth(data.date),
         categoryId: data.categoryId,
         accountId: data.accountId,
+        tripId: data.tripId ?? null,
       })
       .returning({ id: transactions.id })
 
@@ -96,6 +100,7 @@ export async function createTransaction(data: CreateTransactionInput) {
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  if (data.tripId) revalidatePath('/viagens')
   if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
@@ -248,6 +253,7 @@ export type CreateInstallmentInput = {
   startDate: string
   categoryId: string
   accountId: string
+  tripId?: string
   splits?: TransactionSplit[]
 }
 
@@ -264,6 +270,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
         .where(eq(paymentAccounts.id, data.accountId))
         .then((rows) => rows[0])
     ),
+    ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
     ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
@@ -285,6 +292,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
         startDate: data.startDate,
         categoryId: data.categoryId,
         accountId: data.accountId,
+        tripId: data.tripId ?? null,
       })
       .returning({ id: installmentGroups.id })
 
@@ -300,6 +308,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
         referenceMonth: format(refMonth, 'yyyy-MM-dd'),
         categoryId: data.categoryId,
         accountId: data.accountId,
+        tripId: data.tripId ?? null,
         installmentGroupId: group.id,
         installmentNumber: i + 1,
         totalInstallments: data.totalInstallments,
@@ -349,6 +358,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  if (data.tripId) revalidatePath('/viagens')
   if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
 }
 
@@ -361,6 +371,7 @@ export type UpdateTransactionInput = {
   date: string
   categoryId: string
   accountId: string
+  tripId?: string
 }
 
 export async function updateTransaction(data: UpdateTransactionInput) {
@@ -370,6 +381,7 @@ export async function updateTransaction(data: UpdateTransactionInput) {
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
     assertOwnsPaymentAccount(userId, data.accountId),
+    ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
   ])
 
   const dek = await getDekForUser(userId)
@@ -383,11 +395,13 @@ export async function updateTransaction(data: UpdateTransactionInput) {
       referenceMonth: dateToReferenceMonth(data.date),
       categoryId: data.categoryId,
       accountId: data.accountId,
+      tripId: data.tripId ?? null,
     })
     .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)))
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  revalidatePath('/viagens')
 }
 
 // ─── Edição de compra parcelada ───────────────────────────────────────────────
@@ -397,6 +411,7 @@ export type UpdateInstallmentGroupInput = {
   name: string
   categoryId: string
   accountId: string
+  tripId?: string
   newTotalAmount?: string
 }
 
@@ -412,6 +427,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
       .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId))),
     assertOwnsCategory(userId, data.categoryId),
     assertOwnsPaymentAccount(userId, data.accountId),
+    ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
   ])
 
   const group = rows[0]
@@ -423,6 +439,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
     name: encryptField(data.name, dek),
     categoryId: data.categoryId,
     accountId: data.accountId,
+    tripId: data.tripId ?? null,
   }
   if (data.newTotalAmount) groupUpdate.totalAmount = encryptField(data.newTotalAmount, dek)
 
@@ -462,6 +479,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
             ),
             categoryId: data.categoryId,
             accountId: data.accountId,
+            tripId: data.tripId ?? null,
             ...(amountUpdates[t.id] ? { amount: encryptField(amountUpdates[t.id], dek) } : {}),
           })
           .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
@@ -472,6 +490,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/parcelas')
+  revalidatePath('/viagens')
 }
 
 export async function deleteInstallmentGroup(id: string) {
@@ -508,6 +527,7 @@ export async function deleteInstallmentGroup(id: string) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/devedores')
+  revalidatePath('/viagens')
 }
 
 // ─── Exclusão de transação avulsa ─────────────────────────────────────────────
@@ -527,4 +547,5 @@ export async function deleteTransaction(id: string) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/devedores')
+  revalidatePath('/viagens')
 }

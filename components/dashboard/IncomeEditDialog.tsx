@@ -1,17 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Pencil } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
+import type { TripOption } from '@/components/forms/transaction/TripPicker'
+import { getTripOptions } from '@/lib/actions/trips'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Income = {
   id: string
   source: string
   amount: string
+  tripId: string | null
+  canLinkTrip: boolean
 }
 
 export function IncomeEditButton({
@@ -24,21 +28,28 @@ export function IncomeEditButton({
   onOpenChange?: (v: boolean) => void
 }) {
   const [internalOpen, setInternalOpen] = useState(false)
+  const [trips, setTrips] = useState<TripOption[]>([])
   const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen! : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
+  useEffect(() => {
+    if (open && income.canLinkTrip) getTripOptions().then(setTrips)
+  }, [open, income.canLinkTrip])
+
   const content = (
     <TransactionForm
       mode="edit"
       categoryGroups={[]}
       accounts={[]}
+      trips={trips}
       editContext={{
         entityId: income.id,
         primaryType: 'entrada',
-        initialValues: { source: income.source, amount: income.amount },
+        canLinkTrip: income.canLinkTrip,
+        initialValues: { source: income.source, amount: income.amount, tripId: income.tripId },
       }}
       onSuccess={() => setOpen(false)}
     />
