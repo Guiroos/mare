@@ -301,15 +301,18 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
       .where(and(eq(investmentWithdrawals.id, data.id), eq(investmentWithdrawals.userId, userId)))
 
     if (withdrawal.incomeId) {
-      const typeRow = await tx.query.investmentTypes.findFirst({
-        where: and(
-          eq(investmentTypes.id, data.investmentTypeId),
-          eq(investmentTypes.userId, userId)
-        ),
-        columns: { name: true },
-      })
-      if (!typeRow) throw new Error('Tipo de investimento não encontrado')
-      const source = encryptField(`Resgate investimento ${decryptField(typeRow.name, dek)}`, dek)
+      let source: string | undefined
+      if (withdrawal.investmentTypeId !== data.investmentTypeId) {
+        const typeRow = await tx.query.investmentTypes.findFirst({
+          where: and(
+            eq(investmentTypes.id, data.investmentTypeId),
+            eq(investmentTypes.userId, userId)
+          ),
+          columns: { name: true },
+        })
+        if (!typeRow) throw new Error('Tipo de investimento não encontrado')
+        source = encryptField(`Resgate investimento ${decryptField(typeRow.name, dek)}`, dek)
+      }
 
       if (withdrawal.destination === 'reinvest') {
         const capitalRows = await tx
@@ -329,7 +332,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
         await tx
           .update(incomes)
           .set({
-            source,
+            ...(source && { source }),
             amount: encryptField(data.amount, dek),
             referenceMonth: dateToReferenceMonth(data.date),
             investmentReturnCapital: encryptOptional(newReturnCapital, dek),
@@ -339,7 +342,7 @@ export async function updateWithdrawal(data: UpdateWithdrawalInput) {
         await tx
           .update(incomes)
           .set({
-            source,
+            ...(source && { source }),
             amount: encryptField(data.amount, dek),
             referenceMonth: dateToReferenceMonth(data.date),
             investmentReturnCapital: null,
