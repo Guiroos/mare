@@ -410,6 +410,45 @@ describe('updateWithdrawal', () => {
     expect(decryptField(income!.amount, dek)).toBe('200.00')
     expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('200.00')
   })
+
+  it('income.source acompanha a troca de tipo do resgate', async () => {
+    const oldType = await createInvestmentType(db, userId, { name: 'CDB Antigo' })
+    const newType = await createInvestmentType(db, userId, { name: 'Tesouro Novo' })
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+
+    await createWithdrawal({
+      investmentTypeId: oldType.id,
+      investmentTypeName: 'CDB Antigo',
+      amount: '1000.00',
+      date: '2025-06-01',
+      destination: 'income',
+    })
+
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: and(
+        eq(schema.investmentWithdrawals.userId, userId),
+        eq(schema.investmentWithdrawals.investmentTypeId, oldType.id)
+      ),
+    })
+    expect(withdrawal).toBeDefined()
+
+    await updateWithdrawal({
+      id: withdrawal!.id,
+      investmentTypeId: newType.id,
+      amount: '1000.00',
+      date: '2025-06-01',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.source, dek)).toBe('Resgate investimento Tesouro Novo')
+  })
 })
 
 describe('resgate vinculado a viagem', () => {
