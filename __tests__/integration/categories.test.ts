@@ -132,3 +132,27 @@ describe('categories.categoryId — onDelete: restrict em installmentGroups', ()
     expect(group_).toBeDefined()
   })
 })
+
+describe('getCategoriesWithGroups — ordenação por sortOrder', () => {
+  it('respeita sortOrder mesmo quando contradiz a ordem alfabética', async () => {
+    await createCategoryGroup(db, userId, 'Zebra', { sortOrder: 0 })
+    await createCategoryGroup(db, userId, 'Alimentação', { sortOrder: 1 })
+
+    const { getCategoriesWithGroups } = await import('@/lib/queries/categories')
+    const groups = await getCategoriesWithGroups(userId)
+
+    const names = groups.map((g) => g.name).filter((n) => n === 'Zebra' || n === 'Alimentação')
+    expect(names).toEqual(['Zebra', 'Alimentação'])
+  })
+
+  it('getCategoriesWithBudgets respeita sortOrder mesmo contra a ordem alfabética', async () => {
+    await createCategoryGroup(db, userId, 'Zulu', { sortOrder: 0 })
+    await createCategoryGroup(db, userId, 'Abacate', { sortOrder: 1 })
+
+    const { getCategoriesWithBudgets } = await import('@/lib/queries/categories')
+    const groups = await getCategoriesWithBudgets(userId, '2025-04-01')
+
+    const names = groups.map((g) => g.name).filter((n) => n === 'Zulu' || n === 'Abacate')
+    expect(names).toEqual(['Zulu', 'Abacate'])
+  })
+})
