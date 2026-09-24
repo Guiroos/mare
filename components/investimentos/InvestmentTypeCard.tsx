@@ -130,8 +130,9 @@ export function InvestmentTypeCard({ balance }: Props) {
     startTransition(async () => {
       try {
         await archiveInvestmentType(balance.id)
-      } catch {
-        toast.error('Não é possível arquivar tipo com saldo.')
+      } catch (err) {
+        console.error('[InvestmentTypeCard] archiveInvestmentType falhou', err)
+        toast.error('Não foi possível arquivar. Tente novamente.')
       }
     })
   }
