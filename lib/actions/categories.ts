@@ -31,8 +31,19 @@ import type { ActionResult } from '@/lib/actions/types'
 export async function createCategoryGroup(name: string) {
   const userId = await requireUserId()
   groupSchema.parse({ name })
-  const dek = await getDekForUser(userId)
-  await db.insert(categoryGroups).values({ userId, name: encryptField(name, dek) })
+  const [dek, existingGroups] = await Promise.all([
+    getDekForUser(userId),
+    db.query.categoryGroups.findMany({
+      where: eq(categoryGroups.userId, userId),
+      columns: { sortOrder: true },
+    }),
+  ])
+  const nextSortOrder = existingGroups.reduce((max, g) => Math.max(max, g.sortOrder + 1), 0)
+  await db.insert(categoryGroups).values({
+    userId,
+    name: encryptField(name, dek),
+    sortOrder: nextSortOrder,
+  })
   revalidatePath('/categorias')
 }
 
