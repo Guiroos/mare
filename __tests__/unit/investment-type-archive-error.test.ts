@@ -2,21 +2,27 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-// Gate por string sobre o código-fonte (#143). `catch {}` sem binding que
-// afirma uma causa de negócio específica ("Não é possível X com Y") é sempre
-// suspeito: se a causa real fosse capturada, ela estaria no binding. Aqui o
-// caso é mais forte — o gate de render (`archiveAction`) só oferece o botão
-// que dispara `handleArchive` quando o saldo já é zero, a negação exata do
-// guard de `archiveInvestmentType` (lib/actions/investments.ts) — então a
-// falha "tipo com saldo" nunca é a causa real quando o catch roda. O que
-// sobra (sessão expirada, ownership, rede) precisa de mensagem genérica.
+// Gate por string sobre o código-fonte (#143). Um catch que afirma uma causa
+// de negócio específica ("Não é possível X com Y") sem tê-la verificado é
+// sempre suspeito. Aqui o caso é mais forte — o gate de render
+// (`archiveAction`) só oferece o botão que dispara `handleArchive` quando o
+// saldo já é zero, a negação exata do guard de `archiveInvestmentType`
+// (lib/actions/investments.ts) — então a falha "tipo com saldo" nunca é a
+// causa real quando o catch roda. O que sobra (sessão expirada, ownership,
+// rede) precisa de mensagem genérica.
 // Precedente: __tests__/unit/row-actions.test.ts (readFileSync + asserção
 // sobre conteúdo do arquivo) e __tests__/unit/no-err-message.test.ts (varre
 // app/ e components/ procurando um padrão proibido).
 //
-// O regex ancora na frase de negócio específica, não em `toast.error`
-// genérico — 'Não foi possível excluir. Tente novamente.' (row-actions.tsx)
-// é a forma correta já mergeada e não pode virar falso-positivo.
+// Âncora no sink (`toast.error(...)`), não numa distância de `catch`, pelo
+// mesmo motivo já registrado em no-err-message.test.ts:32-40: um regex que
+// exige `catch\s*\{` (sem binding) fica cego assim que a correção adiciona
+// `catch (err) { console.error(...); toast.error(...) }` — que é exatamente
+// o "conserto pela metade" que a #143 descarta (diagnóstico presente,
+// afirmação falsa ainda na tela). Verificado sem falso-positivo em app/ +
+// components/: as demais ocorrências de "Não é possível" são a prop JSX
+// `errorMessage=`/`deleteErrorMessage=` (forma ratificada pela #35), que não
+// casa com `toast.error(`.
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'components']
@@ -38,14 +44,14 @@ function collectTsxFiles(dir: string): string[] {
   return files
 }
 
-const CATCH_AFFIRMS_BUSINESS_CAUSE = /catch\s*\{[^}]*toast\.error\(\s*'Não é possível [^']*'\s*\)/
+const TOAST_AFFIRMS_BUSINESS_CAUSE = /toast\.error\(\s*'Não é possível /
 
 describe('catch de mutação não afirma causa sem registrar a exceção real (#143)', () => {
-  it('nenhum catch sem binding afirma uma causa de negócio específica', () => {
+  it('nenhum toast de erro afirma uma causa de negócio específica sem verificá-la', () => {
     const files = SCAN_DIRS.flatMap((dir) => collectTsxFiles(join(ROOT, dir)))
 
     const ofensores = files
-      .filter((file) => CATCH_AFFIRMS_BUSINESS_CAUSE.test(readFileSync(file, 'utf-8')))
+      .filter((file) => TOAST_AFFIRMS_BUSINESS_CAUSE.test(readFileSync(file, 'utf-8')))
       .map((file) => file.replace(ROOT + '/', ''))
 
     expect(ofensores).toEqual([])
