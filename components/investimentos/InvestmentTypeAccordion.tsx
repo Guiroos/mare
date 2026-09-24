@@ -119,8 +119,9 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
     startTransition(async () => {
       try {
         await archiveInvestmentType(balance.id)
-      } catch {
-        toast.error('Não é possível arquivar tipo com saldo.')
+      } catch (err) {
+        console.error('[InvestmentTypeAccordion] archiveInvestmentType falhou', err)
+        toast.error('Não foi possível arquivar. Tente novamente.')
       }
     })
   }
