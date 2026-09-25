@@ -249,21 +249,20 @@ export async function collectHistoricoItems(
     }
   })
 
-  // Filtro JS de precisão para fixedExpenses (dueDay pode colocar fora do range)
-  const fxItemsFiltered = fxItems.filter((f) => f.date >= de && f.date <= ate)
-
   // Merge and sort
-  const merged = mergeAndSortFeedItems([
-    txItems,
-    fxItemsFiltered,
-    incomeItems,
-    investItems,
-    withdrawItems,
-  ])
+  const merged = mergeAndSortFeedItems([txItems, fxItems, incomeItems, investItems, withdrawItems])
+
+  // Filtro JS de precisão: refMonths traz meses inteiros (necessário para o dueDay
+  // de fixedExpenses cair fora do mês do referenceMonth), mas incomes/investments
+  // são sempre datados no dia 1º do mês — sem este filtro, um recorte que começa
+  // depois do dia 1º vaza entrada/aporte do mês anterior ao início pedido.
+  const precise = merged.filter((item) => item.date >= de && item.date <= ate)
 
   // Apply q filter to investment/withdrawal items not filtered at DB level
   const qLower = q ? q.toLowerCase() : null
-  const sorted = qLower ? merged.filter((item) => item.name.toLowerCase().includes(qLower)) : merged
+  const sorted = qLower
+    ? precise.filter((item) => item.name.toLowerCase().includes(qLower))
+    : precise
 
   return sorted
 }
