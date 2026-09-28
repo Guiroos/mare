@@ -232,7 +232,11 @@ export function billingCycleDateRange(
 
 /**
  * Returns the yearMonth of the billing cycle currently open (not yet closed) and the one
- * most recently closed, as of today.
+ * most recently closed, as of today. Returns null for closingDay <= 1, matching
+ * billingCycleDateRange's contract (calendar month behavior should be used instead) — the
+ * two are meant to be chained (`billingCycleDateRange(currentBillingCycleYearMonths(cd)!.openYearMonth, cd)`),
+ * so they share the same closingDay <= 1 guard instead of one returning null and the other a
+ * value that isn't pairable with it.
  *
  * Compares today's full date against the START of the next cycle (from billingCycleDateRange)
  * instead of comparing the raw day-of-month against closingDay: a raw comparison never fires
@@ -242,11 +246,10 @@ export function billingCycleDateRange(
 export function currentBillingCycleYearMonths(closingDay: number): {
   openYearMonth: string
   closedYearMonth: string
-} {
+} | null {
+  if (closingDay <= 1) return null
+
   const todayYearMonth = currentYearMonth()
-  if (closingDay <= 1) {
-    return { openYearMonth: todayYearMonth, closedYearMonth: prevMonth(todayYearMonth) }
-  }
   const nextCycleStart = billingCycleDateRange(nextMonth(todayYearMonth), closingDay)!.start
   const openYearMonth =
     todayISOString() < nextCycleStart ? todayYearMonth : nextMonth(todayYearMonth)

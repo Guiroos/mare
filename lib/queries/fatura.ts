@@ -209,8 +209,9 @@ export async function getOpenFaturas(
 
     // currentBillingCycleYearMonths deriva do mesmo billingCycleDateRange que define os
     // ranges abaixo — evita reintroduzir uma fórmula de fronteira à parte que não acompanha
-    // o clamp de closingDay 29-31 (ver #91/#173).
-    const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(closingDay)
+    // o clamp de closingDay 29-31 (ver #91/#173). `!` é seguro: creditAccounts já veio
+    // filtrado por gt(paymentAccounts.closingDay, 1) na query acima.
+    const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(closingDay)!
 
     const openRange = billingCycleDateRange(openYearMonth, closingDay)!
     const closedRange = billingCycleDateRange(closedYearMonth, closingDay)!

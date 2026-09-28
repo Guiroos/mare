@@ -20,6 +20,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 - O `closingDay` é o **primeiro dia do novo ciclo**: ciclo de `yearMonth` vai de `closingDay` do mês anterior até `closingDay - 1` do mês atual
 - Exemplo com `closingDay=8` e `yearMonth="2025-03"`: `start=2025-02-08`, `end=2025-03-07`
 - `closingDay` é clampado ao último dia do mês quando o mês é mais curto (ex: fevereiro); `end` é derivado do `start` do ciclo seguinte menos 1 dia (não de um clamp próprio) — garante por construção que o ciclo `M` termina exatamente no dia anterior ao início do ciclo `M+1`, mesmo com `closingDay` 29-31. Quando o mês é curto, o ciclo daquele mês fica mais curto e o seguinte compensa; é o comportamento correto de fatura, não um bug (ver #91)
+- `currentBillingCycleYearMonths(closingDay)` em `lib/utils/date.ts` — qual ciclo está aberto e qual acabou de fechar, hoje. Compara a data cheia de hoje contra o `start` do ciclo seguinte, **nunca** `day < closingDay`: a comparação crua não dispara quando `closingDay` excede os dias do mês (31 em fevereiro) e deixa o dia fora dos dois ciclos (#91/#173). `closedYearMonth` é sempre `prevMonth(openYearMonth)`; retorna `null` para `closingDay <= 1`, mesmo contrato de `billingCycleDateRange` — as duas são feitas para encadear (`billingCycleDateRange(currentBillingCycleYearMonths(cd)!.openYearMonth, cd)`)
 
 ## Tipos
 
@@ -33,6 +34,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 - `getFaturaState(userId, accountId, referenceMonth)` — estado de um único ciclo; retorna `null` se conta inválida ou `closingDay <= 1`
 - `getOpenFaturas(userId, faturaActiveFrom)` — 3 queries bulk (`transactions`, `fixedExpenses`, `payments`) + agregação JS por conta; evita N queries por conta
 - `getOpenFaturas` filtra `fixedExpenses` via `referenceMonth IN (...)` com dois meses por ciclo (mês anterior para `dueDay >= closingDay`, mês atual para `dueDay < closingDay`)
+- `getOpenFaturas` não reimplementa a fronteira: a escolha do ciclo vem de `currentBillingCycleYearMonths`
 
 ## Actions
 
