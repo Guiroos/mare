@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
@@ -548,6 +548,40 @@ describe('billingCycleDateRange', () => {
   it('returns a label string in expected format', () => {
     const result = billingCycleDateRange('2025-03', 8)
     expect(result!.label).toMatch(/\d{2}\/\w{3} → \d{2}\/\w{3}/)
+  })
+
+  it('ciclo de fevereiro (não-bissexto) com closingDay=31 termina antes do início de março, sem sobreposição', () => {
+    const result = billingCycleDateRange('2025-02', 31)
+    expect(result!.start).toBe('2025-01-31')
+    expect(result!.end).toBe('2025-02-27')
+  })
+
+  it('end de um ciclo é sempre o dia anterior ao start do ciclo seguinte, para todo closingDay e mês', () => {
+    const months = [
+      '2024-01',
+      '2024-02', // bissexto
+      '2024-03',
+      '2024-04',
+      '2024-06',
+      '2024-09',
+      '2024-11',
+      '2025-01',
+      '2025-02', // não-bissexto
+      '2025-03',
+      '2025-04',
+      '2025-06',
+      '2025-09',
+      '2025-11',
+      '2025-12',
+    ]
+    for (let closingDay = 2; closingDay <= 31; closingDay++) {
+      for (const month of months) {
+        const current = billingCycleDateRange(month, closingDay)!
+        const next = billingCycleDateRange(nextMonth(month), closingDay)!
+        const dayAfterCurrentEnd = format(addDays(parseDate(current.end), 1), 'yyyy-MM-dd')
+        expect(dayAfterCurrentEnd).toBe(next.start)
+      }
+    }
   })
 })
 
