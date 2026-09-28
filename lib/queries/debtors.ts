@@ -136,6 +136,36 @@ export type BalanceEvolutionPoint = {
   balance: number
 }
 
+type BalanceEvolutionEntry = {
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number
+  entryDate: string
+}
+
+/**
+ * Agrega por mês num Map e acumula depois sobre as chaves ordenadas — mesma
+ * forma de buildPatrimonyTimeline (lib/queries/investments.ts). Nunca detectar
+ * virada de mês no meio da acumulação: essa versão fechava cada mês com o
+ * saldo já somado à primeira entrada do mês seguinte.
+ */
+export function buildBalanceEvolution(entries: BalanceEvolutionEntry[]): BalanceEvolutionPoint[] {
+  const monthMap = new Map<string, number>()
+
+  for (const e of entries) {
+    const month = e.entryDate.slice(0, 7)
+    const delta = e.type === 'payment' ? -e.amount : e.amount
+    monthMap.set(month, (monthMap.get(month) ?? 0) + delta)
+  }
+
+  const sortedMonths = Array.from(monthMap.keys()).sort()
+
+  let cumulative = 0
+  return sortedMonths.map((month) => {
+    cumulative += monthMap.get(month)!
+    return { month, balance: cumulative }
+  })
+}
+
 export type PersonDebtDetails = {
   person: {
     id: string
@@ -275,38 +305,7 @@ export async function getPersonDebtDetails(
     if (!lastMovement || e.entryDate > lastMovement) lastMovement = e.entryDate
   }
 
-  // balanceEvolution: one point per month (last balance of each month), entries already asc
-  const balanceEvolution: BalanceEvolutionPoint[] = []
-  let runningBalance = 0
-  let currentMonth = ''
-  for (const e of entries) {
-    if (e.type === 'payment') {
-      runningBalance -= e.amount
-    } else {
-      // 'charge' e 'adjustment' (amount com sinal) somam ao saldo aqui
-      runningBalance += e.amount
-    }
-    const month = e.entryDate.slice(0, 7)
-    if (month !== currentMonth) {
-      if (currentMonth) balanceEvolution.push({ month: currentMonth, balance: runningBalance })
-      currentMonth = month
-    } else {
-      if (
-        balanceEvolution.length > 0 &&
-        balanceEvolution[balanceEvolution.length - 1].month === month
-      ) {
-        balanceEvolution[balanceEvolution.length - 1].balance = runningBalance
-      }
-    }
-  }
-  if (currentMonth) {
-    const last = balanceEvolution[balanceEvolution.length - 1]
-    if (!last || last.month !== currentMonth) {
-      balanceEvolution.push({ month: currentMonth, balance: runningBalance })
-    } else {
-      last.balance = runningBalance
-    }
-  }
+  const balanceEvolution = buildBalanceEvolution(entries)
 
   // entries returned desc for display
   const entriesDesc = [...entries].reverse()
