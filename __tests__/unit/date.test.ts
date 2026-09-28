@@ -10,6 +10,7 @@ import {
   parseDate,
   lastDayOfYearMonth,
   billingCycleDateRange,
+  currentBillingCycleYearMonths,
   dateToReferenceMonth,
   formatMonthName,
   formatMonthYear,
@@ -580,6 +581,58 @@ describe('billingCycleDateRange', () => {
         const next = billingCycleDateRange(nextMonth(month), closingDay)!
         const dayAfterCurrentEnd = format(addDays(parseDate(current.end), 1), 'yyyy-MM-dd')
         expect(dayAfterCurrentEnd).toBe(next.start)
+      }
+    }
+  })
+})
+
+describe('currentBillingCycleYearMonths', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('closingDay=31, hoje 2025-02-28: o dia é o closingDay clampado, então já abre o ciclo de março — sem cair num buraco entre os dois ciclos', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-02-28T12:00:00'))
+    const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(31)
+    // Fevereiro/2025 só tem 28 dias, então closingDay=31 clampa para o dia 28 — o mesmo dia
+    // em que billingCycleDateRange('2025-03', 31) começa. Antes da correção, a comparação
+    // rua (day < closingDay) nunca detectava essa virada e o dia caía fora dos dois ciclos.
+    expect(openYearMonth).toBe('2025-03')
+    expect(closedYearMonth).toBe('2025-02')
+    const openRange = billingCycleDateRange(openYearMonth, 31)!
+    expect(openRange.start).toBe('2025-02-28')
+    expect(openRange.start <= '2025-02-28' && '2025-02-28' <= openRange.end).toBe(true)
+  })
+
+  it('closingDay=1: usa comportamento de calendário (mês corrente aberto, anterior fechado)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-06-15T12:00:00'))
+    expect(currentBillingCycleYearMonths(1)).toEqual({
+      openYearMonth: '2025-06',
+      closedYearMonth: '2025-05',
+    })
+  })
+
+  it('para closingDay 29, 30 e 31, todo dia de 2024 e 2025 cai dentro do próprio ciclo aberto — sem buraco na fronteira', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    for (const closingDay of [29, 30, 31]) {
+      for (const year of [2024, 2025]) {
+        for (let month = 1; month <= 12; month++) {
+          const daysInMonth = new Date(year, month, 0).getDate()
+          for (let day = 1; day <= daysInMonth; day++) {
+            const mm = String(month).padStart(2, '0')
+            const dd = String(day).padStart(2, '0')
+            const today = `${year}-${mm}-${dd}`
+            vi.setSystemTime(new Date(`${today}T12:00:00`))
+
+            const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(closingDay)
+            const openRange = billingCycleDateRange(openYearMonth, closingDay)!
+
+            expect(openRange.start <= today && today <= openRange.end).toBe(true)
+            expect(closedYearMonth).toBe(prevMonth(openYearMonth))
+          }
+        }
       }
     }
   })

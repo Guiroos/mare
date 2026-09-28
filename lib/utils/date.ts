@@ -231,6 +231,29 @@ export function billingCycleDateRange(
 }
 
 /**
+ * Returns the yearMonth of the billing cycle currently open (not yet closed) and the one
+ * most recently closed, as of today.
+ *
+ * Compares today's full date against the START of the next cycle (from billingCycleDateRange)
+ * instead of comparing the raw day-of-month against closingDay: a raw comparison never fires
+ * when closingDay exceeds the current month's length (e.g. closingDay=31 in February), so it
+ * can't track the clamp billingCycleDateRange applies — see #91/#173.
+ */
+export function currentBillingCycleYearMonths(closingDay: number): {
+  openYearMonth: string
+  closedYearMonth: string
+} {
+  const todayYearMonth = currentYearMonth()
+  if (closingDay <= 1) {
+    return { openYearMonth: todayYearMonth, closedYearMonth: prevMonth(todayYearMonth) }
+  }
+  const nextCycleStart = billingCycleDateRange(nextMonth(todayYearMonth), closingDay)!.start
+  const openYearMonth =
+    todayISOString() < nextCycleStart ? todayYearMonth : nextMonth(todayYearMonth)
+  return { openYearMonth, closedYearMonth: prevMonth(openYearMonth) }
+}
+
+/**
  * Returns the referenceMonth base for installment 1.
  * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
  */

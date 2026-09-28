@@ -6,10 +6,10 @@ import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField } from '@/lib/crypto/fields'
 import {
   billingCycleDateRange,
+  currentBillingCycleYearMonths,
   nextMonth,
   prevMonth,
   referenceMonthToYearMonth,
-  todayParts,
   yearMonthToReferenceMonth,
 } from '@/lib/utils/date'
 
@@ -202,15 +202,15 @@ export async function getOpenFaturas(
 
   if (creditAccounts.length === 0) return []
 
-  const { day, month, year } = todayParts()
-  const todayYearMonth = `${year}-${String(month).padStart(2, '0')}`
   const faturaStartYearMonth = faturaActiveFrom ? faturaActiveFrom.slice(0, 7) : null
 
   const accountCycles = creditAccounts.map((account) => {
     const closingDay = account.closingDay as number
 
-    const openYearMonth = day < closingDay ? todayYearMonth : nextMonth(todayYearMonth)
-    const closedYearMonth = day < closingDay ? prevMonth(todayYearMonth) : todayYearMonth
+    // currentBillingCycleYearMonths deriva do mesmo billingCycleDateRange que define os
+    // ranges abaixo — evita reintroduzir uma fórmula de fronteira à parte que não acompanha
+    // o clamp de closingDay 29-31 (ver #91/#173).
+    const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(closingDay)
 
     const openRange = billingCycleDateRange(openYearMonth, closingDay)!
     const closedRange = billingCycleDateRange(closedYearMonth, closingDay)!
