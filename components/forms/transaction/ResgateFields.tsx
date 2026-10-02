@@ -18,10 +18,10 @@ type Props = {
 export function ResgateFields({ errors, today, destination, onDestinationChange }: Props) {
   return (
     <>
-      <Field label="Data do resgate" error={errors.date}>
+      <Field label="Data do resgate" required error={errors.date}>
         <Input name="date" type="date" defaultValue={today} error={!!errors.date} required />
       </Field>
-      <Field label="Destino" error={errors.destination}>
+      <Field label="Destino" required error={errors.destination}>
         <Select value={destination} onValueChange={onDestinationChange}>
           <SelectTrigger error={!!errors.destination}>
             <SelectValue placeholder="Selecione..." />
@@ -33,7 +33,7 @@ export function ResgateFields({ errors, today, destination, onDestinationChange 
         </Select>
       </Field>
       <Field label="Observações">
-        <Input name="notes" placeholder="Opcional" />
+        <Input name="notes" />
       </Field>
     </>
   )

@@ -38,7 +38,7 @@ export function SaidaConditionalFields({
   if (resolvedType === 'avulso') {
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Data" error={errors.date}>
+        <Field label="Data" required error={errors.date}>
           <Input
             name="date"
             type="date"
@@ -56,7 +56,7 @@ export function SaidaConditionalFields({
     return (
       <>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Dia de vencimento" error={errors.dueDay}>
+          <Field label="Dia de vencimento" required error={errors.dueDay}>
             <Input
               name="dueDay"
               type="number"
@@ -68,7 +68,7 @@ export function SaidaConditionalFields({
               required
             />
           </Field>
-          <Field label="Mês de referência" error={errors.referenceMonth}>
+          <Field label="Mês de referência" required error={errors.referenceMonth}>
             <MonthSelect
               name="referenceMonth"
               defaultValue={month}
@@ -123,7 +123,7 @@ export function SaidaConditionalFields({
           )}
         </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label="Data da 1ª parcela" error={errors.startDate}>
+          <Field label="Data da 1ª parcela" required error={errors.startDate}>
             <Input
               name="startDate"
               type="date"
