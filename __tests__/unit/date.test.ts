@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
@@ -548,6 +548,34 @@ describe('billingCycleDateRange', () => {
   it('returns a label string in expected format', () => {
     const result = billingCycleDateRange('2025-03', 8)
     expect(result!.label).toMatch(/\d{2}\/\w{3} → \d{2}\/\w{3}/)
+  })
+
+  it('end of a short-month cycle does not overlap the start of the next cycle (closingDay=31, Feb 2025)', () => {
+    const feb = billingCycleDateRange('2025-02', 31)
+    const mar = billingCycleDateRange('2025-03', 31)
+    expect(feb!.end).toBe('2025-02-27')
+    expect(mar!.start).toBe('2025-02-28')
+  })
+
+  it('end(M) is always exactly one day before start(M+1), for every closingDay across short months', () => {
+    const months = [
+      '2025-01',
+      '2025-02',
+      '2025-03',
+      '2025-04',
+      '2025-05',
+      '2025-06',
+      '2024-01',
+      '2024-02',
+      '2024-03',
+    ]
+    for (let closingDay = 2; closingDay <= 31; closingDay++) {
+      for (const month of months) {
+        const current = billingCycleDateRange(month, closingDay)!
+        const next = billingCycleDateRange(nextMonth(month), closingDay)!
+        expect(format(addDays(parseDate(current.end), 1), 'yyyy-MM-dd')).toBe(next.start)
+      }
+    }
   })
 })
 

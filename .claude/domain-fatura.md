@@ -19,7 +19,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 - `billingCycleDateRange(yearMonth, closingDay)` em `lib/utils/date.ts` — retorna `{ start, end, label }` ou `null` se `closingDay <= 1`
 - O `closingDay` é o **primeiro dia do novo ciclo**: ciclo de `yearMonth` vai de `closingDay` do mês anterior até `closingDay - 1` do mês atual
 - Exemplo com `closingDay=8` e `yearMonth="2025-03"`: `start=2025-02-08`, `end=2025-03-07`
-- `closingDay` é clampado ao último dia do mês quando o mês é mais curto (ex: fevereiro)
+- `closingDay` é clampado ao último dia do mês quando o mês é mais curto (ex: fevereiro): o ciclo desse mês fica mais curto, e o ciclo seguinte compensa começando onde o anterior terminou. `end` é derivado do `start` do ciclo seguinte (menos um dia) — nunca por fórmula própria — para que os dois nunca se sobreponham nem tenham buraco; duas fórmulas independentes para `start` e `end` já causaram sobreposição de 1 dia entre ciclos consecutivos quando `closingDay` era 29-31 (#91)
 
 ## Tipos
 
