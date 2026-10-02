@@ -254,8 +254,8 @@ export async function collectHistoricoItems(
 
   // Filtro JS de precisão: refMonths traz meses inteiros (necessário para o dueDay
   // de fixedExpenses cair fora do mês do referenceMonth), mas incomes/investments
-  // são sempre datados no dia 1º do mês — sem este filtro, um recorte que começa
-  // depois do dia 1º vaza entrada/aporte do mês anterior ao início pedido.
+  // são sempre datados no dia 1º do mês — sem este filtro, qualquer recorte que
+  // comece depois do dia 1º vaza a entrada/aporte datada no 1º do próprio mês de `de`.
   const precise = merged.filter((item) => item.date >= de && item.date <= ate)
 
   // Apply q filter to investment/withdrawal items not filtered at DB level
