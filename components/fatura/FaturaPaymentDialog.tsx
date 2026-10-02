@@ -106,7 +106,7 @@ export function FaturaPaymentDialog({
         <Input value={formatCurrency(cycle.total)} disabled />
       </Field>
 
-      <Field label="Pagar com" error={accountError}>
+      <Field label="Pagar com" required error={accountError}>
         <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
           <SelectTrigger className="bg-bg-input">
             <SelectValue placeholder="Selecione a conta..." />
@@ -121,7 +121,7 @@ export function FaturaPaymentDialog({
         </Select>
       </Field>
 
-      <Field label="Data do pagamento" error={dateError}>
+      <Field label="Data do pagamento" required error={dateError}>
         <Input type="date" value={date} min={minDate} onChange={(e) => setDate(e.target.value)} />
       </Field>
 

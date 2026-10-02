@@ -96,7 +96,7 @@ function EntryForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {investmentTypes && !fixedTypeId && (
-        <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+        <Field label="Tipo de investimento" required error={errors.investmentTypeId}>
           <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
             <SelectTrigger className="bg-bg-input">
               <SelectValue placeholder="Selecionar tipo" />
@@ -113,6 +113,7 @@ function EntryForm({
       )}
       <Field
         label="Mês de referência"
+        required
         hint={
           existing
             ? `O registro ficará em ${formatMonthName(referenceMonthToYearMonth(existing.referenceMonth))}.`
@@ -149,7 +150,7 @@ function EntryForm({
           preserveExplicitZero
         />
       </Field>
-      <Field label="Observações" hint="Opcional">
+      <Field label="Observações">
         <Input name="notes" defaultValue={existing?.notes ?? ''} />
       </Field>
       <Switch

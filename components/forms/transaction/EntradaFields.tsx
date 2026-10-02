@@ -8,7 +8,7 @@ type Props = {
 
 export function EntradaFields({ errors, month }: Props) {
   return (
-    <Field label="Mês de referência" error={errors.referenceMonth}>
+    <Field label="Mês de referência" required error={errors.referenceMonth}>
       <MonthSelect name="referenceMonth" defaultValue={month} error={!!errors.referenceMonth} />
     </Field>
   )

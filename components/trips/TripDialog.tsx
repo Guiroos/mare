@@ -105,14 +105,14 @@ export function TripDialog(props: Props) {
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Início" hint="Opcional">
+        <Field label="Início">
           <Input
             name="startDate"
             type="date"
             defaultValue={props.mode === 'edit' ? (props.trip.startDate ?? '') : ''}
           />
         </Field>
-        <Field label="Fim" hint="Opcional" error={errors.endDate}>
+        <Field label="Fim" error={errors.endDate}>
           <Input
             name="endDate"
             type="date"
@@ -124,7 +124,7 @@ export function TripDialog(props: Props) {
       {props.goals.length > 0 && (
         <Field
           label="Caixinha de investimento"
-          hint="Opcional. Vincule uma meta para acompanhar o quanto já foi guardado para essa viagem."
+          hint="Vincule uma meta para acompanhar o quanto já foi guardado para essa viagem."
         >
           <Select value={goalId} onValueChange={setGoalId}>
             <SelectTrigger>
