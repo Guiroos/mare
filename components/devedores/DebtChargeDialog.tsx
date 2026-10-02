@@ -134,10 +134,10 @@ export function DebtChargeDialog({ personId, transactions, open: openProp, onOpe
             onValueChange={(v) => setSourceTxId(v === NO_TX ? null : v)}
           >
             <SelectTrigger className="bg-bg-input">
-              <SelectValue placeholder="Nenhuma (opcional)" />
+              <SelectValue placeholder="Nenhuma" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={NO_TX}>Nenhuma (opcional)</SelectItem>
+              <SelectItem value={NO_TX}>Nenhuma</SelectItem>
               {transactions.map((tx) => (
                 <SelectItem key={tx.id} value={tx.id}>
                   {tx.name} · {formatCurrency(tx.amount)} · {formatDate(tx.date)}

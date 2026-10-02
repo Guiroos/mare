@@ -95,7 +95,7 @@ export function InvestmentTypeDialog(props: DialogProps) {
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-      <Field label="Nome" error={errors.name}>
+      <Field label="Nome" required error={errors.name}>
         <Input
           name="name"
           defaultValue={props.mode === 'edit' ? props.type.name : ''}
@@ -106,7 +106,7 @@ export function InvestmentTypeDialog(props: DialogProps) {
       </Field>
       <Field
         label="Data de vencimento"
-        hint="Opcional – para investimentos com prazo"
+        hint="Para investimentos com prazo"
         error={errors.maturityDate}
       >
         <Input
