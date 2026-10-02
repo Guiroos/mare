@@ -6,6 +6,7 @@ import {
   createCategory,
   createCategoryGroup,
   createFixedExpense,
+  createIncome,
   createInstallmentGroup,
   createTransaction,
   createUser,
@@ -206,5 +207,43 @@ describe('getLatestActivityDate', () => {
     const { id: vazio } = await createUser(db, `vazio-latest-${Date.now()}`)
     const { getLatestActivityDate } = await import('@/lib/queries/historico')
     expect(await getLatestActivityDate(vazio)).toBeNull()
+  })
+})
+
+describe('collectHistoricoItems', () => {
+  it('recorte que começa depois do dia 1º não traz entrada do início do mês, mas mantém gasto fixo com dueDay dentro do recorte', async () => {
+    const { id: soRecorte } = await createUser(db, `so-recorte-${Date.now()}`)
+    const { id: contaRecorte } = await createAccount(db, soRecorte)
+    const grupoRecorte = await createCategoryGroup(db, soRecorte)
+    const { id: categoriaRecorte } = await createCategory(db, soRecorte, grupoRecorte.id)
+
+    // Entrada é sempre datada no dia 1º do referenceMonth — fora do recorte abaixo.
+    await createIncome(db, soRecorte, {
+      source: 'Salário',
+      referenceMonth: '2025-08-01',
+    })
+
+    // dueDay=25 exibe em 2025-08-25 — dentro do recorte, e obriga refMonths a
+    // manter '2025-08-01' no IN (é o que garante que a correção não estreitou
+    // referenceMonthsInRange, que quebraria o teto de getLatestActivityDate).
+    await createFixedExpense(db, soRecorte, contaRecorte, categoriaRecorte, {
+      name: 'Aluguel',
+      referenceMonth: '2025-08-01',
+      dueDay: 25,
+    })
+
+    const { collectHistoricoItems } = await import('@/lib/queries/historico')
+    const items = await collectHistoricoItems(soRecorte, {
+      de: '2025-08-15',
+      ate: '2025-08-31',
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    })
+
+    expect(items.some((i) => i.name === 'Salário')).toBe(false)
+    expect(items.some((i) => i.name === 'Aluguel')).toBe(true)
   })
 })
