@@ -2,6 +2,7 @@ import {
   format,
   addMonths,
   subMonths,
+  subDays,
   startOfMonth,
   parseISO,
   getYear,
@@ -187,12 +188,27 @@ export function futureNMonths(n: number): string[] {
   return Array.from({ length: n }, (_, i) => format(addMonths(start, i), 'yyyy-MM-dd'))
 }
 
+/** Returns the first day of the billing cycle that starts in yearMonth: closingDay of the previous month, clamped to that month's last day. */
+function cycleStartDate(yearMonth: string, closingDay: number): Date {
+  const currentFirst = parseISO(`${yearMonth}-01`)
+  const prevFirst = subMonths(currentFirst, 1)
+  const prevMonthLastDay = new Date(prevFirst.getFullYear(), prevFirst.getMonth() + 1, 0).getDate()
+  const startDay = Math.min(closingDay, prevMonthLastDay)
+  return new Date(prevFirst.getFullYear(), prevFirst.getMonth(), startDay)
+}
+
 /**
  * Calculates the billing cycle date range for a given month and credit card closing day.
  *
  * The closing day is the FIRST day of the new billing cycle, so the previous cycle ends
  * on (closingDay - 1). Example with closingDay=8 and yearMonth="2025-03":
  *   start = 2025-02-08, end = 2025-03-07, label = "08/fev → 07/mar"
+ *
+ * `end` is derived from the START of the NEXT cycle (minus one day) instead of its own
+ * clamp formula — this guarantees the two are always adjacent, even when a short month
+ * (Feb/Apr/Jun/Sep/Nov) forces closingDay 29-31 to clamp. Two independent clamps used to
+ * let the end of one cycle land on the same day as the start of the next, double-counting
+ * that day's transactions in both cycles (#91).
  *
  * Returns null if closingDay <= 1 (calendar month behavior should be used instead).
  */
@@ -202,30 +218,13 @@ export function billingCycleDateRange(
 ): { start: string; end: string; label: string } | null {
   if (closingDay <= 1) return null
 
-  const currentFirst = parseISO(`${yearMonth}-01`)
-  const prevFirst = subMonths(currentFirst, 1)
+  const startDate = cycleStartDate(yearMonth, closingDay)
+  const endDate = subDays(cycleStartDate(nextMonth(yearMonth), closingDay), 1)
 
-  // start = closingDay of previous month (clamped to last day of that month)
-  const prevMonthLastDay = new Date(prevFirst.getFullYear(), prevFirst.getMonth() + 1, 0).getDate()
-  const startDay = Math.min(closingDay, prevMonthLastDay)
-  const startStr = format(
-    new Date(prevFirst.getFullYear(), prevFirst.getMonth(), startDay),
-    'yyyy-MM-dd'
-  )
+  const startStr = format(startDate, 'yyyy-MM-dd')
+  const endStr = format(endDate, 'yyyy-MM-dd')
 
-  // end = (closingDay - 1) of current month (clamped to last day of that month)
-  const currMonthLastDay = new Date(
-    currentFirst.getFullYear(),
-    currentFirst.getMonth() + 1,
-    0
-  ).getDate()
-  const endDay = Math.min(closingDay - 1, currMonthLastDay)
-  const endStr = format(
-    new Date(currentFirst.getFullYear(), currentFirst.getMonth(), endDay),
-    'yyyy-MM-dd'
-  )
-
-  const label = `${format(parseISO(startStr), 'dd/MMM', { locale: ptBR })} → ${format(parseISO(endStr), 'dd/MMM', { locale: ptBR })}`
+  const label = `${format(startDate, 'dd/MMM', { locale: ptBR })} → ${format(endDate, 'dd/MMM', { locale: ptBR })}`
 
   return { start: startStr, end: endStr, label }
 }
