@@ -1,3 +1,6 @@
 #!/bin/sh
-. ~/.nvm/nvm.sh
+# nvm só existe na máquina local; nos ambientes das Routines o Node já está no PATH.
+if [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; then
+  . "${NVM_DIR:-$HOME/.nvm}/nvm.sh"
+fi
 npm run format:check && npm run lint && npm run typecheck && npm test
