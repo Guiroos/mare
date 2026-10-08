@@ -17,6 +17,8 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `people` (cadastro) + `debtorEntries` (lançamentos); `type`: `charge` | `payment` | `adjustment`
 - `balance > 0` = pessoa deve a você; `status` `null`/`'open'` são equivalentes (pré-migration ficaram como `null`)
+- Sinal no saldo vem de `signedDebtAmount` (`lib/queries/debtors.ts`): pagamento abate, cobrança e ajuste somam (ajuste já tem sinal). Lista, detalhe, gráfico e export usam o helper — não reescrever o ternário
+- `buildBalanceEvolution` (gráfico de `/devedores/[id]`) soma em centavos inteiros e preenche os meses sem lançamento com o saldo anterior; série esparsa faz o gráfico desenhar quitação gradual que não houve
 - `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
 - Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
 - `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)

@@ -46,7 +46,43 @@ describe('buildBalanceEvolution', () => {
     ])
     expect(result).toEqual([
       { month: '2025-01', balance: 100 },
+      { month: '2025-02', balance: 100 },
       { month: '2025-03', balance: 200 },
+    ])
+  })
+
+  it('repeats the previous balance in months without entries', () => {
+    const result = buildBalanceEvolution([
+      { type: 'charge', amount: 300, entryDate: '2025-11-10' },
+      { type: 'payment', amount: 300, entryDate: '2026-02-03' },
+    ])
+    expect(result).toEqual([
+      { month: '2025-11', balance: 300 },
+      { month: '2025-12', balance: 300 },
+      { month: '2026-01', balance: 300 },
+      { month: '2026-02', balance: 0 },
+    ])
+  })
+
+  it('settles to an exact positive zero, without float residue', () => {
+    // Em float: 0.3 - 0.1 - 0.2 = -2.7e-17, que o Intl formata como "-R$ 0,00"
+    const result = buildBalanceEvolution([
+      { type: 'charge', amount: 0.3, entryDate: '2025-01-05' },
+      { type: 'payment', amount: 0.1, entryDate: '2025-01-10' },
+      { type: 'payment', amount: 0.2, entryDate: '2025-01-20' },
+    ])
+    expect(result).toEqual([{ month: '2025-01', balance: 0 }])
+    expect(Object.is(result[0].balance, 0)).toBe(true)
+  })
+
+  it('keeps cent precision when accumulating across months', () => {
+    const result = buildBalanceEvolution([
+      { type: 'charge', amount: 0.1, entryDate: '2025-01-05' },
+      { type: 'charge', amount: 0.2, entryDate: '2025-02-05' },
+    ])
+    expect(result).toEqual([
+      { month: '2025-01', balance: 0.1 },
+      { month: '2025-02', balance: 0.3 },
     ])
   })
 })
