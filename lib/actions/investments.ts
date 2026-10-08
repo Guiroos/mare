@@ -17,6 +17,7 @@ import {
 } from '@/lib/validations/investments'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField, encryptOptional, decryptOptional, decryptField } from '@/lib/crypto/fields'
+import type { ActionResult } from '@/lib/actions/types'
 
 // ─── Tipos de investimento ────────────────────────────────────────────────────
 
@@ -69,7 +70,11 @@ export async function deleteInvestmentType(id: string) {
   revalidatePath('/metas')
 }
 
-export async function archiveInvestmentType(id: string) {
+// Saldo positivo vira retorno tipado, não `throw`: a UI só oferece "Arquivar"
+// com saldo zero, mas o render pode estar obsoleto (aporte feito em outra aba
+// ou dispositivo) — e aí o usuário precisa ler a causa real, que `throw` não
+// entrega em produção.
+export async function archiveInvestmentType(id: string): Promise<ActionResult> {
   const userId = await requireUserId()
   await assertOwnsInvestmentType(userId, id)
 
@@ -107,7 +112,11 @@ export async function archiveInvestmentType(id: string) {
   const currentBalance = totalAmount - totalWithdrawn
 
   if (Math.round(currentBalance * 100) > 0) {
-    throw new Error('Não é possível arquivar tipo com saldo.')
+    return {
+      ok: false,
+      code: 'investment_type_has_balance',
+      message: 'Este tipo ainda tem saldo e não pode ser arquivado. Atualize a página.',
+    }
   }
 
   await db
@@ -115,6 +124,8 @@ export async function archiveInvestmentType(id: string) {
     .set({ archived: true })
     .where(and(eq(investmentTypes.id, id), eq(investmentTypes.userId, userId)))
   revalidatePath('/investimentos')
+
+  return { ok: true, data: undefined }
 }
 
 export async function restoreInvestmentType(id: string) {

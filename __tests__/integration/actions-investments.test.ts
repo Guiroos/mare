@@ -47,7 +47,9 @@ describe('archiveInvestmentType', () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo para Arquivar' })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -56,7 +58,7 @@ describe('archiveInvestmentType', () => {
     expect(saved?.archived).toBe(true)
   })
 
-  it('lança erro ao tentar arquivar tipo com saldo positivo', async () => {
+  it('devolve investment_type_has_balance ao tentar arquivar tipo com saldo positivo', async () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo com Saldo' })
 
     await db.insert(schema.investments).values({
@@ -68,9 +70,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await expect(archiveInvestmentType(type.id)).rejects.toThrow(
-      'Não é possível arquivar tipo com saldo.'
-    )
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toMatchObject({ ok: false, code: 'investment_type_has_balance' })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -99,7 +101,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -130,7 +134,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -139,7 +145,7 @@ describe('archiveInvestmentType', () => {
     expect(saved?.archived).toBe(true)
   })
 
-  it('lança erro ao arquivar quando saldo residual existe após contabilizar taxAmount', async () => {
+  it('devolve investment_type_has_balance quando saldo residual existe após contabilizar taxAmount', async () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo com Saldo Residual' })
 
     await db.insert(schema.investments).values({
@@ -161,9 +167,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await expect(archiveInvestmentType(type.id)).rejects.toThrow(
-      'Não é possível arquivar tipo com saldo.'
-    )
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toMatchObject({ ok: false, code: 'investment_type_has_balance' })
   })
 })
 

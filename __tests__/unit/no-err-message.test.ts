@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { ROOT, collectFiles } from './helpers/source-files'
 
 // Gate por string sobre o código-fonte (#122). `err.message`/`error.message`
 // exibido via `toast.*` é sempre o parágrafo genérico do React em produção —
@@ -10,25 +11,7 @@ import { join } from 'node:path'
 // Precedente: __tests__/unit/row-actions.test.ts (mesma técnica de
 // readFileSync + asserção sobre o conteúdo do arquivo).
 
-const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'components']
-const IGNORED_DIRS = new Set(['node_modules', '.next', '.git'])
-
-function collectTsxFiles(dir: string): string[] {
-  const entries = readdirSync(dir)
-  const files: string[] = []
-  for (const entry of entries) {
-    if (IGNORED_DIRS.has(entry)) continue
-    const fullPath = join(dir, entry)
-    const stat = statSync(fullPath)
-    if (stat.isDirectory()) {
-      files.push(...collectTsxFiles(fullPath))
-    } else if (entry.endsWith('.tsx')) {
-      files.push(fullPath)
-    }
-  }
-  return files
-}
 
 // Âncora no sink (`toast.*(...)`), não numa distância de `catch`: o defeito
 // da #122 não é ler `err.message`, é exibi-lo ao usuário, e `toast.*` é o
@@ -42,7 +25,7 @@ const TOAST_ERR_MESSAGE = /toast\.\w+\([^)]*\b(?:err|error|e)\s*\.\s*message\b/
 
 describe('nenhum componente exibe err.message em toast (#122)', () => {
   it('a mensagem de erro de Server Action é mascarada em produção — ler err.message nunca mostra a mensagem real', () => {
-    const files = SCAN_DIRS.flatMap((dir) => collectTsxFiles(join(ROOT, dir)))
+    const files = SCAN_DIRS.flatMap((dir) => collectFiles(join(ROOT, dir), '.tsx'))
 
     const ofensores = files
       .filter((file) => TOAST_ERR_MESSAGE.test(readFileSync(file, 'utf-8')))

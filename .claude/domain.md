@@ -17,6 +17,8 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `people` (cadastro) + `debtorEntries` (lançamentos); `type`: `charge` | `payment` | `adjustment`
 - `balance > 0` = pessoa deve a você; `status` `null`/`'open'` são equivalentes (pré-migration ficaram como `null`)
+- Sinal no saldo vem de `signedDebtAmount` (`lib/queries/debtors.ts`): pagamento abate, cobrança e ajuste somam (ajuste já tem sinal). Lista, detalhe, gráfico e export usam o helper — não reescrever o ternário
+- `buildBalanceEvolution` (gráfico de `/devedores/[id]`) soma em centavos inteiros e preenche os meses sem lançamento com o saldo anterior; série esparsa faz o gráfico desenhar quitação gradual que não houve
 - `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
 - Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
 - `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)
@@ -70,6 +72,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - Filtro textual `q`: aplicado em JS após decrypt, não no SQL — não tentar mover para `WHERE`
 - `parseHistoricoParams`/`buildHistoricoUrl` em `lib/utils/historico-params.ts` — normaliza e serializa os 6 filtros (`de`, `ate`, `tipos`, `categorias`, `contas`, `q`); defaults: últimos 90 dias, todos os `TipoKind`
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`
+- `collectHistoricoItems` busca `incomes`/`investments`/`fixedExpenses` por **mês inteiro** (`refMonths`) e filtra pela data de exibição em JS, sobre os 5 tipos: entradas e aportes são datados no dia 1º do `referenceMonth` e vazariam em recorte que começa depois do dia 1º. Gasto fixo busca também o mês **anterior** a `de` (`fxRefMonths`), porque `fixedExpenseDate` transborda `dueDay` além do fim do mês (fev + `dueDay` 31 → 03/03) — sem isso o item some tanto do recorte de fevereiro (data fora) quanto do de março (mês não buscado). Não estreitar `referenceMonthsInRange`: o filtro de precisão é que decide
 
 ## Cron
 

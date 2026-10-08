@@ -129,9 +129,11 @@ export function InvestmentTypeCard({ balance }: Props) {
   const handleArchive = () => {
     startTransition(async () => {
       try {
-        await archiveInvestmentType(balance.id)
-      } catch {
-        toast.error('Não é possível arquivar tipo com saldo.')
+        const result = await archiveInvestmentType(balance.id)
+        if (!result.ok) toast.error(result.message)
+      } catch (err) {
+        console.error('[InvestmentTypeCard] archiveInvestmentType falhou', err)
+        toast.error('Não foi possível arquivar. Tente novamente.')
       }
     })
   }
@@ -140,8 +142,9 @@ export function InvestmentTypeCard({ balance }: Props) {
     startTransition(async () => {
       try {
         await restoreInvestmentType(balance.id)
-      } catch {
-        toast.error('Erro ao restaurar.')
+      } catch (err) {
+        console.error('[InvestmentTypeCard] restoreInvestmentType falhou', err)
+        toast.error('Não foi possível restaurar. Tente novamente.')
       }
     })
   }
@@ -231,7 +234,7 @@ export function InvestmentTypeCard({ balance }: Props) {
           onEdit={() => setEditTypeOpen(true)}
           onDelete={() => deleteInvestmentType(balance.id)}
           deleteTitle="Excluir tipo de investimento"
-          deleteDescription="Todos os registros mensais serão removidos. Essa ação não pode ser desfeita."
+          deleteDescription="Só é possível excluir tipos sem aportes nem resgates registrados. Essa ação não pode ser desfeita."
           deleteErrorMessage="Não é possível excluir — tipo em uso."
           additionalActions={archiveAction ? [archiveAction] : undefined}
         />

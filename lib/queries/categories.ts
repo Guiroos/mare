@@ -19,7 +19,6 @@ export async function getCategoriesWithGroups(userId: string) {
   })
 
   return groups
-    .sort((a, b) => decryptField(a.name, dek).localeCompare(decryptField(b.name, dek), 'pt-BR'))
     .map((group) => ({
       ...group,
       name: decryptField(group.name, dek),
@@ -29,6 +28,7 @@ export async function getCategoriesWithGroups(userId: string) {
         defaultBudget: decryptOptional(cat.defaultBudget, dek),
       })),
     }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 export async function getPaymentAccounts(userId: string) {
@@ -85,9 +85,9 @@ export async function getCategoriesWithBudgets(userId: string, referenceMonth: s
   })
 
   return groups
-    .sort((a, b) => decryptField(a.name, dek).localeCompare(decryptField(b.name, dek), 'pt-BR'))
     .map((group) => ({
       id: group.id,
+      sortOrder: group.sortOrder,
       name: decryptField(group.name, dek),
       categories: group.categories.map((cat) => ({
         id: cat.id,
@@ -101,6 +101,7 @@ export async function getCategoriesWithBudgets(userId: string, referenceMonth: s
           : null,
       })),
     }))
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, 'pt-BR'))
 }
 
 /**
