@@ -33,7 +33,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 
 - `getFaturaState(userId, accountId, referenceMonth)` — estado de um único ciclo; retorna `null` se conta inválida ou `closingDay <= 1`
 - `getOpenFaturas(userId, faturaActiveFrom)` — 3 queries bulk (`transactions`, `fixedExpenses`, `payments`) + agregação JS por conta; evita N queries por conta
-- `getOpenFaturas` filtra `fixedExpenses` via `referenceMonth IN (...)` com dois meses por ciclo (mês anterior para `dueDay >= closingDay`, mês atual para `dueDay < closingDay`)
+- `getOpenFaturas` filtra `fixedExpenses` via `referenceMonth IN (...)` com dois meses por ciclo (mês anterior para `dueDay >= corte`, mês atual para `dueDay < corte`), onde o corte é `fixedExpenseCycleCutoff(mês, closingDay)` — o `closingDay` clampado ao tamanho do mês, mesmo clamp de `billingCycleDateRange`. Os 3 sites em `getOpenFaturas` (via `fixedExpenseCycleMonth`), `getFaturaState` e `getFixedExpensesByBillingCycle` usam o corte; comparar com `closingDay` cru põe o gasto fixo de 28/fev (`closingDay=31`) na fatura de fevereiro e a compra do mesmo dia na de março (#173)
 - `getOpenFaturas` não reimplementa a fronteira: a escolha do ciclo vem de `currentBillingCycleYearMonths`
 
 ## Actions

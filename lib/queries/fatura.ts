@@ -7,6 +7,7 @@ import { decryptField } from '@/lib/crypto/fields'
 import {
   billingCycleDateRange,
   currentBillingCycleYearMonths,
+  fixedExpenseCycleCutoff,
   nextMonth,
   prevMonth,
   referenceMonthToYearMonth,
@@ -133,11 +134,11 @@ export async function getFaturaState(
           or(
             and(
               eq(fixedExpenses.referenceMonth, prevRefMonth),
-              gte(fixedExpenses.dueDay, closingDay)
+              gte(fixedExpenses.dueDay, fixedExpenseCycleCutoff(prevMonth(yearMonth), closingDay))
             ),
             and(
               eq(fixedExpenses.referenceMonth, referenceMonth),
-              lt(fixedExpenses.dueDay, closingDay)
+              lt(fixedExpenses.dueDay, fixedExpenseCycleCutoff(yearMonth, closingDay))
             )
           )
         )
@@ -172,6 +173,15 @@ export async function getFaturaState(
         }
       : null,
   }
+}
+
+// Ciclo (YYYY-MM-01) ao qual um gasto fixo pertence. Mesma fronteira das queries SQL de
+// getFaturaState/getFixedExpensesByBillingCycle — fixedExpenseCycleCutoff, não closingDay cru.
+function fixedExpenseCycleMonth(referenceMonth: string, dueDay: number, closingDay: number) {
+  const yearMonth = referenceMonthToYearMonth(referenceMonth)
+  const cycleYearMonth =
+    dueDay < fixedExpenseCycleCutoff(yearMonth, closingDay) ? yearMonth : nextMonth(yearMonth)
+  return yearMonthToReferenceMonth(cycleYearMonth)
 }
 
 export async function getOpenFaturas(
@@ -318,19 +328,9 @@ export async function getOpenFaturas(
   ])
 
   return accountCycles.map(
-    ({
-      account,
-      openYearMonth,
-      closedYearMonth,
-      openCycleMonth,
-      closedCycleMonth,
-      openRange,
-      closedRange,
-      historicalRanges,
-    }) => {
+    ({ account, openCycleMonth, closedCycleMonth, openRange, closedRange, historicalRanges }) => {
       const { closingDay } = account
 
-      const openPrevRefMonth = yearMonthToReferenceMonth(prevMonth(openYearMonth))
       const openTxTotal = allTx
         .filter(
           (t) => t.accountId === account.id && t.date >= openRange.start && t.date <= openRange.end
@@ -340,14 +340,12 @@ export async function getOpenFaturas(
         .filter(
           (e) =>
             e.accountId === account.id &&
-            ((e.referenceMonth === openPrevRefMonth && e.dueDay >= closingDay) ||
-              (e.referenceMonth === openCycleMonth && e.dueDay < closingDay))
+            fixedExpenseCycleMonth(e.referenceMonth, e.dueDay, closingDay) === openCycleMonth
         )
         .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
       const closedIsPreActivation = faturaActiveFrom !== null && closedCycleMonth < faturaActiveFrom
 
-      const closedPrevRefMonth = yearMonthToReferenceMonth(prevMonth(closedYearMonth))
       const closedTxTotal = closedIsPreActivation
         ? 0
         : allTx
@@ -364,8 +362,7 @@ export async function getOpenFaturas(
             .filter(
               (e) =>
                 e.accountId === account.id &&
-                ((e.referenceMonth === closedPrevRefMonth && e.dueDay >= closingDay) ||
-                  (e.referenceMonth === closedCycleMonth && e.dueDay < closingDay))
+                fixedExpenseCycleMonth(e.referenceMonth, e.dueDay, closingDay) === closedCycleMonth
             )
             .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 
@@ -384,7 +381,7 @@ export async function getOpenFaturas(
 
       // Find historical cycles that have activity but no payment
       const overdueCycles: HistoricalUnpaidCycle[] = []
-      for (const { refMonth, prevRefMonth, range } of historicalRanges) {
+      for (const { refMonth, range } of historicalRanges) {
         if (paidCycleMonthSet.has(refMonth)) continue
 
         const txTotal = allTx
@@ -395,8 +392,7 @@ export async function getOpenFaturas(
           .filter(
             (e) =>
               e.accountId === account.id &&
-              ((e.referenceMonth === prevRefMonth && e.dueDay >= closingDay) ||
-                (e.referenceMonth === refMonth && e.dueDay < closingDay))
+              fixedExpenseCycleMonth(e.referenceMonth, e.dueDay, closingDay) === refMonth
           )
           .reduce((s, e) => s + toAmount(decryptField(e.amount, dek)), 0)
 

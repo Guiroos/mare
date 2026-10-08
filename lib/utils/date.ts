@@ -257,6 +257,19 @@ export function currentBillingCycleYearMonths(closingDay: number): {
 }
 
 /**
+ * Cutoff that assigns a fixed expense to a billing cycle: a fixed expense referenced in
+ * `yearMonth` with dueDay < cutoff belongs to the cycle `yearMonth`; with dueDay >= cutoff,
+ * to `nextMonth(yearMonth)`. The cutoff is the day the next cycle starts — closingDay clamped
+ * to the month's length, from the same cycleStartDate billingCycleDateRange uses. Comparing
+ * dueDay against the raw closingDay disagrees with the clamp when closingDay is 29-31 in a
+ * shorter month: a fixed expense due on Feb 28 with closingDay=31 would land in February's
+ * cycle while a transaction on the same day lands in March's (see #91/#173).
+ */
+export function fixedExpenseCycleCutoff(yearMonth: string, closingDay: number): number {
+  return getDate(cycleStartDate(nextMonth(yearMonth), closingDay))
+}
+
+/**
  * Returns the referenceMonth base for installment 1.
  * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
  */

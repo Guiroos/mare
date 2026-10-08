@@ -11,6 +11,7 @@ import {
   lastDayOfYearMonth,
   billingCycleDateRange,
   currentBillingCycleYearMonths,
+  fixedExpenseCycleCutoff,
   dateToReferenceMonth,
   formatMonthName,
   formatMonthYear,
@@ -597,7 +598,7 @@ describe('currentBillingCycleYearMonths', () => {
     const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(31)!
     // Fevereiro/2025 só tem 28 dias, então closingDay=31 clampa para o dia 28 — o mesmo dia
     // em que billingCycleDateRange('2025-03', 31) começa. Antes da correção, a comparação
-    // rua (day < closingDay) nunca detectava essa virada e o dia caía fora dos dois ciclos.
+    // crua (day < closingDay) nunca detectava essa virada e o dia caía fora dos dois ciclos.
     expect(openYearMonth).toBe('2025-03')
     expect(closedYearMonth).toBe('2025-02')
     const openRange = billingCycleDateRange(openYearMonth, 31)!
@@ -630,6 +631,34 @@ describe('currentBillingCycleYearMonths', () => {
             expect(openRange.start <= today && today <= openRange.end).toBe(true)
             expect(closedYearMonth).toBe(prevMonth(openYearMonth))
           }
+        }
+      }
+    }
+  })
+})
+
+describe('fixedExpenseCycleCutoff', () => {
+  it('closingDay=31 em fevereiro/2025: corte no dia 28 — gasto fixo do dia 28 vai para o ciclo de março, junto com a transação do mesmo dia', () => {
+    expect(fixedExpenseCycleCutoff('2025-02', 31)).toBe(28)
+    expect(billingCycleDateRange('2025-03', 31)!.start).toBe('2025-02-28')
+  })
+
+  it('closingDay que cabe no mês: corte é o próprio closingDay', () => {
+    expect(fixedExpenseCycleCutoff('2025-02', 10)).toBe(10)
+    expect(fixedExpenseCycleCutoff('2024-02', 29)).toBe(29)
+  })
+
+  it('o ciclo atribuído a todo gasto fixo contém a data dele (dueDay clampado ao fim do mês), para todo closingDay, mês e dueDay', () => {
+    const months = ['2024-01', '2024-02', '2024-04', '2025-02', '2025-06', '2025-09', '2025-12']
+    for (let closingDay = 2; closingDay <= 31; closingDay++) {
+      for (const refMonth of months) {
+        const daysInMonth = Number(lastDayOfYearMonth(refMonth).slice(8))
+        for (let dueDay = 1; dueDay <= 31; dueDay++) {
+          const cycle =
+            dueDay < fixedExpenseCycleCutoff(refMonth, closingDay) ? refMonth : nextMonth(refMonth)
+          const range = billingCycleDateRange(cycle, closingDay)!
+          const date = `${refMonth}-${String(Math.min(dueDay, daysInMonth)).padStart(2, '0')}`
+          expect(range.start <= date && date <= range.end).toBe(true)
         }
       }
     }
