@@ -11,6 +11,7 @@ import { and, desc, eq, between, inArray, sql } from 'drizzle-orm'
 import type { HistoricoParams, TipoKind } from '@/lib/utils/historico-params'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField } from '@/lib/crypto/fields'
+import { prevMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 
 export type HistoricoFeedItem = {
   id: string
@@ -74,6 +75,9 @@ export async function collectHistoricoItems(
   const wantsResgate = tipos.includes('resgate')
 
   const refMonths = referenceMonthsInRange(de, ate)
+  // Gasto fixo do mês anterior a `de` pode exibir dentro do recorte: fixedExpenseDate
+  // transborda dueDay além do fim do mês (fev + dueDay 31 → 03/03)
+  const fxRefMonths = [yearMonthToReferenceMonth(prevMonth(de.slice(0, 7))), ...refMonths]
 
   // Build WHERE clauses for each table
   const txBaseWhere = and(
@@ -83,15 +87,12 @@ export async function collectHistoricoItems(
     contas.length > 0 ? inArray(transactions.accountId, contas) : undefined
   )
 
-  const fxWhere =
-    refMonths.length > 0
-      ? and(
-          eq(fixedExpenses.userId, userId),
-          inArray(fixedExpenses.referenceMonth, refMonths),
-          categorias.length > 0 ? inArray(fixedExpenses.categoryId, categorias) : undefined,
-          contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined
-        )
-      : undefined
+  const fxWhere = and(
+    eq(fixedExpenses.userId, userId),
+    inArray(fixedExpenses.referenceMonth, fxRefMonths),
+    categorias.length > 0 ? inArray(fixedExpenses.categoryId, categorias) : undefined,
+    contas.length > 0 ? inArray(fixedExpenses.accountId, contas) : undefined
+  )
 
   const incomesWhere =
     refMonths.length > 0
@@ -123,7 +124,7 @@ export async function collectHistoricoItems(
           })
         : Promise.resolve([]),
 
-      wantsFixa && fxWhere
+      wantsFixa
         ? db.query.fixedExpenses.findMany({
             where: fxWhere,
             with: { category: true, account: true },
@@ -249,23 +250,21 @@ export async function collectHistoricoItems(
     }
   })
 
-  // Merge, sort e filtro JS de precisão: refMonths traz meses inteiros (necessário para
-  // fixedExpenses, cujo dueDay pode exibir num mês diferente do referenceMonth), então
-  // entradas e aportes — sempre datados no dia 1º do referenceMonth — também podem cair
-  // fora de [de, ate] quando o recorte começa depois do dia 1º.
-  const merged = mergeAndSortFeedItems([
-    txItems,
-    fxItems,
-    incomeItems,
-    investItems,
-    withdrawItems,
-  ]).filter((item) => item.date >= de && item.date <= ate)
-
-  // Apply q filter to investment/withdrawal items not filtered at DB level
+  // Filtro JS de precisão pela data de exibição, sobre os 5 tipos: o SQL de gastos fixos,
+  // entradas e aportes busca por mês inteiro (refMonths/fxRefMonths), então entradas e
+  // aportes — sempre datados no dia 1º — e gastos fixos — data derivada de dueDay —
+  // podem cair fora de [de, ate]. q também é aplicado aqui (busca sobre texto decriptado).
   const qLower = q ? q.toLowerCase() : null
-  const sorted = qLower ? merged.filter((item) => item.name.toLowerCase().includes(qLower)) : merged
+  const visible = (item: HistoricoFeedItem) =>
+    item.date >= de &&
+    item.date <= ate &&
+    (qLower === null || item.name.toLowerCase().includes(qLower))
 
-  return sorted
+  return mergeAndSortFeedItems(
+    [txItems, fxItems, incomeItems, investItems, withdrawItems].map((items) =>
+      items.filter(visible)
+    )
+  )
 }
 
 export async function getHistoricoFeed(

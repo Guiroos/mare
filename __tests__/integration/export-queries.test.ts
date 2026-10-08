@@ -8,9 +8,11 @@ import {
   createFixedExpense,
   createIncome,
   createInstallmentGroup,
+  createInvestmentType,
   createTransaction,
   createUser,
 } from './helpers/factories'
+import * as schema from '@/lib/db/schema'
 import { ALL_TIPOS } from '@/lib/utils/historico-params'
 
 neonTestingSetup()
@@ -217,8 +219,15 @@ describe('collectHistoricoItems — recorte de precisão', () => {
     const grupoRecorte = await createCategoryGroup(db, recorte)
     const { id: categoriaRecorte } = await createCategory(db, recorte, grupoRecorte.id)
 
-    // Entrada é sempre datada no dia 1º do referenceMonth — fora de [de, ate].
+    // Entrada e aporte são sempre datados no dia 1º do referenceMonth — fora de [de, ate].
     await createIncome(db, recorte, { source: 'Salário', referenceMonth: '2025-08-01' })
+    const { id: tipoRecorte } = await createInvestmentType(db, recorte, { name: 'Tesouro' })
+    await db.insert(schema.investments).values({
+      userId: recorte,
+      investmentTypeId: tipoRecorte,
+      amount: '500.00',
+      referenceMonth: '2025-08-01',
+    })
 
     // Gasto fixo do mesmo mês, mas com dueDay dentro do recorte — precisa
     // continuar dependendo do mês inteiro estar no IN (referenceMonthsInRange).
@@ -240,8 +249,46 @@ describe('collectHistoricoItems — recorte de precisão', () => {
     })
 
     expect(items.some((i) => i.name === 'Salário')).toBe(false)
+    expect(items.some((i) => i.kind === 'investimento')).toBe(false)
     const aluguel = items.find((i) => i.name === 'Aluguel')
     expect(aluguel).toBeDefined()
     expect(aluguel?.date).toBe('2025-08-25')
+  })
+
+  it('inclui gasto fixo do mês anterior cujo dueDay transborda para dentro do recorte', async () => {
+    const { id: transborda } = await createUser(db, `transborda-${Date.now()}`)
+    const { id: conta } = await createAccount(db, transborda)
+    const grupo = await createCategoryGroup(db, transborda)
+    const { id: categoria } = await createCategory(db, transborda, grupo.id)
+
+    // fev/2025 + dueDay 31 → exibe em 2025-03-03 (fixedExpenseDate transborda o mês).
+    await createFixedExpense(db, transborda, conta, categoria, {
+      name: 'Condomínio',
+      referenceMonth: '2025-02-01',
+      dueDay: 31,
+    })
+
+    const { collectHistoricoItems } = await import('@/lib/queries/historico')
+    const params = {
+      tipos: [...ALL_TIPOS],
+      categorias: [],
+      contas: [],
+      q: '',
+      cursor: null,
+    }
+
+    const marco = await collectHistoricoItems(transborda, {
+      ...params,
+      de: '2025-03-01',
+      ate: '2025-03-31',
+    })
+    expect(marco.find((i) => i.name === 'Condomínio')?.date).toBe('2025-03-03')
+
+    const fevereiro = await collectHistoricoItems(transborda, {
+      ...params,
+      de: '2025-02-01',
+      ate: '2025-02-28',
+    })
+    expect(fevereiro.some((i) => i.name === 'Condomínio')).toBe(false)
   })
 })
