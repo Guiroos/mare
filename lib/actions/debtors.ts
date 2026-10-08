@@ -359,7 +359,7 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
         )
 
       if (data.reconcileRemainder) {
-        const diffCents = Math.round((chargesTotal - Number(data.amount)) * 100)
+        const diffCents = Math.round((chargesTotal - toAmount(data.amount)) * 100)
         if (diffCents > 0) {
           const adjustmentAmount = (-diffCents / 100).toFixed(2)
           await tx.insert(debtorEntries).values({
