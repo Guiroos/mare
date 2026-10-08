@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { getCategoriesWithBudgets } from '@/lib/queries/categories'
 import { getMonthFixedExpenses, getMonthTransactions } from '@/lib/queries/dashboard'
 import { getUserAutoRollover } from '@/lib/queries/settings'
-import { formatCurrency } from '@/lib/utils/currency'
+import { formatCurrency, toAmount } from '@/lib/utils/currency'
 import {
   currentYearMonth,
   normalizeYearMonthParam,
@@ -52,8 +52,8 @@ export default async function ConfiguracaoMesPage({
 
   const installments = allTransactions.filter((t) => t.installmentGroupId)
 
-  const totalFixed = fixedExpenses.reduce((sum, e) => sum + Number(e.amount), 0)
-  const totalInstallments = installments.reduce((sum, t) => sum + Number(t.amount), 0)
+  const totalFixed = fixedExpenses.reduce((sum, e) => sum + toAmount(e.amount), 0)
+  const totalInstallments = installments.reduce((sum, t) => sum + toAmount(t.amount), 0)
 
   return (
     <PageLayout>
@@ -182,7 +182,7 @@ export default async function ConfiguracaoMesPage({
                   </div>
                 </div>
                 <span className="shrink-0 text-body font-semibold text-negative">
-                  {formatCurrency(Number(t.amount))}
+                  {formatCurrency(toAmount(t.amount))}
                 </span>
               </div>
             ))}

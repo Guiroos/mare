@@ -180,7 +180,7 @@ function TransactionRow({
 
       <div className="flex-shrink-0">
         <span className="text-body font-semibold tabular-nums text-negative">
-          − <SensitiveAmount value={Number(t.amount)} />
+          − <SensitiveAmount value={toAmount(t.amount)} />
         </span>
       </div>
 
@@ -242,7 +242,7 @@ function DateGroupedView({
         <Fragment key={date}>
           <TxGroupHeader
             date={formatGroupDate(date)}
-            total={`− ${mask(items.reduce((s, t) => s + Number(t.amount), 0))}`}
+            total={`− ${mask(items.reduce((s, t) => s + toAmount(t.amount), 0))}`}
           />
           {items.map((t) => (
             <TransactionRow key={t.id} transaction={t} creditAccountIds={creditAccountIds} />
