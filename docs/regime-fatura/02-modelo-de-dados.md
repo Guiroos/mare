@@ -155,7 +155,8 @@ duplicaria a despesa.
 **Gastos fixos no crédito:** se um gasto fixo usa conta de crédito em mês com regime de
 fatura, ele não entra diretamente no dashboard. Ele precisa entrar no cálculo da fatura do
 ciclo correspondente, usando a mesma regra de `getFixedExpensesByBillingCycle`
-(`dueDay >= closingDay` no mês anterior ou `dueDay < closingDay` no mês do ciclo).
+(`dueDay >= corte` no mês anterior ou `dueDay < corte` no mês do ciclo, com o corte de
+`fixedExpenseCycleCutoff` — `closingDay` clampado ao tamanho do mês).
 
 **Orçamento por categoria:** pagamentos de fatura têm `categoryId = null`; portanto entram
 no total de despesas do dashboard, mas não entram em `getCategoryGroupProgress`. A query de

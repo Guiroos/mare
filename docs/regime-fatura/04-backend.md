@@ -60,8 +60,9 @@ Lógica:
 2. Calcula `cycleStart` e `cycleEnd` via `billingCycleDateRange`
 3. Soma transações onde `accountId = account.id` e `date BETWEEN cycleStart AND cycleEnd`
 4. Soma gastos fixos de crédito do mesmo ciclo usando a regra de
-   `getFixedExpensesByBillingCycle`: `dueDay >= closingDay` no mês anterior ou
-   `dueDay < closingDay` no mês do ciclo, filtrando `accountId = account.id`
+   `getFixedExpensesByBillingCycle`: `dueDay >= corte` no mês anterior ou
+   `dueDay < corte` no mês do ciclo, filtrando `accountId = account.id` — o corte é
+   `fixedExpenseCycleCutoff(mês, closingDay)`, o `closingDay` clampado ao tamanho do mês
 5. `total = transactionTotal + fixedExpenseTotal`
 6. Busca transação com `faturaAccountId = account.id` e `faturaCycleMonth = cycleMonth`
 

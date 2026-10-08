@@ -9,7 +9,7 @@ import {
   monthlyBudgetOverrides,
 } from '@/lib/db/schema'
 import { eq, and, or, desc, between, gte, lt, isNotNull, notInArray } from 'drizzle-orm'
-import { yearMonthToReferenceMonth, prevMonth } from '@/lib/utils/date'
+import { yearMonthToReferenceMonth, prevMonth, fixedExpenseCycleCutoff } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { FaturaContext } from '@/lib/queries/fatura'
 import { getDekForUser } from '@/lib/crypto/keys'
@@ -344,9 +344,12 @@ export async function getFixedExpensesByBillingCycle(
         or(
           and(
             eq(fixedExpenses.referenceMonth, prevRefMonth),
-            gte(fixedExpenses.dueDay, closingDay)
+            gte(fixedExpenses.dueDay, fixedExpenseCycleCutoff(prevMonth(yearMonth), closingDay))
           ),
-          and(eq(fixedExpenses.referenceMonth, currRefMonth), lt(fixedExpenses.dueDay, closingDay))
+          and(
+            eq(fixedExpenses.referenceMonth, currRefMonth),
+            lt(fixedExpenses.dueDay, fixedExpenseCycleCutoff(yearMonth, closingDay))
+          )
         )
       ),
       with: { category: true, account: true },

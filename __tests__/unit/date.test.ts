@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { addMonths, format } from 'date-fns'
+import { addDays, addMonths, format } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
@@ -10,6 +10,8 @@ import {
   parseDate,
   lastDayOfYearMonth,
   billingCycleDateRange,
+  currentBillingCycleYearMonths,
+  fixedExpenseCycleCutoff,
   dateToReferenceMonth,
   formatMonthName,
   formatMonthYear,
@@ -549,6 +551,118 @@ describe('billingCycleDateRange', () => {
     const result = billingCycleDateRange('2025-03', 8)
     expect(result!.label).toMatch(/\d{2}\/\w{3} → \d{2}\/\w{3}/)
   })
+
+  it('ciclo de fevereiro (não-bissexto) com closingDay=31 termina antes do início de março, sem sobreposição', () => {
+    const result = billingCycleDateRange('2025-02', 31)
+    expect(result!.start).toBe('2025-01-31')
+    expect(result!.end).toBe('2025-02-27')
+  })
+
+  it('end de um ciclo é sempre o dia anterior ao start do ciclo seguinte, para todo closingDay e mês', () => {
+    const months = [
+      '2024-01',
+      '2024-02', // bissexto
+      '2024-03',
+      '2024-04',
+      '2024-06',
+      '2024-09',
+      '2024-11',
+      '2025-01',
+      '2025-02', // não-bissexto
+      '2025-03',
+      '2025-04',
+      '2025-06',
+      '2025-09',
+      '2025-11',
+      '2025-12',
+    ]
+    for (let closingDay = 2; closingDay <= 31; closingDay++) {
+      for (const month of months) {
+        const current = billingCycleDateRange(month, closingDay)!
+        const next = billingCycleDateRange(nextMonth(month), closingDay)!
+        const dayAfterCurrentEnd = format(addDays(parseDate(current.end), 1), 'yyyy-MM-dd')
+        expect(dayAfterCurrentEnd).toBe(next.start)
+      }
+    }
+  })
+})
+
+describe('currentBillingCycleYearMonths', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('closingDay=31, hoje 2025-02-28: o dia é o closingDay clampado, então já abre o ciclo de março — sem cair num buraco entre os dois ciclos', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-02-28T12:00:00'))
+    const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(31)!
+    // Fevereiro/2025 só tem 28 dias, então closingDay=31 clampa para o dia 28 — o mesmo dia
+    // em que billingCycleDateRange('2025-03', 31) começa. Antes da correção, a comparação
+    // crua (day < closingDay) nunca detectava essa virada e o dia caía fora dos dois ciclos.
+    expect(openYearMonth).toBe('2025-03')
+    expect(closedYearMonth).toBe('2025-02')
+    const openRange = billingCycleDateRange(openYearMonth, 31)!
+    expect(openRange.start).toBe('2025-02-28')
+    expect(openRange.start <= '2025-02-28' && '2025-02-28' <= openRange.end).toBe(true)
+  })
+
+  it('closingDay=1: retorna null, mesmo contrato de billingCycleDateRange (mês de calendário é responsabilidade do chamador)', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2025-06-15T12:00:00'))
+    expect(currentBillingCycleYearMonths(1)).toBeNull()
+    expect(currentBillingCycleYearMonths(0)).toBeNull()
+  })
+
+  it('para closingDay 29, 30 e 31, todo dia de 2024 e 2025 cai dentro do próprio ciclo aberto — sem buraco na fronteira', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    for (const closingDay of [29, 30, 31]) {
+      for (const year of [2024, 2025]) {
+        for (let month = 1; month <= 12; month++) {
+          const daysInMonth = new Date(year, month, 0).getDate()
+          for (let day = 1; day <= daysInMonth; day++) {
+            const mm = String(month).padStart(2, '0')
+            const dd = String(day).padStart(2, '0')
+            const today = `${year}-${mm}-${dd}`
+            vi.setSystemTime(new Date(`${today}T12:00:00`))
+
+            const { openYearMonth, closedYearMonth } = currentBillingCycleYearMonths(closingDay)!
+            const openRange = billingCycleDateRange(openYearMonth, closingDay)!
+
+            expect(openRange.start <= today && today <= openRange.end).toBe(true)
+            expect(closedYearMonth).toBe(prevMonth(openYearMonth))
+          }
+        }
+      }
+    }
+  })
+})
+
+describe('fixedExpenseCycleCutoff', () => {
+  it('closingDay=31 em fevereiro/2025: corte no dia 28 — gasto fixo do dia 28 vai para o ciclo de março, junto com a transação do mesmo dia', () => {
+    expect(fixedExpenseCycleCutoff('2025-02', 31)).toBe(28)
+    expect(billingCycleDateRange('2025-03', 31)!.start).toBe('2025-02-28')
+  })
+
+  it('closingDay que cabe no mês: corte é o próprio closingDay', () => {
+    expect(fixedExpenseCycleCutoff('2025-02', 10)).toBe(10)
+    expect(fixedExpenseCycleCutoff('2024-02', 29)).toBe(29)
+  })
+
+  it('o ciclo atribuído a todo gasto fixo contém a data dele (dueDay clampado ao fim do mês), para todo closingDay, mês e dueDay', () => {
+    const months = ['2024-01', '2024-02', '2024-04', '2025-02', '2025-06', '2025-09', '2025-12']
+    for (let closingDay = 2; closingDay <= 31; closingDay++) {
+      for (const refMonth of months) {
+        const daysInMonth = Number(lastDayOfYearMonth(refMonth).slice(8))
+        for (let dueDay = 1; dueDay <= 31; dueDay++) {
+          const cycle =
+            dueDay < fixedExpenseCycleCutoff(refMonth, closingDay) ? refMonth : nextMonth(refMonth)
+          const range = billingCycleDateRange(cycle, closingDay)!
+          const date = `${refMonth}-${String(Math.min(dueDay, daysInMonth)).padStart(2, '0')}`
+          expect(range.start <= date && date <= range.end).toBe(true)
+        }
+      }
+    }
+  })
 })
 
 const fmt = (d: Date) => format(d, 'yyyy-MM-dd')
@@ -567,9 +681,12 @@ describe('calcBaseReferenceMonth', () => {
   })
 
   it('cada parcela cai no ciclo de billingCycleDateRange do seu referenceMonth — inclusive compra no dia do fechamento', () => {
-    for (const closingDay of [2, 8, 16, 28]) {
-      for (const month of ['2025-01', '2025-02', '2025-03', '2025-11']) {
-        const purchaseDate = parseDate(`${month}-${String(closingDay).padStart(2, '0')}`)
+    for (const closingDay of [2, 8, 16, 28, 29, 30, 31]) {
+      for (const month of ['2024-02', '2025-01', '2025-02', '2025-03', '2025-04', '2025-11']) {
+        // dia do fechamento; em mês mais curto que closingDay, o último dia do mês
+        const [y, m] = month.split('-').map(Number)
+        const day = Math.min(closingDay, new Date(y, m, 0).getDate())
+        const purchaseDate = parseDate(`${month}-${String(day).padStart(2, '0')}`)
         const base = calcBaseReferenceMonth(purchaseDate, closingDay)
         for (let i = 0; i < 4; i++) {
           const refMonth = addMonths(base, i)

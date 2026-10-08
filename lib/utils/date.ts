@@ -2,6 +2,7 @@ import {
   format,
   addMonths,
   subMonths,
+  subDays,
   startOfMonth,
   parseISO,
   getYear,
@@ -188,11 +189,28 @@ export function futureNMonths(n: number): string[] {
 }
 
 /**
+ * Returns the first day of the billing cycle that starts in `yearMonth`: the closingDay
+ * of the previous month, clamped to that month's last day when it's shorter.
+ */
+function cycleStartDate(yearMonth: string, closingDay: number): Date {
+  const currentFirst = parseISO(`${yearMonth}-01`)
+  const prevFirst = subMonths(currentFirst, 1)
+  const prevMonthLastDay = new Date(prevFirst.getFullYear(), prevFirst.getMonth() + 1, 0).getDate()
+  const startDay = Math.min(closingDay, prevMonthLastDay)
+  return new Date(prevFirst.getFullYear(), prevFirst.getMonth(), startDay)
+}
+
+/**
  * Calculates the billing cycle date range for a given month and credit card closing day.
  *
  * The closing day is the FIRST day of the new billing cycle, so the previous cycle ends
  * on (closingDay - 1). Example with closingDay=8 and yearMonth="2025-03":
  *   start = 2025-02-08, end = 2025-03-07, label = "08/fev → 07/mar"
+ *
+ * `end` is derived from the START of the NEXT cycle (minus one day), not from its own
+ * clamp against the current month's last day — the two clamps used to be independent and
+ * could land on the same day when closingDay is 29-31, making consecutive cycles overlap
+ * by one day (see #91). Deriving `end` this way makes the partition hold by construction.
  *
  * Returns null if closingDay <= 1 (calendar month behavior should be used instead).
  */
@@ -202,42 +220,69 @@ export function billingCycleDateRange(
 ): { start: string; end: string; label: string } | null {
   if (closingDay <= 1) return null
 
-  const currentFirst = parseISO(`${yearMonth}-01`)
-  const prevFirst = subMonths(currentFirst, 1)
+  const start = cycleStartDate(yearMonth, closingDay)
+  const end = subDays(cycleStartDate(nextMonth(yearMonth), closingDay), 1)
 
-  // start = closingDay of previous month (clamped to last day of that month)
-  const prevMonthLastDay = new Date(prevFirst.getFullYear(), prevFirst.getMonth() + 1, 0).getDate()
-  const startDay = Math.min(closingDay, prevMonthLastDay)
-  const startStr = format(
-    new Date(prevFirst.getFullYear(), prevFirst.getMonth(), startDay),
-    'yyyy-MM-dd'
-  )
-
-  // end = (closingDay - 1) of current month (clamped to last day of that month)
-  const currMonthLastDay = new Date(
-    currentFirst.getFullYear(),
-    currentFirst.getMonth() + 1,
-    0
-  ).getDate()
-  const endDay = Math.min(closingDay - 1, currMonthLastDay)
-  const endStr = format(
-    new Date(currentFirst.getFullYear(), currentFirst.getMonth(), endDay),
-    'yyyy-MM-dd'
-  )
-
-  const label = `${format(parseISO(startStr), 'dd/MMM', { locale: ptBR })} → ${format(parseISO(endStr), 'dd/MMM', { locale: ptBR })}`
+  const startStr = format(start, 'yyyy-MM-dd')
+  const endStr = format(end, 'yyyy-MM-dd')
+  const label = `${format(start, 'dd/MMM', { locale: ptBR })} → ${format(end, 'dd/MMM', { locale: ptBR })}`
 
   return { start: startStr, end: endStr, label }
 }
 
 /**
+ * Returns the yearMonth of the billing cycle currently open (not yet closed) and the one
+ * most recently closed, as of today. Returns null for closingDay <= 1, matching
+ * billingCycleDateRange's contract (calendar month behavior should be used instead) — the
+ * two are meant to be chained (`billingCycleDateRange(currentBillingCycleYearMonths(cd)!.openYearMonth, cd)`),
+ * so they share the same closingDay <= 1 guard instead of one returning null and the other a
+ * value that isn't pairable with it.
+ *
+ * Compares today's full date against the START of the next cycle (from billingCycleDateRange)
+ * instead of comparing the raw day-of-month against closingDay: a raw comparison never fires
+ * when closingDay exceeds the current month's length (e.g. closingDay=31 in February), so it
+ * can't track the clamp billingCycleDateRange applies — see #91/#173.
+ */
+export function currentBillingCycleYearMonths(closingDay: number): {
+  openYearMonth: string
+  closedYearMonth: string
+} | null {
+  if (closingDay <= 1) return null
+
+  const todayYearMonth = currentYearMonth()
+  const nextCycleStart = billingCycleDateRange(nextMonth(todayYearMonth), closingDay)!.start
+  const openYearMonth =
+    todayISOString() < nextCycleStart ? todayYearMonth : nextMonth(todayYearMonth)
+  return { openYearMonth, closedYearMonth: prevMonth(openYearMonth) }
+}
+
+/**
+ * Cutoff that assigns a fixed expense to a billing cycle: a fixed expense referenced in
+ * `yearMonth` with dueDay < cutoff belongs to the cycle `yearMonth`; with dueDay >= cutoff,
+ * to `nextMonth(yearMonth)`. The cutoff is the day the next cycle starts — closingDay clamped
+ * to the month's length, from the same cycleStartDate billingCycleDateRange uses. Comparing
+ * dueDay against the raw closingDay disagrees with the clamp when closingDay is 29-31 in a
+ * shorter month: a fixed expense due on Feb 28 with closingDay=31 would land in February's
+ * cycle while a transaction on the same day lands in March's (see #91/#173).
+ */
+export function fixedExpenseCycleCutoff(yearMonth: string, closingDay: number): number {
+  return getDate(cycleStartDate(nextMonth(yearMonth), closingDay))
+}
+
+/**
  * Returns the referenceMonth base for installment 1.
  * closingDay is the first day of the new cycle (see billingCycleDateRange), so a purchase
- * ON closingDay or later belongs to the next month's cycle.
+ * ON the cutoff day or later belongs to the next month's cycle. The cutoff is closingDay
+ * clamped to the purchase month's length (fixedExpenseCycleCutoff), so closingDay 29-31 in a
+ * shorter month agrees with the clamped start of billingCycleDateRange.
  */
 export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date {
   const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
-  if (effectiveClosingDay !== null && getDate(purchaseDate) >= effectiveClosingDay) {
+  if (
+    effectiveClosingDay !== null &&
+    getDate(purchaseDate) >=
+      fixedExpenseCycleCutoff(format(purchaseDate, 'yyyy-MM'), effectiveClosingDay)
+  ) {
     return startOfMonth(addMonths(purchaseDate, 1))
   }
   return startOfMonth(purchaseDate)
