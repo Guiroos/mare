@@ -17,7 +17,7 @@ type Props = {
 
 export function TripPicker({ trips, tripId, onTripChange, error }: Props) {
   return (
-    <Field label="Viagem" hint="Opcional" error={error}>
+    <Field label="Viagem" error={error}>
       <Combobox
         options={trips.map((t) => ({ value: t.id, label: t.name }))}
         value={tripId}

@@ -8,16 +8,18 @@ npm run build        # production build
 npm run db:generate  # generate Drizzle migration from schema changes
 npm run db:migrate   # apply pending migrations to the database
 npm run db:studio    # open Drizzle Studio (DB browser)
-npm run lint         # run ESLint (next lint)
+npm run lint         # eslint . --max-warnings 0
+npm run typecheck    # tsc --noEmit
+npm run db:dev:seed  # popula 6 meses de dados fake no 1º usuário do banco — APAGA os dados financeiros dele antes
 ```
 
 - Antes de commitar: `npm run lint && npm run format:check && npm run typecheck && npm test`
 - `npm run build` não executa migrations; Vercel usa `npm run db:migrate && npm run build` via `vercel.json`
 - CI: testes de integração rodam **apenas em push para `main`**, não em PRs (job `integration` tem `if: github.event_name == 'push'`)
 
-Testes unitários: `npm test` / `npm test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`, `ENCRYPTION_MASTER_KEY`). Playwright MCP disponível para iteração de UI em tempo real. Gotchas de infra de testes (Vitest 4.x, neon-testing, dynamic import, factories): **@.claude/testing.md**
+Testes unitários: `npm test` / `npm run test:watch` / `npm run test:coverage` (Vitest, `__tests__/unit/`). Integração com banco real: `npm run test:integration` (requer `NEON_API_KEY`, `NEON_PROJECT_ID`, `NEON_PARENT_BRANCH_ID`, `ENCRYPTION_MASTER_KEY`). Playwright MCP disponível para iteração de UI em tempo real. Gotchas de infra de testes (Vitest 4.x, neon-testing, dynamic import, factories): **@.claude/testing.md**
 
-**Coverage:** ao cobrir arquivo em `lib/utils/` ou `lib/validations/` com >= 80%, adicionar entrada em `thresholds.perFile` no `vitest.config.ts`. Nunca definir abaixo do já conquistado.
+**Coverage:** ao cobrir arquivo em `lib/utils/` ou `lib/validations/` com >= 80%, adicionar entrada em `thresholds.perFile` no `vitest.config.mts`. Nunca definir abaixo do já conquistado.
 
 ## Environment
 
@@ -29,17 +31,22 @@ NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
 BLOCK_SIGNIN=          # opcional; "true" bloqueia novos cadastros (usuários existentes continuam entrando)
 ENCRYPTION_MASTER_KEY= # 64 hex chars (32 bytes); obrigatório em runtime e em testes de integração
+ADMIN_EMAIL=           # libera /admin e updateFeedbackStatus
+CRON_SECRET=           # Bearer das rotas em app/api/cron/
 ```
 
 ## Architecture
 
-**Maré** é um app de finanças pessoais (Next.js 14, App Router) que rastreia transações, gastos fixos, parcelas, investimentos e orçamentos por mês de referência.
+**Maré** é um app de finanças pessoais (Next.js 16, App Router) que rastreia transações, gastos fixos, parcelas, investimentos e orçamentos por mês de referência.
 
 ### Routes
 
 - `app/(auth)/login` — entry point (Google OAuth via NextAuth)
 - `app/(app)/` — shell autenticado; `layout.tsx` renderiza `<Sidebar>` + `<BottomNav>` + `<RegistrationDialogProvider>`
-- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`, `historico`, `contas`, `viagens`
+- Pages: `dashboard`, `registro`, `categorias`, `configuracao-mes`, `parcelas`, `investimentos`, `metas`, `panorama`, `devedores`, `historico`, `contas`, `viagens`, `admin`
+- `app/(marketing)/` — landing pública + `privacidade`, `seguranca`, `termos` (sem providers de cliente)
+- `app/(share)/e/[token]` — página pública de compartilhamento por token
+- `app/api/export/{completo,extrato,devedores}` — exports; `app/api/cron/` — jobs agendados no `vercel.json`
 
 ### Data layer
 
@@ -81,8 +88,8 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Security headers via `headers()` em `next.config.mjs`: o CSP precisa de `'unsafe-inline'` em `script-src`/`style-src` (a hidratação do Next e o script anti-flash do `next-themes` quebram sem); `'unsafe-eval'` só em dev (HMR); HSTS só em prod (não forçar HTTPS no localhost). `next/font` self-hospeda as fontes (`font-src 'self'`), `@vercel/speed-insights` é same-origin com fallback em `va.vercel-scripts.com`
 - Metadata do root layout é herdada por **todas** as rotas — `alternates.canonical` ali faz cada página declarar `/` como canônica; canonical vive na página, nunca no root. Mesma lógica para providers de cliente: `ThemeProvider`/`Toaster`/`NextTopLoader` ficam em `(app)/layout.tsx` e `(auth)/layout.tsx`, não na raiz, senão a landing pública carrega JS que não usa
 - `next/font`: `preload` é por documento, não por rota — fonte declarada no root vira `<link rel="preload">` até nas páginas que não a usam (custou 0,7 s de LCP na landing); usar `preload: false` na que não serve a rota crítica. Archivo e DM Sans chegam como fonte **variável** — enxugar o array `weight` nelas não reduz bytes, só evita peso sintetizado; a IBM Plex Mono é **estática** e emite um woff2 por peso declarado (~10 KB cada), então ali o array é peso de verdade
-- Landing/SEO — números medidos, achados fechados e o que falta para lançar: **@docs/seo-landing-backlog.md**
-- Skills instaladas em `.claude/skills/**/*.cjs` são varridas por `next lint` e disparam `@typescript-eslint/no-require-imports`, quebrando o gate de `npm run lint` mesmo sem serem código do app — manter `.claude/` nos `ignores` do `eslint.config.mjs` (`.claude` é tooling, não source)
+- Landing/SEO — números medidos, achados fechados e o que falta para lançar: `docs/seo-landing-backlog.md` (ler ao mexer em `app/(marketing)/`, metadata, ícones ou fontes)
+- Skills instaladas em `.claude/skills/**/*.cjs` são varridas por `eslint .` e disparam `@typescript-eslint/no-require-imports`, quebrando o gate de `npm run lint` mesmo sem serem código do app — manter `.claude/` nos `ignores` do `eslint.config.mjs` (`.claude` é tooling, não source)
 
 **UI:**
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
@@ -117,7 +124,7 @@ Componentes em `components/ui/` — DS Maré (não shadcn genérico). Recharts e
 Regras, tokens e inventário completo: **@.claude/ds-components.md**
 
 **Dark mode:**
-- Tema controlado via `next-themes` (`ThemeProvider` em `app/layout.tsx`); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
+- Tema controlado via `next-themes` (`ThemeProvider` em `(app)/layout.tsx` e `(auth)/layout.tsx` — o root layout não tem providers); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
 - Gráficos Recharts (`ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
 

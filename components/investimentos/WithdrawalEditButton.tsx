@@ -116,7 +116,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+      <Field label="Tipo de investimento" required error={errors.investmentTypeId}>
         <Select value={typeId} onValueChange={setTypeId}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione..." />
@@ -137,7 +137,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
 
       {hasTax ? (
         <>
-          <Field label="Valor bruto (R$)" error={errors.amount}>
+          <Field label="Valor bruto (R$)" required error={errors.amount}>
             <CurrencyInput
               name="_gross"
               defaultValue={grossInitial}
@@ -163,7 +163,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
           <input type="hidden" name="taxAmount" value={(taxCents / 100).toFixed(2)} />
         </>
       ) : (
-        <Field label="Valor (R$)" error={errors.amount}>
+        <Field label="Valor (R$)" required error={errors.amount}>
           <CurrencyInput
             name="amount"
             defaultValue={withdrawal.amount}
@@ -173,7 +173,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         </Field>
       )}
 
-      <Field label="Data do resgate" error={errors.date}>
+      <Field label="Data do resgate" required error={errors.date}>
         <Input
           name="date"
           type="date"
@@ -188,7 +188,7 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
       )}
 
       <Field label="Observações">
-        <Input name="notes" defaultValue={withdrawal.notes ?? ''} placeholder="Opcional" />
+        <Input name="notes" defaultValue={withdrawal.notes ?? ''} />
       </Field>
 
       <p className="text-caption text-text-secondary">

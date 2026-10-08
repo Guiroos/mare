@@ -7,7 +7,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 ## Configuração do Vitest (4.x)
 
 - **Extensão `.mts` obrigatória nos configs**: quando o projeto não tem `"type": "module"`, Vite 7 carrega `vitest.config.ts` em modo CJS — quebra com deps ESM-only (ex: `std-env@4`); renomear para `vitest.config.mts` força Vite 7 a usar `import()` ESM e resolve o problema; mesmo vale para `vitest.integration.config.mts`
-- **`__dirname` não existe em arquivos `.mts`**: substituir por `import.meta.dirname` (disponível desde Node 21.2; projeto exige ≥22)
+- **`__dirname` não existe em arquivos `.mts`**: substituir por `import.meta.dirname` (disponível desde Node 21.2; projeto exige ≥24)
 - **`vi.useFakeTimers({ toFake: ['Date'] })` no Vitest 4.x**: `vi.useFakeTimers()` sem parâmetros faz fake de `setImmediate`/`process.nextTick` internos do Vitest, travando `afterEach` com timeout; quando só é preciso controlar `Date`, sempre passar `{ toFake: ['Date'] }`
 - **`poolOptions` removido no Vitest 4.x**: `poolOptions: { forks: { maxForks: N } }` não existe mais em `InlineConfig`; usar `maxWorkers: N` no topo de `test:` — o limite de branches do Neon continua sendo controlado via `maxWorkers: 4`
 
