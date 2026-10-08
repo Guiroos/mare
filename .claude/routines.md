@@ -46,7 +46,7 @@ Pular uma issue por custo `G` não é escolher trabalho fora da fila — a fila 
 
 **PASSO 4 (escopo > 5 arquivos).** O prompt diz *"comente na issue propondo como fatiar em partes menores, remova `claude-wip` e encerre sem PR"* — mantendo `claude-ready`. Isso devolve a issue para a fila com o escopo idêntico: a próxima execução chega na mesma conclusão, comenta de novo e sai, todo dia útil. E como o PASSO 1 pega sempre a MAIS ANTIGA, uma issue grande demais fica presa na cabeça da fila e **bloqueia tudo que está atrás** indefinidamente. Remover `claude-ready` junto é obrigatório: só um humano refatiando o escopo tira ela desse estado.
 
-**PASSO 5 (gates vermelhos).** O prompt diz *"comente na issue o que travou, remova `claude-wip` e encerre"*, sem limite de tentativas. Retry é legítimo para falha transitória (rede, flake, serviço fora), mas não indefinidamente. Antes de encerrar, checar se já existe comentário de falha anterior nesta issue (`gh issue view <n> --json comments`): primeira falha volta para a fila; a partir da segunda, `claude-bloqueada` e fora do ciclo. Duas falhas no mesmo ponto não é flake, é bloqueio real.
+**PASSO 5 (gates vermelhos).** O prompt diz *"comente na issue o que travou, remova `claude-wip` e encerre"*, sem limite de tentativas. Retry é legítimo para falha transitória (rede, flake, serviço fora), mas não indefinidamente. Antes de encerrar, checar se já existe comentário de falha anterior nesta issue (`gh api "repos/Guiroos/mare/issues/<n>/comments"`): primeira falha volta para a fila; a partir da segunda, `claude-bloqueada` e fora do ciclo. Duas falhas no mesmo ponto não é flake, é bloqueio real.
 
 **PASSO 6 (sucesso).** O prompt não manda mexer em label nenhuma no caminho de sucesso — só *"comente o link do PR na issue"*. Sem remover `claude-ready`, a issue continua elegível e uma execução futura pode implementar a mesma coisa duas vezes. `claude-wip` fica, porque é ela que marca "tem PR aberto".
 
@@ -89,15 +89,18 @@ Duas execuções no mesmo dia tornam a reserva do PASSO 2 crítica, não opciona
 Roda no início de cada execução, antes do PASSO 1, para recuperar o que ficou preso:
 
 ```bash
-gh issue list --label claude-wip --state open --json number,title,updatedAt
+gh api "repos/Guiroos/mare/issues?labels=claude-wip&state=open&per_page=100" \
+  --jq '.[] | select(.pull_request | not) | {number, title, updated_at}'
 ```
 
 Para cada issue, achar o PR pelo comentário `PR aberta: #<n>` e conferir o estado dele:
 
 ```bash
-gh issue view <numero> --json comments
-gh pr view <n> --json state,merged
+gh api "repos/Guiroos/mare/issues/<numero>/comments" --jq '.[].body'
+gh api "repos/Guiroos/mare/pulls/<n>" --jq '{state, merged}'
 ```
+
+Os comandos são REST de propósito: no sandbox das Routines o GraphQL do GitHub responde 403, e `gh issue list`/`view`/`edit` e `gh pr list`/`view`/`create` dependem dele. As execuções contornavam sozinhas (REST ou ferramentas `mcp__github__*`), mas cada uma redescobria o contorno. O endpoint `/issues` também devolve PRs — daí o `select(.pull_request | not)`.
 
 - **PR aberto** → em andamento de verdade. Não tocar.
 - **PR fechado sem merge** → trabalho abandonado. Comentar `PR #<n> fechado sem merge — issue devolvida à fila`, remover `claude-wip`, garantir `claude-ready`.

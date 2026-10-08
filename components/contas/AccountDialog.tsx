@@ -123,7 +123,7 @@ function AccountForm({ props, onSuccess }: { props: Props; onSuccess: () => void
       </Field>
 
       {type === 'credit' && (
-        <Field label="Dia de fechamento" hint="Opcional" error={errors.closingDay}>
+        <Field label="Dia de fechamento" error={errors.closingDay}>
           <Input
             name="closingDay"
             type="number"

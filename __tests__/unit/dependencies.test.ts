@@ -84,4 +84,20 @@ describe('package.json dependencies', () => {
 
     expect(buildOnly).toEqual([])
   })
+
+  // Os pacotes `@vitest/*` declaram `peerDependencies: { vitest: "<versão exata>" }`.
+  // Um bump que mova só um lado (PR #162: `vitest` 5.0.1 com `@vitest/coverage-v8`
+  // 4.1.9) estoura ERESOLVE no `npm ci` antes de qualquer gate rodar — ver issue
+  // #164. O `npm ci` já detecta; isto dá o diagnóstico com o nome do par.
+  it('every direct @vitest/* package is pinned to the same version as vitest', () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
+    const all: Record<string, string> = { ...pkg.dependencies, ...pkg.devDependencies }
+
+    const mismatched = Object.entries(all)
+      .filter(([name]) => name.startsWith('@vitest/'))
+      .filter(([, version]) => version !== all.vitest)
+      .map(([name, version]) => `${name}@${version} (vitest@${all.vitest})`)
+
+    expect(mismatched).toEqual([])
+  })
 })

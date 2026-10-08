@@ -107,7 +107,7 @@ export function GoalDialog(props: Props) {
           required
         />
       </Field>
-      <Field label="Prazo" hint="Opcional">
+      <Field label="Prazo">
         <Input
           name="targetDate"
           type="date"
@@ -117,7 +117,7 @@ export function GoalDialog(props: Props) {
       {props.investmentTypes.length > 0 && (
         <Field
           label="Vínculo com investimento"
-          hint="Opcional. Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos."
+          hint="Se vinculada, o progresso é calculado automaticamente pelos aportes e rendimentos."
         >
           <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
             <SelectTrigger>

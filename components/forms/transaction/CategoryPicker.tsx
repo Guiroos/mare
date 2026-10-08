@@ -57,7 +57,7 @@ export function CategoryPicker({
     }))
 
     return (
-      <Field label="Categoria" error={error}>
+      <Field label="Categoria" required error={error}>
         <Combobox
           groups={groups}
           value={categoryId}
@@ -70,7 +70,7 @@ export function CategoryPicker({
   }
 
   return (
-    <Field label="Categoria" error={error}>
+    <Field label="Categoria" required error={error}>
       {variant === 'grid' ? (
         <div className="grid grid-cols-5 gap-1.5">
           {allCategories.map((cat, idx) => {

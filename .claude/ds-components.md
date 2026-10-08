@@ -64,7 +64,7 @@ Radix UI + primitivos.
 | `input.tsx`          | `Input`                         | Prop `error` disponível; exporta `inputBase` e `inputErrorCls`                   |
 | `textarea.tsx`       | `Textarea`                      | Prop `error` disponível                                                          |
 | `label.tsx`          | `Label`                         | Padrão: `text-caption font-medium text-text-secondary`                           |
-| `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário  |
+| `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário. Campo obrigatório **sempre** passa `required` (renderiza `*`); opcional não leva marcação nenhuma — nunca "Opcional" em `hint` ou `placeholder` |
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
 | `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
 | `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
