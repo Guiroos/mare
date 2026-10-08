@@ -1,5 +1,7 @@
 # Devedores — Roadmap
 
+> **Estado atual (2026-10-08).** Esta pasta é o planejamento da v1 (maio/2026). Desde então entraram conciliação de pagamento (ajuste negativo), quitação por cobrança (`08-quitacao-por-cobranca.md`), edição de lançamentos, divisão de gasto (split) e link público de extrato (`/e/[token]`). As regras **vigentes** estão em `.claude/domain.md` › Devedores; onde este texto divergir de lá, lá vale.
+
 ## Status Por Fase
 
 | Fase | Objetivo                     | Status    |
@@ -193,21 +195,21 @@ Critério de aceite:
 
 | # | Item | Estado no banco | Por quê foi adiado |
 | - | ---- | --------------- | ------------------ |
-| A | Ajuste manual de saldo | Tipo `adjustment` existe em `debtor_entries`; sem UI, `debtAdjustmentSchema` ou action | Nenhum caso de uso concreto identificado |
+| A | ~~Ajuste manual de saldo~~ | **Superado (2026-07):** não há criação manual, mas `createDebtPayment` com `reconcileRemainder` cria `adjustment` negativo (abatimento) e `updateDebtEntry` edita o sinal | — |
 | B | Vencimento de cobrança (`dueDate`) | Campo existe em `debtor_entries` | Campo reservado; card de "valores vencidos" entra quando usado na prática |
 
 ### Limitações conhecidas (by design, aceitas na v1)
 
 | # | Limitação | Detalhe |
 | - | --------- | ------- |
-| C | Cobranças com `sourceTransactionId` não podem ser excluídas | `DebtEntryList` não exibe botão de exclusão para esse caso; não há ação de desvínculo; para corrigir um vínculo errado, o usuário precisa criar uma nova cobrança |
+| C | ~~Cobranças com `sourceTransactionId` não podem ser excluídas~~ | **Superado:** `DebtEntryList` exibe exclusão para toda cobrança; apagar a transação de origem apaga as cobranças do split (`deleteTransaction`/`deleteInstallmentGroup`) |
 | D | Exclusão de `income` fora de devedores não avisa | Deletar a entrada em `/registro` ou dashboard faz o banco aplicar `onDelete: set null`; o `payment` fica com `incomeId = null` sem notificação — saldo do devedor não é afetado |
 
 ### Backlog pós-v1
 
 | # | Item | Detalhe |
 | - | ---- | ------- |
-| E | Dashboard completa de `/devedores/[id]` | Planejada em `06-planejamento-detalhe-pessoa.md`: resumo financeiro, evolução do saldo, histórico agrupado e filtros |
+| E | ~~Dashboard completa de `/devedores/[id]`~~ | **Implementado:** `getPersonDebtDetails` devolve `summary` + `balanceEvolution` (`buildBalanceEvolution`) |
 | F | Ação "Atribuir a devedor" em `/registro` | Atalho para criar cobrança diretamente da lista de transações, sem navegar para devedores |
 
 ---

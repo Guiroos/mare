@@ -49,9 +49,9 @@ Representa o razão financeiro de cada pessoa.
 | ------------ | -------- | --------------- | ---------------------------------------------- |
 | `charge`     | positivo | aumenta         | quando a pessoa passou a dever                 |
 | `payment`    | positivo | reduz           | quando o usuário recebeu o pagamento           |
-| `adjustment` | positivo | aumenta         | livre — usado para correções manuais de saldo; nunca negativo por tipo |
+| `adjustment` | **com sinal** | soma o valor com sinal | data do pagamento que o gerou (conciliação) |
 
-`adjustment` sempre soma ao saldo (mesmo comportamento de `charge`). Não há caso de uso de ajuste negativo na v1 — para reduzir saldo, usar `payment`.
+> **Superado (2026-07).** O texto da v1 dizia que `adjustment` era sempre positivo e sem uso. Hoje o único fluxo que cria ajuste é a conciliação de `createDebtPayment` (`reconcileRemainder`), que grava valor **negativo** (abatimento) ligado ao pagamento por `settledByPaymentId`; o sinal é editável em `updateDebtEntry`. A fórmula de saldo abaixo continua certa porque soma o valor com sinal — ver `signedDebtAmount`.
 
 ### Regras de integridade
 

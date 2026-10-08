@@ -8,7 +8,7 @@
 | `debtChargeSchema` | valor > 0; `entryDate` obrigatório; descrição obrigatória; sem `referenceMonth`   |
 | `debtPaymentSchema`| valor > 0; `entryDate` obrigatório; descrição obrigatória; `referenceMonth` obrigatório apenas quando `createIncome: true` — validar via `refine` cruzando os dois campos |
 
-`debtAdjustmentSchema` não entra na v1. O tipo `adjustment` existe no banco para uso futuro, mas não há UI nem validação até que haja caso de uso concreto. Correções na v1 são feitas por exclusão e recriação do lançamento.
+`debtAdjustmentSchema` não entra na v1. ~~O tipo `adjustment` existe no banco para uso futuro, mas não há UI nem validação.~~ **Superado (2026-07):** `adjustment` é criado pela conciliação de `createDebtPayment` e editado por `updateDebtEntry` — ver `.claude/domain.md` › Devedores.
 
 ## Queries — `lib/queries/debtors.ts`
 
