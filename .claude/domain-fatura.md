@@ -11,6 +11,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 - Pagamento de fatura é uma `transaction` com `faturaAccountId` + `faturaCycleMonth` (e `categoryId = null`)
 - `FaturaContext` (`{ creditMode, faturaActiveFrom, creditAccountIds }`) é 3º argumento de `getDashboardData`, `getAnnualOverview`, `getAnnualExpensesByGroup` — construir no page level
 - `isFaturaMode` e `isCycleView` são mutuamente exclusivos: `isFaturaMode = !isCycleView && creditMode === 'fatura'`
+- `isFaturaMode` é o modo **do usuário**, não o do mês: serve para montar o `faturaCtx` e decidir se busca faturas. Para saber se um **mês** está sob fatura, usar `isFaturaMonth(referenceMonth, faturaCtx)` (`lib/queries/fatura.ts`, exige `referenceMonth >= faturaActiveFrom`) ou, no dashboard, `data.creditFilteredFromBudget` — nunca reexpressar o predicado na page (meses pré-ativação mantêm accrual)
 - Em fatura mode, `fixedForPendency` exclui gastos fixos de crédito das pendências; `unpaidFixedCount` e `pendingFixed` derivam de `fixedForPendency`
 - `getUserCreditMode(userId)` nunca retorna null — default `{ creditMode: 'accrual', faturaActiveFrom: null }`
 

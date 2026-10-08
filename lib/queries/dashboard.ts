@@ -11,7 +11,7 @@ import {
 import { eq, and, or, desc, between, gte, lt, isNotNull, notInArray } from 'drizzle-orm'
 import { yearMonthToReferenceMonth, prevMonth, fixedExpenseCycleCutoff } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
-import { FaturaContext } from '@/lib/queries/fatura'
+import { FaturaContext, isFaturaMonth } from '@/lib/queries/fatura'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
@@ -22,14 +22,10 @@ export async function getCategoryGroupProgress(
   referenceMonth: string,
   faturaCtx?: FaturaContext
 ) {
-  const isFaturaMonth =
-    faturaCtx !== undefined &&
-    faturaCtx.creditMode === 'fatura' &&
-    faturaCtx.faturaActiveFrom !== null &&
-    referenceMonth >= faturaCtx.faturaActiveFrom
+  const isFaturaMonthNow = isFaturaMonth(referenceMonth, faturaCtx)
 
   const creditAccountIds = faturaCtx?.creditAccountIds ?? []
-  const shouldFilterCredit = isFaturaMonth && creditAccountIds.length > 0
+  const shouldFilterCredit = isFaturaMonthNow && creditAccountIds.length > 0
 
   const txWhere = shouldFilterCredit
     ? and(
@@ -240,14 +236,10 @@ export async function getDashboardData(
       getMonthInvestments(userId, referenceMonth),
     ])
 
-  const isFaturaMonth =
-    faturaCtx !== undefined &&
-    faturaCtx.creditMode === 'fatura' &&
-    faturaCtx.faturaActiveFrom !== null &&
-    referenceMonth >= faturaCtx.faturaActiveFrom
+  const isFaturaMonthNow = isFaturaMonth(referenceMonth, faturaCtx)
 
   const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
-  const shouldFilterCredit = isFaturaMonth && creditIdSet.size > 0
+  const shouldFilterCredit = isFaturaMonthNow && creditIdSet.size > 0
 
   const expenseTransactions = shouldFilterCredit
     ? monthTransactions.filter((t) => !creditIdSet.has(t.accountId))

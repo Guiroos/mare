@@ -105,7 +105,7 @@ export default async function DashboardPage({
 
   const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
   const fixedForPendency =
-    faturaCtx && creditIdSet.size > 0
+    data.creditFilteredFromBudget && creditIdSet.size > 0
       ? data.fixedExpenses.filter((e) => !creditIdSet.has(e.accountId))
       : data.fixedExpenses
   const pendingFixed = fixedForPendency.filter((e) => !e.paid).length
@@ -201,7 +201,9 @@ export default async function DashboardPage({
             isCurrentMonth={isCurrentMonth}
             isPastMonth={isPastMonth}
             todayDay={todayDay}
-            creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+            creditAccountIds={
+              data.creditFilteredFromBudget ? faturaCtx?.creditAccountIds : undefined
+            }
           />
         </Section>
       </div>
@@ -219,7 +221,7 @@ export default async function DashboardPage({
       >
         <TransactionList
           transactions={data.transactions}
-          creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+          creditAccountIds={data.creditFilteredFromBudget ? faturaCtx?.creditAccountIds : undefined}
           accountOptions={accountOptions}
           yearMonth={month}
         />
