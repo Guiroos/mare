@@ -1,76 +1,67 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { ROOT, collectFiles } from './helpers/source-files'
 
-// Gate por string sobre o código-fonte (#143). Um catch que afirma uma causa
-// de negócio específica ("Não é possível X com Y") sem tê-la verificado é
-// sempre suspeito. Aqui o caso é mais forte — o gate de render
-// (`archiveAction`) só oferece o botão que dispara `handleArchive` quando o
-// saldo já é zero, a negação exata do guard de `archiveInvestmentType`
-// (lib/actions/investments.ts) — então a falha "tipo com saldo" nunca é a
-// causa real quando o catch roda. O que sobra (sessão expirada, ownership,
-// rede) precisa de mensagem genérica.
+// Gate por string sobre o código-fonte (#143). O `catch` de arquivar tipo de
+// investimento afirmava "tipo com saldo" para qualquer falha — sessão
+// expirada, ownership, rede. A causa de negócio real (saldo > 0, alcançável
+// com render obsoleto) agora volta como `ActionResult` de
+// `archiveInvestmentType`; o `catch` fica só com o excepcional, registrado
+// via `console.error` e com mensagem genérica.
 // Precedente: __tests__/unit/row-actions.test.ts (readFileSync + asserção
 // sobre conteúdo do arquivo) e __tests__/unit/no-err-message.test.ts (varre
 // app/ e components/ procurando um padrão proibido).
 //
-// Âncora no sink (`toast.error(...)`), não numa distância de `catch`, pelo
+// Âncora no sink (`toast.error(...)`), não na estrutura do `catch`, pelo
 // mesmo motivo já registrado em no-err-message.test.ts:32-40: um regex que
-// exige `catch\s*\{` (sem binding) fica cego assim que a correção adiciona
-// `catch (err) { console.error(...); toast.error(...) }` — que é exatamente
-// o "conserto pela metade" que a #143 descarta (diagnóstico presente,
-// afirmação falsa ainda na tela). Verificado sem falso-positivo em app/ +
-// components/: as demais ocorrências de "Não é possível" são a prop JSX
-// `errorMessage=`/`deleteErrorMessage=` (forma ratificada pela #35), que não
-// casa com `toast.error(`.
+// exige `catch\s*\{` (sem binding) fica cego para `catch (err) {
+// console.error(...); toast.error('Não é possível ...') }` — diagnóstico
+// presente, afirmação falsa ainda na tela.
+//
+// Escopo: só a frase "Não é possível ..." em literal (qualquer aspa). Não é
+// um detector geral de causa afirmada — "Tipo em uso." passaria. Causa
+// conhecida chega ao toast como `result.message` (ActionResult) ou pela prop
+// `errorMessage=`/`deleteErrorMessage=` (forma ratificada pela #35), nunca
+// como literal em `toast.error(`.
 
-const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'components']
-const IGNORED_DIRS = new Set(['node_modules', '.next', '.git'])
 
-function collectTsxFiles(dir: string): string[] {
-  const entries = readdirSync(dir)
-  const files: string[] = []
-  for (const entry of entries) {
-    if (IGNORED_DIRS.has(entry)) continue
-    const fullPath = join(dir, entry)
-    const stat = statSync(fullPath)
-    if (stat.isDirectory()) {
-      files.push(...collectTsxFiles(fullPath))
-    } else if (entry.endsWith('.tsx')) {
-      files.push(fullPath)
-    }
-  }
-  return files
-}
+const TOAST_LITERAL_NAO_E_POSSIVEL = /toast\.error\(\s*['"`]Não é possível /
 
-const TOAST_AFFIRMS_BUSINESS_CAUSE = /toast\.error\(\s*'Não é possível /
+// `catch (<binding>) { console.error(..., <binding>)` — o mesmo identificador
+// no binding e no log, qualquer que seja o nome.
+const CATCH_LOGS_BINDING = /catch\s*\((\w+)\)\s*\{\s*console\.error\([^)]*,\s*\1\s*\)/g
 
-describe('catch de mutação não afirma causa sem registrar a exceção real (#143)', () => {
-  it('nenhum toast de erro afirma uma causa de negócio específica sem verificá-la', () => {
-    const files = SCAN_DIRS.flatMap((dir) => collectTsxFiles(join(ROOT, dir)))
+const COMPONENTS = [
+  'components/investimentos/InvestmentTypeCard.tsx',
+  'components/investimentos/InvestmentTypeAccordion.tsx',
+]
+
+describe('toast de erro não afirma "Não é possível ..." como literal (#143)', () => {
+  it('nenhum toast.error em app/ e components/ usa o literal "Não é possível ..."', () => {
+    const files = SCAN_DIRS.flatMap((dir) => collectFiles(join(ROOT, dir), '.tsx'))
 
     const ofensores = files
-      .filter((file) => TOAST_AFFIRMS_BUSINESS_CAUSE.test(readFileSync(file, 'utf-8')))
+      .filter((file) => TOAST_LITERAL_NAO_E_POSSIVEL.test(readFileSync(file, 'utf-8')))
       .map((file) => file.replace(ROOT + '/', ''))
 
     expect(ofensores).toEqual([])
   })
+})
 
-  it('InvestmentTypeCard registra a exceção real e usa mensagem genérica', () => {
-    const src = readFileSync(join(ROOT, 'components/investimentos/InvestmentTypeCard.tsx'), 'utf-8')
-    expect(src).toMatch(/catch\s*\(err\)\s*\{\s*console\.error\([^)]*archiveInvestmentType/)
-    expect(src).toContain("toast.error('Não foi possível arquivar. Tente novamente.')")
-    expect(src).not.toContain("toast.error('Não é possível arquivar tipo com saldo.')")
+describe.each(COMPONENTS)('%s — arquivar/restaurar', (path) => {
+  const src = readFileSync(join(ROOT, path), 'utf-8')
+
+  it('consome o ActionResult de archiveInvestmentType', () => {
+    expect(src).toMatch(
+      /const\s+(\w+)\s*=\s*await\s+archiveInvestmentType\([^)]*\)\s*if\s*\(\s*!\1\.ok\s*\)/
+    )
   })
 
-  it('InvestmentTypeAccordion registra a exceção real e usa mensagem genérica', () => {
-    const src = readFileSync(
-      join(ROOT, 'components/investimentos/InvestmentTypeAccordion.tsx'),
-      'utf-8'
-    )
-    expect(src).toMatch(/catch\s*\(err\)\s*\{\s*console\.error\([^)]*archiveInvestmentType/)
-    expect(src).toContain("toast.error('Não foi possível arquivar. Tente novamente.')")
-    expect(src).not.toContain("toast.error('Não é possível arquivar tipo com saldo.')")
+  it('archive e restore registram a exceção real no catch', () => {
+    expect(src.match(CATCH_LOGS_BINDING)?.length ?? 0).toBeGreaterThanOrEqual(2)
+    expect(src).toMatch(/console\.error\([^)]*archiveInvestmentType/)
+    expect(src).toMatch(/console\.error\([^)]*restoreInvestmentType/)
   })
 })

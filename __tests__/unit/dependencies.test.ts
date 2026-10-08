@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { ROOT, collectFiles } from './helpers/source-files'
 
 // Varre app/, components/, hooks/, lib/, scripts/, types/ e arquivos
 // *.config.* na raiz do repo em busca de cada dependência de produção
@@ -8,29 +9,11 @@ import { join } from 'node:path'
 // morto em `dependencies` (superfície de supply chain sem contrapartida) —
 // ver issue #50.
 
-const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'components', 'hooks', 'lib', 'scripts', 'types']
-const IGNORED_DIRS = new Set(['node_modules', '.next', '.git'])
 
 // Peer dependency que o Next.js usa internamente para renderizar — nenhum
 // arquivo do app importa `react-dom` pelo nome, mas ela é indispensável.
 const ALLOWLIST = new Set(['react-dom'])
-
-function collectFiles(dir: string): string[] {
-  const entries = readdirSync(dir)
-  const files: string[] = []
-  for (const entry of entries) {
-    if (IGNORED_DIRS.has(entry)) continue
-    const fullPath = join(dir, entry)
-    const stat = statSync(fullPath)
-    if (stat.isDirectory()) {
-      files.push(...collectFiles(fullPath))
-    } else {
-      files.push(fullPath)
-    }
-  }
-  return files
-}
 
 function rootConfigFiles(): string[] {
   return readdirSync(ROOT)
