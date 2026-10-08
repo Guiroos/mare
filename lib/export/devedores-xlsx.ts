@@ -1,6 +1,7 @@
 // lib/export/devedores-xlsx.ts
 import writeXlsxFile from 'write-excel-file/node'
 import type { Row, SheetData } from 'write-excel-file/node'
+import { signedDebtAmount } from '@/lib/queries/debtors'
 import type { DebtorEntryExportRow, PersonWithBalance } from '@/lib/queries/debtors'
 import { dateCell, headerRow, moneyCell, textCell } from './xlsx'
 
@@ -41,15 +42,6 @@ const LANCAMENTOS_WIDTHS = [
   { width: 30 },
 ]
 
-/**
- * Sinal seguindo a convenção do domínio (balance > 0 = a pessoa deve a você):
- * pagamento abate, cobrança e ajuste somam — o ajuste já vem com sinal próprio.
- * Ver getPeopleWithBalances, que calcula o saldo da mesma forma.
- */
-export function signedEntryAmount(entry: DebtorEntryExportRow): number {
-  return entry.type === 'payment' ? -entry.amount : entry.amount
-}
-
 function saldoRow(person: PersonWithBalance): Row {
   return [
     textCell(person.name),
@@ -66,7 +58,7 @@ function lancamentoRow(entry: DebtorEntryExportRow): Row {
     dateCell(entry.entryDate),
     textCell(TIPO_LABELS[entry.type]),
     textCell(entry.description),
-    moneyCell(signedEntryAmount(entry)),
+    moneyCell(signedDebtAmount(entry)),
     textCell(entry.referenceMonth),
     textCell(entry.status ? (STATUS_LABELS[entry.status] ?? entry.status) : null),
     textCell(entry.notes),

@@ -425,6 +425,29 @@ describe('getPersonDebtDetails — ajustes no saldo', () => {
     expect(detail.summary.chargeCount).toBe(1)
     expect(detail.summary.totalCharged).toBe(500)
   })
+  it('balanceEvolution fecha cada mês com o próprio saldo e preenche meses vazios', async () => {
+    const person = await createPerson(db, userId, 'GF Evolução')
+    await createCharge(db, userId, person.id, {
+      amount: '300.00',
+      entryDate: '2025-01-10',
+      referenceMonth: '2025-01-01',
+    })
+    await createPayment(db, userId, person.id, {
+      amount: '300.00',
+      entryDate: '2025-03-05',
+      referenceMonth: '2025-03-01',
+    })
+
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const detail = await getPersonDebtDetails(userId, person.id)
+    if (!detail) throw new Error('detail não encontrado')
+
+    expect(detail.balanceEvolution).toEqual([
+      { month: '2025-01', balance: 300 },
+      { month: '2025-02', balance: 300 },
+      { month: '2025-03', balance: 0 },
+    ])
+  })
 })
 
 describe('updateDebtEntry', () => {

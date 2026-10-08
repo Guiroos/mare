@@ -5,9 +5,9 @@ import {
   SALDOS_HEADERS,
   buildLancamentosRows,
   buildSaldosRows,
-  signedEntryAmount,
   writeDevedoresXlsx,
 } from '@/lib/export/devedores-xlsx'
+import { signedDebtAmount } from '@/lib/queries/debtors'
 import type { DebtorEntryExportRow, PersonWithBalance } from '@/lib/queries/debtors'
 
 function makeEntry(overrides: Partial<DebtorEntryExportRow>): DebtorEntryExportRow {
@@ -38,18 +38,18 @@ function makePerson(overrides: Partial<PersonWithBalance>): PersonWithBalance {
   }
 }
 
-describe('signedEntryAmount', () => {
+describe('signedDebtAmount', () => {
   it('mantém cobrança positiva', () => {
-    expect(signedEntryAmount(makeEntry({ type: 'charge', amount: 100 }))).toBe(100)
+    expect(signedDebtAmount(makeEntry({ type: 'charge', amount: 100 }))).toBe(100)
   })
 
   it('torna pagamento negativo', () => {
-    expect(signedEntryAmount(makeEntry({ type: 'payment', amount: 40 }))).toBe(-40)
+    expect(signedDebtAmount(makeEntry({ type: 'payment', amount: 40 }))).toBe(-40)
   })
 
   it('mantém ajuste como armazenado, inclusive negativo', () => {
-    expect(signedEntryAmount(makeEntry({ type: 'adjustment', amount: -15 }))).toBe(-15)
-    expect(signedEntryAmount(makeEntry({ type: 'adjustment', amount: 15 }))).toBe(15)
+    expect(signedDebtAmount(makeEntry({ type: 'adjustment', amount: -15 }))).toBe(-15)
+    expect(signedDebtAmount(makeEntry({ type: 'adjustment', amount: 15 }))).toBe(15)
   })
 
   it('a soma dos lançamentos de uma pessoa reproduz o saldo dela', () => {
@@ -59,7 +59,7 @@ describe('signedEntryAmount', () => {
       makeEntry({ type: 'payment', amount: 40 }),
       makeEntry({ type: 'adjustment', amount: -10 }),
     ]
-    const total = entries.reduce((acc, e) => acc + signedEntryAmount(e), 0)
+    const total = entries.reduce((acc, e) => acc + signedDebtAmount(e), 0)
     expect(total).toBe(100)
   })
 })
