@@ -163,7 +163,7 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
           return (
             <div key={entry.uid} className="flex items-end gap-2">
               <div className="min-w-0 flex-1">
-                <Field label={idx === 0 ? 'Pessoa' : undefined}>
+                <Field label={idx === 0 ? 'Pessoa' : undefined} required>
                   <Combobox
                     options={availableForThisEntry.map((p) => ({ value: p.id, label: p.name }))}
                     value={entry.personId}
@@ -173,7 +173,7 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
                 </Field>
               </div>
               <div className="w-28 flex-shrink-0">
-                <Field label={idx === 0 ? 'Valor' : undefined}>
+                <Field label={idx === 0 ? 'Valor' : undefined} required>
                   <CurrencyInput
                     key={`${entry.uid}-${valueKey}`}
                     name={`split-amount-${idx}`}

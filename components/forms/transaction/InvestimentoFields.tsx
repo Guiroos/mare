@@ -13,11 +13,11 @@ type Props = {
 export function InvestimentoFields({ errors, month, excludeFromCashFlow, onExcludeChange }: Props) {
   return (
     <>
-      <Field label="Mês de referência" error={errors.referenceMonth}>
+      <Field label="Mês de referência" required error={errors.referenceMonth}>
         <MonthSelect name="referenceMonth" defaultValue={month} error={!!errors.referenceMonth} />
       </Field>
       <Field label="Observações">
-        <Input name="notes" placeholder="Opcional" />
+        <Input name="notes" />
       </Field>
       <Switch
         label="Excluir do fluxo de caixa"

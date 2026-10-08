@@ -61,7 +61,7 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Valor (R$)" error={errors.amount}>
+      <Field label="Valor (R$)" required error={errors.amount}>
         <CurrencyInput
           name="amount"
           defaultValue={contribution.amount}
@@ -70,7 +70,7 @@ export function ContributionEditButton({ contribution }: { contribution: Contrib
           autoFocus
         />
       </Field>
-      <Field label="Mês de referência" error={errors.referenceMonth}>
+      <Field label="Mês de referência" required error={errors.referenceMonth}>
         <Input
           name="referenceMonth"
           type="month"
