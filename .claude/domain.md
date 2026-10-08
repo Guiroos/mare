@@ -32,6 +32,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
+- `incomes.source` do resgate é regravado por `updateWithdrawal` **apenas** quando o `investmentTypeId` muda — o campo é editável pelo usuário via `IncomeEditDialog`, então editar valor/data/imposto não pode sobrescrever um rótulo customizado
 - `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - `investmentReturnCapital != null` **não** identifica entrada de reinvestimento: antes de `'reinvest'` existir (`6ec05c0`, 2026-06-11), o destino `'income'` também gravava o campo, e não houve backfill. Para saber a origem de uma entrada, ler `investmentWithdrawals.destination` pelo `incomeId`
 - Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
