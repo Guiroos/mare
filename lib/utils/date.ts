@@ -232,11 +232,12 @@ export function billingCycleDateRange(
 
 /**
  * Returns the referenceMonth base for installment 1.
- * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
+ * closingDay is the first day of the new cycle (see billingCycleDateRange), so a purchase
+ * ON closingDay or later belongs to the next month's cycle.
  */
 export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date {
   const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
-  if (effectiveClosingDay !== null && getDate(purchaseDate) > effectiveClosingDay) {
+  if (effectiveClosingDay !== null && getDate(purchaseDate) >= effectiveClosingDay) {
     return startOfMonth(addMonths(purchaseDate, 1))
   }
   return startOfMonth(purchaseDate)
