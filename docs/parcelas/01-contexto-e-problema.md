@@ -51,7 +51,7 @@ closingDayEfetivo = (closingDay !== null && closingDay > 1) ? closingDay : null
 ### Passo 1 — Calcular `baseReferenceMonth`
 
 ```
-se closingDayEfetivo existe E getDate(purchaseDate) > closingDayEfetivo:
+se closingDayEfetivo existe E getDate(purchaseDate) >= closingDayEfetivo:
   baseReferenceMonth = startOfMonth(addMonths(purchaseDate, 1))
 senão:
   baseReferenceMonth = startOfMonth(purchaseDate)
@@ -90,7 +90,7 @@ senão:
 
 ### Crédito `closingDay = 16`, compra em 05/jan (antes do fechamento)
 
-`baseReferenceMonth` = Janeiro (5 ≤ 16)
+`baseReferenceMonth` = Janeiro (5 < 16)
 
 | Parcela | Data | referenceMonth |
 | ------- | ---- | -------------- |
