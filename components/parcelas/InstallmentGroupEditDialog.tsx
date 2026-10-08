@@ -94,11 +94,11 @@ function EditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Nome" error={errors.name}>
+      <Field label="Nome" required error={errors.name}>
         <Input name="name" defaultValue={group.name} error={!!errors.name} required />
       </Field>
 
-      <Field label="Categoria" error={errors.categoryId}>
+      <Field label="Categoria" required error={errors.categoryId}>
         <Select name="categoryId" defaultValue={group.categoryId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a categoria" />
@@ -118,7 +118,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <Field label="Conta / Cartão" error={errors.accountId}>
+      <Field label="Conta / Cartão" required error={errors.accountId}>
         <Select name="accountId" defaultValue={group.accountId} required>
           <SelectTrigger>
             <SelectValue placeholder="Selecione a conta" />
@@ -133,7 +133,7 @@ function EditForm({
         </Select>
       </Field>
 
-      <Field label="Valor total da compra" error={errors.newTotalAmount}>
+      <Field label="Valor total da compra" required error={errors.newTotalAmount}>
         <CurrencyInput
           name="newTotalAmount"
           defaultValue={group.totalAmount}

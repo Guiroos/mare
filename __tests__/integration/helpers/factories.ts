@@ -17,11 +17,16 @@ export async function createPerson(db: TestDb, userId: string, name = 'Pessoa Te
   return person
 }
 
-export async function createCategoryGroup(db: TestDb, userId: string, name = 'Grupo Teste') {
+export async function createCategoryGroup(
+  db: TestDb,
+  userId: string,
+  name = 'Grupo Teste',
+  overrides: Partial<typeof schema.categoryGroups.$inferInsert> = {}
+) {
   const [group] = await db
     .insert(schema.categoryGroups)
-    .values({ userId, name })
-    .returning({ id: schema.categoryGroups.id })
+    .values({ userId, name, ...overrides })
+    .returning({ id: schema.categoryGroups.id, sortOrder: schema.categoryGroups.sortOrder })
   return group
 }
 

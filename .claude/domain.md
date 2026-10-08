@@ -17,6 +17,8 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `people` (cadastro) + `debtorEntries` (lançamentos); `type`: `charge` | `payment` | `adjustment`
 - `balance > 0` = pessoa deve a você; `status` `null`/`'open'` são equivalentes (pré-migration ficaram como `null`)
+- Sinal no saldo vem de `signedDebtAmount` (`lib/queries/debtors.ts`): pagamento abate, cobrança e ajuste somam (ajuste já tem sinal). Lista, detalhe, gráfico e export usam o helper — não reescrever o ternário
+- `buildBalanceEvolution` (gráfico de `/devedores/[id]`) soma em centavos inteiros e preenche os meses sem lançamento com o saldo anterior; série esparsa faz o gráfico desenhar quitação gradual que não houve
 - `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
 - Ao deletar payment: `UPDATE status='open'` **antes** do DELETE — `ON DELETE SET NULL` não reseta `status`
 - `deletePersonIfEmpty` deleta; se houver histórico, usar `archivePerson` (archived: true)
@@ -30,6 +32,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
+- `incomes.source` do resgate é regravado por `updateWithdrawal` **apenas** quando o `investmentTypeId` muda — o campo é editável pelo usuário via `IncomeEditDialog`, então editar valor/data/imposto não pode sobrescrever um rótulo customizado
 - `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - `investmentReturnCapital != null` **não** identifica entrada de reinvestimento: antes de `'reinvest'` existir (`6ec05c0`, 2026-06-11), o destino `'income'` também gravava o campo, e não houve backfill. Para saber a origem de uma entrada, ler `investmentWithdrawals.destination` pelo `incomeId`
 - Saldo em JS: usar `Math.round(balance * 100)` para comparar com zero (float precision)
@@ -69,6 +72,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - Filtro textual `q`: aplicado em JS após decrypt, não no SQL — não tentar mover para `WHERE`
 - `parseHistoricoParams`/`buildHistoricoUrl` em `lib/utils/historico-params.ts` — normaliza e serializa os 6 filtros (`de`, `ate`, `tipos`, `categorias`, `contas`, `q`); defaults: últimos 90 dias, todos os `TipoKind`
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`
+- `collectHistoricoItems` busca `incomes`/`investments`/`fixedExpenses` por **mês inteiro** (`refMonths`) e filtra pela data de exibição em JS, sobre os 5 tipos: entradas e aportes são datados no dia 1º do `referenceMonth` e vazariam em recorte que começa depois do dia 1º. Gasto fixo busca também o mês **anterior** a `de` (`fxRefMonths`), porque `fixedExpenseDate` transborda `dueDay` além do fim do mês (fev + `dueDay` 31 → 03/03) — sem isso o item some tanto do recorte de fevereiro (data fora) quanto do de março (mês não buscado). Não estreitar `referenceMonthsInRange`: o filtro de precisão é que decide
 
 ## Cron
 

@@ -12,6 +12,7 @@ import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 import { getUserPixKey } from '@/lib/queries/settings'
+import { nextMonth } from '@/lib/utils/date'
 
 export type PersonWithBalance = {
   id: string
@@ -68,13 +69,8 @@ export async function getPeopleWithBalances(
 
   for (const e of entryRows) {
     const amount = toAmount(decryptField(e.amount, dek))
-    if (balanceMap[e.personId] === undefined) balanceMap[e.personId] = 0
-    if (e.type === 'payment') {
-      balanceMap[e.personId] -= amount
-    } else {
-      // 'charge' e 'adjustment' (amount com sinal) somam ao saldo aqui
-      balanceMap[e.personId] += amount
-    }
+    balanceMap[e.personId] =
+      (balanceMap[e.personId] ?? 0) + signedDebtAmount({ type: e.type, amount })
     if (!lastMovementMap[e.personId] || e.entryDate > lastMovementMap[e.personId]!) {
       lastMovementMap[e.personId] = e.entryDate
     }
@@ -134,6 +130,50 @@ export type DebtEntryDetail = {
 export type BalanceEvolutionPoint = {
   month: string
   balance: number
+}
+
+type BalanceEvolutionEntry = {
+  type: 'charge' | 'payment' | 'adjustment'
+  amount: number
+  entryDate: string
+}
+
+/**
+ * Sinal do lançamento no saldo (balance > 0 = a pessoa deve a você): pagamento
+ * abate, cobrança e ajuste somam — o ajuste já vem com sinal próprio. Fonte
+ * única da regra para a lista, o detalhe, o gráfico e o export de devedores.
+ */
+export function signedDebtAmount(entry: { type: string; amount: number }): number {
+  return entry.type === 'payment' ? -entry.amount : entry.amount
+}
+
+/**
+ * Agrega por mês e só então acumula — um ponto por mês, do primeiro ao último
+ * com lançamento. Mês sem movimento repete o saldo anterior: sem ele, o gráfico
+ * liga os pontos vizinhos e sugere uma quitação gradual que não aconteceu.
+ * Soma em centavos inteiros: em float, um saldo zerado pode sair como -2.7e-17
+ * e virar "-R$ 0,00" no tooltip.
+ */
+export function buildBalanceEvolution(entries: BalanceEvolutionEntry[]): BalanceEvolutionPoint[] {
+  if (entries.length === 0) return []
+
+  const centsByMonth = new Map<string, number>()
+  for (const e of entries) {
+    const month = e.entryDate.slice(0, 7)
+    const cents = Math.round(signedDebtAmount(e) * 100)
+    centsByMonth.set(month, (centsByMonth.get(month) ?? 0) + cents)
+  }
+
+  const months = Array.from(centsByMonth.keys()).sort()
+  const lastMonth = months[months.length - 1]
+
+  const points: BalanceEvolutionPoint[] = []
+  let cumulativeCents = 0
+  for (let month = months[0]; month <= lastMonth; month = nextMonth(month)) {
+    cumulativeCents += centsByMonth.get(month) ?? 0
+    points.push({ month, balance: cumulativeCents / 100 })
+  }
+  return points
 }
 
 export type PersonDebtDetails = {
@@ -259,54 +299,20 @@ export async function getPersonDebtDetails(
   let lastMovement: string | null = null
 
   for (const e of entries) {
+    balance += signedDebtAmount(e)
     if (e.type === 'payment') {
-      balance -= e.amount
       totalPaid += e.amount
       paymentCount++
-    } else if (e.type === 'adjustment') {
-      // amount com sinal: negativo reduz o saldo, positivo aumenta.
-      // NÃO é cobrança — não pode contaminar totalCharged/chargeCount.
-      balance += e.amount
-    } else {
-      balance += e.amount
+    } else if (e.type === 'charge') {
       totalCharged += e.amount
       chargeCount++
     }
+    // 'adjustment' só mexe no saldo: NÃO é cobrança — não pode contaminar
+    // totalCharged/chargeCount.
     if (!lastMovement || e.entryDate > lastMovement) lastMovement = e.entryDate
   }
 
-  // balanceEvolution: one point per month (last balance of each month), entries already asc
-  const balanceEvolution: BalanceEvolutionPoint[] = []
-  let runningBalance = 0
-  let currentMonth = ''
-  for (const e of entries) {
-    if (e.type === 'payment') {
-      runningBalance -= e.amount
-    } else {
-      // 'charge' e 'adjustment' (amount com sinal) somam ao saldo aqui
-      runningBalance += e.amount
-    }
-    const month = e.entryDate.slice(0, 7)
-    if (month !== currentMonth) {
-      if (currentMonth) balanceEvolution.push({ month: currentMonth, balance: runningBalance })
-      currentMonth = month
-    } else {
-      if (
-        balanceEvolution.length > 0 &&
-        balanceEvolution[balanceEvolution.length - 1].month === month
-      ) {
-        balanceEvolution[balanceEvolution.length - 1].balance = runningBalance
-      }
-    }
-  }
-  if (currentMonth) {
-    const last = balanceEvolution[balanceEvolution.length - 1]
-    if (!last || last.month !== currentMonth) {
-      balanceEvolution.push({ month: currentMonth, balance: runningBalance })
-    } else {
-      last.balance = runningBalance
-    }
-  }
+  const balanceEvolution = buildBalanceEvolution(entries)
 
   // entries returned desc for display
   const entriesDesc = [...entries].reverse()

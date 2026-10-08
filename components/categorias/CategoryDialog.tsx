@@ -112,7 +112,7 @@ export function CategoryDialog(props: Props) {
         </Select>
       </Field>
 
-      <Field label="Orçamento padrão" hint="Opcional">
+      <Field label="Orçamento padrão">
         <CurrencyInput
           name="defaultBudget"
           defaultValue={props.mode === 'edit' ? (props.category.defaultBudget ?? '') : ''}
@@ -120,10 +120,7 @@ export function CategoryDialog(props: Props) {
         />
       </Field>
 
-      <Field
-        label="Cor"
-        hint="Opcional. A cor de fundo é gerada automaticamente a partir desta cor."
-      >
+      <Field label="Cor" hint="A cor de fundo é gerada automaticamente a partir desta cor.">
         <div className="flex items-center gap-3">
           <input
             type="color"

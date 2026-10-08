@@ -47,7 +47,9 @@ describe('archiveInvestmentType', () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo para Arquivar' })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -56,7 +58,7 @@ describe('archiveInvestmentType', () => {
     expect(saved?.archived).toBe(true)
   })
 
-  it('lança erro ao tentar arquivar tipo com saldo positivo', async () => {
+  it('devolve investment_type_has_balance ao tentar arquivar tipo com saldo positivo', async () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo com Saldo' })
 
     await db.insert(schema.investments).values({
@@ -68,9 +70,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await expect(archiveInvestmentType(type.id)).rejects.toThrow(
-      'Não é possível arquivar tipo com saldo.'
-    )
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toMatchObject({ ok: false, code: 'investment_type_has_balance' })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -99,7 +101,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -130,7 +134,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await archiveInvestmentType(type.id)
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toEqual({ ok: true, data: undefined })
 
     const saved = await db.query.investmentTypes.findFirst({
       where: eq(schema.investmentTypes.id, type.id),
@@ -139,7 +145,7 @@ describe('archiveInvestmentType', () => {
     expect(saved?.archived).toBe(true)
   })
 
-  it('lança erro ao arquivar quando saldo residual existe após contabilizar taxAmount', async () => {
+  it('devolve investment_type_has_balance quando saldo residual existe após contabilizar taxAmount', async () => {
     const type = await createInvestmentType(db, userId, { name: 'Tipo com Saldo Residual' })
 
     await db.insert(schema.investments).values({
@@ -161,9 +167,9 @@ describe('archiveInvestmentType', () => {
     })
 
     const { archiveInvestmentType } = await import('@/lib/actions/investments')
-    await expect(archiveInvestmentType(type.id)).rejects.toThrow(
-      'Não é possível arquivar tipo com saldo.'
-    )
+    const result = await archiveInvestmentType(type.id)
+
+    expect(result).toMatchObject({ ok: false, code: 'investment_type_has_balance' })
   })
 })
 
@@ -409,6 +415,123 @@ describe('updateWithdrawal', () => {
     const dek = await getDekForUser(userId)
     expect(decryptField(income!.amount, dek)).toBe('200.00')
     expect(decryptOptional(income!.investmentReturnCapital, dek)).toBe('200.00')
+  })
+
+  it('income.source acompanha a troca de tipo do resgate (destination=income)', async () => {
+    const oldType = await createInvestmentType(db, userId, { name: 'CDB Antigo' })
+    const newType = await createInvestmentType(db, userId, { name: 'Tesouro Novo' })
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+
+    await createWithdrawal({
+      investmentTypeId: oldType.id,
+      investmentTypeName: 'CDB Antigo',
+      amount: '1000.00',
+      date: '2025-06-01',
+      destination: 'income',
+    })
+
+    const withdrawal = await findWithdrawal(oldType.id)
+    expect(withdrawal).toBeDefined()
+
+    await updateWithdrawal({
+      id: withdrawal!.id,
+      investmentTypeId: newType.id,
+      amount: '1000.00',
+      date: '2025-06-01',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.source, dek)).toBe('Resgate investimento Tesouro Novo')
+  })
+
+  it('income.source acompanha a troca de tipo do resgate (destination=reinvest)', async () => {
+    const oldType = await createInvestmentType(db, userId, { name: 'CDB Reinvest Antigo' })
+    const newType = await createInvestmentType(db, userId, { name: 'Tesouro Reinvest Novo' })
+
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: newType.id,
+      referenceMonth: '2025-01-01',
+      amount: '3000.00',
+      yieldAmount: null,
+      excludeFromCashFlow: false,
+    })
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+
+    await createWithdrawal({
+      investmentTypeId: oldType.id,
+      investmentTypeName: 'CDB Reinvest Antigo',
+      amount: '500.00',
+      date: '2025-06-01',
+      destination: 'reinvest',
+    })
+
+    const withdrawal = await findWithdrawal(oldType.id)
+    expect(withdrawal).toBeDefined()
+
+    await updateWithdrawal({
+      id: withdrawal!.id,
+      investmentTypeId: newType.id,
+      amount: '500.00',
+      date: '2025-06-01',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+    expect(decryptField(income!.source, dek)).toBe('Resgate investimento Tesouro Reinvest Novo')
+  })
+
+  it('income.source customizado sobrevive a uma edição que não troca o tipo', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'CDB Rótulo Preservado' })
+
+    const { createWithdrawal, updateWithdrawal } = await import('@/lib/actions/investments')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField, encryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'CDB Rótulo Preservado',
+      amount: '1000.00',
+      date: '2025-06-01',
+      destination: 'income',
+    })
+
+    const withdrawal = await findWithdrawal(type.id)
+    expect(withdrawal).toBeDefined()
+
+    // Usuário renomeia a entrada via IncomeEditDialog antes de editar o resgate
+    await db
+      .update(schema.incomes)
+      .set({ source: encryptField('Reserva de emergência', dek) })
+      .where(eq(schema.incomes.id, withdrawal!.incomeId!))
+
+    await updateWithdrawal({
+      id: withdrawal!.id,
+      investmentTypeId: type.id,
+      amount: '1200.00',
+      date: '2025-06-05',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, withdrawal!.incomeId!),
+    })
+
+    expect(decryptField(income!.source, dek)).toBe('Reserva de emergência')
+    expect(decryptField(income!.amount, dek)).toBe('1200.00')
   })
 })
 
