@@ -51,7 +51,8 @@ closingDayEfetivo = (closingDay !== null && closingDay > 1) ? closingDay : null
 ### Passo 1 — Calcular `baseReferenceMonth`
 
 ```
-se closingDayEfetivo existe E getDate(purchaseDate) >= closingDayEfetivo:
+se closingDayEfetivo existe E getDate(purchaseDate) >= fixedExpenseCycleCutoff(mês da compra, closingDayEfetivo):
+  // corte = closingDayEfetivo clampado ao último dia do mês da compra (ex.: 29 em fev/2025 → 28)
   baseReferenceMonth = startOfMonth(addMonths(purchaseDate, 1))
 senão:
   baseReferenceMonth = startOfMonth(purchaseDate)
