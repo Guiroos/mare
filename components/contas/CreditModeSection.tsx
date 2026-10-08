@@ -74,6 +74,7 @@ export function CreditModeSection({
         {isFatura && (
           <Field
             label="Ativar a partir de"
+            required
             hint="Meses anteriores mantêm o comportamento atual."
             error={error && !activeFrom ? 'Selecione o mês de ativação.' : undefined}
           >

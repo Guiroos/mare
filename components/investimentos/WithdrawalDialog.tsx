@@ -129,7 +129,7 @@ export function WithdrawalDialog({
 
   const form = (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+      <Field label="Tipo de investimento" required error={errors.investmentTypeId}>
         <Select value={typeId} onValueChange={setTypeId}>
           <SelectTrigger>
             <SelectValue placeholder="Selecione..." />
@@ -150,7 +150,7 @@ export function WithdrawalDialog({
 
       {hasTax ? (
         <>
-          <Field label="Valor bruto (R$)" error={errors.amount}>
+          <Field label="Valor bruto (R$)" required error={errors.amount}>
             <CurrencyInput
               name="_gross"
               onValueChange={setGrossCents}
@@ -175,7 +175,7 @@ export function WithdrawalDialog({
           <input type="hidden" name="taxAmount" value={(taxCents / 100).toFixed(2)} />
         </>
       ) : (
-        <Field label="Valor recebido (R$)" error={errors.amount}>
+        <Field label="Valor recebido (R$)" required error={errors.amount}>
           <CurrencyInput
             name="amount"
             defaultValue={initialAmount}
@@ -185,11 +185,11 @@ export function WithdrawalDialog({
         </Field>
       )}
 
-      <Field label="Data do resgate" error={errors.date}>
+      <Field label="Data do resgate" required error={errors.date}>
         <Input name="date" type="date" error={!!errors.date} required />
       </Field>
 
-      <Field label="Destino">
+      <Field label="Destino" required>
         <Select
           value={destination}
           onValueChange={(v) => setDestination(v as 'income' | 'reinvest')}
@@ -216,7 +216,7 @@ export function WithdrawalDialog({
         </p>
       )}
 
-      <Field label="Observações" hint="Opcional">
+      <Field label="Observações">
         <Input name="notes" />
       </Field>
 

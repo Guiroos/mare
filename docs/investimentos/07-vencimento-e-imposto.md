@@ -321,13 +321,16 @@ sendo atualizado com `data.amount` (liquido).
 
 ```typescript
 // Ordem obrigatoria: requireUserId → assertOwnsInvestmentType → check saldo → UPDATE
-async function archiveInvestmentType(id: string) {
+async function archiveInvestmentType(id: string): Promise<ActionResult> {
   const userId = await requireUserId()
   await assertOwnsInvestmentType(userId, id)
   // buscar currentBalance para validar (reutilizar getInvestmentBalances ou query direta)
-  // se currentBalance > 0: throw new Error('Nao é possivel arquivar tipo com saldo.')
+  // se currentBalance > 0: return { ok: false, code: 'investment_type_has_balance', message }
+  // (retorno tipado, não throw: com render obsoleto a UI oferece "Arquivar" com saldo > 0
+  // e a mensagem de um throw não chega ao cliente em produção — #143)
   await db.update(investmentTypes).set({ archived: true }).where(eq(investmentTypes.id, id))
   revalidatePath('/investimentos')
+  return { ok: true, data: undefined }
 }
 ```
 
@@ -681,7 +684,7 @@ de criar.
    - `taxAmount` e null por padrao.
 3. ✓ Criar `__tests__/integration/actions-investments.test.ts`:
    - `archiveInvestmentType` com saldo zero → `archived = true`.
-   - `archiveInvestmentType` com saldo > 0 → lanca erro.
+   - `archiveInvestmentType` com saldo > 0 → `{ ok: false, code: 'investment_type_has_balance' }`.
    - `archiveInvestmentType` com aportes + resgates zerados (saldo = 0) → `archived = true`.
    - `restoreInvestmentType` → `archived = false`.
    - Verifica ownership em `restoreInvestmentType`.

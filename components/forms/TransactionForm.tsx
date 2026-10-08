@@ -525,6 +525,7 @@ export function TransactionForm({
         {(primaryType === 'saida' || primaryType === 'entrada') && (
           <Field
             label={primaryType === 'entrada' ? 'Origem' : 'Nome'}
+            required
             error={errors.name ?? errors.source}
           >
             <Input
@@ -541,7 +542,7 @@ export function TransactionForm({
 
         {/* Tipo de investimento */}
         {(primaryType === 'investimento' || primaryType === 'resgate') && (
-          <Field label="Tipo de investimento" error={errors.investmentTypeId}>
+          <Field label="Tipo de investimento" required error={errors.investmentTypeId}>
             <Select value={investmentTypeId} onValueChange={setInvestmentTypeId}>
               <SelectTrigger error={!!errors.investmentTypeId}>
                 <SelectValue placeholder="Selecione..." />
@@ -572,7 +573,7 @@ export function TransactionForm({
             defaultDate={editContext?.initialValues.date}
             defaultDueDay={editContext?.initialValues.dueDay}
             accountField={
-              <Field label="Conta / Cartão" error={errors.accountId}>
+              <Field label="Conta / Cartão" required error={errors.accountId}>
                 <Select value={accountId} onValueChange={setAccountId}>
                   <SelectTrigger error={!!errors.accountId}>
                     <SelectValue placeholder="Selecione a conta" />
