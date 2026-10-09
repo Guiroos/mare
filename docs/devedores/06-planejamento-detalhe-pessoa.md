@@ -88,11 +88,11 @@ Métricas:
 | Métrica | Descrição | Fonte |
 | ------- | --------- | ----- |
 | Saldo atual | valor líquido atual da pessoa | `charge + adjustment - payment` |
-| Total cobrado | soma de `charge` + `adjustment` | entries |
+| Total cobrado | soma de `charge` (**sem** `adjustment` — ver nota abaixo) | entries |
 | Total recebido | soma de `payment` | entries |
 | Último movimento | data mais recente em `entryDate` | entries |
 
-`adjustment` é fundido com `charge` no `totalCharged` porque não tem semântica própria consolidada. Se futuramente ganhar finalidade distinta (ex: juros, desconto), revisitar o resumo.
+~~`adjustment` é fundido com `charge` no `totalCharged` porque não tem semântica própria consolidada.~~ **Revisitado:** o ajuste ganhou finalidade distinta (abatimento da conciliação, negativo) e somá-lo ao total cobrado reduziria o "cobrado". A implementação (`getPersonDebtDetails`) mantém `adjustment` só no saldo, fora de `totalCharged`/`chargeCount`.
 
 Comportamento visual:
 

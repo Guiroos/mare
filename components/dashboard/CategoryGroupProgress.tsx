@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { formatCurrency } from '@/lib/utils/currency'
+import { formatCurrency, toAmount } from '@/lib/utils/currency'
 import { formatDisplayDate } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { TxList, TxItem } from '@/components/ui/tx-list'
@@ -75,7 +75,7 @@ function CategoryTransactionsList({
           key={`fe-${fe.id}`}
           name={fe.name}
           meta={[fe.account?.name, 'Gasto fixo'].filter(Boolean).join(' · ')}
-          amount={formatCurrency(Number(fe.amount))}
+          amount={formatCurrency(toAmount(fe.amount))}
           amountTone="neg"
           strike={fe.paid}
         />
@@ -85,7 +85,7 @@ function CategoryTransactionsList({
           key={`tx-${tx.id}`}
           name={tx.name}
           meta={[tx.account?.name, formatDisplayDate(tx.date)].filter(Boolean).join(' · ')}
-          amount={formatCurrency(Number(tx.amount))}
+          amount={formatCurrency(toAmount(tx.amount))}
           amountTone="neg"
           installment={
             tx.installmentNumber && tx.totalInstallments

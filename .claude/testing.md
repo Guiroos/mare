@@ -18,7 +18,7 @@ Referenciado por `CLAUDE.md` via `@`. Cobre a configuração de testes de integr
 - **`autoCloseWebSockets: true` obrigatório**: quando usando `Pool` de `@neondatabase/serverless`, omitir essa opção faz o cleanup do branch falhar silenciosamente com conexões WebSocket abertas
 - **`parentBranchId` obrigatório**: sem ele, neon-testing clona do branch default do projeto (prod); sempre passar `NEON_PARENT_BRANCH_ID` apontando para o branch dev — o ID fica em console.neon.tech → Branches
 - **Branches são clones — sem migrations**: o branch de teste herda o schema completo do pai; nunca chamar `migrate()` nos testes
-- **Neon hobby plan — `maxForks: 4`**: o plano hobby tem limite de 10 branches por projeto; com 2 branches fixos (prod + dev), restam 8 slots; sem `maxForks`, todos os arquivos criam branches em paralelo e os últimos falham com `BRANCHES_LIMIT_EXCEEDED`; `maxForks: 4` garante no máximo 6 branches simultâneos (4 test + 2 fixos), com margem para branches lentos a destruir
+- **Neon hobby plan — `maxWorkers: 4`**: o plano hobby tem limite de 10 branches por projeto; com 2 branches fixos (prod + dev), restam 8 slots; sem limite de workers, todos os arquivos criam branches em paralelo e os últimos falham com `BRANCHES_LIMIT_EXCEEDED`; `maxWorkers: 4` (em `vitest.integration.config.mts`) garante no máximo 6 branches simultâneos (4 test + 2 fixos), com margem para branches lentos a destruir
 
 ## Carregamento de variáveis de ambiente
 

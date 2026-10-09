@@ -12,6 +12,21 @@ revalidatePath('...')
 
 **Nunca** criar `requireUserId` local — sempre importar de `@/lib/auth/require-user`.
 
+## Falha esperada: `ActionResult`, não `throw`
+
+Em build de produção o React mascara a mensagem de `Error` lançado por Server Action — o cliente recebe um erro genérico, nunca o texto (#34). Toda falha que o **usuário** pode causar e precisa entender (validação de negócio, conflito, estado que mudou) devolve `ActionResult` de `lib/actions/types.ts`:
+
+```ts
+export async function createX(data: unknown): Promise<ActionResult> {
+  // ...
+  if (conflito) return { ok: false, code: 'duplicate_x', message: 'Já existe um X para este mês' }
+  // ...
+  return { ok: true, data: undefined }
+}
+```
+
+O cliente lê `result.ok` / `result.message`; o `code` é o contrato estável (a UI pode ramificar nele). `throw` fica para o excepcional que o usuário não provoca pela UI — registro não encontrado após `assertOwns*`, invariante violada. Referências: `lib/actions/fatura.ts`, `archiveInvestmentType` em `lib/actions/investments.ts`.
+
 ## Ownership checks
 
 Importar `assertOwns*` antes de qualquer insert/update que referencie `categoryId`, `accountId`, `groupId`, `investmentTypeId`, `goalId`, `personId` ou `debtEntryId` vindo do cliente.

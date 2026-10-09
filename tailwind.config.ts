@@ -117,6 +117,11 @@ const config: Config = {
         amount: ['28px', { lineHeight: '1.1', letterSpacing: '-0.03em', fontWeight: '600' }],
         hero: ['40px', { lineHeight: '1.1', letterSpacing: '-0.04em', fontWeight: '600' }],
 
+        /* ── Escala de marca (só /login) ──
+           Headline e wordmark da tela de login, maiores que a escala do app. */
+        brand: ['64px', { lineHeight: '1.04', letterSpacing: '-0.045em', fontWeight: '600' }],
+        wordmark: ['48px', { lineHeight: '1', letterSpacing: '-0.04em', fontWeight: '600' }],
+
         /* ── Escala de marketing (só rotas (marketing)) ──
            Fluida por clamp() porque a landing vai de 320px a 1120px numa única
            composição; a escala do app é fixa porque vive dentro de containers

@@ -52,7 +52,7 @@ CRON_SECRET=           # Bearer das rotas em app/api/cron/
 
 - **DB**: Neon PostgreSQL via `lib/db/index.ts`. ORM: Drizzle — schema em `lib/db/schema.ts`, migrations em `lib/db/migrations/`
 - **Queries** (`lib/queries/`): lidas direto em Server Components. **Actions** (`lib/actions/`): `"use server"`, mutam e chamam `revalidatePath`
-- `toAmount(val)` em `lib/utils/currency.ts` — sempre usar em vez de `Number(x.amount)`; campos `decimal` do Drizzle retornam string
+- `toAmount(val)` em `lib/utils/currency.ts` — sempre usar em vez de `Number(x.amount)`; campos `decimal` do Drizzle retornam string, e valores cifrados chegam como string depois do `decryptField`. Vale também em componentes: `toAmount(undefined)` é `0`, `Number(undefined)` é `NaN`
 - Dashboard/panorama: totais calculados em JS dos dados já buscados, sem queries `SUM` separadas
 - Gotchas de schema, migrations e Drizzle: **@.claude/db.md**
 - Criptografia de campos (MEK/DEK, API, gotchas de query): **@.claude/crypto.md**
@@ -67,7 +67,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Todos os dados financeiros escopados por `userId` + `referenceMonth` (sempre `YYYY-MM-01`)
 - Meses em URLs são `YYYY-MM`; usar helpers de `lib/utils/date.ts` — nunca construir strings de mês manualmente
 - `<input type="month">` retorna `YYYY-MM` — schemas de formulário usam `yearMonthSchema`; converter para `YYYY-MM-01` antes de chamar a action (`referenceMonthSchema`)
-- Budget por categoria: `category.defaultBudget` ou override via `monthlyBudgetOverride` para o mês
+- Budget por categoria: `category.defaultBudget` ou override via `monthlyBudgetOverrides` para o mês
 - Parcela: 1 `installmentGroup` + N `transaction` rows; `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts` definem qual mês é a 1ª parcela
 - `paymentAccounts.type`: `credit | debit | pix`; quando `closingDay > 1`, dashboard exibe cycle select (`?cycleAccount=`)
 - Contas gerenciadas em `/contas`; `/categorias` cobre apenas grupos e categorias
@@ -81,7 +81,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Next.js 16: `params`/`searchParams` são `Promise<>` — `await`; paralelizar com `auth()` via `Promise.all`
 - `@serwist/next`: usado em **configurator mode** (não o wrapper `withSerwistInit`, que injeta config webpack e não roda sob Turbopack — bundler padrão do `next build` no Next 16, gerava `public/sw.js` vazio em silêncio). `serwist.config.mjs` alimenta o CLI `@serwist/cli`, rodado como 2ª etapa do script `build` (`next build && serwist build serwist.config.mjs`). O registro no cliente é responsabilidade do app: `<SerwistProvider swUrl="/sw.js">` de `@serwist/next/react` **só** em `(app)/layout.tsx` — o CLI não injeta `register()` (o wrapper webpack injetava), e o escopo default `'/'` já cobre a origem inteira; fora do `(app)` seria Client Component na landing, que o §4.2 do `docs/seo-landing-backlog.md` esvaziou de propósito
 - `app/sw.ts` — **nunca** usar `defaultCache` de `@serwist/next/worker`: ele grava HTML autenticado, payloads RSC e GETs em `/api/*` (inclusive `/api/export/completo`) em `CacheStorage`, que é legível por qualquer script da origem e sobrevive ao logout e à exclusão de conta. O `runtimeCaching` é estreito de propósito (só `/_next/static/**` e ícones de PWA); tudo com sessão é `NetworkOnly`. Fallback de navegação é `app/~offline`, que precisa continuar prerenderizável — rota dinâmica não emite HTML no build e some do manifest de precache. Gates: CI roda `npm run build` + `test -s public/sw.js`; `__tests__/unit/service-worker-registro.test.ts` amarra provider, `swUrl`↔`swDest`, existência do fallback e ausência de `defaultCache`
-- Hook `PostToolUse:Edit` bloqueia edits com imports não usados — usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças
+- Hook `PostToolUse` (`Edit|Write`, `.claude/hooks/post-edit-format.sh`) roda Prettier + ESLint no arquivo e acorda o Claude (exit 2) com o erro — import não usado entre dois `Edit` parciais dispara; usar `Write` para reescrever o arquivo inteiro quando há múltiplas mudanças. Ficou mudo de 2026-05 a 2026-10: sob `set -e`, `out=$(npx eslint ...)` falhando encerrava o script com exit 1 (não-bloqueante, sem saída). Ao mexer no script, testar com um arquivo que falha no lint e conferir `exit 2`
 - Hook `PostToolUse:Write` também dispara ds-reviewer (não só `Edit`) — ao fazer múltiplas edições em arquivos de componente (ex: Sidebar, BottomNav), preferir um único `Write` completo a vários `Edit` para minimizar interrupções
 - `error.tsx` em `app/(app)/` não captura erros lançados dentro do `layout.tsx` do mesmo nível (ex: falha no `auth()`, crash em `Sidebar`) — para isso é necessário `app/global-error.tsx`, que deve incluir `<html>` + `<body>` pois substitui o root layout
 - `'use server'` inline em body de função dentro de arquivo `'use client'` é inválido — Next.js não suporta server actions definidas inline em Client Components; definir em arquivo separado com `'use server'` no topo e importar

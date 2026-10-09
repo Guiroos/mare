@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
+import { surgeDurationMs } from '@/components/auth/TideCanvas'
 
 const GoogleIcon = () => (
   <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden>
@@ -24,7 +26,30 @@ const GoogleIcon = () => (
   </svg>
 )
 
+const setTideHover = (on: boolean) => dispatchEvent(new CustomEvent('mare:hover', { detail: on }))
+
+type Provider = 'google' | 'dev'
+
 export function LoginButton() {
+  const [pending, setPending] = useState<Provider | null>(null)
+
+  // Voltar do OAuth pelo bfcache restaura o botão travado em loading
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setPending(null)
+    }
+    addEventListener('pageshow', onPageShow)
+    return () => removeEventListener('pageshow', onPageShow)
+  }, [])
+
+  // O redirect é rápido demais e cortaria a animação: a maré cobre a tela
+  // primeiro, depois o signIn sai (ver TideCanvas)
+  const enter = (provider: Provider) => {
+    setPending(provider)
+    dispatchEvent(new Event('mare:surge'))
+    setTimeout(() => signIn(provider, { callbackUrl: '/dashboard' }), surgeDurationMs())
+  }
+
   return (
     <>
       <Button
@@ -32,7 +57,11 @@ export function LoginButton() {
         size="lg"
         className="w-full !gap-3 !rounded-lg"
         leftIcon={<GoogleIcon />}
-        onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
+        loading={pending === 'google'}
+        disabled={pending !== null}
+        onMouseEnter={() => setTideHover(true)}
+        onMouseLeave={() => setTideHover(false)}
+        onClick={() => enter('google')}
       >
         Entrar com Google
       </Button>
@@ -42,7 +71,11 @@ export function LoginButton() {
           variant="ghost"
           size="md"
           className="w-full border border-dashed border-border"
-          onClick={() => signIn('dev', { callbackUrl: '/dashboard' })}
+          loading={pending === 'dev'}
+          disabled={pending !== null}
+          onMouseEnter={() => setTideHover(true)}
+          onMouseLeave={() => setTideHover(false)}
+          onClick={() => enter('dev')}
         >
           Entrar como Dev
         </Button>

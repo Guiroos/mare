@@ -22,7 +22,7 @@ import { updateWithdrawal } from '@/lib/actions/investments'
 import { getTripOptions } from '@/lib/actions/trips'
 import { withdrawalEditSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { formatCurrency } from '@/lib/utils/currency'
+import { formatCurrency, toAmount } from '@/lib/utils/currency'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 type Withdrawal = {
@@ -43,8 +43,10 @@ type Props = {
 
 export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const hasTaxInitial = withdrawal.taxAmount !== null
-  const grossInitial = hasTaxInitial ? Number(withdrawal.amount) + Number(withdrawal.taxAmount) : 0
-  const taxInitial = hasTaxInitial ? Number(withdrawal.taxAmount) : 0
+  const grossInitial = hasTaxInitial
+    ? toAmount(withdrawal.amount) + toAmount(withdrawal.taxAmount)
+    : 0
+  const taxInitial = hasTaxInitial ? toAmount(withdrawal.taxAmount) : 0
 
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()

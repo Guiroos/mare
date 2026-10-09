@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { SensitiveAmount } from '@/components/providers/PrivacyMode'
+import { toAmount } from '@/lib/utils/currency'
 import { deleteIncome } from '@/lib/actions/incomes'
 import { IncomeEditButton } from './IncomeEditDialog'
 import { TxList } from '@/components/ui/tx-list'
@@ -32,7 +33,7 @@ function IncomeRow({ income }: { income: Income }) {
 
       {/* Amount */}
       <span className="flex-shrink-0 text-body font-semibold tabular-nums text-positive-text">
-        + <SensitiveAmount value={Number(income.amount)} />
+        + <SensitiveAmount value={toAmount(income.amount)} />
       </span>
 
       <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteIncome(income.id)} />

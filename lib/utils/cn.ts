@@ -15,6 +15,8 @@ const twMerge = extendTailwindMerge({
         'text-caption',
         'text-label',
         'text-amount',
+        'text-brand',
+        'text-wordmark',
         'text-mkt-hero',
         'text-mkt-h2',
         'text-mkt-h3',
