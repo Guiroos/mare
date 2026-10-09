@@ -37,6 +37,10 @@ export function mergeAndSortFeedItems(arrays: HistoricoFeedItem[][]): HistoricoF
   return all.sort((a, b) => {
     if (b.date > a.date) return 1
     if (b.date < a.date) return -1
+    // Desempate por id (comparação por code unit, a mesma do cursor em getHistoricoFeed):
+    // sem ele a ordem dentro da data é a de retorno do Postgres, que não é estável entre requests
+    if (a.id < b.id) return -1
+    if (a.id > b.id) return 1
     return 0
   })
 }
@@ -267,18 +271,23 @@ export async function collectHistoricoItems(
   )
 }
 
+// Índice do primeiro item depois do cursor na ordem (date desc, id asc). Não depende de o item
+// do cursor ainda existir; sem nada depois dele devolve sorted.length (página vazia), nunca 0
+export function startIndexAfterCursor(sorted: HistoricoFeedItem[], cursor: string): number {
+  const [cursorDate, cursorId] = cursor.split('_')
+  const idx = sorted.findIndex(
+    (item) => item.date < cursorDate || (item.date === cursorDate && item.id > cursorId)
+  )
+  return idx === -1 ? sorted.length : idx
+}
+
 export async function getHistoricoFeed(
   userId: string,
   params: HistoricoParams
 ): Promise<{ items: HistoricoFeedItem[]; hasMore: boolean; nextCursor: string | null }> {
   const sorted = await collectHistoricoItems(userId, params)
 
-  let startIdx = 0
-  if (params.cursor) {
-    const [cursorDate, cursorId] = params.cursor.split('_')
-    const idx = sorted.findIndex((item) => item.date === cursorDate && item.id === cursorId)
-    if (idx !== -1) startIdx = idx + 1
-  }
+  const startIdx = params.cursor ? startIndexAfterCursor(sorted, params.cursor) : 0
 
   const page = sorted.slice(startIdx, startIdx + PAGE_SIZE)
   const hasMore = startIdx + PAGE_SIZE < sorted.length
