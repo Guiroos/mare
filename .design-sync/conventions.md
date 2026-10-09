@@ -32,6 +32,9 @@ arbitrário** (`bg-[#0369a1]`, `text-[13px]`, `p-[14px]` estão errados — exis
 | Sombra | `shadow-sm` `shadow-md` `shadow-lg` |
 | Transição | `duration-fast`(120ms) `duration-base`(200ms) |
 
+O CSS também contém `text-mkt-*`: são tokens da landing de marketing, **não** do app —
+não use em telas do produto.
+
 `text-negative` é vermelho sobre fundo neutro; `text-negative-text` é **só** para texto dentro de
 um fundo `bg-negative-subtle`. O sufixo `-text` sempre significa "sobre fundo colorido".
 
@@ -39,7 +42,10 @@ Regras que o DS trata como obrigatórias:
 
 - **Todo valor numérico comparável leva `tabular-nums`** — valores, percentuais, contagens.
 - **Formulário usa `<Field>`**, nunca `<div>` + `<Label>` na mão: o `Field` já traz label, hint,
-  erro e o asterisco de `required`.
+  erro e o asterisco de `required`. Campo obrigatório **sempre** passa `required`; campo opcional
+  não leva marcação nenhuma — nunca "Opcional" em `hint` ou `placeholder`.
+- O `Field` envolve **um único controle** e injeta nele `id` (ligado ao label), `aria-describedby`
+  (hint/erro) e `aria-invalid`. Não passe `id` à mão para o controle dentro de um `Field`.
 - Alturas de controle interativo: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`. Nunca `h-auto`.
 - Espaçamento no grid de 4px (`p-2` `p-3` `p-4` `p-5` `p-6`), com `p-0.5` `p-1.5` `p-2.5` como
   sub-grid permitido. `p-3.5` não existe.
