@@ -23,7 +23,7 @@ Os helpers `calcBaseReferenceMonth` e `calcInstallmentDate` tinham um bug: verif
 
 ### Fix aplicado em 08/10/2026
 
-`calcBaseReferenceMonth` comparava `getDate(purchaseDate) > closingDay`, mas `closingDay` é o primeiro dia do novo ciclo (ver `billingCycleDateRange`). Compra **no** dia do fechamento ficava no mês corrente, e a parcela 2 (`closingDay + 1`) caía no mesmo ciclo que a 1. Passou a `>=` contra o corte clampado ao tamanho do mês da compra (`fixedExpenseCycleCutoff`, #173), e não contra o `closingDay` cru: com `closingDay` 29–31 em mês curto (ex.: compra em 28/02 com `closingDay=29`), o `closingDay` cru deixaria a 1ª parcela fora do ciclo clampado de `billingCycleDateRange` (#90).
+`calcBaseReferenceMonth` comparava `getDate(purchaseDate) > closingDay`, mas `closingDay` é o primeiro dia do novo ciclo (ver `billingCycleDateRange`). Compra **no** dia do fechamento ficava no mês corrente, e a parcela 2 (`closingDay + 1`) caía no mesmo ciclo que a 1. Passou a perguntar em qual ciclo de `billingCycleDateRange` a data da compra cai (`billingCycleYearMonthOf`, o mesmo cálculo de `currentBillingCycleYearMonths`), e não a comparar o dia com o `closingDay` cru: com `closingDay` 29–31 em mês curto (ex.: compra em 28/02 com `closingDay=29`), o `closingDay` cru deixaria a 1ª parcela fora do ciclo clampado (#90). `calcInstallmentDate` passou a derivar do mesmo início de ciclo (+1 dia), sem mudar as datas geradas.
 
 ## Arquivos
 
