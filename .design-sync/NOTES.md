@@ -131,9 +131,8 @@ override. `[NO_DIST]` é esperado e permanente neste repo (ver acima).
 - **Previews de `Dialog` precisam de `onOpenAutoFocus={(e) => e.preventDefault()}`**: sem isso o
   Radix foca o primeiro input e o screenshot captura o texto selecionado em azul e o anel de foco
   no botão — parece bug no card.
-- **`Label` concatena `className` com template string, sem `twMerge`**: passar `text-body` para um
-  `<Label>` é no-op (o `text-caption` do componente vence). Diferente de `Button`/`Card`, que usam
-  `cn()`. Não escrever preview que dependa de sobrescrever tipografia do Label.
+- ~~`Label` concatena `className` sem `twMerge`~~ — deixou de valer: desde o fix de a11y do `Field`
+  (`9ae584a`) o `Label` usa `cn()`, então `className` sobrescreve a tipografia normalmente.
 - **`p-0.5` / `p-1.5` / `p-2.5` e `gap-*` equivalentes precisaram entrar no safelist**: são valores
   válidos do sub-grid do DS mas nenhum componente atual os usa, então o Tailwind não os emitia — e
   o `conventions.md` os documenta para o agente de design. Regra geral: **todo token citado no
@@ -145,3 +144,26 @@ override. `[NO_DIST]` é esperado e permanente neste repo (ver acima).
   para dentro de `ds-bundle/` (um `./ds-bundle` relativo vira `ds-bundle/ds-bundle`).
 - Resultado desta run: 30/30 componentes, 30 previews autorados (89 células, todas `good`),
   render check limpo (0 bad / 0 thin / 0 variants-identical / 0 floor cards), 4 iterações de build.
+
+## Re-sync de 2026-10-08
+
+- **`font-sans` do app passou a começar com `var(--font-dm-sans)`** (landing, `e769623`). A var só
+  existe sob o `next/font`; no bundle ela fica indefinida e **invalida a declaração `font-family`
+  inteira** — o browser não cai no `'DM Sans'` seguinte, cai na fonte default. O validate pegou como
+  `[TOKENS_MISSING] --font-dm-sans`. Corrigido em `tailwind.ds.config.ts`, que sobrescreve
+  `fontFamily.sans` sem var e descarta `display`/`mono` (Archivo e IBM Plex são só da landing e não
+  são distribuídos). Definir a var num `:root` em `fonts/dm-sans.css` **não funciona**: o conversor
+  regenera o `fonts.css` só com os `@font-face`.
+- **Tokens `text-mkt-*` vazam para o CSS** porque o `content` varre `app/**`, que inclui
+  `app/(marketing)`. Inofensivo; o `conventions.md` diz para não usá-los no app.
+- **O driver não re-verifica componente cujo source mudou** — o `sourceKey` cobre preview `.tsx` e
+  config, não `components/ui/*.tsx`. Mudanças visuais de source (aqui: `Button` com
+  `text-text-inverse`, erro do `Field` em `text-negative`) só aparecem se você pedir:
+  `package-capture.mjs --components <X> --spot-check-components <X>`. Fizemos em
+  Button/Field/Combobox/Switch — todos `good`.
+- `dtsPropsFor` atualizado: `Combobox`/`CurrencyInput`/`NumericInput`/`MonthSelect` ganharam
+  `id`/`aria-describedby`/`aria-invalid` (injetados pelo `Field`); `Field` documenta a injeção e a
+  regra de `required` (`95735a8`).
+- Sessão nova sem `DesignSync` autorizado: o tool falha com "needs design-system authorization" —
+  pedir `/design-login` antes de buscar o anchor; build/validate locais rodam sem ele.
+
