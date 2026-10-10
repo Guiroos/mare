@@ -79,6 +79,14 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`
 - `collectHistoricoItems` busca `incomes`/`investments`/`fixedExpenses` por **mês inteiro** (`refMonths`) e filtra pela data de exibição em JS, sobre os 5 tipos: entradas e aportes são datados no dia 1º do `referenceMonth` e vazariam em recorte que começa depois do dia 1º. Gasto fixo busca também o mês **anterior** a `de` (`fxRefMonths`), porque `fixedExpenseDate` transborda `dueDay` além do fim do mês (fev + `dueDay` 31 → 03/03) — sem isso o item some tanto do recorte de fevereiro (data fora) quanto do de março (mês não buscado). Não estreitar `referenceMonthsInRange`: o filtro de precisão é que decide
 
+## Dashboard
+
+- Tela de relance desde o redesenho "Refinado" (2026-10-09): seletor de mês → `BalanceHero` → `PendencyBanner` → [Últimas transações | Faturas + Gastos fixos] → `DashboardLinks`. Orçamento por categoria, entradas, investimentos e vencimentos **saíram da tela** e viraram links no rodapé — não reintroduzir como seção; `getMaturityAlerts`/`MaturityAlerts` foram removidas (vencimento vive só nos cards de `/investimentos`)
+- "Últimas transações" (`TransactionList`) é um feed de `transactions` + `incomes`: entrada não tem coluna `date` e entra datada no dia 1º do `referenceMonth`, mesma convenção de `collectHistoricoItems`. Mostra 10 e expande no lugar; edição/exclusão inline continuam
+- `BalanceHero`: "Saídas" = `totalExpenses + totalInvested` — o `balance` já desconta o aporte, então só assim entradas − saídas fecha com o saldo exibido
+- Links para o Histórico (`buildHistoricoUrl`) e o export usam o mesmo `range` da tela — ciclo de fatura em `isCycleView`, mês de calendário fora dele. O card "Histórico" não mostra contagem de propósito: o Histórico filtra pela data da compra e o dashboard pelo `referenceMonth`, e parcela de cartão com fechamento cai em meses diferentes (#203)
+- "Revisar" do `PendencyBanner` aponta para `#gastos-fixos` (âncora do `Section id`, com `scroll-mt-6`) quando há gasto fixo pendente; só com rendimento pendente vai para `/investimentos`, único lugar onde ele se resolve
+
 ## Cron
 
 - Neon não suporta `pg_cron`; jobs em `vercel.json` (`"crons": [{ "path": "...", "schedule": "..." }]`); autenticação via `Authorization: Bearer ${CRON_SECRET}`
