@@ -36,11 +36,8 @@ export default async function ConfiguracaoMesPage({
   const userId = session.user.id
   const { month: rawMonth } = await searchParams
   const month = normalizeYearMonthParam(rawMonth)
-  const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
-  const [displayYear, displayMonth] = month.split('-').map(Number)
+  const { day: todayDay } = todayParts()
   const isCurrentMonth = month === currentYearMonth()
-  const isPastMonth =
-    displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
   const referenceMonth = yearMonthToReferenceMonth(month)
   const prevReferenceMonth = yearMonthToReferenceMonth(prevMonth(month))
 
@@ -161,9 +158,7 @@ export default async function ConfiguracaoMesPage({
       >
         <FixedExpenseList
           expenses={fixedExpenses}
-          yearMonth={month}
           isCurrentMonth={isCurrentMonth}
-          isPastMonth={isPastMonth}
           todayDay={todayDay}
           creditAccountIds={viaFaturaAccountIds}
         />

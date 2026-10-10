@@ -161,6 +161,18 @@ export function formatDisplayDate(dateStr: string): string {
   return fmt(parseDate(dateStr), "d 'de' MMM.")
 }
 
+/** Rótulo de grupo de lista por dia: "Hoje, 9 de outubro", "Ontem, 8 de outubro", "Terça, 7 de outubro". */
+export function formatDayGroupLabel(dateStr: string): string {
+  const date = parseDate(dateStr)
+  const dayMonth = fmt(date, "d 'de' MMMM")
+  const diff = daysAgo(dateStr)
+  if (diff === 0) return `Hoje, ${dayMonth}`
+  if (diff === 1) return `Ontem, ${dayMonth}`
+  // "terça-feira" → "Terça"; sábado e domingo não têm sufixo.
+  const weekday = fmt(date, 'EEEE').split('-')[0]
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${dayMonth}`
+}
+
 /** Formats a YYYY-MM-DD date string as dd/MM/yyyy, e.g. "15/01/2025" (pt-BR). */
 export function formatDate(dateStr: string): string {
   return format(parseDate(dateStr), 'dd/MM/yyyy')
