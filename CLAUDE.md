@@ -127,7 +127,7 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 **Dark mode:**
 - Tema controlado via `next-themes` (`ThemeProvider` em `(app)/layout.tsx` e `(auth)/layout.tsx` — o root layout não tem providers); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
-- Gráficos Recharts (`ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
+- Gráficos Recharts (`AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
 
 ## Auditoria automática (Routines)
 

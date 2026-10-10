@@ -39,7 +39,7 @@ Importam e usam primitivos da Camada 1.
 - `CurrencyInput` → compartilha `inputBase` e `inputErrorCls` de `input.tsx`
 - `Combobox` → usa `<Input>` + `<Button>`
 - `MonthSelect` → usa `<Select>`
-- `Segment` `BudgetBar` `EmptyState` `SummaryCard` `BalanceCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
+- `Segment` `BudgetBar` `EmptyState` `SummaryCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
 
 ### Camada 3 — Modal / Complexo
 Radix UI + primitivos.
@@ -76,7 +76,6 @@ Radix UI + primitivos.
 | `budget-bar.tsx`     | `BudgetBar`                     | Props: `current` `target` `label` `tone` (`ok`/`warn`/`over`/`accent`) `hint`    |
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
 | `summary-card.tsx`   | `SummaryCard`                   | Props: `variant` (`balance`/`positive`/`negative`) `label` `amount` `footer` `icon` |
-| `balance-card.tsx`   | `BalanceCard`                   | Props: `label` `amount` `income` `expense` — card de destaque com fundo accent   |
 | `empty-state.tsx`    | `EmptyState`                    | Props: `icon` `title` `description` `action` `boxed`; `action?: ReactNode` — sempre passar `<Button>` diretamente (nunca objeto `{ label, onClick }`) |
 | `section.tsx`        | `Section`                       | Props: `title` `action` `badge` (colado ao título) `size` (`sm` label caixa-alta, default / `lg` `text-h3`, usado no dashboard) `id` (âncora) — renderiza `<section>` |
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
