@@ -61,15 +61,9 @@ export default async function ConfiguracaoMesPage({
   ])
 
   // Mesmo predicado do dashboard: só mês >= faturaActiveFrom está "via fatura".
-  const viaFaturaAccountIds =
-    creditAccounts.length > 0 &&
-    isFaturaMonth(referenceMonth, {
-      creditMode: creditMode.creditMode,
-      faturaActiveFrom: creditMode.faturaActiveFrom,
-      creditAccountIds: creditAccounts.map((a) => a.id),
-    })
-      ? creditAccounts.map((a) => a.id)
-      : undefined
+  const viaFaturaAccountIds = isFaturaMonth(referenceMonth, creditMode)
+    ? creditAccounts.map((a) => a.id)
+    : undefined
 
   const installments = allTransactions.filter((t) => t.installmentGroupId)
 

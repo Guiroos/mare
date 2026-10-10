@@ -33,7 +33,10 @@ export type FaturaContext = {
  * comportamento accrual. Puro (sem I/O) — as pages não devem reexpressar a
  * comparação com `creditMode` por conta própria.
  */
-export function isFaturaMonth(referenceMonth: string, faturaCtx?: FaturaContext): boolean {
+export function isFaturaMonth(
+  referenceMonth: string,
+  faturaCtx?: Pick<FaturaContext, 'creditMode' | 'faturaActiveFrom'>
+): boolean {
   return (
     faturaCtx !== undefined &&
     faturaCtx.creditMode === 'fatura' &&

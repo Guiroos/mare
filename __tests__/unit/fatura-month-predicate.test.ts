@@ -29,19 +29,29 @@ describe('isFaturaMonth', () => {
 })
 
 // Gate de fonte (sem infra de render): as pages não podem reexpressar o predicado.
+// Toda prop `creditAccountIds=` tem de vir de `viaFaturaAccountIds`, e essa variável
+// tem de nascer do predicado do mês — não de `isFaturaMode` nem de lista incondicional.
 describe('pages não decidem regime de fatura por conta própria', () => {
   const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
+  const creditProps = (src: string) => src.match(/creditAccountIds=\{[^}]*\}/g) ?? []
 
-  it('dashboard/page.tsx usa o predicado do mês, não o modo do usuário', () => {
+  it('dashboard/page.tsx deriva as contas via fatura de creditFilteredFromBudget', () => {
     const src = read('app/(app)/dashboard/page.tsx')
-    expect(src).not.toMatch(/isFaturaMode\s*\?\s*faturaCtx/)
-    expect(src).not.toMatch(/faturaCtx\s*&&\s*creditIdSet/)
+    expect(src).toMatch(/viaFaturaAccountIds\s*=\s*data\.creditFilteredFromBudget\s*\?/)
+    const props = creditProps(src)
+    expect(props).toHaveLength(2)
+    for (const prop of props) expect(prop).toBe('creditAccountIds={viaFaturaAccountIds}')
+    expect(src).toMatch(
+      /fixedForPendency\s*=\s*data\.fixedExpenses\.filter\(\(e\) => !viaFaturaIdSet\.has/
+    )
   })
 
-  it('configuracao-mes passa creditAccountIds ao FixedExpenseList via isFaturaMonth', () => {
+  it('configuracao-mes deriva as contas via fatura de isFaturaMonth', () => {
     const src = read('app/(app)/configuracao-mes/page.tsx')
-    expect(src).toContain('isFaturaMonth(')
-    expect(src).toMatch(/<FixedExpenseList[\s\S]*?creditAccountIds=/)
+    expect(src).toMatch(/viaFaturaAccountIds\s*=\s*isFaturaMonth\(referenceMonth,/)
+    const props = creditProps(src)
+    expect(props).toHaveLength(1)
+    expect(props[0]).toBe('creditAccountIds={viaFaturaAccountIds}')
     expect(src).not.toContain("creditMode === 'fatura'")
   })
 })

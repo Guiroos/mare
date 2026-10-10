@@ -22,10 +22,8 @@ export async function getCategoryGroupProgress(
   referenceMonth: string,
   faturaCtx?: FaturaContext
 ) {
-  const isFaturaMonthNow = isFaturaMonth(referenceMonth, faturaCtx)
-
   const creditAccountIds = faturaCtx?.creditAccountIds ?? []
-  const shouldFilterCredit = isFaturaMonthNow && creditAccountIds.length > 0
+  const shouldFilterCredit = isFaturaMonth(referenceMonth, faturaCtx) && creditAccountIds.length > 0
 
   const txWhere = shouldFilterCredit
     ? and(
@@ -236,10 +234,8 @@ export async function getDashboardData(
       getMonthInvestments(userId, referenceMonth),
     ])
 
-  const isFaturaMonthNow = isFaturaMonth(referenceMonth, faturaCtx)
-
   const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
-  const shouldFilterCredit = isFaturaMonthNow && creditIdSet.size > 0
+  const shouldFilterCredit = isFaturaMonth(referenceMonth, faturaCtx) && creditIdSet.size > 0
 
   const expenseTransactions = shouldFilterCredit
     ? monthTransactions.filter((t) => !creditIdSet.has(t.accountId))
