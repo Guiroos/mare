@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { format, addDays } from 'date-fns'
+import { addDays, addMonths, format } from 'date-fns'
 import {
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
@@ -672,12 +672,37 @@ describe('calcBaseReferenceMonth', () => {
     expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-18'), null))).toBe('2025-01-01')
   })
 
-  it('compra antes do fechamento (5 <= 16): retorna mês da compra', () => {
+  it('compra antes do fechamento (5 < 16): retorna mês da compra', () => {
     expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-05'), 16))).toBe('2025-01-01')
   })
 
-  it('compra no dia exato do fechamento (16 == 16): retorna mês da compra', () => {
-    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-16'), 16))).toBe('2025-01-01')
+  it('compra no dia exato do fechamento (16 == 16): retorna mês seguinte (closingDay abre o novo ciclo)', () => {
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-01-16'), 16))).toBe('2025-02-01')
+  })
+
+  it('compra na véspera do fechamento clampado fica no mês da compra (28/04, closingDay = 30)', () => {
+    // ciclo de abril com closingDay 30: 30/03 → 29/04
+    expect(fmt(calcBaseReferenceMonth(parseDate('2025-04-28'), 30))).toBe('2025-04-01')
+  })
+
+  it('cada parcela cai no ciclo de billingCycleDateRange do seu referenceMonth — para todo dia de compra do mês', () => {
+    for (const closingDay of [2, 8, 16, 28, 29, 30, 31]) {
+      for (const month of ['2024-02', '2025-01', '2025-02', '2025-03', '2025-04', '2025-11']) {
+        const [y, m] = month.split('-').map(Number)
+        const daysInMonth = new Date(y, m, 0).getDate()
+        for (let day = 1; day <= daysInMonth; day++) {
+          const purchaseDate = parseDate(`${month}-${String(day).padStart(2, '0')}`)
+          const base = calcBaseReferenceMonth(purchaseDate, closingDay)
+          for (let i = 0; i < 4; i++) {
+            const refMonth = addMonths(base, i)
+            const date = i === 0 ? purchaseDate : calcInstallmentDate(refMonth, closingDay)
+            const cycle = billingCycleDateRange(fmt(refMonth).slice(0, 7), closingDay)!
+            const label = `closingDay=${closingDay} compra=${fmt(purchaseDate)} parcela ${i + 1}`
+            expect(fmt(date) >= cycle.start && fmt(date) <= cycle.end, label).toBe(true)
+          }
+        }
+      }
+    }
   })
 
   it('compra depois do fechamento (18 > 16): retorna mês seguinte', () => {
