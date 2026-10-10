@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils/cn'
 
 const titleSizes = {
-  sm: 'text-label font-semibold uppercase tracking-wide text-text-secondary',
+  sm: 'text-label uppercase text-text-secondary',
   lg: 'text-h3 text-text-primary',
 }
 
