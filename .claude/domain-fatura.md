@@ -39,10 +39,11 @@ Referenciado por `CLAUDE.md` via `@`. Cobre toda a lógica de cartão de crédit
 
 ## Actions
 
-- `createFaturaPayment` valida que total do servidor == total do cliente em centavos (`Math.round(x * 100)`) — lança `"O valor da fatura mudou"` se divergir; cliente deve fechar e reabrir o dialog
-- `createFaturaPayment` rejeita pagamento se `payment.date <= cycleState.cycleEnd` — data deve ser posterior ao fechamento do ciclo
-- `createFaturaPayment` rejeita se `total <= 0` — ciclo sem atividade
-- `createFaturaPayment` rejeita duplicata — só um pagamento por `(faturaAccountId, faturaCycleMonth)`
+- `createFaturaPayment` e `updateCreditMode` devolvem `ActionResult` (`lib/actions/types.ts`) — falha esperada é `{ ok: false, code, message }`, **nunca** `throw` (a mensagem de exceção não chega ao cliente em produção, #34). Os `code` abaixo são o contrato com a UI
+- `createFaturaPayment` valida que total do servidor == total do cliente em centavos (`Math.round(x * 100)`) — `stale_total` ("O valor da fatura mudou...") se divergir; cliente deve fechar e reabrir o dialog
+- `createFaturaPayment` recusa pagamento se `payment.date <= cycleState.cycleEnd` (`invalid_date`) — data deve ser posterior ao fechamento do ciclo
+- `createFaturaPayment` recusa se `total <= 0` (`empty_cycle`) — ciclo sem atividade
+- `createFaturaPayment` recusa duplicata (`duplicate_payment`) — só um pagamento por `(faturaAccountId, faturaCycleMonth)`
 - `updateCreditMode` para `'fatura'` exige pelo menos uma conta de crédito com `closingDay > 1`
 - `updateCreditMode` bloqueia se houver pagamentos de fatura existentes (`faturaAccountId IS NOT NULL`) — usuário deve deletar os pagamentos antes de trocar de regime
 - Nome do pagamento gerado: `"Pagamento fatura <nome da conta>"` — criptografado via DEK

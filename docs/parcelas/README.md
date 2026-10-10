@@ -21,6 +21,10 @@ O comportamento atual replica a data exata da compra para todas as parcelas futu
 
 Os helpers `calcBaseReferenceMonth` e `calcInstallmentDate` tinham um bug: verificavam `closingDay !== null` mas não `closingDay > 1`. Um cartão com `closingDay = 1` deslocava incorretamente o `referenceMonth` para o mês seguinte em qualquer compra após o dia 1. A normalização `effectiveClosingDay = closingDay > 1 ? closingDay : null` foi adicionada a ambos os helpers.
 
+### Fix aplicado em 08/10/2026
+
+`calcBaseReferenceMonth` comparava `getDate(purchaseDate) > closingDay`, mas `closingDay` é o primeiro dia do novo ciclo (ver `billingCycleDateRange`). Compra **no** dia do fechamento ficava no mês corrente, e a parcela 2 (`closingDay + 1`) caía no mesmo ciclo que a 1. Passou a perguntar em qual ciclo de `billingCycleDateRange` a data da compra cai (`billingCycleYearMonthOf`, o mesmo cálculo de `currentBillingCycleYearMonths`), e não a comparar o dia com o `closingDay` cru: com `closingDay` 29–31 em mês curto (ex.: compra em 28/02 com `closingDay=29`), o `closingDay` cru deixaria a 1ª parcela fora do ciclo clampado (#90). `calcInstallmentDate` passou a derivar do mesmo início de ciclo (+1 dia), sem mudar as datas geradas.
+
 ## Arquivos
 
 | Arquivo | Conteúdo |

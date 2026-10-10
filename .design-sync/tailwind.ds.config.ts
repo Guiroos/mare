@@ -72,8 +72,24 @@ const safelist = [
   'gap-2.5',
 ] as Config['safelist']
 
+// O font-sans do app é `var(--font-dm-sans), 'DM Sans', ...` — a var vem do next/font (className
+// no <html>) e fora do Next fica indefinida, o que invalida a declaração font-family INTEIRA
+// (cai na fonte default do browser, não no 'DM Sans' seguinte). Aqui as famílias são fixadas sem
+// var. `display` (Archivo) e o mono da IBM Plex são só da landing (marketing) e não são
+// distribuídos: saem do build do DS.
+const { display: _display, mono: _mono, ...appFonts } = base.theme?.extend?.fontFamily ?? {}
+void _display
+void _mono
+
 const config: Config = {
   ...base,
+  theme: {
+    ...base.theme,
+    extend: {
+      ...base.theme?.extend,
+      fontFamily: { ...appFonts, sans: ['DM Sans', 'system-ui', 'sans-serif'] },
+    },
+  },
   content: [
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',

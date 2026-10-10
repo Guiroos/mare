@@ -49,7 +49,7 @@ Radix UI + primitivos.
 - `Drawer` → vaul + Radix
 - `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsivo)
 - `RowActions` → kebab menu com `<Dialog>`/`<Drawer>` interno
-- `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais
+- `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais (via `Item` + `<input type="checkbox">`, não `CheckboxItem`)
 - `TxList` / `TxGroupHeader` / `TxItem` / `FixedExpenseItem` / `ListFooter` → sistema de lista complexo
 
 ---
@@ -64,7 +64,7 @@ Radix UI + primitivos.
 | `input.tsx`          | `Input`                         | Prop `error` disponível; exporta `inputBase` e `inputErrorCls`                   |
 | `textarea.tsx`       | `Textarea`                      | Prop `error` disponível                                                          |
 | `label.tsx`          | `Label`                         | Padrão: `text-caption font-medium text-text-secondary`                           |
-| `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário  |
+| `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário. Campo obrigatório **sempre** passa `required` (renderiza `*`); opcional não leva marcação nenhuma — nunca "Opcional" em `hint` ou `placeholder` |
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
 | `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
 | `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
@@ -86,7 +86,7 @@ Radix UI + primitivos.
 | `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮). Props: `onEdit?` `onDelete?` (omitir remove o item do menu); `additionalActions?: Array<{label, icon?, onClick, variant?}>` renderizadas antes do separador Editar/Excluir; `triggerClassName` para override do hover em fundo colorido; requer `group` na div pai |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
-| `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix DropdownMenu com `CheckboxItem` |
+| `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix `DropdownMenu.Item` com `asChild` + `<input type="checkbox">` dentro (`:81-91`), **não** `CheckboxItem` |
 | `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
 
 ---

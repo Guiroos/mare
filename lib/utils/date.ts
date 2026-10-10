@@ -3,12 +3,12 @@ import {
   addMonths,
   subMonths,
   subDays,
+  addDays,
   startOfMonth,
   parseISO,
   getYear,
   getMonth,
   getDate,
-  getDaysInMonth,
   setDate,
   differenceInCalendarDays,
   endOfMonth,
@@ -231,17 +231,25 @@ export function billingCycleDateRange(
 }
 
 /**
+ * Returns the yearMonth of the billing cycle that contains `date` (YYYY-MM-DD). Compares the
+ * full date against the START of the next cycle (from billingCycleDateRange) instead of the
+ * raw day-of-month against closingDay: a raw comparison can't track the clamp
+ * billingCycleDateRange applies when closingDay exceeds the month's length (e.g. closingDay=31
+ * in February) — see #90/#91/#173. Callers guarantee closingDay > 1.
+ */
+function billingCycleYearMonthOf(date: string, closingDay: number): string {
+  const yearMonth = date.slice(0, 7)
+  const nextCycleStart = billingCycleDateRange(nextMonth(yearMonth), closingDay)!.start
+  return date < nextCycleStart ? yearMonth : nextMonth(yearMonth)
+}
+
+/**
  * Returns the yearMonth of the billing cycle currently open (not yet closed) and the one
  * most recently closed, as of today. Returns null for closingDay <= 1, matching
  * billingCycleDateRange's contract (calendar month behavior should be used instead) — the
  * two are meant to be chained (`billingCycleDateRange(currentBillingCycleYearMonths(cd)!.openYearMonth, cd)`),
  * so they share the same closingDay <= 1 guard instead of one returning null and the other a
  * value that isn't pairable with it.
- *
- * Compares today's full date against the START of the next cycle (from billingCycleDateRange)
- * instead of comparing the raw day-of-month against closingDay: a raw comparison never fires
- * when closingDay exceeds the current month's length (e.g. closingDay=31 in February), so it
- * can't track the clamp billingCycleDateRange applies — see #91/#173.
  */
 export function currentBillingCycleYearMonths(closingDay: number): {
   openYearMonth: string
@@ -249,10 +257,7 @@ export function currentBillingCycleYearMonths(closingDay: number): {
 } | null {
   if (closingDay <= 1) return null
 
-  const todayYearMonth = currentYearMonth()
-  const nextCycleStart = billingCycleDateRange(nextMonth(todayYearMonth), closingDay)!.start
-  const openYearMonth =
-    todayISOString() < nextCycleStart ? todayYearMonth : nextMonth(todayYearMonth)
+  const openYearMonth = billingCycleYearMonthOf(todayISOString(), closingDay)
   return { openYearMonth, closedYearMonth: prevMonth(openYearMonth) }
 }
 
@@ -270,30 +275,28 @@ export function fixedExpenseCycleCutoff(yearMonth: string, closingDay: number): 
 }
 
 /**
- * Returns the referenceMonth base for installment 1.
- * If purchaseDate is after closingDay, the purchase belongs to the next month's cycle.
+ * Returns the referenceMonth base for installment 1: the month of the billing cycle that
+ * contains the purchase (billingCycleYearMonthOf). closingDay is the first day of the new
+ * cycle, so a purchase ON the closing day already belongs to the next month (#90).
  */
 export function calcBaseReferenceMonth(purchaseDate: Date, closingDay: number | null): Date {
   const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
-  if (effectiveClosingDay !== null && getDate(purchaseDate) > effectiveClosingDay) {
-    return startOfMonth(addMonths(purchaseDate, 1))
-  }
-  return startOfMonth(purchaseDate)
+  if (effectiveClosingDay === null) return startOfMonth(purchaseDate)
+  const yearMonth = billingCycleYearMonthOf(format(purchaseDate, 'yyyy-MM-dd'), effectiveClosingDay)
+  return parseISO(`${yearMonth}-01`)
 }
 
 /**
- * Returns the date for installments 2+ (i > 0).
- * Uses closingDay + 1 of the previous month when that day exists; otherwise day 1 of referenceMonth.
+ * Returns the date for installments 2+ (i > 0): the second day of referenceMonth's billing
+ * cycle, derived from the same cycleStartDate as billingCycleDateRange so it always falls inside
+ * the cycle. Equals closingDay + 1 of the previous month, or day 1 of referenceMonth when
+ * closingDay is the previous month's last day (or beyond it) — the second day, not the first,
+ * keeps new installments on the same dates as the ones already stored.
  */
 export function calcInstallmentDate(referenceMonth: Date, closingDay: number | null): Date {
   const effectiveClosingDay = closingDay !== null && closingDay > 1 ? closingDay : null
   if (effectiveClosingDay === null) {
     return setDate(referenceMonth, 1)
   }
-  const prevMonth = subMonths(referenceMonth, 1)
-  const targetDay = effectiveClosingDay + 1
-  if (targetDay <= getDaysInMonth(prevMonth)) {
-    return setDate(prevMonth, targetDay)
-  }
-  return setDate(referenceMonth, 1)
+  return addDays(cycleStartDate(format(referenceMonth, 'yyyy-MM'), effectiveClosingDay), 1)
 }

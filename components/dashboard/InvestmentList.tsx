@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { SensitiveAmount } from '@/components/providers/PrivacyMode'
+import { toAmount } from '@/lib/utils/currency'
 import { deleteInvestment } from '@/lib/actions/investments'
 import { InvestmentEntryDialog } from '@/components/investimentos/InvestmentEntryDialog'
 import { TxList } from '@/components/ui/tx-list'
@@ -44,12 +45,12 @@ function InvestmentRow({ inv }: { inv: Investment }) {
       <div className="flex flex-shrink-0 flex-col items-end gap-0.5 text-right">
         {inv.amount !== null && (
           <span className="text-small font-semibold tabular-nums text-text-primary">
-            + <SensitiveAmount value={Number(inv.amount)} />
+            + <SensitiveAmount value={toAmount(inv.amount)} />
           </span>
         )}
         {inv.yieldAmount !== null ? (
           <span className="text-caption font-semibold tabular-nums text-positive-text">
-            Rend. <SensitiveAmount value={Number(inv.yieldAmount)} />
+            Rend. <SensitiveAmount value={toAmount(inv.yieldAmount)} />
           </span>
         ) : inv.amount !== null ? (
           <span className="text-caption font-medium text-warning-text">Rendimento pendente</span>
@@ -61,8 +62,8 @@ function InvestmentRow({ inv }: { inv: Investment }) {
         investmentTypeId={inv.investmentTypeId}
         existing={{
           id: inv.id,
-          amount: inv.amount !== null ? Number(inv.amount) : null,
-          yieldAmount: inv.yieldAmount !== null ? Number(inv.yieldAmount) : null,
+          amount: inv.amount !== null ? toAmount(inv.amount) : null,
+          yieldAmount: inv.yieldAmount !== null ? toAmount(inv.yieldAmount) : null,
           notes: inv.notes,
           referenceMonth: inv.referenceMonth,
           excludeFromCashFlow: inv.excludeFromCashFlow,
