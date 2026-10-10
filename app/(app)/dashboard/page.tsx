@@ -103,11 +103,13 @@ export default async function DashboardPage({
     ).values(),
   ]
 
-  const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
-  const fixedForPendency =
-    faturaCtx && creditIdSet.size > 0
-      ? data.fixedExpenses.filter((e) => !creditIdSet.has(e.accountId))
-      : data.fixedExpenses
+  // Contas "via fatura" neste mês — derivado do predicado que getDashboardData já
+  // aplicou (mês >= faturaActiveFrom), nunca de isFaturaMode (modo do usuário).
+  const viaFaturaAccountIds = data.creditFilteredFromBudget
+    ? faturaCtx?.creditAccountIds
+    : undefined
+  const viaFaturaIdSet = new Set(viaFaturaAccountIds ?? [])
+  const fixedForPendency = data.fixedExpenses.filter((e) => !viaFaturaIdSet.has(e.accountId))
   const pendingFixed = fixedForPendency.filter((e) => !e.paid).length
   const unpaidFixedCount = isCurrentMonth ? pendingFixed : 0
   const pendingYieldCount = isCurrentMonth
@@ -201,7 +203,7 @@ export default async function DashboardPage({
             isCurrentMonth={isCurrentMonth}
             isPastMonth={isPastMonth}
             todayDay={todayDay}
-            creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+            creditAccountIds={viaFaturaAccountIds}
           />
         </Section>
       </div>
@@ -219,7 +221,7 @@ export default async function DashboardPage({
       >
         <TransactionList
           transactions={data.transactions}
-          creditAccountIds={isFaturaMode ? faturaCtx?.creditAccountIds : undefined}
+          creditAccountIds={viaFaturaAccountIds}
           accountOptions={accountOptions}
           yearMonth={month}
         />
