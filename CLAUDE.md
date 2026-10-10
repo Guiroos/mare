@@ -105,6 +105,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - Input de busca que dispara `router.push`: usar `localQ` state para responsividade imediata + `useRef<ReturnType<typeof setTimeout>>` + `clearTimeout` + delay 400ms antes de chamar `navigate({ q: value })` — evita roundtrips excessivos ao servidor
 - `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
 - `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
+- `formatDayGroupLabel(date)` em `lib/utils/date.ts` — cabeçalho de grupo por dia ("Hoje, 9 de outubro", "Terça, 7 de outubro"); usado pelo dashboard e pelo Histórico — não reimplementar com `date-fns` direto
 - Privacy mode: `SensitiveAmount` (mascara valor), `PrivacyToggle` (botão de olho) e `usePrivacyMode()` (hook com `mask(value)`) estão em `@/components/providers/PrivacyMode` — importar os três ao adicionar privacy a qualquer nova página
 - Componente baseado em `Select` cujo valor precisa ser submetido via `FormData` (form uncontrolled): espelhar o state num `<input type="hidden" name value={value}>` — o `Select` do Radix não popula `FormData` sozinho; `MonthSelect` é a referência do padrão
 - Editar lançamento (saída avulsa/fixa, entrada) reusa `TransactionForm` com props aditivas `mode="edit"` + `editContext`, não forms próprios; `TransactionEditButton`/`FixedExpenseEditButton`/`IncomeEditButton` só carregam dados e delegam ao form, que trava o tipo e roteia o submit para as actions de update existentes — nunca recriar `EditForm` cru
@@ -126,7 +127,7 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 **Dark mode:**
 - Tema controlado via `next-themes` (`ThemeProvider` em `(app)/layout.tsx` e `(auth)/layout.tsx` — o root layout não tem providers); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
-- Gráficos Recharts (`ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
+- Gráficos Recharts (`AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
 
 ## Auditoria automática (Routines)
 

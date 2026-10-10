@@ -6,9 +6,7 @@ import { TxList, TxGroupHeader } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { toAmount } from '@/lib/utils/currency'
-import { formatDisplayDate, daysAgo, parseDate } from '@/lib/utils/date'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { formatDayGroupLabel } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import type { HistoricoFeedItem } from '@/lib/queries/historico'
@@ -34,14 +32,6 @@ const KIND_BADGE_CLASS: Record<TipoKind, string> = {
 
 function isDebit(kind: TipoKind) {
   return kind === 'saida_avulsa' || kind === 'saida_fixa' || kind === 'saida_parcelada'
-}
-
-function formatGroupDate(dateStr: string): string {
-  const diff = daysAgo(dateStr)
-  const dayMonth = formatDisplayDate(dateStr)
-  if (diff === 0) return `Hoje, ${dayMonth}`
-  if (diff === 1) return `Ontem, ${dayMonth}`
-  return `${format(parseDate(dateStr), "EEE'.'", { locale: ptBR })}, ${dayMonth}`
 }
 
 function groupByDate(items: HistoricoFeedItem[]) {
@@ -212,7 +202,7 @@ export function HistoricoClient({
         {groups.map(({ date, items: groupItems }) => (
           <Fragment key={date}>
             <TxGroupHeader
-              date={formatGroupDate(date)}
+              date={formatDayGroupLabel(date)}
               total={`${mask(groupItems.filter((i) => isDebit(i.kind)).reduce((s, i) => s + toAmount(i.amount), 0))} saídas`}
             />
             {groupItems.map((item) => (
