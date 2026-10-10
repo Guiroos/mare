@@ -33,6 +33,7 @@ import {
   uniqueMonthsFromDates,
   addMonthsToYearMonth,
   installmentEndYearMonth,
+  formatDayGroupLabel,
 } from '@/lib/utils/date'
 
 describe('yearMonthToReferenceMonth', () => {
@@ -758,5 +759,39 @@ describe('lastDayOfYearMonth', () => {
 
   it('trata fevereiro em ano bissexto', () => {
     expect(lastDayOfYearMonth('2024-02')).toBe('2024-02-29')
+  })
+})
+
+describe('formatDayGroupLabel', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  // 2026-10-09 é sexta-feira
+  const today = new Date('2026-10-09T12:00:00')
+
+  it('rotula o dia corrente como "Hoje"', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(today)
+    expect(formatDayGroupLabel('2026-10-09')).toBe('Hoje, 9 de outubro')
+  })
+
+  it('rotula o dia anterior como "Ontem"', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(today)
+    expect(formatDayGroupLabel('2026-10-08')).toBe('Ontem, 8 de outubro')
+  })
+
+  it('usa o dia da semana capitalizado e sem "-feira" nos demais dias', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(today)
+    expect(formatDayGroupLabel('2026-10-06')).toBe('Terça, 6 de outubro')
+  })
+
+  it('mantém sábado e domingo inteiros', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(today)
+    expect(formatDayGroupLabel('2026-10-03')).toBe('Sábado, 3 de outubro')
+    expect(formatDayGroupLabel('2026-10-04')).toBe('Domingo, 4 de outubro')
   })
 })
