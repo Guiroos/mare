@@ -25,15 +25,15 @@ arbitrário** (`bg-[#0369a1]`, `text-[13px]`, `p-[14px]` estão errados — exis
 | --- | --- |
 | Fundo | `bg-bg-base` (fundo da página) `bg-bg-surface` (cards) `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` |
 | Texto | `text-text-primary` `text-text-secondary` `text-text-tertiary` `text-text-inverse` |
-| Semântica | `accent` (azul-oceano, ação primária) · `positive` (entradas) · `negative` (saídas) · `warning`. Cada uma tem `-hover`, `-subtle` (fundo) e `-text` (texto sobre o fundo `-subtle`): `bg-positive-subtle text-positive-text` |
+| Semântica | `accent` (azul-oceano, ação primária) · `positive` (entradas) · `negative` (saídas) · `warning`. Cada uma tem `-subtle` (fundo) e `-text` (texto sobre o fundo `-subtle`); `accent`/`positive`/`negative` têm também `-hover`: `bg-positive-subtle text-positive-text` |
 | Borda | `border-border` `border-border-strong` |
 | Tipografia | `text-hero` `text-display` `text-h1` `text-h2` `text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount` |
 | Radius | `rounded-sm`(6) `rounded-md`(10) `rounded-lg`(16) `rounded-xl`(20) `rounded-full` |
 | Sombra | `shadow-sm` `shadow-md` `shadow-lg` |
 | Transição | `duration-fast`(120ms) `duration-base`(200ms) |
 
-O CSS também contém `text-mkt-*`: são tokens da landing de marketing, **não** do app —
-não use em telas do produto.
+O CSS também contém `text-mkt-*` (landing de marketing) e `text-brand`/`text-wordmark`
+(headline e wordmark da tela de login): **não** são do app — não use em telas do produto.
 
 `text-negative` é vermelho sobre fundo neutro; `text-negative-text` é **só** para texto dentro de
 um fundo `bg-negative-subtle`. O sufixo `-text` sempre significa "sobre fundo colorido".
