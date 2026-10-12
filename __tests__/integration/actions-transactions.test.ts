@@ -722,3 +722,76 @@ describe('deleteTransaction', () => {
     expect(chargeAfter).toBeUndefined()
   })
 })
+
+// ─── updateInstallmentGroup: troca de conta ──────────────────────────────────
+
+describe('updateInstallmentGroup — troca de conta', () => {
+  it('re-deriva referenceMonth e date com o closingDay da conta nova (débito → cartão)', async () => {
+    const { createInstallmentPurchase, updateInstallmentGroup } =
+      await import('@/lib/actions/transactions')
+    const card = await createAccount(db, userId, { type: 'credit', closingDay: 8 })
+
+    await createInstallmentPurchase({
+      name: 'Troca de conta',
+      totalAmount: '400.00',
+      totalInstallments: 4,
+      startDate: '2026-03-20',
+      categoryId,
+      accountId,
+    })
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-03-20')),
+    })
+
+    await updateInstallmentGroup({
+      id: group!.id,
+      name: 'Troca de conta',
+      categoryId,
+      accountId: card.id,
+    })
+
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+    expect(txs.map((t) => t.referenceMonth)).toEqual([
+      '2026-04-01',
+      '2026-05-01',
+      '2026-06-01',
+      '2026-07-01',
+    ])
+    expect(txs.map((t) => t.date)).toEqual(['2026-03-20', '2026-04-09', '2026-05-09', '2026-06-09'])
+    expect(txs.every((t) => t.accountId === card.id)).toBe(true)
+  })
+
+  it('mantém o calendário quando a conta não muda', async () => {
+    const { createInstallmentPurchase, updateInstallmentGroup } =
+      await import('@/lib/actions/transactions')
+
+    await createInstallmentPurchase({
+      name: 'Mesma conta',
+      totalAmount: '300.00',
+      totalInstallments: 3,
+      startDate: '2026-05-15',
+      categoryId,
+      accountId,
+    })
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-05-15')),
+    })
+    const before = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+
+    await updateInstallmentGroup({ id: group!.id, name: 'Mesma conta 2', categoryId, accountId })
+
+    const after = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+    expect(after.map((t) => [t.referenceMonth, t.date])).toEqual(
+      before.map((t) => [t.referenceMonth, t.date])
+    )
+  })
+})

@@ -420,13 +420,23 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   updateInstallmentGroupActionSchema.parse(data)
 
   // Fetch do grupo e ownership checks em paralelo para não adicionar latência
-  const [rows] = await Promise.all([
+  const [rows, , accountRow] = await Promise.all([
     db
-      .select({ totalInstallments: installmentGroups.totalInstallments })
+      .select({
+        totalInstallments: installmentGroups.totalInstallments,
+        startDate: installmentGroups.startDate,
+        accountId: installmentGroups.accountId,
+      })
       .from(installmentGroups)
       .where(and(eq(installmentGroups.id, data.id), eq(installmentGroups.userId, userId))),
     assertOwnsCategory(userId, data.categoryId),
-    assertOwnsPaymentAccount(userId, data.accountId),
+    assertOwnsPaymentAccount(userId, data.accountId).then(() =>
+      db
+        .select({ closingDay: paymentAccounts.closingDay })
+        .from(paymentAccounts)
+        .where(eq(paymentAccounts.id, data.accountId))
+        .then((r) => r[0])
+    ),
     ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
   ])
 
@@ -434,6 +444,14 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   if (!group) throw new Error('Grupo não encontrado')
 
   const dek = await getDekForUser(userId)
+
+  // O calendário (referenceMonth/date) deriva do closingDay da conta: ao trocar de conta,
+  // re-deriva com o closingDay novo, como a criação faria. Mesma conta mantém o calendário.
+  const accountChanged = group.accountId !== data.accountId
+  const closingDay = accountRow?.closingDay ?? null
+  const baseReferenceMonth = accountChanged
+    ? calcBaseReferenceMonth(parseDate(group.startDate), closingDay)
+    : null
 
   const groupUpdate: Record<string, unknown> = {
     name: encryptField(data.name, dek),
@@ -469,8 +487,22 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
     }
 
     await Promise.all(
-      childTransactions.map((t) =>
-        tx
+      childTransactions.map((t) => {
+        const offset = (t.installmentNumber ?? 1) - 1
+        const schedule = baseReferenceMonth
+          ? (() => {
+              const refMonth = addMonths(baseReferenceMonth, offset)
+              const date =
+                offset === 0
+                  ? parseDate(group.startDate)
+                  : calcInstallmentDate(refMonth, closingDay)
+              return {
+                referenceMonth: format(refMonth, 'yyyy-MM-dd'),
+                date: format(date, 'yyyy-MM-dd'),
+              }
+            })()
+          : {}
+        return tx
           .update(transactions)
           .set({
             name: encryptField(
@@ -480,10 +512,11 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
             categoryId: data.categoryId,
             accountId: data.accountId,
             tripId: data.tripId ?? null,
+            ...schedule,
             ...(amountUpdates[t.id] ? { amount: encryptField(amountUpdates[t.id], dek) } : {}),
           })
           .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
-      )
+      })
     )
   })
 
