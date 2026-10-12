@@ -73,7 +73,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 ## Histórico
 
 - Feed multi-tabela: `getHistoricoFeed` agrega `transactions`, `fixedExpenses`, `incomes`, `investments`, `investmentWithdrawals` em memória, ordena por data e aplica cursor-based pagination (`PAGE_SIZE = 50`)
-- Cursor: string `"YYYY-MM-DD_uuid"` — retoma do último item; `fetchMoreHistorico` (action) executa no servidor
+- Cursor: string `"YYYY-MM-DD_uuid"` — retoma do último item; a ordem do feed é total `(date desc, id asc)` (`mergeAndSortFeedItems`) e `startIndexAfterCursor` busca o primeiro item depois do par, sem exigir que o item do cursor ainda exista; `fetchMoreHistorico` (action) executa no servidor
 - Filtro textual `q`: aplicado em JS após decrypt, não no SQL — não tentar mover para `WHERE`
 - `parseHistoricoParams`/`buildHistoricoUrl` em `lib/utils/historico-params.ts` — normaliza e serializa os 6 filtros (`de`, `ate`, `tipos`, `categorias`, `contas`, `q`); defaults: últimos 90 dias, todos os `TipoKind`
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`

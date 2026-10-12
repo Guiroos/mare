@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   mergeAndSortFeedItems,
+  startIndexAfterCursor,
   fixedExpenseDate,
   referenceMonthsInRange,
 } from '@/lib/queries/historico'
@@ -38,13 +39,14 @@ describe('mergeAndSortFeedItems', () => {
     expect(result.map((i) => i.id)).toEqual(['b', 'c', 'a'])
   })
 
-  it('itens com mesma data mantêm ordem de inserção (stable sort)', () => {
-    const items = [
-      makeItem({ id: 'x', date: '2025-06-10' }),
-      makeItem({ id: 'y', date: '2025-06-10' }),
-    ]
-    const result = mergeAndSortFeedItems([items])
-    expect(result.map((i) => i.id)).toEqual(['x', 'y'])
+  it('empate de data é desempatado por id, independente da ordem de entrada', () => {
+    const a = makeItem({ id: 'a', date: '2025-06-10' })
+    const b = makeItem({ id: 'b', date: '2025-06-10' })
+    const c = makeItem({ id: 'c', date: '2025-06-10' })
+    const forward = mergeAndSortFeedItems([[a, b, c]]).map((i) => i.id)
+    const reversed = mergeAndSortFeedItems([[c], [b, a]]).map((i) => i.id)
+    expect(forward).toEqual(['a', 'b', 'c'])
+    expect(reversed).toEqual(forward)
   })
 
   it('merge de múltiplos arrays', () => {
@@ -57,6 +59,26 @@ describe('mergeAndSortFeedItems', () => {
 
   it('retorna array vazio para inputs vazios', () => {
     expect(mergeAndSortFeedItems([[], [], []])).toEqual([])
+  })
+})
+
+describe('startIndexAfterCursor', () => {
+  const sorted = mergeAndSortFeedItems([
+    ['a', 'b', 'c'].map((id) => makeItem({ id, date: '2025-06-10' })),
+    [makeItem({ id: 'z', date: '2025-06-09' })],
+  ])
+
+  it('retoma logo depois do item do cursor', () => {
+    expect(startIndexAfterCursor(sorted, '2025-06-10_b')).toBe(2)
+  })
+
+  it('cursor cujo item sumiu retoma do ponto certo, não do início', () => {
+    expect(startIndexAfterCursor(sorted, '2025-06-10_bb')).toBe(2)
+  })
+
+  it('cursor do último item devolve sorted.length (página vazia)', () => {
+    expect(startIndexAfterCursor(sorted, '2025-06-09_z')).toBe(4)
+    expect(startIndexAfterCursor(sorted, '2025-06-09_zz')).toBe(4)
   })
 })
 
