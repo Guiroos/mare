@@ -1,6 +1,7 @@
 'use client'
 
 import { Fragment, useState } from 'react'
+import { toast } from 'sonner'
 import { toAmount } from '@/lib/utils/currency'
 import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import { formatDayGroupLabel } from '@/lib/utils/date'
@@ -162,7 +163,13 @@ function IncomeRow({ income }: { income: Income }) {
         + <SensitiveAmount value={toAmount(income.amount)} />
       </span>
 
-      <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteIncome(income.id)} />
+      <RowActions
+        onEdit={() => setEditOpen(true)}
+        onDelete={async () => {
+          const result = await deleteIncome(income.id)
+          if (!result.ok) toast.error(result.message)
+        }}
+      />
       <IncomeEditButton income={income} open={editOpen} onOpenChange={setEditOpen} />
     </div>
   )

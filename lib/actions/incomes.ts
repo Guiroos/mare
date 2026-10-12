@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { incomes, investmentWithdrawals } from '@/lib/db/schema'
+import { debtorEntries, incomes, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { createIncomeActionSchema, updateIncomeActionSchema } from '@/lib/validations/transactions'
+import { uuidSchema } from '@/lib/validations/utils'
+import type { ActionResult } from '@/lib/actions/types'
 import { assertOwnsTrip } from '@/lib/auth/ownership'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { encryptField, encryptOptional } from '@/lib/crypto/fields'
@@ -83,12 +85,49 @@ export async function updateIncome(data: UpdateIncomeInput) {
   revalidatePath('/viagens')
 }
 
-export async function deleteIncome(id: string) {
+export async function deleteIncome(id: string): Promise<ActionResult> {
   const userId = await requireUserId()
+  const parsed = uuidSchema.safeParse(id)
+  if (!parsed.success) return { ok: false, code: 'not_found', message: 'Entrada não encontrada.' }
 
-  await db.delete(incomes).where(and(eq(incomes.id, id), eq(incomes.userId, userId)))
+  // Entrada criada por resgate ou pagamento de devedor pertence a essa entidade: os FKs
+  // são ON DELETE SET NULL, então apagar a entrada aqui desvincularia o par em silêncio
+  const [[withdrawal], [debtEntry]] = await Promise.all([
+    db
+      .select({ id: investmentWithdrawals.id })
+      .from(investmentWithdrawals)
+      .where(
+        and(
+          eq(investmentWithdrawals.incomeId, parsed.data),
+          eq(investmentWithdrawals.userId, userId)
+        )
+      )
+      .limit(1),
+    db
+      .select({ id: debtorEntries.id })
+      .from(debtorEntries)
+      .where(and(eq(debtorEntries.incomeId, parsed.data), eq(debtorEntries.userId, userId)))
+      .limit(1),
+  ])
+  if (withdrawal) {
+    return {
+      ok: false,
+      code: 'income_owned_by_withdrawal',
+      message: 'Esta entrada veio de um resgate. Exclua o resgate em Investimentos.',
+    }
+  }
+  if (debtEntry) {
+    return {
+      ok: false,
+      code: 'income_owned_by_debt_payment',
+      message: 'Esta entrada veio de um pagamento de devedor. Exclua o pagamento em Devedores.',
+    }
+  }
+
+  await db.delete(incomes).where(and(eq(incomes.id, parsed.data), eq(incomes.userId, userId)))
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/viagens')
+  return { ok: true, data: undefined }
 }
