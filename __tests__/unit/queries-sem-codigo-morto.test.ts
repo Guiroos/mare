@@ -27,13 +27,16 @@ describe('lib/queries — exports sem consumidor', () => {
       for (const match of file.content.matchAll(EXPORT_RE)) {
         const name = match[1]
         const ref = new RegExp(`\\b${name}\\b`, 'g')
-        // Comentário não conta como consumidor; 1 ocorrência = só a declaração.
+        // Comentário e `typeof fn` (o `export type X = Awaited<ReturnType<typeof fn>>`
+        // do .claude/db.md) não contam como consumidor; 1 ocorrência = só a declaração.
+        const typeofRef = new RegExp(`typeof\\s+${name}\\b`, 'g')
         let inCode = 0
         for (const f of files) {
           const code = f.content
             .split('\n')
             .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
             .join('\n')
+            .replace(typeofRef, '')
           inCode += (code.match(ref) ?? []).length
         }
         if (inCode <= 1) dead.push(`${file.path.replace(ROOT + '/', '')}: ${name}`)
