@@ -7,7 +7,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 ## Parcelas
 
 - 1 `installmentGroup` + N `transaction` rows com nome `"<name> (i/N)"`
-- `closingDay` da conta define se a 1ª parcela pertence ao mês atual ou seguinte — usar `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts`; `closingDay <= 1` é tratado como calendário
+- `closingDay` da conta define se a 1ª parcela pertence ao mês atual ou seguinte: compra **no** dia do fechamento já é do mês seguinte, pois `closingDay` é o primeiro dia do novo ciclo — a base é o mês do ciclo de `billingCycleDateRange` que contém a data da compra (`billingCycleYearMonthOf`, clamp do `closingDay` 29–31 incluído), nunca o dia comparado ao `closingDay` cru — usar `calcBaseReferenceMonth`/`calcInstallmentDate` em `lib/utils/date.ts`; `closingDay <= 1` é tratado como calendário
 - `paidInstallments` usa `referenceMonth < currentMonthStr` (mês atual é pendente) — `<=` faria o mês corrente aparecer como "pago" e sumir do gráfico Compromissos por mês
 - `installmentAmount = parseFloat((totalAmount / totalInstallments).toFixed(2))` — sem `.toFixed(2)`, drift de float corrompe `remainingAmount` ao multiplicar por `remainingInstallments`. **Não é a única regra em uso:** no mesmo `createInstallmentPurchase` as cobranças de split compensam o resto na última parcela, e `updateInstallmentGroup` divide em centavos inteiros com a última absorvendo o resto — as parcelas não somam o `totalAmount` e a cobrança pode exceder a parcela. Decisão de qual regra vale está em aberto na #195; não replicar nenhuma das três num site novo antes dela
 - `getActiveInstallmentGroups` filtra por `remainingInstallments > 0`; `getInstallmentTimeline` cobre os próximos 12 meses via `futureNMonths(12)`
@@ -37,7 +37,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
-- `deleteIncome` recusa (`ActionResult`, `income_owned_by_withdrawal` / `income_owned_by_debt_payment`) entrada apontada por `investmentWithdrawals.incomeId` ou `debtorEntries.incomeId` — os FKs são `SET NULL`, então apagar a entrada desvincularia o par em silêncio. A UI de Entradas do dashboard (`IncomeList`) mostra a mensagem em toast; para remover, exclua o resgate/pagamento
+- `deleteIncome` recusa (`ActionResult`, `income_owned_by_withdrawal` / `income_owned_by_debt_payment`) entrada apontada por `investmentWithdrawals.incomeId` ou `debtorEntries.incomeId` — os FKs são `SET NULL`, então apagar a entrada desvincularia o par em silêncio. A linha de entrada do feed do dashboard (`TransactionList`) mostra a mensagem em toast; para remover, exclua o resgate/pagamento
 - `incomes.source` do resgate é regravado por `updateWithdrawal` **apenas** quando o `investmentTypeId` muda — o campo é editável pelo usuário via `IncomeEditDialog`, então editar valor/data/imposto não pode sobrescrever um rótulo customizado
 - `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - `investmentReturnCapital != null` **não** identifica entrada de reinvestimento: antes de `'reinvest'` existir (`6ec05c0`, 2026-06-11), o destino `'income'` também gravava o campo, e não houve backfill. Para saber a origem de uma entrada, ler `investmentWithdrawals.destination` pelo `incomeId`
@@ -79,6 +79,14 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `parseHistoricoParams`/`buildHistoricoUrl` em `lib/utils/historico-params.ts` — normaliza e serializa os 6 filtros (`de`, `ate`, `tipos`, `categorias`, `contas`, `q`); defaults: últimos 90 dias, todos os `TipoKind`
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`
 - `collectHistoricoItems` busca `incomes`/`investments`/`fixedExpenses` por **mês inteiro** (`refMonths`) e filtra pela data de exibição em JS, sobre os 5 tipos: entradas e aportes são datados no dia 1º do `referenceMonth` e vazariam em recorte que começa depois do dia 1º. Gasto fixo busca também o mês **anterior** a `de` (`fxRefMonths`), porque `fixedExpenseDate` transborda `dueDay` além do fim do mês (fev + `dueDay` 31 → 03/03) — sem isso o item some tanto do recorte de fevereiro (data fora) quanto do de março (mês não buscado). Não estreitar `referenceMonthsInRange`: o filtro de precisão é que decide
+
+## Dashboard
+
+- Tela de relance desde o redesenho "Refinado" (2026-10-09): seletor de mês → `BalanceHero` → `PendencyBanner` → [Últimas transações | Faturas + Gastos fixos] → `DashboardLinks`. Orçamento por categoria, entradas, investimentos e vencimentos **saíram da tela** e viraram links no rodapé — não reintroduzir como seção; `getMaturityAlerts`/`MaturityAlerts` foram removidas (vencimento vive só nos cards de `/investimentos`)
+- "Últimas transações" (`TransactionList`) é um feed de `transactions` + `incomes`: entrada não tem coluna `date` e entra datada no dia 1º do `referenceMonth`, mesma convenção de `collectHistoricoItems`. Mostra 10 e expande no lugar; edição/exclusão inline continuam
+- `BalanceHero`: "Saídas" = `totalExpenses + totalInvested` — o `balance` já desconta o aporte, então só assim entradas − saídas fecha com o saldo exibido
+- Links para o Histórico (`buildHistoricoUrl`) e o export usam o mesmo `range` da tela — ciclo de fatura em `isCycleView`, mês de calendário fora dele. O card "Histórico" não mostra contagem de propósito: o Histórico filtra pela data da compra e o dashboard pelo `referenceMonth`, e parcela de cartão com fechamento cai em meses diferentes (#203)
+- "Revisar" do `PendencyBanner` aponta para `#gastos-fixos` (âncora do `Section id`, com `scroll-mt-6`) quando há gasto fixo pendente; só com rendimento pendente vai para `/investimentos`, único lugar onde ele se resolve
 
 ## Cron
 

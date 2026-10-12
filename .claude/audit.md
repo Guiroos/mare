@@ -81,7 +81,7 @@ Ao encontrar um predicado de domínio, levantar **todos** os sites que o express
 
 ## Candidatos já falsificados
 
-Consultar **antes** de gastar a falsificação do PASSO 3.5. Cada linha aqui já morreu em pelo menos duas execuções independentes, sempre pela mesma checagem — 11 candidatos, ~24 re-derivações entre 2026-08-04 e 2026-08-25. Recandidatar um deles sem trazer fato novo é gastar um ciclo para chegar à mesma conclusão.
+Consultar **antes** de gastar a falsificação do PASSO 3.5. Cada linha aqui já morreu em pelo menos duas execuções independentes, sempre pela mesma checagem — 11 candidatos, ~24 re-derivações entre 2026-08-04 e 2026-08-25 (10 seguem na tabela; o `formatGroupDate` saiu quando o código foi unificado). Recandidatar um deles sem trazer fato novo é gastar um ciclo para chegar à mesma conclusão.
 
 Isso não é uma lista de "não olhe": é uma lista de **o que já foi verificado e com qual evidência**. A coluna final diz o que precisaria mudar para o candidato voltar a valer.
 
@@ -90,8 +90,7 @@ Isso não é uma lista de "não olhe": é uma lista de **o que já foi verificad
 | `notInArray(accountId, creditAccountIds)` some com linha de `accountId` NULL | `dashboard.ts`, `panorama.ts` | `accountId` é `.notNull()` em `transactions` e `fixedExpenses` (`lib/db/schema.ts`) | alguma migration tornar a coluna nullable |
 | `overrides` do `package.json` sem justificativa | `package.json` | `9a2b0b4` documenta os dois na mensagem, inclusive o no-op do `form-data` | entrar override novo cujo commit não explique |
 | `revalidatePath` ausente nas actions de `paymentAccounts` | `lib/actions/categories.ts` | rota dinâmica sob `staleTimes.dynamic: 0` — sem render obsoleto demonstrável (ver categoria 2) | o projeto passar a configurar `staleTimes` ou a rota virar estática |
-| `formatGroupDate`/`groupByDate` duplicados byte a byte | `formatGroupDate` em `HistoricoClient.tsx` e `TransactionList.tsx` | cópias idênticas, zero divergência, custo de bundle zero | as duas divergirem — aí é categoria 5, foco de sexta |
-| `TxItem` com `onClick` em `<div>` sem `role`/`tabIndex` | `TxItem` em `components/ui/tx-list.tsx` | nenhum dos 4 call sites passa `onClick` (`CategoryGroupProgress` ×2, `TripEntriesList` ×2 — conferido 2026-10-08) | algum call site passar `onClick` |
+| `TxItem` com `onClick` em `<div>` sem `role`/`tabIndex` | `TxItem` em `components/ui/tx-list.tsx` | nenhum dos 2 call sites passa `onClick` (`TripEntriesList` ×2 — conferido 2026-10-09, depois que o redesenho do dashboard removeu `CategoryGroupProgress`) | algum call site passar `onClick` |
 | `CategoryPicker` variante `grid` sem estado acessível | `components/forms/transaction/CategoryPicker.tsx` (variante `grid`) | variante não renderizada: os 5 call sites e o default passam `'combobox'` | alguém passar `categoryVariant="grid"` |
 | `?cycleAccount=` cru sem validação de UUID | `app/(app)/dashboard/page.tsx` (`activeAccount`) | `creditAccounts.find((a) => a.id === cycleAccount)` — array em memória, não chega ao Postgres | o parâmetro passar a alimentar uma query |
 | `installmentAmount` sem compensação de arredondamento no create | `createInstallmentPurchase` vs. `updateInstallmentGroup` | ~~fórmula documentada em `.claude/domain.md`; erro de no máximo (n−1) centavos~~ | **Voltou a valer em 2026-10-08 → #195.** Fato novo: dentro do próprio `createInstallmentPurchase` as cobranças de split compensam o resto e as parcelas não, e a cobrança da última parcela excede a transação de origem. Não recandidatar: acompanhar a #195 |
@@ -99,7 +98,7 @@ Isso não é uma lista de "não olhe": é uma lista de **o que já foi verificad
 | fórmula de saldo de investimento replicada em 4 sites | `getInvestmentBalances`, `buildPatrimonyTimeline`, `getGoalsWithProgress`, `archiveInvestmentType` | as quatro dão o mesmo valor — duplicação sem divergência | qualquer uma divergir |
 | `copyFixedExpensesFromPrevMonth` vs. cron de rollover | `copyFixedExpensesFromPrevMonth`, `api/cron/rollover-fixed-expenses/route.ts` | mesmos 6 campos, mesmo `paid: false`; a diferença de comportamento é documentada em `.claude/domain.md` | os inserts divergirem em campo |
 
-Duas dessas linhas escondem um sinal que **não** está morto e vale registro separado: `formatGroupDate` duplicado é a única razão pela qual `HistoricoClient` e `TransactionList` importam `format`/`ptBR` direto do `date-fns` em vez do wrapper `fmt` de `lib/utils/date.ts`; e `getInvestmentBalances` é N+1 (1 + 2×tipos) rodando no load de `/registro` e `/investimentos` e a cada abertura de dialog de registro/edição via `getRegistrationFormData` (que no mesmo `Promise.all` chama `getDashboardData` inteiro), com o precedente batch já existindo no repo (o `Promise.all` bulk de `getGoalsWithProgress`). Os dois viram issue no dia em que alguém medir — não antes.
+Uma dessas linhas esconde um sinal que **não** está morto e vale registro separado: `getInvestmentBalances` é N+1 (1 + 2×tipos) rodando no load de `/registro` e `/investimentos` e a cada abertura de dialog de registro/edição via `getRegistrationFormData` (que no mesmo `Promise.all` chama `getDashboardData` inteiro), com o precedente batch já existindo no repo (o `Promise.all` bulk de `getGoalsWithProgress`). Vira issue no dia em que alguém medir — não antes. (A outra linha, `formatGroupDate` duplicado em `HistoricoClient`/`TransactionList`, saiu da tabela em 2026-10-09: as duas cópias viraram `formatDayGroupLabel` em `lib/utils/date.ts`.)
 
 ## Ferramental
 

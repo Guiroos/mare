@@ -12,7 +12,7 @@
 4. **Formulários usam `<Field>`** — nunca `<div> + <Label>` manual; `<Field>` já inclui label, hint e error
 
 **Tokens rápidos:**
-- Tipografia: `text-hero` `text-display` `text-h1`–`text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
+- Tipografia: `text-hero` `text-display` `text-h1`–`text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`; marca (só `/login`): `text-brand` (64px) `text-wordmark` (48px)
 - Cores: `bg-bg-base` `bg-bg-surface` `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` / `accent` `positive` `negative` `warning` / `border` `border-strong`
 - Radius: `rounded-sm`(6) `rounded-md`(10) `rounded-lg`(16) `rounded-xl`(20) `rounded-full`
 - Alturas interativas: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`

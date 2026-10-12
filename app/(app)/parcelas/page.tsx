@@ -194,24 +194,24 @@ export default async function ParcelasPage() {
                 opacity="0.7"
               />
             </svg>
-            <p className="text-caption font-semibold uppercase opacity-80">Total restante</p>
+            <p className="text-label uppercase opacity-80">Total restante</p>
             <p className="mt-1 text-h1 tabular-nums">{formatCurrency(totalRestante)}</p>
             <div
               className="mt-4 grid grid-cols-3 gap-2 border-t pt-3"
               style={{ borderColor: 'oklch(100% 0 0 / 0.18)' }}
             >
               <div>
-                <p className="text-caption font-medium uppercase opacity-75">Por mês</p>
+                <p className="text-label uppercase opacity-75">Por mês</p>
                 <p className="text-small font-semibold tabular-nums">
                   {formatCurrency(totalMensal)}
                 </p>
               </div>
               <div>
-                <p className="text-caption font-medium uppercase opacity-75">Já pago</p>
+                <p className="text-label uppercase opacity-75">Já pago</p>
                 <p className="text-small font-semibold tabular-nums">{formatCurrency(totalPago)}</p>
               </div>
               <div>
-                <p className="text-caption font-medium uppercase opacity-75">Ativas</p>
+                <p className="text-label uppercase opacity-75">Ativas</p>
                 <p className="text-small font-semibold">{groupsWithEnd.length}</p>
               </div>
             </div>

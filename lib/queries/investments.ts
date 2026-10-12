@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and, asc, gte, count } from 'drizzle-orm'
-import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
+import { currentReferenceMonth, pastNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
@@ -104,25 +104,6 @@ export async function getArchivedCount(userId: string): Promise<number> {
     .where(and(eq(investmentTypes.userId, userId), eq(investmentTypes.archived, true)))
   return result[0]?.count ?? 0
 }
-
-export async function getMaturityAlerts(userId: string) {
-  const balances = await getInvestmentBalances(userId, { showArchived: false })
-  return balances
-    .filter((b) => b.maturityDate !== null && b.currentBalance > 0)
-    .map((b) => ({
-      id: b.id,
-      name: b.name,
-      color: b.color,
-      bgColor: b.bgColor,
-      maturityDate: b.maturityDate!,
-      currentBalance: b.currentBalance,
-      daysUntil: daysUntil(b.maturityDate!),
-    }))
-    .filter((b) => b.daysUntil <= 30)
-    .sort((a, b) => a.daysUntil - b.daysUntil)
-}
-
-export type MaturityAlert = Awaited<ReturnType<typeof getMaturityAlerts>>[number]
 
 export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
   const dek = await getDekForUser(userId)

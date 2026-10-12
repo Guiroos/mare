@@ -284,10 +284,10 @@ describe('getCategoryGroupProgress — orçamento padrão e override mensal', ()
   })
 })
 
-// ─── getDashboardData / getDashboardDataBillingCycle — orçamento e drill-down
-// vêm do mesmo conjunto (issue #113) ──────────────────────────────────────────
+// ─── getDashboardData / getDashboardDataBillingCycle — recorte do orçamento vs.
+// listas exibidas ──────────────────────────────────────────────────────────────
 
-describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions bate com groupProgress', () => {
+describe('getDashboardData/getDashboardDataBillingCycle — orçamento e listas exibidas', () => {
   let accountCreditId: string
   let catFaturaId: string
 
@@ -302,7 +302,7 @@ describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions b
     }))
   })
 
-  it('em regime de fatura, budgetTransactions/budgetFixedExpenses excluem crédito e somam exatamente o spent de groupProgress', async () => {
+  it('em regime de fatura, groupProgress exclui crédito e as listas exibidas mantêm os itens de crédito', async () => {
     await createTransaction(db, userAId, accountAId, {
       amount: '250.00',
       referenceMonth: MONTH_FATURA_BUDGET_MATCH,
@@ -342,19 +342,8 @@ describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions b
 
     expect(data.creditFilteredFromBudget).toBe(true)
 
-    // O conjunto do drill-down precisa somar exatamente o mesmo valor da barra —
-    // não a lista crua, que ainda tem os itens de crédito (usados por TransactionList).
-    const budgetSum =
-      data.budgetTransactions
-        .filter((t) => t.categoryId === catFaturaId)
-        .reduce((s, t) => s + toAmount(t.amount), 0) +
-      data.budgetFixedExpenses
-        .filter((fe) => fe.categoryId === catFaturaId)
-        .reduce((s, fe) => s + toAmount(fe.amount), 0)
-    expect(budgetSum).toBeCloseTo(cat!.spent, 1)
-
-    // A lista crua continua com os itens de crédito — é o que TransactionList usa
-    // para exibir o selo "via fatura"; não deve ser usada pelo dialog de orçamento.
+    // A lista crua continua com os itens de crédito — é o que TransactionList e
+    // FixedExpenseList usam para exibir o selo "via fatura".
     const rawSum =
       data.transactions
         .filter((t) => t.categoryId === catFaturaId)
@@ -365,7 +354,7 @@ describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions b
     expect(rawSum).toBeCloseTo(1030, 1)
   })
 
-  it('na visão de ciclo, budgetTransactions reflete o mês de calendário inteiro, não o ciclo de uma conta', async () => {
+  it('na visão de ciclo, groupProgress reflete o mês de calendário inteiro, não o ciclo de uma conta', async () => {
     const closingDay = 10
     const cycleRange = billingCycleDateRange(YEAR_MONTH_CYCLE_BUDGET_MATCH, closingDay)!
 
@@ -413,11 +402,6 @@ describe('getDashboardData/getDashboardDataBillingCycle — budgetTransactions b
     expect(cat!.spent).toBeCloseTo(950, 1)
 
     expect(data.creditFilteredFromBudget).toBe(false)
-
-    const budgetSum = data.budgetTransactions
-      .filter((t) => t.categoryId === catCycleId)
-      .reduce((s, t) => s + toAmount(t.amount), 0)
-    expect(budgetSum).toBeCloseTo(cat!.spent, 1)
 
     // A lista do ciclo (TransactionList) continua restrita à conta e à janela do ciclo
     const cycleSum = data.transactions

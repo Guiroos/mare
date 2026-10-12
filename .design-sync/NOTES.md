@@ -167,3 +167,17 @@ override. `[NO_DIST]` é esperado e permanente neste repo (ver acima).
 - Sessão nova sem `DesignSync` autorizado: o tool falha com "needs design-system authorization" —
   pedir `/design-login` antes de buscar o anchor; build/validate locais rodam sem ele.
 
+
+## Re-sync de 2026-10-10
+
+- Nenhum componente mudou; subiram só bundle/CSS/aux (tokens `text-brand`/`text-wordmark` de `0ce9635` e a
+  cópia do guideline). Driver: 30 `unchanged`, `deletePaths` vazio.
+- **`text-brand`/`text-wordmark` vazam para o CSS** pelo mesmo motivo dos `text-mkt-*` (o `content` varre
+  `app/**`, que inclui o login). O `conventions.md` agora os lista como fora do app.
+- **O `conventions.md` afirmava `-hover` em todas as cores semânticas**; `warning` não tem `-hover` (nem no
+  `tailwind.ds.config.ts`). Corrigido. A checagem por grep do header deve incluir as variantes, não só a base.
+- **`.design-sync/.cache/remote-sync.json` local estava defasado** (era de um sync anterior). Sempre
+  regravar a partir de `get_file _ds_sync.json` antes do driver; nunca reaproveitar a cópia do cache.
+- O projeto tem arquivos que **não vêm deste repo** (`templates/`, `github.md`,
+  `Tipografia e Cores - Maré.html`, `_adherence.oxlintrc.json`, `_ds_manifest.json`). Com `deletes` vindo
+  verbatim do `upload.deletePaths` eles nunca são tocados — não montar `deletes` à mão a partir do `list_files`.

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
-import { getCategoriesWithBudgets } from '@/lib/queries/categories'
+import { getCategoriesWithBudgets, getCreditAccounts } from '@/lib/queries/categories'
 import { getMonthFixedExpenses, getMonthTransactions } from '@/lib/queries/dashboard'
+import { getUserCreditMode, isFaturaMonth } from '@/lib/queries/fatura'
 import { getUserAutoRollover } from '@/lib/queries/settings'
 import { formatCurrency, toAmount } from '@/lib/utils/currency'
 import {
@@ -35,20 +36,31 @@ export default async function ConfiguracaoMesPage({
   const userId = session.user.id
   const { month: rawMonth } = await searchParams
   const month = normalizeYearMonthParam(rawMonth)
-  const { day: todayDay, year: currentYear, month: currentMonth } = todayParts()
-  const [displayYear, displayMonth] = month.split('-').map(Number)
+  const { day: todayDay } = todayParts()
   const isCurrentMonth = month === currentYearMonth()
-  const isPastMonth =
-    displayYear < currentYear || (displayYear === currentYear && displayMonth < currentMonth)
   const referenceMonth = yearMonthToReferenceMonth(month)
   const prevReferenceMonth = yearMonthToReferenceMonth(prevMonth(month))
 
-  const [categoriesWithBudgets, fixedExpenses, allTransactions, autoRollover] = await Promise.all([
+  const [
+    categoriesWithBudgets,
+    fixedExpenses,
+    allTransactions,
+    autoRollover,
+    creditAccounts,
+    creditMode,
+  ] = await Promise.all([
     getCategoriesWithBudgets(userId, referenceMonth),
     getMonthFixedExpenses(userId, referenceMonth),
     getMonthTransactions(userId, referenceMonth),
     getUserAutoRollover(userId),
+    getCreditAccounts(userId),
+    getUserCreditMode(userId),
   ])
+
+  // Mesmo predicado do dashboard: só mês >= faturaActiveFrom está "via fatura".
+  const viaFaturaAccountIds = isFaturaMonth(referenceMonth, creditMode)
+    ? creditAccounts.map((a) => a.id)
+    : undefined
 
   const installments = allTransactions.filter((t) => t.installmentGroupId)
 
@@ -146,10 +158,9 @@ export default async function ConfiguracaoMesPage({
       >
         <FixedExpenseList
           expenses={fixedExpenses}
-          yearMonth={month}
           isCurrentMonth={isCurrentMonth}
-          isPastMonth={isPastMonth}
           todayDay={todayDay}
+          creditAccountIds={viaFaturaAccountIds}
         />
       </Section>
 

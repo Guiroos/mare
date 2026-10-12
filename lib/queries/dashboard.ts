@@ -11,7 +11,7 @@ import {
 import { eq, and, or, desc, between, gte, lt, isNotNull, notInArray } from 'drizzle-orm'
 import { yearMonthToReferenceMonth, prevMonth, fixedExpenseCycleCutoff } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
-import { FaturaContext } from '@/lib/queries/fatura'
+import { FaturaContext, isFaturaMonth } from '@/lib/queries/fatura'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
 
@@ -22,14 +22,8 @@ export async function getCategoryGroupProgress(
   referenceMonth: string,
   faturaCtx?: FaturaContext
 ) {
-  const isFaturaMonth =
-    faturaCtx !== undefined &&
-    faturaCtx.creditMode === 'fatura' &&
-    faturaCtx.faturaActiveFrom !== null &&
-    referenceMonth >= faturaCtx.faturaActiveFrom
-
   const creditAccountIds = faturaCtx?.creditAccountIds ?? []
-  const shouldFilterCredit = isFaturaMonth && creditAccountIds.length > 0
+  const shouldFilterCredit = isFaturaMonth(referenceMonth, faturaCtx) && creditAccountIds.length > 0
 
   const txWhere = shouldFilterCredit
     ? and(
@@ -240,14 +234,8 @@ export async function getDashboardData(
       getMonthInvestments(userId, referenceMonth),
     ])
 
-  const isFaturaMonth =
-    faturaCtx !== undefined &&
-    faturaCtx.creditMode === 'fatura' &&
-    faturaCtx.faturaActiveFrom !== null &&
-    referenceMonth >= faturaCtx.faturaActiveFrom
-
   const creditIdSet = new Set(faturaCtx?.creditAccountIds ?? [])
-  const shouldFilterCredit = isFaturaMonth && creditIdSet.size > 0
+  const shouldFilterCredit = isFaturaMonth(referenceMonth, faturaCtx) && creditIdSet.size > 0
 
   const expenseTransactions = shouldFilterCredit
     ? monthTransactions.filter((t) => !creditIdSet.has(t.accountId))
@@ -279,12 +267,9 @@ export async function getDashboardData(
     groupProgress,
     transactions: monthTransactions,
     fixedExpenses: fixedExpenseList,
-    budgetTransactions: expenseTransactions,
-    budgetFixedExpenses: expenseFixedExpenses,
-    // Diz se budgetTransactions/budgetFixedExpenses excluem crédito em relação a
-    // transactions/fixedExpenses — é o mesmo predicado usado para montar os dois
-    // conjuntos acima, exposto para quem precisa saber *por que* podem divergir
-    // (ex: nota informativa no drill-down) sem reexpressar o filtro por conta.
+    // Diz se o crédito ficou fora do saldo e do orçamento deste mês — o mesmo predicado
+    // usado acima, exposto para a page derivar as contas "via fatura" sem reexpressá-lo.
+    // transactions/fixedExpenses continuam com os itens de crédito (selo "via fatura").
     creditFilteredFromBudget: shouldFilterCredit,
     incomes: incomeList,
     investments: investmentList,
@@ -375,23 +360,14 @@ export async function getDashboardDataBillingCycle(
 ) {
   const referenceMonth = yearMonthToReferenceMonth(yearMonth)
 
-  const [
-    cycleTransactions,
-    cycleFixedExpenses,
-    groupProgress,
-    incomeList,
-    investmentList,
-    monthTransactions,
-    monthFixedExpenses,
-  ] = await Promise.all([
-    getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end, accountId),
-    getFixedExpensesByBillingCycle(userId, yearMonth, closingDay, accountId),
-    getCategoryGroupProgress(userId, referenceMonth),
-    getMonthIncomes(userId, referenceMonth),
-    getMonthInvestments(userId, referenceMonth),
-    getMonthTransactions(userId, referenceMonth),
-    getMonthFixedExpenses(userId, referenceMonth),
-  ])
+  const [cycleTransactions, cycleFixedExpenses, groupProgress, incomeList, investmentList] =
+    await Promise.all([
+      getTransactionsByDateRange(userId, cycleRange.start, cycleRange.end, accountId),
+      getFixedExpensesByBillingCycle(userId, yearMonth, closingDay, accountId),
+      getCategoryGroupProgress(userId, referenceMonth),
+      getMonthIncomes(userId, referenceMonth),
+      getMonthInvestments(userId, referenceMonth),
+    ])
 
   const totalExpenses =
     cycleTransactions.reduce((s, t) => s + toAmount(t.amount), 0) +
@@ -415,10 +391,8 @@ export async function getDashboardDataBillingCycle(
     groupProgress,
     transactions: cycleTransactions,
     fixedExpenses: cycleFixedExpenses,
-    budgetTransactions: monthTransactions,
-    budgetFixedExpenses: monthFixedExpenses,
     // groupProgress aqui é chamado sem faturaCtx (mês de calendário, todas as contas) —
-    // budgetTransactions/budgetFixedExpenses nunca excluem crédito nesta visão.
+    // nesta visão o crédito nunca é excluído.
     creditFilteredFromBudget: false,
     incomes: incomeList,
     investments: investmentList,

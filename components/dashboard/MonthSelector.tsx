@@ -56,7 +56,9 @@ export function MonthSelector({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      {/* Em mês passado no mobile, "Mês atual" + ações não cabem ao lado do mês: o grupo
+          da direita desce para a linha de baixo (ml-auto o mantém alinhado à direita). */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
@@ -69,7 +71,7 @@ export function MonthSelector({
           </Button>
 
           <div className="flex cursor-default flex-col items-center rounded-full border-2 border-border bg-bg-surface px-4 py-1.5 shadow-sm">
-            <span className="text-body font-semibold text-text-primary">
+            <span className="whitespace-nowrap text-body font-semibold text-text-primary">
               {formatMonthYear(currentMonth)}
             </span>
             {isCycleView && cycleRange && (
@@ -88,7 +90,7 @@ export function MonthSelector({
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           {hasBillingCycle && (
             <Select value={activeCycleAccountId ?? 'month'} onValueChange={handleCycleSelect}>
               <SelectTrigger

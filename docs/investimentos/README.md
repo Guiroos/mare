@@ -38,6 +38,8 @@ Esta pasta organiza a analise da tela `app/(app)/investimentos` em arquivos meno
 
 Badges nos cards, dialog de resgate pre-preenchido, widget no dashboard.
 
+> **2026-10-09:** o widget de vencimentos saiu do dashboard no redesenho "Refinado" (a tela virou relance; investimentos viraram link no rodapé). `getMaturityAlerts`, o tipo `MaturityAlert` e `components/dashboard/MaturityAlerts.tsx` foram removidos — o vencimento aparece só nos cards de `/investimentos`.
+
 ### Fase 4 — UI de imposto: pendente
 
 Toggle de imposto no `WithdrawalDialog`, detalhamento na tabela de resgates.
