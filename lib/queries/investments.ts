@@ -105,22 +105,6 @@ export async function getArchivedCount(userId: string): Promise<number> {
   return result[0]?.count ?? 0
 }
 
-export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
-  const dek = await getDekForUser(userId)
-  const rows = await db.query.investments.findMany({
-    where: and(eq(investments.userId, userId), eq(investments.investmentTypeId, investmentTypeId)),
-    orderBy: asc(investments.referenceMonth),
-  })
-
-  return rows.map((r) => ({
-    id: r.id,
-    referenceMonth: r.referenceMonth,
-    amount: r.amount !== null ? toAmount(decryptOptional(r.amount, dek)) : null,
-    yieldAmount: r.yieldAmount !== null ? toAmount(decryptOptional(r.yieldAmount, dek)) : null,
-    notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
-  }))
-}
-
 type WithdrawalDbRow = {
   id: string
   investmentTypeId: string
@@ -179,7 +163,7 @@ export async function getAllInvestmentWithdrawals(userId: string) {
 export type WithdrawalRow = Awaited<ReturnType<typeof getAllInvestmentWithdrawals>>[number]
 
 /**
- * Todos os aportes, de todos os tipos. getInvestmentHistory é por tipo.
+ * Todos os aportes, de todos os tipos; filtrar por tipo em JS quando preciso.
  *
  * amount e yieldAmount são nullable no schema — por isso decryptOptional, nunca
  * decryptField (que lança em null).
