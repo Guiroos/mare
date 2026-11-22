@@ -2,8 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { Plus, Pencil, TrendingUp } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -21,7 +19,7 @@ import { upsertInvestment, type UpsertInvestmentInput } from '@/lib/actions/inve
 import { formatMonthName, referenceMonthToYearMonth, currentYearMonth } from '@/lib/utils/date'
 import { investmentEntrySchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Existing = {
   id: string
@@ -178,7 +176,6 @@ export function InvestmentEntryDialog({
   onOpenChange: controlledOnOpenChange,
 }: Props) {
   const [internalOpen, setInternalOpen] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen! : internalOpen
@@ -225,33 +222,12 @@ export function InvestmentEntryDialog({
     />
   )
 
-  if (isDesktop) {
-    return (
-      <>
-        {trigger}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {trigger}
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{title}</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{form}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog open={open} onOpenChange={setOpen} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

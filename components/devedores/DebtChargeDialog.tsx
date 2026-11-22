@@ -14,16 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { createDebtCharge, createDebtChargeFromTransaction } from '@/lib/actions/debtors'
 import { debtChargeSchema, debtChargeFromTransactionSchema } from '@/lib/validations/debtors'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency } from '@/lib/utils/currency'
 import { formatDate } from '@/lib/utils/date'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { TransactionForDebtLink } from '@/lib/queries/debtors'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 const NO_TX = 'none'
 
@@ -44,7 +42,6 @@ export function DebtChargeDialog({ personId, transactions, open: openProp, onOpe
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [sourceTxId, setSourceTxId] = useState<string | null>(null)
   const [amountCents, setAmountCents] = useState(0)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const today = new Date().toISOString().slice(0, 10)
   const selectedTx = transactions?.find((t) => t.id === sourceTxId) ?? null
@@ -173,33 +170,12 @@ export function DebtChargeDialog({ personId, transactions, open: openProp, onOpe
     </Button>
   ) : null
 
-  if (isDesktop) {
-    return (
-      <>
-        {trigger}
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Registrar cobrança</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {trigger}
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Registrar cobrança</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{form}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title="Registrar cobrança">
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

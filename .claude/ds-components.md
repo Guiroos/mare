@@ -47,6 +47,7 @@ Radix UI + primitivos.
 - `Select` → Radix Select com composição completa
 - `Dialog` → Radix Dialog
 - `Drawer` → vaul + Radix
+- `ResponsiveDialog` → `<Dialog>` (≥1024px) + `<Drawer>` (mobile) com header e corpo padronizados
 - `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsivo)
 - `RowActions` → kebab menu com `<Dialog>`/`<Drawer>` interno
 - `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais (via `Item` + `<input type="checkbox">`, não `CheckboxItem`)
@@ -84,6 +85,7 @@ Radix UI + primitivos.
 | `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮). Props: `onEdit?` `onDelete?` (omitir remove o item do menu); `additionalActions?: Array<{label, icon?, onClick, variant?}>` renderizadas antes do separador Editar/Excluir; `triggerClassName` para override do hover em fundo colorido; requer `group` na div pai |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
+| `responsive-dialog.tsx` | `ResponsiveDialog` | Props: `open` `onOpenChange` `title` `description?` (só desktop) `trigger?` (asChild) `className?` (DialogContent) `drawerClassName?` (DrawerContent) `drawerBodyClassName?` (default `px-4 pb-6`) `children` — padrão para todo modal de mutação; não repetir `useMediaQuery` + Dialog/Drawer à mão |
 | `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix `DropdownMenu.Item` com `asChild` + `<input type="checkbox">` dentro (`:81-91`), **não** `CheckboxItem` |
 | `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `ListFooter` | Sistema de lista de transações |
 

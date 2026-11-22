@@ -8,19 +8,17 @@ import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Switch } from '@/components/ui/switch'
 import { toast } from 'sonner'
 import { createDebtPayment } from '@/lib/actions/debtors'
 import { debtPaymentSchema } from '@/lib/validations/debtors'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
 import { formatCurrency } from '@/lib/utils/currency'
 import { OpenChargeForLinking } from '@/lib/queries/debtors'
 import { OpenChargesPicker } from './OpenChargesPicker'
 import { cn } from '@/lib/utils/cn'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props = {
   personId: string
@@ -42,7 +40,6 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
   const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set())
   const [chargesExpanded, setChargesExpanded] = useState(false)
   const [reconcile, setReconcile] = useState(true)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const today = new Date().toISOString().slice(0, 10)
   const currentMonth = currentYearMonth()
@@ -248,33 +245,12 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
     </Button>
   ) : null
 
-  if (isDesktop) {
-    return (
-      <>
-        {trigger}
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Registrar pagamento</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {trigger}
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Registrar pagamento</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{form}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title="Registrar pagamento">
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

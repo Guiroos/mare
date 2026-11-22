@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { Pencil } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
 import type { TripOption } from '@/components/forms/transaction/TripPicker'
 import { getTripOptions } from '@/lib/actions/trips'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Income = {
   id: string
@@ -29,7 +27,6 @@ export function IncomeEditButton({
 }) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [trips, setTrips] = useState<TripOption[]>([])
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen! : internalOpen
@@ -55,32 +52,6 @@ export function IncomeEditButton({
     />
   )
 
-  if (isDesktop) {
-    return (
-      <>
-        {!isControlled && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-            onClick={() => setOpen(true)}
-            aria-label="Editar"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Editar entrada</DialogTitle>
-            </DialogHeader>
-            {content}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {!isControlled && (
@@ -94,14 +65,14 @@ export function IncomeEditButton({
           <Pencil className="h-3.5 w-3.5" />
         </Button>
       )}
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Editar entrada</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{content}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Editar entrada"
+        className="max-w-sm"
+      >
+        {content}
+      </ResponsiveDialog>
     </>
   )
 }

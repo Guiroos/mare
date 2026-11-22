@@ -5,11 +5,9 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { updatePixKey } from '@/lib/actions/settings'
 import { cn } from '@/lib/utils/cn'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 interface PixKeyCardProps {
   pixKey: string | null
@@ -62,7 +60,6 @@ function PixKeyForm({ pixKey, onClose }: { pixKey: string | null; onClose: () =>
 
 export function PixKeyCard({ pixKey }: PixKeyCardProps) {
   const [open, setOpen] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const title = pixKey ? 'Editar chave Pix' : 'Cadastrar chave Pix'
   const form = <PixKeyForm pixKey={pixKey} onClose={() => setOpen(false)} />
 
@@ -90,25 +87,11 @@ export function PixKeyCard({ pixKey }: PixKeyCardProps) {
         </Button>
       </div>
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{title}</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      {
+        <ResponsiveDialog open={open} onOpenChange={setOpen} title={title}>
+          {form}
+        </ResponsiveDialog>
+      }
     </>
   )
 }

@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Pencil } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type CategoryGroup = {
   id: string
@@ -81,39 +79,12 @@ export function FixedExpenseEditButton({
   onOpenChange?: (v: boolean) => void
 }) {
   const [internalOpen, setInternalOpen] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen! : internalOpen
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
   const content = <FormLoader expense={expense} onSuccess={() => setOpen(false)} />
-
-  if (isDesktop) {
-    return (
-      <>
-        {!isControlled && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-            onClick={() => setOpen(true)}
-            aria-label="Editar"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Editar gasto fixo</DialogTitle>
-            </DialogHeader>
-            {content}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
 
   return (
     <>
@@ -128,14 +99,16 @@ export function FixedExpenseEditButton({
           <Pencil className="h-3.5 w-3.5" />
         </Button>
       )}
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader>
-            <DrawerTitle>Editar gasto fixo</DrawerTitle>
-          </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-6">{content}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Editar gasto fixo"
+        className="max-w-md"
+        drawerClassName="max-h-[92dvh]"
+        drawerBodyClassName="overflow-y-auto px-4 pb-6"
+      >
+        {content}
+      </ResponsiveDialog>
     </>
   )
 }

@@ -7,8 +7,6 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { CurrencyInput } from '@/components/ui/currency-input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import {
   Select,
   SelectContent,
@@ -23,7 +21,7 @@ import { getTripOptions } from '@/lib/actions/trips'
 import { withdrawalSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency } from '@/lib/utils/currency'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props = {
   investmentTypes: { id: string; name: string }[]
@@ -56,7 +54,6 @@ export function WithdrawalDialog({
     initialAmount ? Math.round(initialAmount * 100) : 0
   )
   const [taxCents, setTaxCents] = useState(0)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen! : internalOpen
@@ -240,25 +237,11 @@ export function WithdrawalDialog({
         </Button>
       )}
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Registrar resgate</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Registrar resgate</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      {
+        <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title="Registrar resgate">
+          {form}
+        </ResponsiveDialog>
+      }
     </>
   )
 }

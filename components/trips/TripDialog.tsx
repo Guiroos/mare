@@ -12,13 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { upsertTrip } from '@/lib/actions/trips'
 import { tripSchema } from '@/lib/validations/trips'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type GoalOption = { id: string; name: string }
 
@@ -47,7 +45,6 @@ export function TripDialog(props: Props) {
   const initialGoalId = props.mode === 'edit' ? (props.trip.goalId ?? 'none') : 'none'
   const [goalId, setGoalId] = useState(initialGoalId)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   // Nome e datas são defaultValue e resetam ao remontar; goalId é state e precisa de reset explícito
   const openDialog = () => {
@@ -171,25 +168,11 @@ export function TripDialog(props: Props) {
         </Button>
       )}
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{title}</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      {
+        <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+          {form}
+        </ResponsiveDialog>
+      }
     </>
   )
 }
