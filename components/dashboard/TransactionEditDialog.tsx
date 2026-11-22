@@ -1,24 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
-import type { TripOption } from '@/components/forms/transaction/TripPicker'
-import { getRegistrationFormData } from '@/lib/actions/form-data'
-import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-
-type CategoryGroup = {
-  id: string
-  name: string
-  categories: { id: string; name: string }[]
-}
-
-type Account = {
-  id: string
-  name: string
-  type: string
-}
+import { EditDialogShell, EditFormLoader } from '@/components/dashboard/EditDialogShell'
 
 type Transaction = {
   id: string
@@ -30,96 +13,49 @@ type Transaction = {
   tripId: string | null
 }
 
-function FormLoader({
-  transaction,
-  onSuccess,
-}: {
-  transaction: Transaction
-  onSuccess: () => void
-}) {
-  const [formData, setFormData] = useState<{
-    categoryGroups: CategoryGroup[]
-    accounts: Account[]
-    trips: TripOption[]
-  } | null>(null)
-
-  useEffect(() => {
-    getRegistrationFormData().then(setFormData)
-  }, [])
-
-  if (!formData) {
-    return (
-      <div className="flex items-center justify-center py-10 text-small text-text-secondary">
-        Carregando...
-      </div>
-    )
-  }
-
-  return (
-    <TransactionForm
-      mode="edit"
-      categoryGroups={formData.categoryGroups}
-      accounts={formData.accounts}
-      trips={formData.trips}
-      categoryVariant="combobox"
-      editContext={{
-        entityId: transaction.id,
-        primaryType: 'saida',
-        subType: 'avulsa',
-        initialValues: {
-          name: transaction.name,
-          amount: transaction.amount,
-          date: transaction.date,
-          categoryId: transaction.categoryId ?? undefined,
-          accountId: transaction.accountId ?? undefined,
-          tripId: transaction.tripId,
-        },
-      }}
-      onSuccess={onSuccess}
-    />
-  )
-}
-
 export function TransactionEditButton({
   transaction,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
+  open,
+  onOpenChange,
 }: {
   transaction: Transaction
   open?: boolean
   onOpenChange?: (v: boolean) => void
 }) {
-  const [internalOpen, setInternalOpen] = useState(false)
-
-  const isControlled = controlledOpen !== undefined
-  const open = isControlled ? controlledOpen! : internalOpen
-  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
-
-  const content = <FormLoader transaction={transaction} onSuccess={() => setOpen(false)} />
-
   return (
-    <>
-      {!isControlled && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-          onClick={() => setOpen(true)}
-          aria-label="Editar"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
+    <EditDialogShell
+      title="Editar transação"
+      className="max-w-md"
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {(close) => (
+        <EditFormLoader>
+          {(formData) => (
+            <TransactionForm
+              mode="edit"
+              categoryGroups={formData.categoryGroups}
+              accounts={formData.accounts}
+              trips={formData.trips}
+              categoryVariant="combobox"
+              editContext={{
+                entityId: transaction.id,
+                primaryType: 'saida',
+                subType: 'avulsa',
+                initialValues: {
+                  name: transaction.name,
+                  amount: transaction.amount,
+                  date: transaction.date,
+                  categoryId: transaction.categoryId ?? undefined,
+                  accountId: transaction.accountId ?? undefined,
+                  tripId: transaction.tripId,
+                },
+              }}
+              onSuccess={close}
+            />
+          )}
+        </EditFormLoader>
       )}
-      <ResponsiveDialog
-        open={open}
-        onOpenChange={setOpen}
-        title="Editar transação"
-        className="max-w-md"
-        drawerClassName="max-h-[92dvh]"
-        drawerBodyClassName="overflow-y-auto px-4 pb-6"
-      >
-        {content}
-      </ResponsiveDialog>
-    </>
+    </EditDialogShell>
   )
 }
