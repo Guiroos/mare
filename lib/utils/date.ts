@@ -83,6 +83,21 @@ export function referenceMonthToYearMonth(referenceMonth: string): string {
   return referenceMonth.slice(0, 7)
 }
 
+/** Billing cycle bounds as "DD/MM – DD/MM" from two YYYY-MM-DD dates. */
+export function formatCycleRange(start: string, end: string): string {
+  const fmt = (d: string) => {
+    const [, m, day] = d.split('-')
+    return `${day}/${m}`
+  }
+  return `${fmt(start)} – ${fmt(end)}`
+}
+
+/** Converts YYYY-MM-01 to "MM/YYYY". */
+export function formatMonthLabel(referenceMonth: string): string {
+  const [year, month] = referenceMonthToYearMonth(referenceMonth).split('-')
+  return `${month}/${year}`
+}
+
 /** Converts a YYYY-MM-DD date string to the YYYY-MM-01 referenceMonth for that month. */
 export function dateToReferenceMonth(dateStr: string): string {
   return format(startOfMonth(parseDate(dateStr)), 'yyyy-MM-dd')

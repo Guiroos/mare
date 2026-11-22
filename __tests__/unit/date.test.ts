@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { addDays, addMonths, format } from 'date-fns'
 import {
+  formatCycleRange,
+  formatMonthLabel,
   yearMonthToReferenceMonth,
   normalizeYearMonthParam,
   normalizeYearParam,
@@ -793,5 +795,15 @@ describe('formatDayGroupLabel', () => {
     vi.setSystemTime(today)
     expect(formatDayGroupLabel('2026-10-03')).toBe('Sábado, 3 de outubro')
     expect(formatDayGroupLabel('2026-10-04')).toBe('Domingo, 4 de outubro')
+  })
+})
+
+describe('formatCycleRange / formatMonthLabel', () => {
+  it('formats cycle bounds as DD/MM – DD/MM', () => {
+    expect(formatCycleRange('2025-02-08', '2025-03-07')).toBe('08/02 – 07/03')
+  })
+
+  it('formats a referenceMonth as MM/YYYY', () => {
+    expect(formatMonthLabel('2025-03-01')).toBe('03/2025')
   })
 })

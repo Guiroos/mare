@@ -5,24 +5,10 @@ import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { FaturaPaymentDialog } from './FaturaPaymentDialog'
 import { formatCurrency } from '@/lib/utils/currency'
-import { referenceMonthToYearMonth } from '@/lib/utils/date'
+import { formatCycleRange, formatMonthLabel } from '@/lib/utils/date'
 import type { HistoricalUnpaidCycle, OpenFatura } from '@/lib/queries/fatura'
 
 type DebitAccount = { id: string; name: string; type: string }
-
-function formatCycleRange(start: string, end: string) {
-  const fmt = (d: string) => {
-    const [, m, day] = d.split('-')
-    return `${day}/${m}`
-  }
-  return `${fmt(start)} – ${fmt(end)}`
-}
-
-function formatMonthLabel(referenceMonth: string) {
-  const ym = referenceMonthToYearMonth(referenceMonth)
-  const [year, month] = ym.split('-')
-  return `${month}/${year}`
-}
 
 interface OverdueCycleCardProps {
   account: OpenFatura['account']
