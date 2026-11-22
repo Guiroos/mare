@@ -304,6 +304,10 @@ export function TransactionForm({
         setErrors(formatZodErrors(result.error))
         return
       }
+      if (splits.length > 0 && totalSplitCents > totalCents) {
+        setErrors({ split: 'A divisão não pode ser maior que o valor total da saída' })
+        return
+      }
       setErrors({})
       startTransition(async () => {
         try {
@@ -361,6 +365,10 @@ export function TransactionForm({
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
+        return
+      }
+      if (splits.length > 0 && totalSplitCents > totalCents) {
+        setErrors({ split: 'A divisão não pode ser maior que o valor total da saída' })
         return
       }
       setErrors({})
@@ -641,12 +649,15 @@ export function TransactionForm({
           primaryType === 'saida' &&
           (resolvedType === 'avulso' || resolvedType === 'parcelado') &&
           people.length > 0 && (
-            <SplitSection
-              people={people}
-              totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
-              onChange={setSplits}
-              onIntegralChange={setSplitIntegral}
-            />
+            <div className="space-y-2">
+              <SplitSection
+                people={people}
+                totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
+                onChange={setSplits}
+                onIntegralChange={setSplitIntegral}
+              />
+              {errors.split && <p className="text-caption text-negative">{errors.split}</p>}
+            </div>
           )}
 
         <div className="pt-1">
