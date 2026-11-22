@@ -1,7 +1,8 @@
 'use client'
 
 import { TransactionForm } from '@/components/forms/TransactionForm'
-import { EditDialogShell, EditFormLoader } from '@/components/dashboard/EditDialogShell'
+import { EditDialogShell } from '@/components/dashboard/EditDialogShell'
+import { EditFormLoader } from '@/components/dashboard/EditFormLoader'
 
 type FixedExpense = {
   id: string

@@ -105,11 +105,11 @@ export function ContributionDialog(props: Props) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-text-secondary hover:text-text-primary"
+          className="h-7 w-7 text-text-secondary hover:text-text-primary"
           onClick={() => setOpen(true)}
           aria-label="Editar aporte"
         >
-          <Pencil className="h-3 w-3" />
+          <Pencil className="h-3.5 w-3.5" />
         </Button>
       )}
 

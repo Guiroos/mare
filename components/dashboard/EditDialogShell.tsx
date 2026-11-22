@@ -1,31 +1,9 @@
 'use client'
 
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
-import { getRegistrationFormData } from '@/lib/actions/form-data'
-
-type FormData = Awaited<ReturnType<typeof getRegistrationFormData>>
-
-/** Carrega categorias/contas/viagens ao abrir o diálogo e delega o form ao render prop. */
-export function EditFormLoader({ children }: { children: (data: FormData) => ReactNode }) {
-  const [formData, setFormData] = useState<FormData | null>(null)
-
-  useEffect(() => {
-    getRegistrationFormData().then(setFormData)
-  }, [])
-
-  if (!formData) {
-    return (
-      <div className="flex items-center justify-center py-10 text-small text-text-secondary">
-        Carregando...
-      </div>
-    )
-  }
-
-  return <>{children(formData)}</>
-}
 
 /**
  * Lápis + diálogo responsivo de edição. Sem `open`, controla o próprio estado e

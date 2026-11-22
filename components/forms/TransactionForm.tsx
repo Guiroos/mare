@@ -649,15 +649,14 @@ export function TransactionForm({
           primaryType === 'saida' &&
           (resolvedType === 'avulso' || resolvedType === 'parcelado') &&
           people.length > 0 && (
-            <div className="space-y-2">
+            <Field error={errors.split}>
               <SplitSection
                 people={people}
                 totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
                 onChange={setSplits}
                 onIntegralChange={setSplitIntegral}
               />
-              {errors.split && <p className="text-caption text-negative">{errors.split}</p>}
-            </div>
+            </Field>
           )}
 
         <div className="pt-1">
