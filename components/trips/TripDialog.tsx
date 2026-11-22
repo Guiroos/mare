@@ -168,11 +168,9 @@ export function TripDialog(props: Props) {
         </Button>
       )}
 
-      {
-        <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
-          {form}
-        </ResponsiveDialog>
-      }
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

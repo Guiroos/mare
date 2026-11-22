@@ -87,11 +87,9 @@ export function PixKeyCard({ pixKey }: PixKeyCardProps) {
         </Button>
       </div>
 
-      {
-        <ResponsiveDialog open={open} onOpenChange={setOpen} title={title}>
-          {form}
-        </ResponsiveDialog>
-      }
+      <ResponsiveDialog open={open} onOpenChange={setOpen} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

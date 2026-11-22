@@ -237,11 +237,9 @@ export function WithdrawalDialog({
         </Button>
       )}
 
-      {
-        <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title="Registrar resgate">
-          {form}
-        </ResponsiveDialog>
-      }
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title="Registrar resgate">
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

@@ -129,11 +129,9 @@ export function BudgetOverrideDialog({
         <Pencil className="h-3 w-3" />
       </Button>
 
-      {
-        <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
-          {form}
-        </ResponsiveDialog>
-      }
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

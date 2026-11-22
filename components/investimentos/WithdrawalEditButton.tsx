@@ -212,16 +212,14 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         <Pencil className="h-3.5 w-3.5" />
       </Button>
 
-      {
-        <ResponsiveDialog
-          open={open}
-          onOpenChange={handleOpenChange}
-          title="Editar resgate"
-          className="max-w-sm"
-        >
-          {form}
-        </ResponsiveDialog>
-      }
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title="Editar resgate"
+        className="max-w-sm"
+      >
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }
