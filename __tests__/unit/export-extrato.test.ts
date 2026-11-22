@@ -25,6 +25,7 @@ function makeItem(overrides: Partial<HistoricoFeedItem>): HistoricoFeedItem {
     installmentNumber: null,
     totalInstallments: null,
     investmentTypeName: null,
+    isFaturaPayment: false,
     ...overrides,
   }
 }

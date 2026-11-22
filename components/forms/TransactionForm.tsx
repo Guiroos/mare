@@ -304,6 +304,10 @@ export function TransactionForm({
         setErrors(formatZodErrors(result.error))
         return
       }
+      if (splits.length > 0 && totalSplitCents > totalCents) {
+        setErrors({ split: 'A divisão não pode ser maior que o valor total da saída' })
+        return
+      }
       setErrors({})
       startTransition(async () => {
         try {
@@ -361,6 +365,10 @@ export function TransactionForm({
       })
       if (!result.success) {
         setErrors(formatZodErrors(result.error))
+        return
+      }
+      if (splits.length > 0 && totalSplitCents > totalCents) {
+        setErrors({ split: 'A divisão não pode ser maior que o valor total da saída' })
         return
       }
       setErrors({})
@@ -422,7 +430,8 @@ export function TransactionForm({
       setErrors({})
       startTransition(async () => {
         try {
-          await upsertInvestment({
+          const res = await upsertInvestment({
+            mode: 'create',
             investmentTypeId: result.data.investmentTypeId,
             referenceMonth: result.data.referenceMonth + '-01',
             amount: str('amount') || null,
@@ -430,6 +439,10 @@ export function TransactionForm({
             notes: str('notes') || null,
             excludeFromCashFlow,
           })
+          if (!res.ok) {
+            toast.error(res.message)
+            return
+          }
           resetForm()
           onSuccess?.()
         } catch {
@@ -636,12 +649,14 @@ export function TransactionForm({
           primaryType === 'saida' &&
           (resolvedType === 'avulso' || resolvedType === 'parcelado') &&
           people.length > 0 && (
-            <SplitSection
-              people={people}
-              totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
-              onChange={setSplits}
-              onIntegralChange={setSplitIntegral}
-            />
+            <Field error={errors.split}>
+              <SplitSection
+                people={people}
+                totalCents={Math.round(parseFloat(previewAmount || '0') * 100)}
+                onChange={setSplits}
+                onIntegralChange={setSplitIntegral}
+              />
+            </Field>
           )}
 
         <div className="pt-1">

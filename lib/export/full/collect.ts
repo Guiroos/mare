@@ -22,6 +22,8 @@ import { todayISOString } from '@/lib/utils/date'
 import { ALL_TIPOS } from '@/lib/utils/historico-params'
 import { buildExtratoRows } from '../extrato-xlsx'
 import { buildLancamentosRows, buildSaldosRows } from '../devedores-xlsx'
+import { EXTRATO_WIDTHS } from '../extrato-xlsx'
+import { LANCAMENTOS_WIDTHS, SALDOS_WIDTHS } from '../devedores-xlsx'
 import { buildContasRows, CONTAS_WIDTHS } from './contas'
 import {
   buildCategoriasRows,
@@ -46,10 +48,6 @@ export interface ExportSheet {
   data: SheetData
   widths: number[]
 }
-
-const EXTRATO_WIDTHS = [12, 16, 40, 14, 20, 18, 10, 20]
-const SALDOS_WIDTHS = [24, 26, 16, 14, 16]
-const LANCAMENTOS_WIDTHS = [24, 12, 14, 40, 14, 18, 14, 30]
 
 /**
  * Coleta a conta inteira. Sem teto de linhas, ao contrário de /extrato e
@@ -104,7 +102,7 @@ export async function collectFullExport(userId: string): Promise<ExportSheet[]> 
       name: 'Extrato',
       filename: '01-extrato',
       data: buildExtratoRows(items),
-      widths: EXTRATO_WIDTHS,
+      widths: EXTRATO_WIDTHS.map((c) => c.width),
     },
     {
       name: 'Contas',
@@ -159,13 +157,13 @@ export async function collectFullExport(userId: string): Promise<ExportSheet[]> 
       name: 'Devedores — Saldos',
       filename: '11-devedores-saldos',
       data: buildSaldosRows(people),
-      widths: SALDOS_WIDTHS,
+      widths: SALDOS_WIDTHS.map((c) => c.width),
     },
     {
       name: 'Devedores — Lançamentos',
       filename: '12-devedores-lancamentos',
       data: buildLancamentosRows(debtorEntries),
-      widths: LANCAMENTOS_WIDTHS,
+      widths: LANCAMENTOS_WIDTHS.map((c) => c.width),
     },
   ]
 }

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { CheckCircle, Scale, TrendingDown, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatDate } from '@/lib/utils/date'
+import { formatDate, formatMonthName } from '@/lib/utils/date'
 import { DebtEntryDetail } from '@/lib/queries/debtors'
 import { deleteDebtEntry } from '@/lib/actions/debtors'
 import { Badge } from '@/components/ui/badge'
@@ -21,12 +21,6 @@ type FilterType = 'all' | 'charge' | 'payment'
 type Props = {
   entries: DebtEntryDetail[]
   personId: string
-}
-
-function formatMonthLabel(month: string) {
-  const [year, m] = month.split('-')
-  const date = new Date(Number(year), Number(m) - 1)
-  return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 }
 
 function formatSettledChargesSummary(
@@ -252,7 +246,7 @@ export function DebtEntryList({ entries, personId }: Props) {
             <div key={group.month}>
               <div className="mb-1 flex items-center justify-between px-1">
                 <span className="text-caption font-medium capitalize text-text-secondary">
-                  {formatMonthLabel(group.month)}
+                  {formatMonthName(group.month)}
                 </span>
                 <span
                   className={cn(

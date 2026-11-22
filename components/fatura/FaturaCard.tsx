@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { FaturaPaymentDialog } from './FaturaPaymentDialog'
 import { OverdueCycleCard } from './OverdueCycleCard'
 import { formatCurrency } from '@/lib/utils/currency'
-import { formatDate, referenceMonthToYearMonth } from '@/lib/utils/date'
+import { formatCycleRange, formatDate, formatMonthLabel } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import type { OpenFatura } from '@/lib/queries/fatura'
 
@@ -18,20 +18,6 @@ function deriveState(data: OpenFatura): CardState {
   if (data.closedCycle.payment === null && data.closedCycle.total > 0) return 'alert'
   if (data.openCycle.total > 0) return 'open'
   return 'paid'
-}
-
-function formatCycleRange(start: string, end: string) {
-  const fmt = (d: string) => {
-    const [, m, day] = d.split('-')
-    return `${day}/${m}`
-  }
-  return `${fmt(start)} – ${fmt(end)}`
-}
-
-function formatMonthLabel(referenceMonth: string) {
-  const ym = referenceMonthToYearMonth(referenceMonth)
-  const [year, month] = ym.split('-')
-  return `${month}/${year}`
 }
 
 interface FaturaCardProps {

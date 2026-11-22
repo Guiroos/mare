@@ -12,10 +12,8 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from 'sonner'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props = {
   entry: DebtEntryDetail
@@ -28,7 +26,6 @@ export function SettleChargeDialog({ entry, personId, open, onOpenChange }: Prop
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [createIncome, setCreateIncome] = useState(true)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const today = new Date().toISOString().slice(0, 10)
   const currentMonth = currentYearMonth()
@@ -131,27 +128,14 @@ export function SettleChargeDialog({ entry, personId, open, onOpenChange }: Prop
     </form>
   )
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Quitar cobrança</DialogTitle>
-          </DialogHeader>
-          {form}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Quitar cobrança</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{form}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Quitar cobrança"
+      className="max-w-sm"
+    >
+      {form}
+    </ResponsiveDialog>
   )
 }

@@ -57,7 +57,7 @@ Regras que o DS trata como obrigatórias:
   botão.
 - Valores em destaque: `SummaryCard` (trio entradas/saídas/saldo) e `BalanceCard` (herói com
   fundo accent).
-- Listas de lançamento: `TxList` + `TxGroupHeader` + `TxItem` / `FixedExpenseItem` + `ListFooter`.
+- Listas de lançamento: `TxList` + `TxGroupHeader` + `TxItem` + `ListFooter`.
 - Ação por linha: `RowActions` (exige `group` na div pai) ou `DeleteButton` — nunca um botão de
   excluir improvisado.
 - Responsivo de modal: `Dialog` no desktop (`lg+`) e `Drawer` no mobile. `Select` do Radix **não**

@@ -2,8 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { submitFeedback } from '@/lib/actions/feedback'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Category = 'melhoria' | 'implementacao' | 'outros'
 
@@ -90,8 +88,6 @@ function FeedbackForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
-
   function handleSuccess() {
     onOpenChange(false)
   }
@@ -99,27 +95,9 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
   const title = 'Enviar feedback'
   const form = <FeedbackForm onSuccess={handleSuccess} />
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          {form}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{form}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange} title={title}>
+      {form}
+    </ResponsiveDialog>
   )
 }

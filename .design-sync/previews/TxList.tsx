@@ -1,4 +1,4 @@
-import { TxList, TxGroupHeader, TxItem, FixedExpenseItem, ListFooter } from 'mare'
+import { TxList, TxGroupHeader, TxItem, ListFooter } from 'mare'
 
 export const Lancamentos = () => (
   <TxList>
@@ -68,33 +68,5 @@ export const ComParcelas = () => (
       strike
     />
     <ListFooter label="Total em parcelas" value="− R$ 778,25" />
-  </TxList>
-)
-
-export const GastosFixos = () => (
-  <TxList>
-    <TxGroupHeader date="Gastos fixos de agosto" total="− R$ 3.140,00" />
-    <FixedExpenseItem done name="Aluguel" meta="Vence dia 5 · Itaú" amount="− R$ 2.400,00" />
-    <FixedExpenseItem
-      done
-      name="Internet 500MB"
-      meta="Vence dia 10 · Nubank"
-      amount="− R$ 129,90"
-    />
-    <FixedExpenseItem
-      done={false}
-      name="Academia"
-      meta="Vence dia 15 · Nubank"
-      amount="− R$ 189,00"
-      amountTone="neg"
-    />
-    <FixedExpenseItem
-      done={false}
-      name="Plano de saúde"
-      meta="Vence dia 20 · Itaú"
-      amount="− R$ 421,10"
-      amountTone="neg"
-    />
-    <ListFooter label="Falta pagar" value="− R$ 610,10" />
   </TxList>
 )

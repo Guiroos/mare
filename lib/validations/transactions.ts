@@ -11,6 +11,12 @@ import {
 
 // ─── Client schemas (string FormData) ────────────────────────────────────────
 
+// Cobrança de devedor criada junto com a saída; chega ao servidor como objeto (não FormData)
+export const transactionSplitSchema = z.object({
+  personId: uuidSchema,
+  amount: positiveAmountSchema,
+})
+
 export const transactionSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório').max(200),
   amount: positiveAmountSchema,
@@ -18,6 +24,7 @@ export const transactionSchema = z.object({
   categoryId: uuidSchema,
   accountId: uuidSchema,
   tripId: optionalUuidSchema,
+  splits: z.array(transactionSplitSchema).optional(),
 })
 
 const fixedExpenseBase = z.object({
@@ -95,6 +102,7 @@ export const createInstallmentActionSchema = z.object({
   categoryId: uuidSchema,
   accountId: uuidSchema,
   tripId: optionalUuidSchema,
+  splits: z.array(transactionSplitSchema).optional(),
 })
 
 export const updateInstallmentGroupActionSchema = z.object({
