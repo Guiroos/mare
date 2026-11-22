@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildBalanceEvolution } from '@/lib/queries/debtors'
+import { buildBalanceEvolution, sumSignedDebtCents } from '@/lib/queries/debtors'
 
 describe('buildBalanceEvolution', () => {
   it('returns empty array when there are no entries', () => {
@@ -84,5 +84,17 @@ describe('buildBalanceEvolution', () => {
       { month: '2025-01', balance: 0.1 },
       { month: '2025-02', balance: 0.3 },
     ])
+  })
+})
+
+describe('sumSignedDebtCents', () => {
+  it('zeroes a balance that float addition leaves at -7.1e-15', () => {
+    const entries = [
+      { type: 'charge', amount: 19.9 },
+      { type: 'charge', amount: 29.9 },
+      { type: 'charge', amount: 9.9 },
+      { type: 'payment', amount: 59.7 },
+    ]
+    expect(Object.is(sumSignedDebtCents(entries) / 100, 0)).toBe(true)
   })
 })

@@ -64,13 +64,13 @@ export async function getPeopleWithBalances(
     getDekForUser(userId),
   ])
 
-  const balanceMap: Record<string, number> = {}
+  const centsMap: Record<string, number> = {}
   const lastMovementMap: Record<string, string | null> = {}
 
   for (const e of entryRows) {
     const amount = toAmount(decryptField(e.amount, dek))
-    balanceMap[e.personId] =
-      (balanceMap[e.personId] ?? 0) + signedDebtAmount({ type: e.type, amount })
+    centsMap[e.personId] =
+      (centsMap[e.personId] ?? 0) + sumSignedDebtCents([{ type: e.type, amount }])
     if (!lastMovementMap[e.personId] || e.entryDate > lastMovementMap[e.personId]!) {
       lastMovementMap[e.personId] = e.entryDate
     }
@@ -83,7 +83,7 @@ export async function getPeopleWithBalances(
     phone: decryptOptional(r.phone, dek),
     notes: decryptOptional(r.notes, dek),
     archived: r.archived,
-    balance: balanceMap[r.id] ?? 0,
+    balance: (centsMap[r.id] ?? 0) / 100,
     lastMovement: lastMovementMap[r.id] ?? null,
   }))
 
@@ -148,6 +148,14 @@ export function signedDebtAmount(entry: { type: string; amount: number }): numbe
 }
 
 /**
+ * Soma lançamentos com sinal em centavos inteiros: em float, 19,90 + 29,90 + 9,90
+ * − 59,70 sai como -7.1e-15 e `balance === 0` falha ("Quitado", exclusão, export).
+ */
+export function sumSignedDebtCents(entries: Array<{ type: string; amount: number }>): number {
+  return entries.reduce((sum, e) => sum + Math.round(signedDebtAmount(e) * 100), 0)
+}
+
+/**
  * Agrega por mês e só então acumula — um ponto por mês, do primeiro ao último
  * com lançamento. Mês sem movimento repete o saldo anterior: sem ele, o gráfico
  * liga os pontos vizinhos e sugere uma quitação gradual que não aconteceu.
@@ -160,8 +168,7 @@ export function buildBalanceEvolution(entries: BalanceEvolutionEntry[]): Balance
   const centsByMonth = new Map<string, number>()
   for (const e of entries) {
     const month = e.entryDate.slice(0, 7)
-    const cents = Math.round(signedDebtAmount(e) * 100)
-    centsByMonth.set(month, (centsByMonth.get(month) ?? 0) + cents)
+    centsByMonth.set(month, (centsByMonth.get(month) ?? 0) + sumSignedDebtCents([e]))
   }
 
   const months = Array.from(centsByMonth.keys()).sort()
@@ -291,20 +298,18 @@ export async function getPersonDebtDetails(
       : null,
   }))
 
-  let balance = 0
-  let totalCharged = 0
-  let totalPaid = 0
+  let totalChargedCents = 0
+  let totalPaidCents = 0
   let chargeCount = 0
   let paymentCount = 0
   let lastMovement: string | null = null
 
   for (const e of entries) {
-    balance += signedDebtAmount(e)
     if (e.type === 'payment') {
-      totalPaid += e.amount
+      totalPaidCents += Math.round(e.amount * 100)
       paymentCount++
     } else if (e.type === 'charge') {
-      totalCharged += e.amount
+      totalChargedCents += Math.round(e.amount * 100)
       chargeCount++
     }
     // 'adjustment' só mexe no saldo: NÃO é cobrança — não pode contaminar
@@ -327,7 +332,14 @@ export async function getPersonDebtDetails(
       archived: person.archived,
       shareToken: decryptOptional(person.shareToken, dek),
     },
-    summary: { balance, totalCharged, totalPaid, lastMovement, chargeCount, paymentCount },
+    summary: {
+      balance: sumSignedDebtCents(entries) / 100,
+      totalCharged: totalChargedCents / 100,
+      totalPaid: totalPaidCents / 100,
+      lastMovement,
+      chargeCount,
+      paymentCount,
+    },
     balanceEvolution,
     entries: entriesDesc,
   }
