@@ -37,6 +37,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 ## Investimentos
 
+- `upsertInvestment` exige `mode`: `'create'` usa `onConflictDoNothing` e devolve `entry_exists` se o mês já tem registro daquele tipo (nunca sobrescreve rendimento/aporte existente); só `'edit'` faz upsert
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
 - `incomes.source` do resgate é regravado por `updateWithdrawal` **apenas** quando o `investmentTypeId` muda — o campo é editável pelo usuário via `IncomeEditDialog`, então editar valor/data/imposto não pode sobrescrever um rótulo customizado

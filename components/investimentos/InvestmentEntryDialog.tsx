@@ -75,6 +75,7 @@ function EntryForm({
 
     setErrors({})
     const data: UpsertInvestmentInput = {
+      mode: existing ? 'edit' : 'create',
       investmentTypeId: selectedTypeId,
       referenceMonth: result.data.referenceMonth + '-01',
       amount: (fd.get('amount') as string).trim() || null,
@@ -85,7 +86,11 @@ function EntryForm({
 
     startTransition(async () => {
       try {
-        await upsertInvestment(data)
+        const res = await upsertInvestment(data)
+        if (!res.ok) {
+          toast.error(res.message)
+          return
+        }
         onSuccess()
       } catch {
         toast.error('Erro ao salvar.')

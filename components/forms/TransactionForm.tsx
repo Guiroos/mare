@@ -422,7 +422,8 @@ export function TransactionForm({
       setErrors({})
       startTransition(async () => {
         try {
-          await upsertInvestment({
+          const res = await upsertInvestment({
+            mode: 'create',
             investmentTypeId: result.data.investmentTypeId,
             referenceMonth: result.data.referenceMonth + '-01',
             amount: str('amount') || null,
@@ -430,6 +431,10 @@ export function TransactionForm({
             notes: str('notes') || null,
             excludeFromCashFlow,
           })
+          if (!res.ok) {
+            toast.error(res.message)
+            return
+          }
           resetForm()
           onSuccess?.()
         } catch {
