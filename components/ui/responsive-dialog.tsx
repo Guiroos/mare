@@ -1,29 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from '@/components/ui/drawer'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 type ResponsiveDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: ReactNode
-  description?: ReactNode
-  trigger?: ReactNode
   /** DialogContent (desktop). */
   className?: string
   /** DrawerContent (mobile). */
@@ -37,8 +22,6 @@ export function ResponsiveDialog({
   open,
   onOpenChange,
   title,
-  description,
-  trigger,
   className,
   drawerClassName,
   drawerBodyClassName = 'px-4 pb-6',
@@ -49,11 +32,9 @@ export function ResponsiveDialog({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
         <DialogContent className={className}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
-            {description && <DialogDescription>{description}</DialogDescription>}
           </DialogHeader>
           {children}
         </DialogContent>
@@ -63,7 +44,6 @@ export function ResponsiveDialog({
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
       <DrawerContent className={drawerClassName}>
         <DrawerHeader>
           <DrawerTitle>{title}</DrawerTitle>

@@ -118,11 +118,13 @@ const openChargeStatus = or(eq(debtorEntries.status, 'open'), isNull(debtorEntri
 
 class ChargeAlreadySettledError extends Error {}
 
-const chargeAlreadySettled = (): ActionResult => ({
-  ok: false,
-  code: 'charge_already_settled',
-  message: 'Uma das cobranças selecionadas já foi quitada. Feche e abra de novo.',
-})
+// Revalida antes de recusar: a aba que errou está com a lista velha, e é a
+// revalidação que faz o "feche e abra de novo" mostrar a cobrança já quitada.
+function chargeAlreadySettled(personId: string, message: string): ActionResult {
+  revalidatePath('/devedores')
+  revalidatePath(`/devedores/${personId}`)
+  return { ok: false, code: 'charge_already_settled', message }
+}
 
 export type CreateDebtChargeInput = {
   personId: string
@@ -214,6 +216,7 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
       referenceMonth: true,
       amount: true,
       description: true,
+      settledByPaymentId: true,
     },
   })
 
@@ -274,54 +277,39 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
         .where(and(eq(incomes.id, entry.incomeId), eq(incomes.userId, userId)))
     }
 
-    if (entry.type === 'payment') {
-      // Ajuste de conciliação criado junto deste pagamento: recalcular pelo novo valor.
-      const [adjustment] = await tx
-        .select({ id: debtorEntries.id })
-        .from(debtorEntries)
-        .where(
-          and(
-            eq(debtorEntries.settledByPaymentId, data.id),
-            eq(debtorEntries.userId, userId),
-            eq(debtorEntries.type, 'adjustment')
-          )
-        )
-      if (adjustment) {
-        const settled = await tx
-          .select({ amount: debtorEntries.amount })
-          .from(debtorEntries)
-          .where(
-            and(
-              eq(debtorEntries.settledByPaymentId, data.id),
-              eq(debtorEntries.userId, userId),
-              eq(debtorEntries.type, 'charge')
-            )
-          )
-        const chargesCents = settled.reduce(
-          (sum, r) => sum + Math.round(toAmount(decryptField(r.amount, dek)) * 100),
-          0
-        )
-        const diffCents = chargesCents - Math.round(toAmount(amount) * 100)
-        if (diffCents > 0) {
-          await tx
-            .update(debtorEntries)
-            .set({
-              amount: encryptField((-diffCents / 100).toFixed(2), dek),
-              updatedAt: new Date(),
-            })
-            .where(and(eq(debtorEntries.id, adjustment.id), eq(debtorEntries.userId, userId)))
-        } else {
-          await tx
-            .delete(debtorEntries)
-            .where(and(eq(debtorEntries.id, adjustment.id), eq(debtorEntries.userId, userId)))
-        }
-      }
-    }
-
     await tx
       .update(debtorEntries)
       .set(entryValues)
       .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
+
+    // Ajuste de conciliação do pagamento: recalcular depois de editar o pagamento
+    // ou uma cobrança quitada por ele. Nunca apagar — zerado ele continua sendo o
+    // vínculo que permite recalcular numa edição seguinte (zerado some das listas).
+    const paymentId =
+      entry.type === 'payment' ? data.id : entry.type === 'charge' ? entry.settledByPaymentId : null
+    if (!paymentId) return
+
+    const linked = await tx
+      .select({ id: debtorEntries.id, type: debtorEntries.type, amount: debtorEntries.amount })
+      .from(debtorEntries)
+      .where(
+        and(
+          or(eq(debtorEntries.id, paymentId), eq(debtorEntries.settledByPaymentId, paymentId)),
+          eq(debtorEntries.userId, userId)
+        )
+      )
+    const adjustment = linked.find((r) => r.type === 'adjustment')
+    if (!adjustment) return
+
+    const cents = (type: string) =>
+      linked
+        .filter((r) => r.type === type)
+        .reduce((sum, r) => sum + Math.round(toAmount(decryptField(r.amount, dek)) * 100), 0)
+    const diffCents = Math.max(0, cents('charge') - cents('payment'))
+    await tx
+      .update(debtorEntries)
+      .set({ amount: encryptField((-diffCents / 100).toFixed(2), dek), updatedAt: new Date() })
+      .where(and(eq(debtorEntries.id, adjustment.id), eq(debtorEntries.userId, userId)))
   })
 
   revalidatePath('/devedores')
@@ -440,7 +428,12 @@ export async function createDebtPayment(data: CreateDebtPaymentInput): Promise<A
       }
     })
   } catch (err) {
-    if (err instanceof ChargeAlreadySettledError) return chargeAlreadySettled()
+    if (err instanceof ChargeAlreadySettledError) {
+      return chargeAlreadySettled(
+        data.personId,
+        'Uma das cobranças selecionadas já foi quitada. Feche e abra de novo.'
+      )
+    }
     throw err
   }
 
@@ -491,7 +484,7 @@ export async function settleCharge(data: SettleChargeInput): Promise<ActionResul
     return { ok: false, code: 'entry_not_a_charge', message: 'Lançamento não é uma cobrança' }
   }
   if (charge.status === 'settled') {
-    return { ok: false, code: 'charge_already_settled', message: 'Cobrança já está quitada' }
+    return chargeAlreadySettled(data.personId, 'Cobrança já está quitada')
   }
 
   let incomeId: string | null = null
@@ -551,7 +544,7 @@ export async function settleCharge(data: SettleChargeInput): Promise<ActionResul
     })
   } catch (err) {
     if (err instanceof ChargeAlreadySettledError) {
-      return { ok: false, code: 'charge_already_settled', message: 'Cobrança já está quitada' }
+      return chargeAlreadySettled(data.personId, 'Cobrança já está quitada')
     }
     throw err
   }

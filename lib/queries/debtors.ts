@@ -138,6 +138,11 @@ type BalanceEvolutionEntry = {
   entryDate: string
 }
 
+/** Ajuste de conciliação zerado: vínculo para recalcular (updateDebtEntry), não lançamento. */
+export function isZeroAdjustment(entry: { type: string; amount: number }): boolean {
+  return entry.type === 'adjustment' && entry.amount === 0
+}
+
 /**
  * Sinal do lançamento no saldo (balance > 0 = a pessoa deve a você): pagamento
  * abate, cobrança e ajuste somam — o ajuste já vem com sinal próprio. Fonte
@@ -320,7 +325,8 @@ export async function getPersonDebtDetails(
   const balanceEvolution = buildBalanceEvolution(entries)
 
   // entries returned desc for display
-  const entriesDesc = [...entries].reverse()
+  // Ajuste de conciliação zerado é só o vínculo para recalcular (updateDebtEntry): não exibir.
+  const entriesDesc = [...entries].reverse().filter((e) => !isZeroAdjustment(e))
 
   return {
     person: {
@@ -560,11 +566,12 @@ export async function getAllDebtorEntries(userId: string): Promise<DebtorEntryEx
   }))
 
   // Ordenação em JS: as colunas são ciphertext, ORDER BY no SQL ordenaria lixo.
-  rows.sort((a, b) => {
+  const visible = rows.filter((e) => !isZeroAdjustment(e))
+  visible.sort((a, b) => {
     const byName = a.personName.localeCompare(b.personName, 'pt-BR')
     if (byName !== 0) return byName
     return b.entryDate.localeCompare(a.entryDate)
   })
 
-  return rows
+  return visible
 }
