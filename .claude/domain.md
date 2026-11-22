@@ -91,7 +91,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - Neon não suporta `pg_cron`; jobs em `vercel.json` (`"crons": [{ "path": "...", "schedule": "..." }]`); autenticação via `Authorization: Bearer ${CRON_SECRET}`
 - Rotas de cron não têm sessão — operam direto no `db`; usar `Promise.allSettled` por usuário
-- `autoRolloverFixedExpenses` (cron, dia 1): pula se já há gastos fixos no mês; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo
+- `autoRolloverFixedExpenses` (cron, dias 1–3 — os dias 2 e 3 recuperam execução perdida do dia 1, e viram no-op pela guarda): por usuário, roda em `db.transaction` com `pg_advisory_xact_lock(hashtext(userId || mês))` para que execuções sobrepostas não dupliquem; pula se já há gastos fixos no mês; falha de usuário vai para `console.error` e a rota responde 500; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo
 
 ## Reset de Conta
 
