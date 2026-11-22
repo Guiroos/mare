@@ -70,7 +70,7 @@ Radix UI + primitivos.
 | `month-select.tsx`   | `MonthSelect`                   | Select de mês em pt-BR (`formatMonthYear`); popula `FormData` via hidden input com `YYYY-MM`; props `name` `defaultValue` `error` `back` `forward` |
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
-| `separator.tsx`      | `Separator`                     | Radix; prop `orientation`: `horizontal` (default) / `vertical`                   |
+| `separator.tsx`      | `Separator`                     | `<div aria-hidden>`; prop `orientation`: `horizontal` (default) / `vertical`                   |
 | `progress.tsx`       | `Progress`                      | Props: `value` `max` `indicatorClassName`; `className` dimensiona o container (ex: `h-1.5`, `w-12 lg:w-20 flex-shrink-0`) |
 | `budget-bar.tsx`     | `BudgetBar`                     | Props: `current` `target` `label` `tone` (`ok`/`warn`/`over`/`accent`) `hint`    |
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
