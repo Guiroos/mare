@@ -35,7 +35,7 @@ Componentes que combinam primitivos devem importar e usar os componentes do DS �
   ```ts
   cn('classes-base', condicional && 'classe', className)
   ```
-- Exceção: `CurrencyInput`/`NumericInput` compartilham `inputBase`/`inputErrorCls` de `input.tsx` via array+join — padrão legado aceito nesses dois arquivos
+- Exceção: `CurrencyInput` compartilha `inputBase`/`inputErrorCls` de `input.tsx` via array+join — padrão legado aceito nesse arquivo
 
 ### Regra 3 — Apenas tokens nomeados, zero valores arbitrários
 
