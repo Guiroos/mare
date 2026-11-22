@@ -97,7 +97,11 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
     setErrors({})
     startTransition(async () => {
       try {
-        await createDebtPayment(result.data)
+        const actionResult = await createDebtPayment(result.data)
+        if (!actionResult.ok) {
+          toast.error(actionResult.message)
+          return
+        }
         toast.success('Pagamento registrado.')
         handleOpenChange(false)
       } catch {
