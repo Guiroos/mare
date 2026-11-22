@@ -50,7 +50,7 @@ Radix UI + primitivos.
 - `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsivo)
 - `RowActions` → kebab menu com `<Dialog>`/`<Drawer>` interno
 - `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais (via `Item` + `<input type="checkbox">`, não `CheckboxItem`)
-- `TxList` / `TxGroupHeader` / `TxItem` / `FixedExpenseItem` / `ListFooter` → sistema de lista complexo
+- `TxList` / `TxGroupHeader` / `TxItem` / `ListFooter` → sistema de lista complexo
 
 ---
 
@@ -87,7 +87,7 @@ Radix UI + primitivos.
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
 | `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix `DropdownMenu.Item` com `asChild` + `<input type="checkbox">` dentro (`:81-91`), **não** `CheckboxItem` |
-| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
+| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `ListFooter` | Sistema de lista de transações |
 
 ---
 

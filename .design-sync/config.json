@@ -38,7 +38,7 @@
     "SummaryCard": "/** Cor da barra superior e do valor. */\n  variant: 'balance' | 'positive' | 'negative';\n  label: string;\n  /** Valor já formatado como texto. */\n  amount: string;\n  footer?: string;\n  icon?: React.ReactNode;\n  className?: string;",
     "Switch": "label?: string;\n  checked: boolean;\n  onChange: (checked: boolean) => void;\n  disabled?: boolean;\n  id?: string;",
     "Textarea": "error?: boolean;\n  /** @default 4 */\n  rows?: number;\n  name?: string;\n  value?: string;\n  defaultValue?: string;\n  placeholder?: string;\n  onChange?: React.ChangeEventHandler<HTMLTextAreaElement>;\n  className?: string;\n  [key: string]: unknown;",
-    "TxList": "/** Container da lista. Preencha com TxGroupHeader, TxItem, FixedExpenseItem e ListFooter (todos exportados pelo DS). */\n  children: React.ReactNode;\n  className?: string;\n  [key: string]: unknown;"
+    "TxList": "/** Container da lista. Preencha com TxGroupHeader, TxItem e ListFooter (todos exportados pelo DS). */\n  children: React.ReactNode;\n  className?: string;\n  [key: string]: unknown;"
   },
   "componentSrcMap": {
     "Badge": "components/ui/badge.tsx",
@@ -106,7 +106,6 @@
     "SelectScrollDownButton": null,
     "TxGroupHeader": null,
     "TxItem": null,
-    "FixedExpenseItem": null,
     "ListFooter": null
   },
   "overrides": {
