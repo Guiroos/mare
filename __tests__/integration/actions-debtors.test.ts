@@ -710,3 +710,163 @@ describe('validação de input', () => {
     expect(countAfter).toHaveLength(countBefore.length)
   })
 })
+
+describe('createDebtPayment — cobrança já quitada', () => {
+  it('recusa com charge_already_settled e desfaz pagamento e entrada', async () => {
+    const person = await createPerson(db, userId, 'Quitada Duas Vezes')
+    const charge = await createCharge(db, userId, person.id, { amount: '100.00' })
+
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    const first = await createDebtPayment({
+      personId: person.id,
+      amount: '100.00',
+      description: 'Pagamento original',
+      entryDate: '2025-10-05',
+      createIncome: false,
+      settleChargeIds: [charge.id],
+    })
+    expect(first.ok).toBe(true)
+    const p1 = await db.query.debtorEntries.findFirst({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+
+    const incomesBefore = await db.query.incomes.findMany({
+      where: eq(schema.incomes.userId, userId),
+    })
+    // Aba velha: a cobrança ainda aparecia como aberta.
+    const second = await createDebtPayment({
+      personId: person.id,
+      amount: '100.00',
+      description: 'Pagamento duplicado',
+      entryDate: '2025-10-06',
+      createIncome: true,
+      referenceMonth: '2025-10-01',
+      settleChargeIds: [charge.id],
+    })
+
+    expect(second.ok).toBe(false)
+    if (!second.ok) expect(second.code).toBe('charge_already_settled')
+
+    const after = await db.query.debtorEntries.findFirst({
+      where: eq(schema.debtorEntries.id, charge.id),
+    })
+    expect(after?.settledByPaymentId).toBe(p1!.id)
+    const payments = await db.query.debtorEntries.findMany({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+    expect(payments).toHaveLength(1)
+    const incomesAfter = await db.query.incomes.findMany({
+      where: eq(schema.incomes.userId, userId),
+    })
+    expect(incomesAfter).toHaveLength(incomesBefore.length)
+  })
+})
+
+describe('updateDebtEntry — ajuste de conciliação', () => {
+  async function reconciled(name: string, charges: string[], paid: string) {
+    const person = await createPerson(db, userId, name)
+    const ids: string[] = []
+    for (const amount of charges) {
+      ids.push((await createCharge(db, userId, person.id, { amount, description: amount })).id)
+    }
+    const { createDebtPayment } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: paid,
+      description: 'Pagamento conciliado',
+      entryDate: '2025-11-10',
+      createIncome: false,
+      settleChargeIds: ids,
+      reconcileRemainder: true,
+    })
+    const payment = await db.query.debtorEntries.findFirst({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+    return { personId: person.id, chargeIds: ids, paymentId: payment!.id }
+  }
+
+  async function detail(pid: string) {
+    const { getPersonDebtDetails } = await import('@/lib/queries/debtors')
+    const d = await getPersonDebtDetails(userId, pid)
+    return {
+      balance: d!.summary.balance,
+      adjustments: d!.entries.filter((e) => e.type === 'adjustment').map((e) => e.amount),
+    }
+  }
+
+  it('pagamento 80 → 100 → 80 volta a ter o ajuste de -20 (o vínculo não se perde)', async () => {
+    const r = await reconciled('Ida e volta', ['100.00'], '80.00')
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    const edit = (amount: string) =>
+      updateDebtEntry({
+        id: r.paymentId,
+        amount,
+        description: 'Pagamento conciliado',
+        entryDate: '2025-11-10',
+      })
+
+    await edit('100.00')
+    expect(await detail(r.personId)).toEqual({ balance: 0, adjustments: [] })
+
+    await edit('80.00')
+    expect(await detail(r.personId)).toEqual({ balance: 0, adjustments: [-20] })
+  })
+
+  it('editar uma cobrança quitada recalcula o ajuste do pagamento', async () => {
+    const r = await reconciled('Edita cobrança', ['60.00', '40.00'], '80.00')
+    const { updateDebtEntry } = await import('@/lib/actions/debtors')
+    await updateDebtEntry({
+      id: r.chargeIds[0],
+      amount: '50.00',
+      description: '60.00',
+      entryDate: '2025-11-01',
+    })
+
+    expect(await detail(r.personId)).toEqual({ balance: 0, adjustments: [-10] })
+  })
+
+  it('não regrava o rótulo customizado da entrada quando a descrição não muda', async () => {
+    const person = await createPerson(db, userId, 'Rótulo Custom')
+    const { createDebtPayment, updateDebtEntry } = await import('@/lib/actions/debtors')
+    await createDebtPayment({
+      personId: person.id,
+      amount: '50.00',
+      description: 'Pix do almoço',
+      entryDate: '2025-11-12',
+      createIncome: true,
+      referenceMonth: '2025-11-01',
+    })
+    const payment = await db.query.debtorEntries.findFirst({
+      where: and(
+        eq(schema.debtorEntries.personId, person.id),
+        eq(schema.debtorEntries.type, 'payment')
+      ),
+    })
+    await db
+      .update(schema.incomes)
+      .set({ source: 'Aluguel do quarto' })
+      .where(eq(schema.incomes.id, payment!.incomeId!))
+
+    await updateDebtEntry({
+      id: payment!.id,
+      amount: '50.00',
+      description: 'Pix do almoço',
+      entryDate: '2025-11-15',
+      notes: 'só a data mudou',
+    })
+
+    const income = await db.query.incomes.findFirst({
+      where: eq(schema.incomes.id, payment!.incomeId!),
+    })
+    expect(income?.source).toBe('Aluguel do quarto')
+  })
+})

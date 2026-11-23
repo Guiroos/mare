@@ -47,7 +47,7 @@ export function DebtBalanceEvolutionChart({ data }: Props) {
             tick={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
-            width={52}
+            width={56}
           />
           <Tooltip
             formatter={(value: number) => [formatCurrency(value), 'Saldo']}
