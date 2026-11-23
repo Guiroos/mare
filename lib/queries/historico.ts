@@ -28,6 +28,8 @@ export type HistoricoFeedItem = {
   installmentNumber: number | null
   totalInstallments: number | null
   investmentTypeName: string | null
+  /** Pagamento de fatura (regime fatura): não entra em totais de saída, o gasto já está nas compras. */
+  isFaturaPayment: boolean
 }
 
 const PAGE_SIZE = 50
@@ -176,6 +178,7 @@ export async function collectHistoricoItems(
       installmentNumber: t.installmentNumber ?? null,
       totalInstallments: t.totalInstallments ?? null,
       investmentTypeName: null,
+      isFaturaPayment: t.faturaAccountId != null,
     }))
 
   const fxItems: HistoricoFeedItem[] = fxRows.map((f) => ({
@@ -193,6 +196,7 @@ export async function collectHistoricoItems(
     installmentNumber: null,
     totalInstallments: null,
     investmentTypeName: null,
+    isFaturaPayment: false,
   }))
 
   const incomeItems: HistoricoFeedItem[] = incomeRows.map((i) => ({
@@ -210,6 +214,7 @@ export async function collectHistoricoItems(
     installmentNumber: null,
     totalInstallments: null,
     investmentTypeName: null,
+    isFaturaPayment: false,
   }))
 
   const investItems: HistoricoFeedItem[] = investRows
@@ -231,6 +236,7 @@ export async function collectHistoricoItems(
         installmentNumber: null,
         totalInstallments: null,
         investmentTypeName: typeName,
+        isFaturaPayment: false,
       }
     })
 
@@ -251,6 +257,7 @@ export async function collectHistoricoItems(
       installmentNumber: null,
       totalInstallments: null,
       investmentTypeName: typeName,
+      isFaturaPayment: false,
     }
   })
 

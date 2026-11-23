@@ -2,8 +2,6 @@
 
 import { useState, useTransition, useEffect, type FormEvent } from 'react'
 import { Pencil } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -20,10 +18,10 @@ import {
 import { toast } from 'sonner'
 import { updateInstallmentGroup } from '@/lib/actions/transactions'
 import { getRegistrationFormData } from '@/lib/actions/form-data'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { installmentGroupSchema } from '@/lib/validations/transactions'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { TripPicker, type TripOption } from '@/components/forms/transaction/TripPicker'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type CategoryGroup = {
   id: string
@@ -195,7 +193,6 @@ export function InstallmentGroupEditButton({
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
   const setOpen = isControlled ? onOpenChange! : setInternalOpen
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const content = <FormLoader group={group} onSuccess={() => setOpen(false)} />
 
@@ -211,33 +208,19 @@ export function InstallmentGroupEditButton({
     </Button>
   )
 
-  if (isDesktop) {
-    return (
-      <>
-        {trigger}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Editar parcelamento</DialogTitle>
-            </DialogHeader>
-            {content}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {trigger}
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="max-h-[92dvh]">
-          <DrawerHeader>
-            <DrawerTitle>Editar parcelamento</DrawerTitle>
-          </DrawerHeader>
-          <div className="overflow-y-auto px-4 pb-6">{content}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Editar parcelamento"
+        className="max-w-md"
+        drawerClassName="max-h-[92dvh]"
+        drawerBodyClassName="overflow-y-auto px-4 pb-6"
+      >
+        {content}
+      </ResponsiveDialog>
     </>
   )
 }

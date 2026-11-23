@@ -1,5 +1,7 @@
 # Tech Spec: Vencimento, Imposto sobre Resgate e Arquivamento de Tipos
 
+> **Atualização 2026-10-09:** o widget de vencimentos do dashboard descrito abaixo foi removido no redesenho "Refinado" do dashboard, junto com `getMaturityAlerts`, `MaturityAlert` e `components/dashboard/MaturityAlerts.tsx`. Badges de vencimento nos cards de `/investimentos` e o resgate pré-preenchido continuam valendo. As seções sobre o widget ficam como registro histórico.
+
 ## Contexto
 
 O modulo de investimentos do Maré registra aportes mensais, rendimentos e resgates por

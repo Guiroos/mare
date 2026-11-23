@@ -12,10 +12,8 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Segment } from '@/components/ui/segment'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from 'sonner'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props = {
   entry: DebtEntryDetail
@@ -36,7 +34,6 @@ export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [sign, setSign] = useState<Sign>(entry.amount < 0 ? 'negative' : 'positive')
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     onOpenChange(v)
@@ -151,27 +148,14 @@ export function EditEntryDialog({ entry, open, onOpenChange }: Props) {
     </form>
   )
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>{TITLES[entry.type]}</DialogTitle>
-          </DialogHeader>
-          {form}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>{TITLES[entry.type]}</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{form}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title={TITLES[entry.type]}
+      className="max-w-sm"
+    >
+      {form}
+    </ResponsiveDialog>
   )
 }

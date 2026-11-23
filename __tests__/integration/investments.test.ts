@@ -17,84 +17,20 @@ beforeAll(async () => {
   ;({ id: investmentTypeId } = await createInvestmentType(db, userId))
 })
 
-describe('upsertInvestment', () => {
-  it('cria registro quando não existe para o mês', async () => {
-    const [row] = await db
-      .insert(schema.investments)
-      .values({
-        userId,
-        investmentTypeId,
-        referenceMonth: '2025-01-01',
-        amount: '500.00',
-        excludeFromCashFlow: false,
-      })
-      .returning()
-
-    expect(row.amount).toBe('500.00')
-    expect(row.referenceMonth).toBe('2025-01-01')
-  })
-
-  it('atualiza sem criar duplicata quando já existe para o mesmo mês', async () => {
-    const month = '2025-02-01'
-
-    await db.insert(schema.investments).values({
+describe('investments unique index', () => {
+  it('insert duplicado para o mesmo (usuário, tipo, mês) lança erro de unique constraint', async () => {
+    const row = {
       userId,
       investmentTypeId,
-      referenceMonth: month,
-      amount: '1000.00',
-      excludeFromCashFlow: false,
-    })
-
-    await db
-      .insert(schema.investments)
-      .values({
-        userId,
-        investmentTypeId,
-        referenceMonth: month,
-        amount: '1500.00',
-        excludeFromCashFlow: false,
-      })
-      .onConflictDoUpdate({
-        target: [
-          schema.investments.userId,
-          schema.investments.investmentTypeId,
-          schema.investments.referenceMonth,
-        ],
-        set: { amount: '1500.00' },
-      })
-
-    const rows = await db.query.investments.findMany({
-      where: (t, { and, eq }) =>
-        and(
-          eq(t.userId, userId),
-          eq(t.investmentTypeId, investmentTypeId),
-          eq(t.referenceMonth, month)
-        ),
-    })
-
-    expect(rows).toHaveLength(1)
-    expect(rows[0].amount).toBe('1500.00')
-  })
-
-  it('insert sem onConflictDoUpdate lança erro de unique constraint', async () => {
-    const month = '2025-03-01'
-
-    await db.insert(schema.investments).values({
-      userId,
-      investmentTypeId,
-      referenceMonth: month,
+      referenceMonth: '2025-03-01',
       amount: '200.00',
       excludeFromCashFlow: false,
-    })
+    }
+
+    await db.insert(schema.investments).values(row)
 
     await expect(
-      db.insert(schema.investments).values({
-        userId,
-        investmentTypeId,
-        referenceMonth: month,
-        amount: '300.00',
-        excludeFromCashFlow: false,
-      })
+      db.insert(schema.investments).values({ ...row, amount: '300.00' })
     ).rejects.toThrow()
   })
 

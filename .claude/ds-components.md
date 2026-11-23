@@ -39,7 +39,7 @@ Importam e usam primitivos da Camada 1.
 - `CurrencyInput` → compartilha `inputBase` e `inputErrorCls` de `input.tsx`
 - `Combobox` → usa `<Input>` + `<Button>`
 - `MonthSelect` → usa `<Select>`
-- `Segment` `BudgetBar` `EmptyState` `SummaryCard` `BalanceCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
+- `Segment` `BudgetBar` `EmptyState` `SummaryCard` `Section` `PageHeader` `PageLayout` → compostos sem dependência de primitivos externos
 
 ### Camada 3 — Modal / Complexo
 Radix UI + primitivos.
@@ -47,10 +47,11 @@ Radix UI + primitivos.
 - `Select` → Radix Select com composição completa
 - `Dialog` → Radix Dialog
 - `Drawer` → vaul + Radix
+- `ResponsiveDialog` → `<Dialog>` (≥1024px) + `<Drawer>` (mobile) com header e corpo padronizados
 - `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsivo)
 - `RowActions` → kebab menu com `<Dialog>`/`<Drawer>` interno
 - `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais (via `Item` + `<input type="checkbox">`, não `CheckboxItem`)
-- `TxList` / `TxGroupHeader` / `TxItem` / `FixedExpenseItem` / `ListFooter` → sistema de lista complexo
+- `TxList` / `TxGroupHeader` / `TxItem` / `ListFooter` → sistema de lista complexo
 
 ---
 
@@ -66,28 +67,27 @@ Radix UI + primitivos.
 | `label.tsx`          | `Label`                         | Padrão: `text-caption font-medium text-text-secondary`                           |
 | `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário. Campo obrigatório **sempre** passa `required` (renderiza `*`); opcional não leva marcação nenhuma — nunca "Opcional" em `hint` ou `placeholder` |
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
-| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
-| `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
+| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo; `currency={false}` exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
 | `month-select.tsx`   | `MonthSelect`                   | Select de mês em pt-BR (`formatMonthYear`); popula `FormData` via hidden input com `YYYY-MM`; props `name` `defaultValue` `error` `back` `forward` |
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
-| `separator.tsx`      | `Separator`                     | Radix; prop `orientation`: `horizontal` (default) / `vertical`                   |
+| `separator.tsx`      | `Separator`                     | `<div aria-hidden>`; prop `orientation`: `horizontal` (default) / `vertical`                   |
 | `progress.tsx`       | `Progress`                      | Props: `value` `max` `indicatorClassName`; `className` dimensiona o container (ex: `h-1.5`, `w-12 lg:w-20 flex-shrink-0`) |
 | `budget-bar.tsx`     | `BudgetBar`                     | Props: `current` `target` `label` `tone` (`ok`/`warn`/`over`/`accent`) `hint`    |
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
 | `summary-card.tsx`   | `SummaryCard`                   | Props: `variant` (`balance`/`positive`/`negative`) `label` `amount` `footer` `icon` |
-| `balance-card.tsx`   | `BalanceCard`                   | Props: `label` `amount` `income` `expense` — card de destaque com fundo accent   |
 | `empty-state.tsx`    | `EmptyState`                    | Props: `icon` `title` `description` `action` `boxed`; `action?: ReactNode` — sempre passar `<Button>` diretamente (nunca objeto `{ label, onClick }`) |
-| `section.tsx`        | `Section`                       | Props: `title` `action` — wrapper de seção com heading padronizado               |
+| `section.tsx`        | `Section`                       | Props: `title` `action` `badge` (colado ao título) `size` (`sm` label caixa-alta, default / `lg` `text-h3`, usado no dashboard) `id` (âncora) — renderiza `<section>` |
 | `page-header.tsx`    | `PageHeader`                    | Props: `title` `description` — cabeçalho de página                               |
-| `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página                                    |
+| `page-layout.tsx`    | `PageLayout`                    | Wrapper com `space-y-8` para layout de página; `className` sobrescreve o ritmo (dashboard usa `space-y-5 lg:space-y-6`) |
 | `combobox.tsx`       | `Combobox`                      | Props: `groups?` (agrupado) ou `options?` (flat), `value`, `onValueChange`, `placeholder`, `error?` — lista filtrada inline (sem dropdown flutuante); exporta `ComboboxOption` e `ComboboxGroup` |
 | `delete-button.tsx`  | `DeleteButton`                  | Confirmação inline responsiva. **Nunca** criar botão de delete ad-hoc            |
 | `row-actions.tsx`    | `RowActions`                    | Kebab menu (⋮). Props: `onEdit?` `onDelete?` (omitir remove o item do menu); `additionalActions?: Array<{label, icon?, onClick, variant?}>` renderizadas antes do separador Editar/Excluir; `triggerClassName` para override do hover em fundo colorido; requer `group` na div pai |
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
+| `responsive-dialog.tsx` | `ResponsiveDialog` | Props: `open` `onOpenChange` `title` `className?` (DialogContent) `drawerClassName?` (DrawerContent) `drawerBodyClassName?` (default `px-4 pb-6`) `children` — padrão para todo modal de mutação; não repetir `useMediaQuery` + Dialog/Drawer à mão |
 | `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix `DropdownMenu.Item` com `asChild` + `<input type="checkbox">` dentro (`:81-91`), **não** `CheckboxItem` |
-| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
+| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `ListFooter` | Sistema de lista de transações |
 
 ---
 
@@ -97,7 +97,7 @@ Radix UI + primitivos.
 - Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
 - `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
 - `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
-- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput`/`NumericInput` usam `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
+- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput` usa `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
 - `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)
 - `[grid-template-columns:...]` é valor arbitrário proibido — usar `flex` com `flex-1`/`flex-shrink-0` para layouts de 3-4 colunas com largura variável
 - `ds-reviewer`: ao implementar múltiplos componentes novos numa sessão, executar **uma vez ao final** com todos os arquivos — não após cada arquivo individualmente
@@ -106,7 +106,7 @@ Radix UI + primitivos.
 - Accordion header com badge + valor à direita: nome deve usar `<span className="block truncate">` para não quebrar linha; badge de status vai na linha do subtítulo (substituindo barra de progresso) — não inline com o nome
 - Labels de seção em `flex justify-between`: adicionar `whitespace-nowrap` no label esquerdo; texto secundário verboso (ex: "· ordenados por valor") em `<span className="hidden md:inline">` para sumir em mobile
 - `select-none` em componentes de navegação (`BottomNav`, `Sidebar`) previne seleção de texto acidental ao clicar em itens de nav
-- `uppercase tracking-wide` sobrescreve o `letter-spacing` configurado nos tokens tipográficos — `text-label` e `text-caption` já têm tracking próprio no `tailwind.config.ts`; não acumular `uppercase tracking-wide` sobre eles; se o visual "caixa alta espaçada" for recorrente, criar token específico
+- Rótulo caixa-alta (título de `Section` `sm`, rótulo de KPI, cabeçalho de tabela, grupo da Sidebar) é **`text-label uppercase`** e nada mais: o token já traz o `letterSpacing` de 0.06em pensado para caixa-alta, e `uppercase` não sobrescreve nenhuma propriedade dele (o token não define caixa). É o padrão do código e da referência de design (handoff do dashboard). `text-caption` **não** tem tracking próprio (só tamanho e line-height) e não serve para esse papel
 - Seletores de filho `[&>svg]:h-N [&>svg]:w-N [&>svg]:text-*` para estilizar SVGs filhos sem exigir que callers os estilizem — aceitos como funcionais (mesmo padrão de `[&>span]:line-clamp-1`); não são violação da Regra 3
 - `SelectTrigger` em contextos compactos (toolbar, pill): usar `h-7`/`h-8` + `w-auto` via `className` — nunca `h-auto`, que não é altura válida de controle interativo (Regra 3); a proibição de `h-auto` estende-se a qualquer `<Button>` — itens de lista ghost usam `h-9 justify-start` sem padding vertical extra
 - `SelectContent` do DS já encapsula `SelectPrimitive.Portal` internamente — não adicionar `Portal` separado ao usar o DS `Select`; props `sideOffset` e `align` passam via `...props` para `SelectPrimitive.Content`
@@ -117,9 +117,9 @@ Radix UI + primitivos.
 - `text-negative` vs `text-negative-text`: `text-negative` é vermelho vibrante para texto sobre fundo neutro (células de tabela, spans de valor, itens de dropdown) — `text-negative-text` é exclusivo para texto sobre fundo vermelho (ex: interior de `<Badge variant="negative">`); a nomeação `*-text` sempre indica "sobre fundo colorido"; usar `text-negative` em qualquer contexto de fundo neutro, inclusive `<td>` com valores de resgate/despesa
 - Gráficos Recharts com estado vazio: usar `h-56` (224px) no container do estado vazio e `height={224}` no `ResponsiveContainer` para alinhar sem valor arbitrário; `borderRadius` em `contentStyle` do `Tooltip` deve seguir tokens: `'10px'` = `rounded-md`, `'16px'` = `rounded-lg`
 - Listas de multi-select com checkboxes: usar `<input type="checkbox" className="accent-accent">` dentro de `<Label>` do DS (nunca `<label>` HTML — viola Regra 4 mesmo sem ser um campo `<Field>`); o DS não tem primitivo `Checkbox`; `<Switch>` não substitui checkbox em multi-select (Switch é toggle binário único)
-- Qualquer `tracking-*` acumulado sobre token tipográfico é proibido — a regra de `tracking-wide` aplica-se igualmente a `tracking-widest`, `tracking-wider` etc.; todos sobrescrevem o letter-spacing configurado no token; se o visual "caixa alta espaçada" for recorrente, criar token específico
+- Qualquer `tracking-*` acumulado sobre token tipográfico é proibido — a regra de `tracking-wide` aplica-se igualmente a `tracking-widest`, `tracking-wider` etc.; todos sobrescrevem o letter-spacing configurado no token; para "caixa alta espaçada" usar `text-label uppercase`, que já tem o tracking
 - Alturas de elementos fixos (navbars, headers com `position: fixed/sticky`) devem usar classe Tailwind no grid de 4px, não `style={{ height: 'Xpx' }}` — a Regra 3 (zero valores arbitrários) aplica-se também a `style={}`, não só a `className`
-- `uppercase` sozinho (sem `tracking-*`) sobre `text-label` ou `text-caption` também é violação — esses tokens têm identidade visual própria (letterSpacing, peso); o ds-reviewer bloqueia qualquer `uppercase` acumulado sobre eles, não apenas a combinação `uppercase tracking-wide`
+- `uppercase` sobre `text-caption` (ou qualquer token que não seja `text-label`) é violação — rótulo caixa-alta é sempre `text-label uppercase`; misturar os dois fazia o mesmo papel de rótulo de KPI sair em 11px e 12px na mesma página (`/parcelas`, corrigido em 2026-10-10)
 - Barra colorida 1px no topo de cards customizados: adicionar `relative overflow-hidden` ao container e `before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-{color}` — replica o accent visual do `SummaryCard` sem precisar estender o componente DS
 - Badges de comparação com ícone direcional (`<ChevronUp className={cn('h-3 w-3', pct < 0 && 'rotate-180')} strokeWidth={3} />`): usar `Math.abs(Math.round(pct))%` no texto — o ícone já carrega a direção; `fmtPct` (que adiciona `+`/`-`) é redundante e visualmente poluído quando há ícone
 - `Progress` implica "progresso em direção a algo" — usar somente quando há um target claro e autoexplicativo sem legenda; se o usuário precisar de legenda para entender a barra, ela não está comunicando sozinha e deve ser removida
@@ -129,8 +129,9 @@ Radix UI + primitivos.
 - Recharts dual Y-axis: **todos** os filhos do `ComposedChart` precisam de `yAxisId` explícito — incluindo `ReferenceLine`; omitir causa runtime error "Could not find yAxis by id '0' [number]. Available ids are: left,right"
 - Recharts dual Y-axis para combo fluxo+estoque (ex: barras mensais + linha acumulada): usar `yAxisId="left"` nas barras e `yAxisId="right"` na linha; colorir os ticks do eixo direito com `tick={{ fill: COLOR }}` para associação visual sem precisar de label textual rotacionado
 - Recharts `tick={{ fontSize: N }}` inline: usar `fontSize: 12` para alinhar com o token `text-caption` (12px) — `fontSize: 11` é valor arbitrário fora do DS
-- `.toUpperCase()` em string passada como prop equivale à classe CSS `uppercase` — aplica-se a mesma restrição sobre `text-caption`/`text-label`; o ds-reviewer não detecta automaticamente por ser JS e não CSS, então a verificação deve ser feita manualmente
+- `.toUpperCase()` em string passada como prop equivale à classe CSS `uppercase` — aplica-se a mesma restrição sobre `text-caption` (iniciais de avatar não são rótulo e ficam de fora); o ds-reviewer não detecta automaticamente por ser JS e não CSS, então a verificação deve ser feita manualmente
 - `Combobox` usa lista inline (não `position: absolute` nem portal) para evitar clipping em containers `overflow-y-auto` como Dialog/Drawer — se dropdown flutuante for necessário, instalar `@radix-ui/react-popover` (perguntar antes) ou usar `createPortal` com posicionamento fixed via `getBoundingClientRect`
 - `onMouseDown={(e) => { e.preventDefault(); handler() }}` em itens de lista de dropdown custom: `preventDefault()` impede o `onBlur` do input pai de fechar a lista antes do click ser processado — padrão obrigatório em qualquer dropdown sem Radix
 - `Segment` é para conjuntos pequenos e fixos (≤4 opções previsíveis); para filtros com N dinâmico/crescente (ex: meses com histórico acumulado), usar `Select` — `Segment` usa `inline-flex` sem wrap e transborda horizontalmente em dialogs; corrigir com `className="w-full"` quando usado dentro de Dialog ou Drawer
 - `DialogContent` já tem teto de altura `max-h-[calc(100dvh-2rem)]` + `overflow-y-auto` — todos os dialogs rolam internamente quando o conteúdo excede a viewport; não envolver o form em wrapper de scroll próprio nem cortar conteúdo manualmente. O `max-h-[calc(100dvh-2rem)]` é valor arbitrário aceito pelo ds-reviewer: o DS não tem token de altura viewport-relative e `max-h-screen` nativo usa `100vh` (não `dvh`) sem subtrair o gutter — `calc()` é a única forma (exceção da Regra 3 análoga aos casos `oklch`/`color-mix`)
+- Painel decorativo com texto branco nos **dois** temas (ex: `BalanceHero`): o gradiente parte do accent do tema **claro** fixo (`oklch(50% 0.14 230)`), não de `var(--accent)` — no escuro o token sobe para 58% e o branco por cima cai abaixo de 4,5:1; `--text-inverse` também não serve (quase preto no escuro, reprova contra a ponta de 45% do gradiente). É a exceção `style={{}}` + `oklch` da Regra 3

@@ -12,7 +12,7 @@
 4. **Formulários usam `<Field>`** — nunca `<div> + <Label>` manual; `<Field>` já inclui label, hint e error
 
 **Tokens rápidos:**
-- Tipografia: `text-hero` `text-display` `text-h1`–`text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`
+- Tipografia: `text-hero` `text-display` `text-h1`–`text-h3` `text-body-lg` `text-body` `text-small` `text-caption` `text-label` `text-amount`; marca (só `/login`): `text-brand` (64px) `text-wordmark` (48px)
 - Cores: `bg-bg-base` `bg-bg-surface` `bg-bg-input` `bg-bg-subtle` `bg-bg-muted` / `text-text-primary` `text-text-secondary` `text-text-tertiary` / `accent` `positive` `negative` `warning` / `border` `border-strong`
 - Radius: `rounded-sm`(6) `rounded-md`(10) `rounded-lg`(16) `rounded-xl`(20) `rounded-full`
 - Alturas interativas: `h-7` `h-8` `h-9` `h-11` `h-12` `h-14`
@@ -50,7 +50,7 @@ Radix UI + primitivos.
 - `DeleteButton` → `<Button>` + `<Dialog>` + `<Drawer>` (responsivo)
 - `RowActions` → kebab menu com `<Dialog>`/`<Drawer>` interno
 - `MultiselectDropdown` → Radix DropdownMenu com checkbox items e grupos opcionais (via `Item` + `<input type="checkbox">`, não `CheckboxItem`)
-- `TxList` / `TxGroupHeader` / `TxItem` / `FixedExpenseItem` / `ListFooter` → sistema de lista complexo
+- `TxList` / `TxGroupHeader` / `TxItem` / `ListFooter` → sistema de lista complexo
 
 ---
 
@@ -66,12 +66,11 @@ Radix UI + primitivos.
 | `label.tsx`          | `Label`                         | Padrão: `text-caption font-medium text-text-secondary`                           |
 | `field.tsx`          | `Field`                         | Props: `label` `hint` `error` `required` — envolve qualquer campo de formulário. Campo obrigatório **sempre** passa `required` (renderiza `*`); opcional não leva marcação nenhuma — nunca "Opcional" em `hint` ou `placeholder` |
 | `select.tsx`         | `Select` + primitivos Radix     | Mesmo height que Input (`h-12`)                                                  |
-| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo |
-| `numeric-input.tsx`  | `NumericInput`                  | Igual ao CurrencyInput mas exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
+| `currency-input.tsx` | `CurrencyInput`                 | Prop `error` disponível; `onValueChange?: (cents: number) => void` retorna centavos inteiros — converter com `(cents / 100).toFixed(2)` para obter string monetária; `preserveExplicitZero` para aceitar 0 como valor legítimo; `currency={false}` exibe só o número (sem `R$`) — usar em hero cards com prefixo separado |
 | `month-select.tsx`   | `MonthSelect`                   | Select de mês em pt-BR (`formatMonthYear`); popula `FormData` via hidden input com `YYYY-MM`; props `name` `defaultValue` `error` `back` `forward` |
 | `switch.tsx`         | `Switch`                        | Props: `label` `checked` `onChange` `disabled` — para toggles booleanos          |
 | `card.tsx`           | `Card`                          | Prop `padding`: `none` `sm` `md` `lg`; superfície com borda + shadow-sm          |
-| `separator.tsx`      | `Separator`                     | Radix; prop `orientation`: `horizontal` (default) / `vertical`                   |
+| `separator.tsx`      | `Separator`                     | `<div aria-hidden>`; prop `orientation`: `horizontal` (default) / `vertical`                   |
 | `progress.tsx`       | `Progress`                      | Props: `value` `max` `indicatorClassName`; `className` dimensiona o container (ex: `h-1.5`, `w-12 lg:w-20 flex-shrink-0`) |
 | `budget-bar.tsx`     | `BudgetBar`                     | Props: `current` `target` `label` `tone` (`ok`/`warn`/`over`/`accent`) `hint`    |
 | `segment.tsx`        | `Segment`                       | Props: `options` `value` `onChange`; cada opção aceita `activeClassName` para cor ativa por item |
@@ -87,7 +86,7 @@ Radix UI + primitivos.
 | `dialog.tsx`         | `Dialog` + sub-componentes      | Radix Dialog — usar em desktop (≥1024px); combinar com Drawer para responsivo    |
 | `drawer.tsx`         | `Drawer` + sub-componentes      | vaul Drawer — usar em mobile (<1024px); combinar com Dialog para responsivo      |
 | `multiselect-dropdown.tsx` | `MultiselectDropdown`      | Props: `label` `options` `selected` `onChange` `className`; `MultiselectOption` tem `value` `label` `group?` (agrupa itens com separador e label); botões "Limpar"/"Todos" no footer; usa Radix `DropdownMenu.Item` com `asChild` + `<input type="checkbox">` dentro (`:81-91`), **não** `CheckboxItem` |
-| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `FixedExpenseItem` `ListFooter` | Sistema de lista de transações |
+| `tx-list.tsx`        | `TxList` `TxGroupHeader` `TxItem` `ListFooter` | Sistema de lista de transações |
 
 ---
 
@@ -97,7 +96,7 @@ Radix UI + primitivos.
 - Modificador de opacidade `/N` (ex: `text-negative-text/60`) **não funciona** com CSS vars opacas (`oklch(...)`) — usar `opacity-N` no elemento em vez disso
 - `bg-bg-input` não é gerado pelo Tailwind JIT (conflito com token shadcn `input:` na raiz do `colors`); a classe está declarada manualmente em `globals.css` via `@layer utilities` — não remover
 - `SelectTrigger` (Radix) renderiza como `<button>`, que tem background cinza nativo do browser — sempre incluir `bg-bg-input` explicitamente no trigger
-- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput`/`NumericInput` usam `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
+- Qualquer componente que aceita e forwarda `className`: **sempre** via `cn()` de `lib/utils/cn` — nunca template string ou concatenação manual; exceção: `CurrencyInput` usa `array.filter(Boolean).join(' ')` com `inputBase`/`inputErrorCls` (padrão legado aceito)
 - `tabular-nums` obrigatório em qualquer elemento que exiba valor numérico em contexto de comparação (contagens, percentuais, totais — não só valores monetários)
 - `[grid-template-columns:...]` é valor arbitrário proibido — usar `flex` com `flex-1`/`flex-shrink-0` para layouts de 3-4 colunas com largura variável
 - `ds-reviewer`: ao implementar múltiplos componentes novos numa sessão, executar **uma vez ao final** com todos os arquivos — não após cada arquivo individualmente

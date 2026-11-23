@@ -291,6 +291,19 @@ describe('transactionSchema', () => {
     expect(transactionSchema.safeParse(base).success).toBe(true)
   })
 
+  it('accepts a valid split', () => {
+    const splits = [{ personId: VALID_UUID, amount: '50.00' }]
+    expect(transactionSchema.safeParse({ ...base, splits }).success).toBe(true)
+  })
+
+  it.each([
+    ['non-UUID personId', { personId: 'not-a-uuid', amount: '50.00' }],
+    ['negative amount', { personId: VALID_UUID, amount: '-5' }],
+    ['zero amount', { personId: VALID_UUID, amount: '0' }],
+  ])('rejects split with %s', (_label, split) => {
+    expect(transactionSchema.safeParse({ ...base, splits: [split] }).success).toBe(false)
+  })
+
   it('rejects empty name', () => {
     expect(transactionSchema.safeParse({ ...base, name: '' }).success).toBe(false)
   })

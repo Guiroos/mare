@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { toAmount, formatCurrency, formatCurrencyShort } from '@/lib/utils/currency'
+import {
+  toAmount,
+  formatCurrency,
+  formatCurrencyShort,
+  formatAxisCurrency,
+} from '@/lib/utils/currency'
 
 describe('toAmount', () => {
   it('converts Drizzle decimal strings to number', () => {
@@ -75,5 +80,24 @@ describe('formatCurrencyShort', () => {
     const result = formatCurrencyShort(100)
     expect(result).toContain('R$')
     expect(result).toContain('100')
+  })
+})
+
+describe('formatAxisCurrency', () => {
+  it.each([
+    [0, 'R$ 0'],
+    [-0.3, 'R$ 0'],
+    [999, 'R$ 999'],
+    [999.7, 'R$ 1k'],
+    [1000, 'R$ 1k'],
+    [1250, 'R$ 1,3k'],
+    [-500, '-R$ 500'],
+    [-1500, '-R$ 1,5k'],
+    [999_949, 'R$ 999,9k'],
+    [999_950, 'R$ 1M'],
+    [1_000_000, 'R$ 1M'],
+    [-2_000_000, '-R$ 2M'],
+  ])('%d → %s', (value, expected) => {
+    expect(formatAxisCurrency(value)).toBe(expected)
   })
 })

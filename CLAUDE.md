@@ -96,15 +96,16 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `app/(app)/layout.tsx` aplica padding global — páginas não adicionam wrapper próprio; usar `PageLayout` diretamente
 - Header de página com ações: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + ações
 - Dialogs de mutação: fechar só no `try`, nunca no `catch`; botão "Cancelar" chama `handleOpenChange(false)`, não `setOpen(false)` (handleOpenChange faz cleanup de estado)
-- Padrão responsivo: `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; ver `DeleteButton`/`InvestmentEntryDialog`
+- Padrão responsivo: `<ResponsiveDialog>` (`components/ui/responsive-dialog.tsx`) — `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; não repetir `useMediaQuery` à mão (exceções com estrutura própria: `DeleteButton`, `RowActions`, `CobrancaDialog`, `RegistrationDialog`, diálogos de exclusão de pagamento)
 - `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog`, `WithdrawalDialog` aceitam `open`/`onOpenChange` para controle externo
-- `CurrencyInput`/`NumericInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
+- `CurrencyInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
 - Radix `<Select>`: não popula `FormData` — usar `onValueChange` + state; `value=""` dá runtime error — usar sentinel não-vazio
 - Filtro booleano via URL: chip/button `'use client'` com `useRouter`; chip de toggle permanece visível quando `active = true` mesmo com `count === 0`
 - Client Component com paginação acumulada (load-more) em página com server nav: passar `key={filterCombo}` concatenando todos os filtros — força React a desmontar/remontar e resetar `useState` de items/cursor quando filtros mudam; sem isso, `initialItems` do server são ignorados e a lista acumulada permanece
 - Input de busca que dispara `router.push`: usar `localQ` state para responsividade imediata + `useRef<ReturnType<typeof setTimeout>>` + `clearTimeout` + delay 400ms antes de chamar `navigate({ q: value })` — evita roundtrips excessivos ao servidor
 - `RowActions` requer `group` na div pai; aceita `additionalActions`, `triggerClassName`, `onEdit`, `onDelete` opcionais
 - `formatCurrencyShort(value)` em `lib/utils/currency.ts` — "R$ 42,9k" / "R$ 1,2M"; usar em footers/chips
+- `formatDayGroupLabel(date)` em `lib/utils/date.ts` — cabeçalho de grupo por dia ("Hoje, 9 de outubro", "Terça, 7 de outubro"); usado pelo dashboard e pelo Histórico — não reimplementar com `date-fns` direto
 - Privacy mode: `SensitiveAmount` (mascara valor), `PrivacyToggle` (botão de olho) e `usePrivacyMode()` (hook com `mask(value)`) estão em `@/components/providers/PrivacyMode` — importar os três ao adicionar privacy a qualquer nova página
 - Componente baseado em `Select` cujo valor precisa ser submetido via `FormData` (form uncontrolled): espelhar o state num `<input type="hidden" name value={value}>` — o `Select` do Radix não popula `FormData` sozinho; `MonthSelect` é a referência do padrão
 - Editar lançamento (saída avulsa/fixa, entrada) reusa `TransactionForm` com props aditivas `mode="edit"` + `editContext`, não forms próprios; `TransactionEditButton`/`FixedExpenseEditButton`/`IncomeEditButton` só carregam dados e delegam ao form, que trava o tipo e roteia o submit para as actions de update existentes — nunca recriar `EditForm` cru
@@ -126,7 +127,7 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 **Dark mode:**
 - Tema controlado via `next-themes` (`ThemeProvider` em `(app)/layout.tsx` e `(auth)/layout.tsx` — o root layout não tem providers); preferência salva em `localStorage`; toggle em `SettingsDialog` com opções Claro/Escuro/Sistema
 - Vars de compatibilidade shadcn (`--background`, `--foreground`, `--card`, etc.) **não** precisam ser redeclaradas em `.dark {}` — são aliases que apontam para tokens Maré e herdam automaticamente
-- Gráficos Recharts (`ExpensePieChart`, `AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
+- Gráficos Recharts (`AnnualStackedChart`, `PatrimonyEvolutionChart`) usam cores hardcoded — não mudam com o tema (fase 2)
 
 ## Auditoria automática (Routines)
 

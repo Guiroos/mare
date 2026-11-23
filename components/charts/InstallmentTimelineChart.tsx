@@ -11,16 +11,11 @@ import {
   Cell,
 } from 'recharts'
 import { formatMonthShort } from '@/lib/utils/date'
-import { formatCurrency } from '@/lib/utils/currency'
+import { formatAxisCurrency, formatCurrency } from '@/lib/utils/currency'
 
 type Props = {
   data: { month: string; total: number; groups: { name: string; amount: number }[] }[]
   currentYM: string
-}
-
-function formatCurrencyShort(value: number) {
-  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
-  return `R$${value.toFixed(0)}`
 }
 
 export function InstallmentTimelineChart({ data, currentYM }: Props) {
@@ -51,7 +46,7 @@ export function InstallmentTimelineChart({ data, currentYM }: Props) {
             <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
             <YAxis
-              tickFormatter={formatCurrencyShort}
+              tickFormatter={formatAxisCurrency}
               tick={{ fontSize: 11 }}
               tickLine={false}
               axisLine={false}

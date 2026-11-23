@@ -5,11 +5,13 @@ import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import { toAmount } from '@/lib/utils/currency'
 import { toggleFixedExpensePaid, deleteFixedExpense } from '@/lib/actions/transactions'
 import { FixedExpenseEditButton } from './FixedExpenseEditDialog'
-import { TxList } from '@/components/ui/tx-list'
+import { TxList, ListFooter } from '@/components/ui/tx-list'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { EmptyState } from '@/components/ui/empty-state'
 import { RowActions } from '@/components/ui/row-actions'
 import { cn } from '@/lib/utils/cn'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check } from 'lucide-react'
 
 type FixedExpense = {
   id: string
@@ -23,62 +25,42 @@ type FixedExpense = {
   account: { name: string } | null
 }
 
-function DueBadge({
-  dueDay,
-  paid,
-  isCurrentMonth,
-  todayDay,
-  isPastMonth,
-}: {
-  dueDay: number
-  paid: boolean
-  isCurrentMonth: boolean
-  todayDay: number
-  isPastMonth: boolean
-}) {
-  if (paid) return null
+type RowState = 'pending' | 'paid' | 'viaFatura'
 
+const chipCls = 'flex-shrink-0 rounded-sm px-1.5 py-0'
+
+function DueChip({ dueDay, todayDay }: { dueDay: number; todayDay: number }) {
   const daysUntil = dueDay - todayDay
-  const overdue = isPastMonth || (isCurrentMonth && daysUntil < 0)
-  const urgent = isCurrentMonth && daysUntil >= 0 && daysUntil <= 3
-
-  if (overdue) {
+  if (daysUntil < 0) {
     return (
-      <span className="rounded-sm bg-negative-subtle px-1.5 py-0.5 text-label text-negative-text">
-        Vencido
-      </span>
+      <Badge variant="negative" size="sm" className={chipCls}>
+        vencido
+      </Badge>
     )
   }
-  if (urgent) {
+  if (daysUntil <= 1) {
     return (
-      <span className="rounded-sm bg-warning-subtle px-1.5 py-0.5 text-label text-warning-text">
-        {daysUntil === 0 ? 'Vence hoje' : `Vence em ${daysUntil} dia${daysUntil > 1 ? 's' : ''}`}
-      </span>
+      <Badge variant="warning" size="sm" className={chipCls}>
+        {daysUntil === 0 ? 'hoje' : 'amanhã'}
+      </Badge>
     )
   }
-  return (
-    <span className="rounded-sm border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
-      Dia {dueDay}
-    </span>
-  )
+  return null
 }
 
 function FixedExpenseRow({
   expense: e,
+  state,
   isCurrentMonth,
   todayDay,
-  isPastMonth,
-  isViaFatura,
 }: {
   expense: FixedExpense
+  state: RowState
   isCurrentMonth: boolean
   todayDay: number
-  isPastMonth: boolean
-  isViaFatura: boolean
 }) {
   const [isPending, startTransition] = useTransition()
   const [editOpen, setEditOpen] = useState(false)
-  const col = e.category
 
   const toggle = () => {
     startTransition(async () => {
@@ -86,86 +68,69 @@ function FixedExpenseRow({
     })
   }
 
+  const dayLabel = state === 'pending' ? `Vence dia ${e.dueDay}` : `Dia ${e.dueDay}`
+  const meta = [dayLabel, e.account?.name].filter(Boolean).join(' · ')
+
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 border-b border-border px-4 py-3 transition-all last:border-0 hover:bg-bg-subtle',
-        isPending && 'opacity-40',
-        e.paid && 'opacity-50'
+        'group flex items-center gap-2 border-t border-border py-3 pl-4 pr-5 transition-colors duration-fast first:border-t-0 hover:bg-bg-subtle',
+        isPending && 'opacity-40'
       )}
     >
-      {isViaFatura ? (
-        <div className="h-5 w-5 flex-shrink-0 rounded-full border border-border bg-bg-subtle" />
+      {state === 'viaFatura' ? (
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center">
+          <span className="h-5 w-5 rounded-full border border-border bg-bg-subtle" />
+        </div>
       ) : (
         <button
+          type="button"
           onClick={toggle}
           disabled={isPending}
           aria-label={e.paid ? 'Marcar como pendente' : 'Marcar como pago'}
-          className={cn(
-            'flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all',
-            e.paid ? 'border-positive bg-positive' : 'border-border-strong bg-transparent'
-          )}
+          className="peer flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full"
         >
-          {e.paid && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+          <span
+            className={cn(
+              'flex h-5 w-5 items-center justify-center rounded-full transition-colors duration-fast',
+              e.paid ? 'bg-positive' : 'border-2 border-border-strong hover:border-positive'
+            )}
+          >
+            {e.paid && <Check className="h-3 w-3 text-text-inverse" strokeWidth={3} />}
+          </span>
         </button>
       )}
 
-      {/* Body */}
       <div className="min-w-0 flex-1">
         <p
           className={cn(
             'truncate text-body font-medium',
-            e.paid ? 'text-text-tertiary line-through' : 'text-text-primary'
+            state === 'pending' ? 'text-text-primary' : 'text-text-secondary'
           )}
         >
           {e.name}
         </p>
-        <div className="mt-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden">
-          {col && (
-            <>
-              <span
-                className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                style={{ background: col.color ?? undefined }}
-              />
-              <span className="flex-shrink-0 text-caption font-medium text-text-secondary">
-                {col.name}
-              </span>
-            </>
+        <div className="flex min-w-0 items-center gap-1.5 text-caption text-text-tertiary">
+          <span className="truncate">{meta}</span>
+          {state === 'pending' && isCurrentMonth && (
+            <DueChip dueDay={e.dueDay} todayDay={todayDay} />
           )}
-          {e.account && (
-            <>
-              <span className="flex-shrink-0 text-caption text-text-tertiary">·</span>
-              <span className="truncate text-caption text-text-tertiary">{e.account.name}</span>
-            </>
-          )}
-          {isViaFatura && (
-            <span className="ml-1 flex-shrink-0 rounded-sm border border-border bg-bg-subtle px-1.5 py-0.5 text-label text-text-tertiary">
+          {state === 'viaFatura' && (
+            <Badge size="sm" className={chipCls}>
               via fatura
-            </span>
+            </Badge>
           )}
         </div>
       </div>
 
-      {/* Right */}
-      <div className="flex flex-shrink-0 flex-col items-end gap-1">
-        <span
-          className={cn(
-            'text-body font-semibold tabular-nums',
-            e.paid ? 'text-text-tertiary' : 'text-negative-text'
-          )}
-        >
-          <SensitiveAmount value={toAmount(e.amount)} />
-        </span>
-        {!isViaFatura && (
-          <DueBadge
-            dueDay={e.dueDay}
-            paid={e.paid}
-            isCurrentMonth={isCurrentMonth}
-            todayDay={todayDay}
-            isPastMonth={isPastMonth}
-          />
+      <span
+        className={cn(
+          'flex-shrink-0 text-body font-semibold tabular-nums',
+          state === 'pending' ? 'text-text-primary' : 'text-text-tertiary'
         )}
-      </div>
+      >
+        − <SensitiveAmount value={toAmount(e.amount)} />
+      </span>
 
       <RowActions onEdit={() => setEditOpen(true)} onDelete={() => deleteFixedExpense(e.id)} />
       <FixedExpenseEditButton expense={e} open={editOpen} onOpenChange={setEditOpen} />
@@ -176,66 +141,72 @@ function FixedExpenseRow({
 export function FixedExpenseList({
   expenses,
   isCurrentMonth,
-  isPastMonth,
   todayDay,
   creditAccountIds: creditAccountIdsProp,
+  emptyAction,
 }: {
   expenses: FixedExpense[]
-  yearMonth: string
   isCurrentMonth: boolean
-  isPastMonth: boolean
   todayDay: number
   creditAccountIds?: string[]
+  emptyAction?: React.ReactNode
 }) {
-  const [showPaid, setShowPaid] = useState(false)
-
   if (expenses.length === 0) {
-    return <EmptyState title="Nenhum gasto fixo neste mês." />
+    return (
+      <TxList>
+        <EmptyState title="Nenhum gasto fixo neste mês" action={emptyAction} />
+      </TxList>
+    )
   }
 
   const creditAccountIds = new Set(creditAccountIdsProp ?? [])
+  const isViaFatura = (e: FixedExpense) => e.accountId !== null && creditAccountIds.has(e.accountId)
 
-  const pending = expenses.filter((e) => !e.paid)
-  const paid = expenses.filter((e) => e.paid)
+  // Gasto fixo de crédito em mês de fatura é pago pela fatura — fora da contagem.
+  const viaFatura = expenses.filter(isViaFatura)
+  const own = expenses.filter((e) => !isViaFatura(e))
+  const pending = own.filter((e) => !e.paid)
+  const paid = own.filter((e) => e.paid)
+  const pendingTotal = pending.reduce((s, e) => s + toAmount(e.amount), 0)
+
+  const rows: { expense: FixedExpense; state: RowState }[] = [
+    ...pending.map((expense) => ({ expense, state: 'pending' as const })),
+    ...paid.map((expense) => ({ expense, state: 'paid' as const })),
+    ...viaFatura.map((expense) => ({ expense, state: 'viaFatura' as const })),
+  ]
 
   return (
     <TxList>
-      {pending.map((e) => (
+      {own.length > 0 && (
+        <div className="px-5 py-3">
+          <Progress
+            value={paid.length}
+            max={own.length}
+            aria-label="Gastos fixos pagos"
+            className="h-1"
+            indicatorClassName="bg-positive"
+          />
+        </div>
+      )}
+
+      {rows.map(({ expense, state }) => (
         <FixedExpenseRow
-          key={e.id}
-          expense={e}
+          key={expense.id}
+          expense={expense}
+          state={state}
           isCurrentMonth={isCurrentMonth}
           todayDay={todayDay}
-          isPastMonth={isPastMonth}
-          isViaFatura={e.accountId !== null && creditAccountIds.has(e.accountId)}
         />
       ))}
 
-      {paid.length > 0 && (
-        <>
-          <button
-            onClick={() => setShowPaid((v) => !v)}
-            className="flex w-full items-center justify-between border-t border-border bg-bg-subtle px-4 py-2 text-label text-text-tertiary transition-colors hover:bg-bg-subtle"
-          >
-            <span>Pagos · {paid.length}</span>
-            <ChevronDown
-              className="h-3.5 w-3.5 transition-transform duration-base"
-              style={{ transform: showPaid ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            />
-          </button>
-          {showPaid &&
-            paid.map((e) => (
-              <FixedExpenseRow
-                key={e.id}
-                expense={e}
-                isCurrentMonth={isCurrentMonth}
-                todayDay={todayDay}
-                isPastMonth={isPastMonth}
-                isViaFatura={e.accountId !== null && creditAccountIds.has(e.accountId)}
-              />
-            ))}
-        </>
-      )}
+      <ListFooter
+        label="Falta pagar"
+        value={
+          <>
+            − <SensitiveAmount value={pendingTotal} />
+          </>
+        }
+      />
     </TxList>
   )
 }

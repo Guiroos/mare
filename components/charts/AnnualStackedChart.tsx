@@ -28,15 +28,7 @@ const COLORS = [
 ]
 
 import { formatMonthShort } from '@/lib/utils/date'
-
-function formatCurrencyShort(value: number) {
-  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
-  return `R$${value.toFixed(0)}`
-}
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
+import { formatAxisCurrency, formatCurrency } from '@/lib/utils/currency'
 
 export function AnnualStackedChart({ data, allGroupNames }: Props) {
   if (data.length === 0) {
@@ -62,7 +54,7 @@ export function AnnualStackedChart({ data, allGroupNames }: Props) {
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
         <YAxis
-          tickFormatter={formatCurrencyShort}
+          tickFormatter={formatAxisCurrency}
           tick={{ fontSize: 11 }}
           tickLine={false}
           axisLine={false}

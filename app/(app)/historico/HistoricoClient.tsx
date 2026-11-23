@@ -6,9 +6,8 @@ import { TxList, TxGroupHeader } from '@/components/ui/tx-list'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Button } from '@/components/ui/button'
 import { toAmount } from '@/lib/utils/currency'
-import { formatDisplayDate, daysAgo, parseDate } from '@/lib/utils/date'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { isDebitKind, sumHistoricoItems } from '@/lib/utils/historico-totals'
+import { formatDayGroupLabel } from '@/lib/utils/date'
 import { cn } from '@/lib/utils/cn'
 import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import type { HistoricoFeedItem } from '@/lib/queries/historico'
@@ -32,18 +31,6 @@ const KIND_BADGE_CLASS: Record<TipoKind, string> = {
   resgate: 'bg-positive-subtle text-positive-text',
 }
 
-function isDebit(kind: TipoKind) {
-  return kind === 'saida_avulsa' || kind === 'saida_fixa' || kind === 'saida_parcelada'
-}
-
-function formatGroupDate(dateStr: string): string {
-  const diff = daysAgo(dateStr)
-  const dayMonth = formatDisplayDate(dateStr)
-  if (diff === 0) return `Hoje, ${dayMonth}`
-  if (diff === 1) return `Ontem, ${dayMonth}`
-  return `${format(parseDate(dateStr), "EEE'.'", { locale: ptBR })}, ${dayMonth}`
-}
-
 function groupByDate(items: HistoricoFeedItem[]) {
   return items.reduce<{ date: string; items: HistoricoFeedItem[] }[]>((acc, item) => {
     const last = acc.at(-1)
@@ -54,16 +41,7 @@ function groupByDate(items: HistoricoFeedItem[]) {
 }
 
 function SummaryCards({ items }: { items: HistoricoFeedItem[] }) {
-  let entradas = 0
-  let saidas = 0
-  let investido = 0
-
-  for (const item of items) {
-    const amt = toAmount(item.amount)
-    if (item.kind === 'entrada') entradas += amt
-    else if (isDebit(item.kind)) saidas += amt
-    else if (item.kind === 'investimento') investido += amt
-  }
+  const { entradas, saidas, investido } = sumHistoricoItems(items)
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -95,7 +73,7 @@ function SummaryCards({ items }: { items: HistoricoFeedItem[] }) {
 
 function FeedRow({ item }: { item: HistoricoFeedItem }) {
   const initial = item.name.slice(0, 1).toUpperCase()
-  const debit = isDebit(item.kind)
+  const debit = isDebitKind(item.kind)
 
   return (
     <div className="group flex items-center gap-3 border-b border-border px-4 py-3 transition-colors duration-fast last:border-0 hover:bg-bg-subtle">
@@ -149,7 +127,7 @@ function FeedRow({ item }: { item: HistoricoFeedItem }) {
           KIND_BADGE_CLASS[item.kind]
         )}
       >
-        {KIND_LABEL[item.kind]}
+        {item.isFaturaPayment ? 'Fatura' : KIND_LABEL[item.kind]}
       </span>
 
       <span
@@ -212,8 +190,8 @@ export function HistoricoClient({
         {groups.map(({ date, items: groupItems }) => (
           <Fragment key={date}>
             <TxGroupHeader
-              date={formatGroupDate(date)}
-              total={`${mask(groupItems.filter((i) => isDebit(i.kind)).reduce((s, i) => s + toAmount(i.amount), 0))} saídas`}
+              date={formatDayGroupLabel(date)}
+              total={`${mask(sumHistoricoItems(groupItems).saidas)} saídas`}
             />
             {groupItems.map((item) => (
               <FeedRow key={item.id} item={item} />

@@ -44,7 +44,7 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
     .map((g) => g.investmentTypeId)
     .filter((id): id is string => id !== null)
 
-  const [bulkInvestments, bulkWithdrawals, bulkRecent] =
+  const [bulkInvestments, bulkWithdrawals] =
     investmentTypeIds.length > 0
       ? await Promise.all([
           db.query.investments.findMany({
@@ -59,15 +59,13 @@ export async function getGoalsWithProgress(userId: string): Promise<GoalWithProg
               inArray(investmentWithdrawals.investmentTypeId, investmentTypeIds)
             ),
           }),
-          db.query.investments.findMany({
-            where: and(
-              eq(investments.userId, userId),
-              inArray(investments.investmentTypeId, investmentTypeIds)
-            ),
-            orderBy: (i, { desc }) => [desc(i.referenceMonth)],
-          }),
         ])
-      : [[], [], []]
+      : [[], []]
+
+  // Mais recente primeiro; (usuário, tipo, mês) é único, então não há empate dentro de um tipo
+  const bulkRecent = [...bulkInvestments].sort((a, b) =>
+    b.referenceMonth.localeCompare(a.referenceMonth)
+  )
 
   // Build per-type totals in JS after decryption
   const amountsByType = new Map<string, { totalAmount: number; totalYield: number }>()

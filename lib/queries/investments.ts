@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { investmentTypes, investments, investmentWithdrawals } from '@/lib/db/schema'
 import { eq, and, asc, gte, count } from 'drizzle-orm'
-import { currentReferenceMonth, pastNMonths, daysUntil } from '@/lib/utils/date'
+import { currentReferenceMonth, pastNMonths } from '@/lib/utils/date'
 import { toAmount } from '@/lib/utils/currency'
 import { getDekForUser } from '@/lib/crypto/keys'
 import { decryptField, decryptOptional } from '@/lib/crypto/fields'
@@ -105,41 +105,6 @@ export async function getArchivedCount(userId: string): Promise<number> {
   return result[0]?.count ?? 0
 }
 
-export async function getMaturityAlerts(userId: string) {
-  const balances = await getInvestmentBalances(userId, { showArchived: false })
-  return balances
-    .filter((b) => b.maturityDate !== null && b.currentBalance > 0)
-    .map((b) => ({
-      id: b.id,
-      name: b.name,
-      color: b.color,
-      bgColor: b.bgColor,
-      maturityDate: b.maturityDate!,
-      currentBalance: b.currentBalance,
-      daysUntil: daysUntil(b.maturityDate!),
-    }))
-    .filter((b) => b.daysUntil <= 30)
-    .sort((a, b) => a.daysUntil - b.daysUntil)
-}
-
-export type MaturityAlert = Awaited<ReturnType<typeof getMaturityAlerts>>[number]
-
-export async function getInvestmentHistory(userId: string, investmentTypeId: string) {
-  const dek = await getDekForUser(userId)
-  const rows = await db.query.investments.findMany({
-    where: and(eq(investments.userId, userId), eq(investments.investmentTypeId, investmentTypeId)),
-    orderBy: asc(investments.referenceMonth),
-  })
-
-  return rows.map((r) => ({
-    id: r.id,
-    referenceMonth: r.referenceMonth,
-    amount: r.amount !== null ? toAmount(decryptOptional(r.amount, dek)) : null,
-    yieldAmount: r.yieldAmount !== null ? toAmount(decryptOptional(r.yieldAmount, dek)) : null,
-    notes: r.notes !== null ? decryptOptional(r.notes, dek) : null,
-  }))
-}
-
 type WithdrawalDbRow = {
   id: string
   investmentTypeId: string
@@ -198,7 +163,7 @@ export async function getAllInvestmentWithdrawals(userId: string) {
 export type WithdrawalRow = Awaited<ReturnType<typeof getAllInvestmentWithdrawals>>[number]
 
 /**
- * Todos os aportes, de todos os tipos. getInvestmentHistory é por tipo.
+ * Todos os aportes, de todos os tipos.
  *
  * amount e yieldAmount são nullable no schema — por isso decryptOptional, nunca
  * decryptField (que lança em null).

@@ -12,6 +12,8 @@ interface CurrencyInputProps {
   autoFocus?: boolean
   className?: string
   placeholder?: string
+  /** false: shows the bare number (no R$) — for hero cards with a separate prefix */
+  currency?: boolean
   error?: boolean
   onValueChange?: (cents: number) => void
   preserveExplicitZero?: boolean
@@ -27,9 +29,14 @@ function parseToCents(value: string | number | undefined): number {
   return Math.round(parseFloat(str || '0') * 100)
 }
 
-function formatCents(cents: number, showZero: boolean): string {
+function formatCents(cents: number, showZero: boolean, currency: boolean): string {
   if (cents === 0 && !showZero) return ''
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100)
+  return new Intl.NumberFormat(
+    'pt-BR',
+    currency
+      ? { style: 'currency', currency: 'BRL' }
+      : { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+  ).format(cents / 100)
 }
 
 function hasExplicitDefaultValue(value: string | number | undefined) {
@@ -44,6 +51,7 @@ export function CurrencyInput({
   autoFocus,
   className = '',
   placeholder,
+  currency = true,
   error = false,
   onValueChange,
   preserveExplicitZero = false,
@@ -71,11 +79,11 @@ export function CurrencyInput({
         id={id}
         type="text"
         inputMode="numeric"
-        value={formatCents(cents, showExplicitZero)}
+        value={formatCents(cents, showExplicitZero, currency)}
         onChange={handleChange}
         required={required}
         autoFocus={autoFocus}
-        placeholder={placeholder ?? 'R$ 0,00'}
+        placeholder={placeholder ?? (currency ? 'R$ 0,00' : '0,00')}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
         className={cn(inputBase, error && inputErrorCls, className)}

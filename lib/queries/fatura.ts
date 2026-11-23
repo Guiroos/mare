@@ -27,6 +27,24 @@ export type FaturaContext = {
   creditAccountIds: string[]
 }
 
+/**
+ * O mês está sob regime de fatura? Única definição do predicado: modo `fatura`
+ * ativo E mês >= `faturaActiveFrom`. Meses anteriores à ativação mantêm o
+ * comportamento accrual. Puro (sem I/O) — as pages não devem reexpressar a
+ * comparação com `creditMode` por conta própria.
+ */
+export function isFaturaMonth(
+  referenceMonth: string,
+  faturaCtx?: Pick<FaturaContext, 'creditMode' | 'faturaActiveFrom'>
+): boolean {
+  return (
+    faturaCtx !== undefined &&
+    faturaCtx.creditMode === 'fatura' &&
+    faturaCtx.faturaActiveFrom !== null &&
+    referenceMonth >= faturaCtx.faturaActiveFrom
+  )
+}
+
 export type HistoricalUnpaidCycle = {
   cycleMonth: string
   cycleStart: string
