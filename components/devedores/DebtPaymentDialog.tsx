@@ -114,6 +114,7 @@ export function DebtPaymentDialog({ personId, openCharges, open: openProp, onOpe
           type="button"
           variant="ghost"
           size="xs"
+          aria-expanded={chargesExpanded}
           onClick={() => setChargesExpanded((v) => !v)}
           className="gap-1.5 px-0 text-caption font-medium text-text-secondary"
         >

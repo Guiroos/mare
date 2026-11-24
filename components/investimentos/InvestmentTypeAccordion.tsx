@@ -99,6 +99,7 @@ function AccordionItem({ balance, totalPatrimony }: { balance: Balance; totalPat
       {/* Accordion header — tap to toggle */}
       <button
         type="button"
+        aria-expanded={isOpen}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left"
         onClick={() => setIsOpen((v) => !v)}
       >
