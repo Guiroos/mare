@@ -163,8 +163,10 @@ rendimento, que some do panorama.
 ## Riscos E Limitacoes
 
 - **Resgates parciais**: se o usuario resgata metade de um investimento, o capital
-  calculado sera o total aportado ate aquele momento, nao a fracao proporcional. Pode
-  subestimar o capital em multiplos resgates parciais do mesmo tipo.
+  calculado sera o total aportado ate aquele momento, nao a fracao proporcional, e
+  resgates anteriores do mesmo tipo nao sao descontados. Em multiplos resgates parciais
+  isso **superestima** o capital (e subestima o rendimento): numa 2a rolagem o capital
+  ja devolvido entra de novo na base e o rendimento pode sumir inteiro.
 
 - **Aportes editados apos o resgate**: `investmentReturnCapital` nao é recalculado.
   O valor fica desatualizado. Custo alto, cenario raro — nao recalcular automaticamente.

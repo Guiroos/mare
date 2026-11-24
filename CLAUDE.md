@@ -95,7 +95,7 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `incomes` não tem `categoryId` — não exibir `CategoryPicker` para tipos não-despesa
 - `app/(app)/layout.tsx` aplica padding global — páginas não adicionam wrapper próprio; usar `PageLayout` diretamente
 - Header de página com ações: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + ações
-- Dialogs de mutação: fechar só no `try`, nunca no `catch`; botão "Cancelar" chama `handleOpenChange(false)`, não `setOpen(false)` (handleOpenChange faz cleanup de estado)
+- Dialogs de mutação com formulário: fechar só no `try`, nunca no `catch` (o usuário perderia o que digitou); botão "Cancelar" chama `handleOpenChange(false)`, não `setOpen(false)` (handleOpenChange faz cleanup de estado). Exceção: confirmação de exclusão sem campo (`DeleteButton`, `RowActions`, diálogos de exclusão de pagamento) fecha no `catch` **depois** de `console.error` + `toast.error` — forma da #35
 - Padrão responsivo: `<ResponsiveDialog>` (`components/ui/responsive-dialog.tsx`) — `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; não repetir `useMediaQuery` à mão (exceções com estrutura própria: `DeleteButton`, `RowActions`, `CobrancaDialog`, `RegistrationDialog`, diálogos de exclusão de pagamento)
 - `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog`, `WithdrawalDialog` aceitam `open`/`onOpenChange` para controle externo
 - `CurrencyInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
@@ -131,9 +131,11 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 
 ## Auditoria automática (Routines)
 
-Critérios de julgamento (o que é bug aqui, o que não reportar), rotação de foco por dia da semana e exigências de todo achado: **@.claude/audit.md** — usado pela Routine `auditoria-diaria` e por revisões de código no repo. A Routine define só o processo (dedup, teto de issues, formato); o julgamento fica versionado.
+Quatro Routines agendadas (auditoria, implementação, review de PR, calibragem mensal) trabalham sobre a fila de issues `claude-audit`. Os prompts são versionados em `.claude/routines/` — a Routine só manda ler o arquivo — e mudam por PR. Nada ali é importado aqui de propósito: **sessão interativa não precisa ler esses arquivos**, salvo quando o trabalho for sobre as próprias Routines ou uma revisão de código seguindo o critério delas.
 
-Ciclo de vida das labels da fila (`claude-ready`, `claude-wip`, `claude-precisa-fatiar`, `claude-bloqueada`) e higiene de issues presas: **@.claude/routines.md** — usado pela Routine `implementacao-diaria`. Autoridade sobre o ESTADO DA FILA; o prompt da Routine é autoridade sobre o processo de implementar. Divergiu sobre qual label aplicar ou remover, o arquivo vence.
+- `.claude/audit.md` — julgamento: o que é bug aqui, o que não reportar, candidatos já falsificados, rotação por dia, exigências de todo achado. Ler ao fazer `/code-review` ou auditoria manual
+- `.claude/routines/fila.md` — estado da fila: labels (`claude-ready`, `claude-wip`, `claude-bloqueada`), higiene de issues presas, ciclo de review por status `claude-review`, cadência
+- `.claude/routines/{auditoria,implementacao,review,calibragem}.md` — o processo de cada Routine
 
 ## Acompanhamento de PR (check-ins automáticos)
 
