@@ -103,3 +103,11 @@ A correcao do `totalIncomes` tambem foi aplicada em `getDashboardData` e
 entre panorama e dashboard. A spec original dizia "nao alterar o dashboard", mas a
 inconsistencia era visivel: o lado de investimentos ja filtrava `excludeFromCashFlow`,
 enquanto o income ainda incluia o capital — produzindo saldo do mes inflado no dashboard.
+
+## Nota posterior (#125) — o que a correção do Bug 1 não alcançou
+
+A troca para `totalExpensesYTD` no rodapé fez o tfoot concordar com o card, mas deixou
+`totalIncomes`/`totalInvested` somando os 12 meses: o rodapé deixou de bater com a coluna
+que encabeça (ano futuro mostrava "Total" R$ 0,00 sobre parcelas) e os cards misturavam
+receita de 12 meses com divisor de meses decorridos. Hoje os dois conjuntos saem de
+`lib/utils/panorama-totals.ts` (`annualTotals` para a tabela, `annualTotalsToDate` para os cards).

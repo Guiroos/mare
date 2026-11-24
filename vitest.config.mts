@@ -31,6 +31,13 @@ export default defineConfig({
           functions: 95,
           lines: 95,
         },
+        // lib/utils/panorama-totals.ts — totais do Panorama (tabela 12 meses vs. cards YTD); 100% atingido.
+        'lib/utils/panorama-totals.ts': {
+          statements: 95,
+          branches: 95,
+          functions: 95,
+          lines: 95,
+        },
         // lib/utils/split.ts — divisão de gasto entre devedores; 100% atingido.
         'lib/utils/split.ts': {
           statements: 95,
