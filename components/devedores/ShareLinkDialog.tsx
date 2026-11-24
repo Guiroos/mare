@@ -4,10 +4,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Copy, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { generateShareLink } from '@/lib/actions/debtors'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props = {
   personId: string
@@ -80,31 +78,12 @@ function ShareLinkContent({
 }
 
 export function ShareLinkDialog({ personId, initialUrl, open, onOpenChange }: Props) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const title = 'Compartilhar extrato'
   const content = <ShareLinkContent personId={personId} initialUrl={initialUrl} />
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{content}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange} title={title}>
+      {content}
+    </ResponsiveDialog>
   )
 }

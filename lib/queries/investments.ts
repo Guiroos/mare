@@ -163,7 +163,7 @@ export async function getAllInvestmentWithdrawals(userId: string) {
 export type WithdrawalRow = Awaited<ReturnType<typeof getAllInvestmentWithdrawals>>[number]
 
 /**
- * Todos os aportes, de todos os tipos; filtrar por tipo em JS quando preciso.
+ * Todos os aportes, de todos os tipos.
  *
  * amount e yieldAmount são nullable no schema — por isso decryptOptional, nunca
  * decryptField (que lança em null).

@@ -96,9 +96,9 @@ NextAuth v4, Google provider, Drizzle adapter, JWT. Padrões de action e ownersh
 - `app/(app)/layout.tsx` aplica padding global — páginas não adicionam wrapper próprio; usar `PageLayout` diretamente
 - Header de página com ações: `<div className="flex items-start justify-between gap-4">` envolvendo `<PageHeader>` + ações
 - Dialogs de mutação: fechar só no `try`, nunca no `catch`; botão "Cancelar" chama `handleOpenChange(false)`, não `setOpen(false)` (handleOpenChange faz cleanup de estado)
-- Padrão responsivo: `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; ver `DeleteButton`/`InvestmentEntryDialog`
+- Padrão responsivo: `<ResponsiveDialog>` (`components/ui/responsive-dialog.tsx`) — `<Dialog>` desktop (`lg+`) + `<Drawer>` mobile; não repetir `useMediaQuery` à mão (exceções com estrutura própria: `DeleteButton`, `RowActions`, `CobrancaDialog`, `RegistrationDialog`, diálogos de exclusão de pagamento)
 - `TransactionEditButton`, `IncomeEditButton`, `FixedExpenseEditButton`, `InvestmentEntryDialog`, `WithdrawalDialog` aceitam `open`/`onOpenChange` para controle externo
-- `CurrencyInput`/`NumericInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
+- `CurrencyInput`: passar `preserveExplicitZero` quando zero é valor legítimo (orçamentos, aportes)
 - Radix `<Select>`: não popula `FormData` — usar `onValueChange` + state; `value=""` dá runtime error — usar sentinel não-vazio
 - Filtro booleano via URL: chip/button `'use client'` com `useRouter`; chip de toggle permanece visível quando `active = true` mesmo com `count === 0`
 - Client Component com paginação acumulada (load-more) em página com server nav: passar `key={filterCombo}` concatenando todos os filtros — força React a desmontar/remontar e resetar `useState` de items/cursor quando filtros mudam; sem isso, `initialItems` do server são ignorados e a lista acumulada permanece

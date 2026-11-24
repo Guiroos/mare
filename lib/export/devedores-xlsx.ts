@@ -29,9 +29,15 @@ export const LANCAMENTOS_HEADERS = [
   'Observações',
 ]
 
-const SALDOS_WIDTHS = [{ width: 24 }, { width: 26 }, { width: 16 }, { width: 14 }, { width: 16 }]
+export const SALDOS_WIDTHS = [
+  { width: 24 },
+  { width: 26 },
+  { width: 16 },
+  { width: 14 },
+  { width: 16 },
+]
 
-const LANCAMENTOS_WIDTHS = [
+export const LANCAMENTOS_WIDTHS = [
   { width: 24 },
   { width: 12 },
   { width: 14 },

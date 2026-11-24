@@ -141,6 +141,8 @@ export async function restoreInvestmentType(id: string) {
 // ─── Registros mensais ────────────────────────────────────────────────────────
 
 export type UpsertInvestmentInput = {
+  // create nunca sobrescreve o registro existente do mês; edit faz upsert
+  mode: 'create' | 'edit'
   investmentTypeId: string
   referenceMonth: string
   amount?: string | null
@@ -149,7 +151,7 @@ export type UpsertInvestmentInput = {
   excludeFromCashFlow?: boolean
 }
 
-export async function upsertInvestment(data: UpsertInvestmentInput) {
+export async function upsertInvestment(data: UpsertInvestmentInput): Promise<ActionResult> {
   const userId = await requireUserId()
   upsertInvestmentActionSchema.parse(data)
 
@@ -157,30 +159,39 @@ export async function upsertInvestment(data: UpsertInvestmentInput) {
 
   const dek = await getDekForUser(userId)
 
-  await db
-    .insert(investments)
-    .values({
-      userId,
-      investmentTypeId: data.investmentTypeId,
-      referenceMonth: data.referenceMonth,
-      amount: encryptOptional(data.amount || null, dek),
-      yieldAmount: encryptOptional(data.yieldAmount || null, dek),
-      notes: encryptOptional(data.notes || null, dek),
-      excludeFromCashFlow: data.excludeFromCashFlow ?? false,
-    })
-    .onConflictDoUpdate({
+  const values = {
+    amount: encryptOptional(data.amount || null, dek),
+    yieldAmount: encryptOptional(data.yieldAmount || null, dek),
+    notes: encryptOptional(data.notes || null, dek),
+    excludeFromCashFlow: data.excludeFromCashFlow ?? false,
+  }
+  const insert = db.insert(investments).values({
+    userId,
+    investmentTypeId: data.investmentTypeId,
+    referenceMonth: data.referenceMonth,
+    ...values,
+  })
+
+  if (data.mode === 'create') {
+    const rows = await insert.onConflictDoNothing().returning({ id: investments.id })
+    if (rows.length === 0) {
+      return {
+        ok: false,
+        code: 'entry_exists',
+        message: 'Já existe um registro deste investimento neste mês — edite o registro existente.',
+      }
+    }
+  } else {
+    await insert.onConflictDoUpdate({
       target: [investments.userId, investments.investmentTypeId, investments.referenceMonth],
-      set: {
-        amount: encryptOptional(data.amount || null, dek),
-        yieldAmount: encryptOptional(data.yieldAmount || null, dek),
-        notes: encryptOptional(data.notes || null, dek),
-        excludeFromCashFlow: data.excludeFromCashFlow ?? false,
-      },
+      set: values,
     })
+  }
 
   revalidatePath('/investimentos')
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
+  return { ok: true, data: undefined }
 }
 
 export async function deleteInvestment(id: string) {

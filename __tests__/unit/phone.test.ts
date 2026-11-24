@@ -21,4 +21,8 @@ describe('formatPhoneForWhatsApp', () => {
   it('handles number with spaces and dashes', () => {
     expect(formatPhoneForWhatsApp('11 9 8765-4321')).toBe('5511987654321')
   })
+
+  it('prefixes 55 when the area code is 55 (not a country code)', () => {
+    expect(formatPhoneForWhatsApp('(55) 99123-4567')).toBe('5555991234567')
+  })
 })

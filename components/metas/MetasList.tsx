@@ -7,7 +7,6 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Separator } from '@/components/ui/separator'
 import { GoalDialog } from '@/components/metas/GoalDialog'
 import { ContributionDialog } from '@/components/metas/ContributionDialog'
-import { ContributionEditButton } from '@/components/metas/ContributionEditButton'
 import { DeleteButton } from '@/components/ui/delete-button'
 import { deleteGoal, deleteGoalContribution } from '@/lib/actions/goals'
 import { formatMonthName, referenceMonthToYearMonth } from '@/lib/utils/date'
@@ -114,7 +113,7 @@ export function MetasList({
                 <div className="space-y-3 px-4 py-3">
                   <div className="flex items-center justify-between">
                     <span className="text-caption font-medium text-text-secondary">Aportes</span>
-                    <ContributionDialog goalId={goal.id} />
+                    <ContributionDialog mode="create" goalId={goal.id} />
                   </div>
 
                   {goal.contributions.length > 0 && (
@@ -137,7 +136,7 @@ export function MetasList({
                             </td>
                             <td className="py-1.5 pl-2">
                               <div className="flex items-center gap-1">
-                                <ContributionEditButton contribution={c} />
+                                <ContributionDialog mode="edit" contribution={c} />
                                 <DeleteButton
                                   onDelete={async () => {
                                     await deleteGoalContribution(c.id)

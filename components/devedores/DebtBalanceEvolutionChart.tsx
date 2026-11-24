@@ -9,19 +9,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { formatAxisCurrency, formatCurrency } from '@/lib/utils/currency'
 import { BalanceEvolutionPoint } from '@/lib/queries/debtors'
 
 type Props = {
   data: BalanceEvolutionPoint[]
-}
-
-function formatShort(value: number) {
-  if (Math.abs(value) >= 1000) return `R$${(value / 1000).toFixed(1)}k`
-  return `R$${value.toFixed(0)}`
-}
-
-function formatFull(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 }
 
 function formatMonth(month: string) {
@@ -51,14 +43,14 @@ export function DebtBalanceEvolutionChart({ data }: Props) {
           <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
           <XAxis dataKey="month" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
           <YAxis
-            tickFormatter={formatShort}
+            tickFormatter={formatAxisCurrency}
             tick={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
-            width={52}
+            width={56}
           />
           <Tooltip
-            formatter={(value: number) => [formatFull(value), 'Saldo']}
+            formatter={(value: number) => [formatCurrency(value), 'Saldo']}
             contentStyle={{
               borderRadius: '10px',
               border: '1px solid var(--border)',

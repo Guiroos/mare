@@ -2,8 +2,6 @@
 
 import { useEffect, useState, useTransition, type FormEvent } from 'react'
 import { Pencil } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -23,7 +21,7 @@ import { getTripOptions } from '@/lib/actions/trips'
 import { withdrawalEditSchema } from '@/lib/validations/investments'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency, toAmount } from '@/lib/utils/currency'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Withdrawal = {
   id: string
@@ -57,7 +55,6 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
   const [hasTax, setHasTax] = useState(hasTaxInitial)
   const [grossCents, setGrossCents] = useState(Math.round(grossInitial * 100))
   const [taxCents, setTaxCents] = useState(Math.round(taxInitial * 100))
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const netCents = grossCents - taxCents
   // Só resgate para o caixa gera entrada — é nela que a viagem fica marcada
@@ -215,25 +212,14 @@ export function WithdrawalEditButton({ withdrawal, investmentTypes }: Props) {
         <Pencil className="h-3.5 w-3.5" />
       </Button>
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Editar resgate</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Editar resgate</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog
+        open={open}
+        onOpenChange={handleOpenChange}
+        title="Editar resgate"
+        className="max-w-sm"
+      >
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

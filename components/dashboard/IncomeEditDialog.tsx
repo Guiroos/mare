@@ -1,14 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Pencil } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
-import { Button } from '@/components/ui/button'
 import { TransactionForm } from '@/components/forms/TransactionForm'
 import type { TripOption } from '@/components/forms/transaction/TripPicker'
 import { getTripOptions } from '@/lib/actions/trips'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { EditDialogShell } from '@/components/dashboard/EditDialogShell'
 
 type Income = {
   id: string
@@ -18,28 +14,15 @@ type Income = {
   canLinkTrip: boolean
 }
 
-export function IncomeEditButton({
-  income,
-  open: controlledOpen,
-  onOpenChange: controlledOnOpenChange,
-}: {
-  income: Income
-  open?: boolean
-  onOpenChange?: (v: boolean) => void
-}) {
-  const [internalOpen, setInternalOpen] = useState(false)
+// Montado só com o diálogo aberto: o fetch de viagens roda a cada abertura.
+function IncomeForm({ income, onSuccess }: { income: Income; onSuccess: () => void }) {
   const [trips, setTrips] = useState<TripOption[]>([])
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
-
-  const isControlled = controlledOpen !== undefined
-  const open = isControlled ? controlledOpen! : internalOpen
-  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen
 
   useEffect(() => {
-    if (open && income.canLinkTrip) getTripOptions().then(setTrips)
-  }, [open, income.canLinkTrip])
+    if (income.canLinkTrip) getTripOptions().then(setTrips)
+  }, [income.canLinkTrip])
 
-  const content = (
+  return (
     <TransactionForm
       mode="edit"
       categoryGroups={[]}
@@ -51,57 +34,29 @@ export function IncomeEditButton({
         canLinkTrip: income.canLinkTrip,
         initialValues: { source: income.source, amount: income.amount, tripId: income.tripId },
       }}
-      onSuccess={() => setOpen(false)}
+      onSuccess={onSuccess}
     />
   )
+}
 
-  if (isDesktop) {
-    return (
-      <>
-        {!isControlled && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-            onClick={() => setOpen(true)}
-            aria-label="Editar"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Editar entrada</DialogTitle>
-            </DialogHeader>
-            {content}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
+export function IncomeEditButton({
+  income,
+  open,
+  onOpenChange,
+}: {
+  income: Income
+  open?: boolean
+  onOpenChange?: (v: boolean) => void
+}) {
   return (
-    <>
-      {!isControlled && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7 shrink-0 text-text-secondary hover:text-text-primary"
-          onClick={() => setOpen(true)}
-          aria-label="Editar"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-      )}
-      <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>Editar entrada</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{content}</div>
-        </DrawerContent>
-      </Drawer>
-    </>
+    <EditDialogShell
+      title="Editar entrada"
+      className="max-w-sm"
+      scrollableDrawer={false}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
+      {(close) => <IncomeForm income={income} onSuccess={close} />}
+    </EditDialogShell>
   )
 }

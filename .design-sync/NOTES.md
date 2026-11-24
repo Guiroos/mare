@@ -161,7 +161,7 @@ override. `[NO_DIST]` é esperado e permanente neste repo (ver acima).
   `text-text-inverse`, erro do `Field` em `text-negative`) só aparecem se você pedir:
   `package-capture.mjs --components <X> --spot-check-components <X>`. Fizemos em
   Button/Field/Combobox/Switch — todos `good`.
-- `dtsPropsFor` atualizado: `Combobox`/`CurrencyInput`/`NumericInput`/`MonthSelect` ganharam
+- `dtsPropsFor` atualizado: `Combobox`/`CurrencyInput`/`MonthSelect` ganharam
   `id`/`aria-describedby`/`aria-invalid` (injetados pelo `Field`); `Field` documenta a injeção e a
   regra de `required` (`95735a8`).
 - Sessão nova sem `DesignSync` autorizado: o tool falha com "needs design-system authorization" —
