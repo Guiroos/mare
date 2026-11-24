@@ -41,6 +41,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `upsertInvestment` exige `mode`: `'create'` usa `onConflictDoNothing` e devolve `entry_exists` se o mês já tem registro daquele tipo (nunca sobrescreve rendimento/aporte existente); só `'edit'` faz upsert
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
+- `deleteIncome` recusa (`ActionResult`, `income_owned_by_withdrawal` / `income_owned_by_debt_payment`) entrada apontada por `investmentWithdrawals.incomeId` ou `debtorEntries.incomeId` — os FKs são `SET NULL`, então apagar a entrada desvincularia o par em silêncio. A linha de entrada do feed do dashboard (`TransactionList`) mostra a mensagem em toast; para remover, exclua o resgate/pagamento
 - `incomes.source` do resgate é regravado por `updateWithdrawal` **apenas** quando o `investmentTypeId` muda — o campo é editável pelo usuário via `IncomeEditDialog`, então editar valor/data/imposto não pode sobrescrever um rótulo customizado
 - `incomes.investmentReturnCapital` deve ser subtraído de `totalIncomes` em: `getDashboardData`, `getAnnualOverview`
 - `investmentReturnCapital != null` **não** identifica entrada de reinvestimento: antes de `'reinvest'` existir (`6ec05c0`, 2026-06-11), o destino `'income'` também gravava o campo, e não houve backfill. Para saber a origem de uma entrada, ler `investmentWithdrawals.destination` pelo `incomeId`
@@ -77,7 +78,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 ## Histórico
 
 - Feed multi-tabela: `getHistoricoFeed` agrega `transactions`, `fixedExpenses`, `incomes`, `investments`, `investmentWithdrawals` em memória, ordena por data e aplica cursor-based pagination (`PAGE_SIZE = 50`)
-- Cursor: string `"YYYY-MM-DD_uuid"` — retoma do último item; `fetchMoreHistorico` (action) executa no servidor
+- Cursor: string `"YYYY-MM-DD_uuid"` — retoma do último item; a ordem do feed é total `(date desc, id asc)` (`mergeAndSortFeedItems`) e `startIndexAfterCursor` busca o primeiro item depois do par, sem exigir que o item do cursor ainda exista; `fetchMoreHistorico` (action) executa no servidor
 - Filtro textual `q`: aplicado em JS após decrypt, não no SQL — não tentar mover para `WHERE`
 - `parseHistoricoParams`/`buildHistoricoUrl` em `lib/utils/historico-params.ts` — normaliza e serializa os 6 filtros (`de`, `ate`, `tipos`, `categorias`, `contas`, `q`); defaults: últimos 90 dias, todos os `TipoKind`
 - `referenceMonthsInRange(de, ate)` e `fixedExpenseDate(referenceMonth, dueDay)` em `lib/queries/historico.ts` — helpers para buscar e mapear gastos fixos no feed; necessários porque `fixedExpenses` não têm coluna `date`
