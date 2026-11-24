@@ -37,7 +37,7 @@ export const EXTRATO_HEADERS = [
   'Investimento',
 ]
 
-const COLUMN_WIDTHS = [
+export const EXTRATO_WIDTHS = [
   { width: 12 },
   { width: 16 },
   { width: 40 },
@@ -61,7 +61,7 @@ export function formatParcela(item: HistoricoFeedItem): string {
 function toRow(item: HistoricoFeedItem): Row {
   return [
     dateCell(item.date),
-    textCell(TIPO_LABELS[item.kind]),
+    textCell(item.isFaturaPayment ? 'Pagamento de fatura' : TIPO_LABELS[item.kind]),
     textCell(item.name),
     moneyCell(signedAmount(item)),
     textCell(item.categoryName),
@@ -81,7 +81,7 @@ export function writeExtratoXlsx(items: HistoricoFeedItem[]): Promise<Buffer> {
       {
         sheet: 'Extrato',
         stickyRowsCount: 1,
-        columns: COLUMN_WIDTHS,
+        columns: EXTRATO_WIDTHS,
         data: buildExtratoRows(items),
       },
     ],

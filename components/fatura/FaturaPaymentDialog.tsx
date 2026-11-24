@@ -11,13 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { createFaturaPayment } from '@/lib/actions/fatura'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { formatCurrency } from '@/lib/utils/currency'
 import { todayISOString } from '@/lib/utils/date'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type DebitAccount = { id: string; name: string; type: string }
 
@@ -44,7 +42,6 @@ export function FaturaPaymentDialog({
   open,
   onOpenChange,
 }: Props) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [isPending, startTransition] = useTransition()
   const [sourceAccountId, setSourceAccountId] = useState('')
   const [date, setDate] = useState(todayISOString)
@@ -137,27 +134,13 @@ export function FaturaPaymentDialog({
     </div>
   )
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Registrar pagamento de fatura</DialogTitle>
-          </DialogHeader>
-          {form}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={handleOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Registrar pagamento de fatura</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{form}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Registrar pagamento de fatura"
+    >
+      {form}
+    </ResponsiveDialog>
   )
 }

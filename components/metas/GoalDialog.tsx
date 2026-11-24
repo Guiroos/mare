@@ -13,13 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { upsertGoal } from '@/lib/actions/goals'
 import { goalSchema } from '@/lib/validations/goals'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type InvestmentTypeOption = { id: string; name: string }
 
@@ -49,7 +47,6 @@ export function GoalDialog(props: Props) {
     props.mode === 'edit' ? (props.goal.investmentTypeId ?? 'none') : 'none'
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -164,25 +161,9 @@ export function GoalDialog(props: Props) {
         </Button>
       )}
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{title}</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

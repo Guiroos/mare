@@ -55,13 +55,13 @@ export type CreateTransactionInput = {
 
 export async function createTransaction(data: CreateTransactionInput) {
   const userId = await requireUserId()
-  transactionSchema.parse(data)
+  const { splits } = transactionSchema.parse(data)
 
   await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
     assertOwnsPaymentAccount(userId, data.accountId),
     ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
-    ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
+    ...(splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
   const dek = await getDekForUser(userId)
@@ -81,9 +81,9 @@ export async function createTransaction(data: CreateTransactionInput) {
       })
       .returning({ id: transactions.id })
 
-    if (data.splits && data.splits.length > 0) {
+    if (splits && splits.length > 0) {
       await tx.insert(debtorEntries).values(
-        data.splits.map((s) => ({
+        splits.map((s) => ({
           userId,
           personId: s.personId,
           type: 'charge' as const,
@@ -101,7 +101,7 @@ export async function createTransaction(data: CreateTransactionInput) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   if (data.tripId) revalidatePath('/viagens')
-  if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
+  if (splits && splits.length > 0) revalidatePath('/devedores')
 }
 
 // ─── Gasto fixo ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export type CreateInstallmentInput = {
 
 export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   const userId = await requireUserId()
-  createInstallmentActionSchema.parse(data)
+  const { splits } = createInstallmentActionSchema.parse(data)
 
   const [, accountRow] = await Promise.all([
     assertOwnsCategory(userId, data.categoryId),
@@ -271,7 +271,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
         .then((rows) => rows[0])
     ),
     ...(data.tripId ? [assertOwnsTrip(userId, data.tripId)] : []),
-    ...(data.splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
+    ...(splits ?? []).map((s) => assertOwnsPerson(userId, s.personId)),
   ])
 
   const closingDay = accountRow?.closingDay ?? null
@@ -320,8 +320,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
       .values(installmentRows)
       .returning({ id: transactions.id, installmentNumber: transactions.installmentNumber })
 
-    if (data.splits && data.splits.length > 0) {
-      const splits = data.splits
+    if (splits && splits.length > 0) {
       // Pre-compute per-installment amounts with last-installment rounding compensation
       const splitAmounts = splits.map((s) => {
         const total = parseFloat(s.amount)
@@ -359,7 +358,7 @@ export async function createInstallmentPurchase(data: CreateInstallmentInput) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   if (data.tripId) revalidatePath('/viagens')
-  if (data.splits && data.splits.length > 0) revalidatePath('/devedores')
+  if (splits && splits.length > 0) revalidatePath('/devedores')
 }
 
 // ─── Edição de transação avulsa ───────────────────────────────────────────────

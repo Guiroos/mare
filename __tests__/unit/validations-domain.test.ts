@@ -718,6 +718,7 @@ describe('withdrawalSchema', () => {
 
 describe('upsertInvestmentActionSchema — at-least-one refine', () => {
   const base = {
+    mode: 'create' as const,
     investmentTypeId: VALID_UUID,
     referenceMonth: '2025-03-01',
     amount: null,

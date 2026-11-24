@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import {
   Select,
   SelectContent,
@@ -19,7 +17,7 @@ import { toast } from 'sonner'
 import { createCategory, updateCategory } from '@/lib/actions/categories'
 import { categorySchema } from '@/lib/validations/categories'
 import { formatZodErrors } from '@/lib/validations/utils'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Group = { id: string; name: string }
 
@@ -42,7 +40,6 @@ export function CategoryDialog(props: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const defaultGroupId = props.mode === 'create' ? props.defaultGroupId : props.category.groupId
 
@@ -161,25 +158,9 @@ export function CategoryDialog(props: Props) {
         </Button>
       )}
 
-      {isDesktop ? (
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>{title}</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-6">{form}</div>
-          </DrawerContent>
-        </Drawer>
-      )}
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

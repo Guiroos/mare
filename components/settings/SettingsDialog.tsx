@@ -6,17 +6,15 @@ import { signOut } from 'next-auth/react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 import { Download, RotateCcw, Trash2, TriangleAlert } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Segment, SegmentOption } from '@/components/ui/segment'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { resetAccount } from '@/lib/actions/reset-account'
 import { deleteAccount } from '@/lib/actions/delete-account'
 import { usePrivacyMode } from '@/components/providers/PrivacyMode'
 import { Switch } from '@/components/ui/switch'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 interface SettingsDialogProps {
   open: boolean
@@ -285,32 +283,12 @@ function SettingsContent({
 }
 
 export function SettingsDialog({ open, onOpenChange, userEmail }: SettingsDialogProps) {
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
-
   const title = 'Configurações'
   const content = <SettingsContent onClose={() => onOpenChange(false)} userEmail={userEmail} />
 
-  if (isDesktop) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          {content}
-        </DialogContent>
-      </Dialog>
-    )
-  }
-
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-        </DrawerHeader>
-        <div className="px-4 pb-6">{content}</div>
-      </DrawerContent>
-    </Drawer>
+    <ResponsiveDialog open={open} onOpenChange={onOpenChange} title={title}>
+      {content}
+    </ResponsiveDialog>
   )
 }
