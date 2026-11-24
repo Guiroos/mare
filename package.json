@@ -42,7 +42,7 @@
     "drizzle-orm": "0.45.2",
     "fflate": "0.8.3",
     "lucide-react": "1.8.0",
-    "next": "16.3.8",
+    "next": "16.4.5",
     "next-auth": "4.24.15",
     "next-themes": "0.4.6",
     "nextjs-toploader": "3.9.17",
@@ -53,35 +53,35 @@
     "tailwind-merge": "3.5.0",
     "vaul": "1.1.2",
     "write-excel-file": "4.1.1",
-    "zod": "4.3.6"
+    "zod": "4.6.7"
   },
   "overrides": {
     "form-data": "4.0.6",
     "@auth/core": "0.41.3"
   },
   "devDependencies": {
-    "@serwist/cli": "9.5.11",
-    "@serwist/next": "9.5.11",
+    "@serwist/cli": "9.5.15",
+    "@serwist/next": "9.5.15",
     "@types/node": "24.13.2",
     "@types/react": "19.2.15",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.2.0",
-    "@vitest/coverage-v8": "4.1.11",
+    "@vitest/coverage-v8": "4.1.12",
     "autoprefixer": "10.5.0",
     "dotenv": "17.4.2",
     "drizzle-kit": "0.31.10",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.3.8",
+    "eslint-config-next": "16.4.5",
     "husky": "9.1.7",
     "neon-testing": "2.7.0",
     "postcss": "8.5.25",
     "prettier": "3.8.3",
     "prettier-plugin-tailwindcss": "0.7.2",
-    "serwist": "9.5.11",
+    "serwist": "9.5.15",
     "tailwindcss": "3.4.19",
     "tailwindcss-animate": "1.0.7",
     "tsx": "4.21.0",
     "typescript": "5.9.3",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   }
 }
