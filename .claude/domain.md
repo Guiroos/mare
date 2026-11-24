@@ -22,6 +22,8 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 - `buildBalanceEvolution` (gráfico de `/devedores/[id]`) soma em centavos inteiros e preenche os meses sem lançamento com o saldo anterior; série esparsa faz o gráfico desenhar quitação gradual que não houve
 - `settleCharge` (Fluxo A) é atômico via `db.transaction`; `createDebtPayment` aceita `settleChargeIds[]` (Fluxo B)
 - **Conciliação (Fluxo B com `reconcileRemainder`)**: quando o pagamento é menor que a soma das cobranças quitadas, `createDebtPayment` cria um `adjustment` **negativo** (`"Abatimento — conciliação de pagamento"`) com `settledByPaymentId` apontando para o pagamento. É o único fluxo que cria `adjustment` hoje; `updateDebtEntry` permite editar o sinal (`sign: 'negative'`)
+- `createDebtPayment` só quita cobranças ainda abertas (`status` `null`/`'open'`): se alguma de `settleChargeIds` já foi quitada devolve `charge_already_settled` e a transação inteira (pagamento + entrada) é desfeita; `settleCharge` aplica o mesmo filtro no UPDATE. A recusa revalida `/devedores` antes de voltar, senão a aba velha reabre o dialog com a mesma lista. `updateDebtEntry` de um pagamento **ou de uma cobrança quitada por ele** recalcula o ajuste de conciliação (`max(0, cobranças quitadas − pagamento)`); quando zera, o ajuste fica `0.00` em vez de ser apagado — é o vínculo que permite recalcular numa edição seguinte — e some da lista do detalhe e do export (`isZeroAdjustment`). Só regrava `incomes.source` quando a descrição mudou
+- Saldo/total de devedor soma em centavos inteiros (`sumSignedDebtCents`): em float, `balance === 0` falha por resíduo ~1e-15
 - `adjustment` mexe só no saldo: **não** entra em `totalCharged`/`chargeCount` de `getPersonDebtDetails` (os docs de `docs/devedores/` anteriores à conciliação diziam o contrário)
 - Split: transação avulsa ou parcelada com divisão cria `charge` com `sourceTransactionId` (uma por parcela, ver Parcelas)
 - Ao deletar payment, no mesmo `db.transaction`: (1) apagar os `adjustment` de conciliação com `settledByPaymentId` = o pagamento, (2) `UPDATE status='open'` nas cobranças quitadas **antes** do DELETE — `ON DELETE SET NULL` não reseta `status` e apagaria o vínculo do ajuste em vez do ajuste
@@ -35,6 +37,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 ## Investimentos
 
+- `upsertInvestment` exige `mode`: `'create'` usa `onConflictDoNothing` e devolve `entry_exists` se o mês já tem registro daquele tipo (nunca sobrescreve rendimento/aporte existente); só `'edit'` faz upsert
 - `destination` em `investmentWithdrawals`: `'income'` = caixa (cria income); `'reinvest'` = rolagem (cria income com `investmentReturnCapital`); `'transfer'` = entre tipos (sem income). `'transfer'` é legado: nenhum form oferece mais (`WithdrawalDialog` e `ResgateFields` só listam caixa e reinvestimento), mas os registros antigos continuam válidos — ver `docs/investimentos/09-fluxo-destino-resgate.md`
 - `deleteWithdrawal` remove income vinculado via `db.transaction`; nunca deletar income diretamente de um resgate
 - `deleteIncome` recusa (`ActionResult`, `income_owned_by_withdrawal` / `income_owned_by_debt_payment`) entrada apontada por `investmentWithdrawals.incomeId` ou `debtorEntries.incomeId` — os FKs são `SET NULL`, então apagar a entrada desvincularia o par em silêncio. A linha de entrada do feed do dashboard (`TransactionList`) mostra a mensagem em toast; para remover, exclua o resgate/pagamento
@@ -92,7 +95,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 
 - Neon não suporta `pg_cron`; jobs em `vercel.json` (`"crons": [{ "path": "...", "schedule": "..." }]`); autenticação via `Authorization: Bearer ${CRON_SECRET}`
 - Rotas de cron não têm sessão — operam direto no `db`; usar `Promise.allSettled` por usuário
-- `autoRolloverFixedExpenses` (cron, dia 1): pula se já há gastos fixos no mês; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo
+- `autoRolloverFixedExpenses` (cron, **só dia 1**): por usuário, roda em `db.transaction` com `pg_advisory_xact_lock(hashtext(userId || mês))` para que execuções sobrepostas não dupliquem; pula se já há gastos fixos no mês; falha de usuário vai para `console.error` e a rota responde 500; manual (`copyFixedExpensesFromPrevMonth`) substitui tudo. Não agendar repescagem nos dias seguintes: a guarda é "o mês tem algum gasto fixo", e o usuário que apagou os copiados de propósito os veria voltar — recuperar execução perdida é pelo botão manual
 
 ## Reset de Conta
 

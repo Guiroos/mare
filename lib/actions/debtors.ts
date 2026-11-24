@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { people, debtorEntries, incomes, transactions } from '@/lib/db/schema'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and, or, isNull, inArray } from 'drizzle-orm'
 import { requireUserId } from '@/lib/auth/require-user'
 import { assertOwnsPerson, assertOwnsDebtEntry } from '@/lib/auth/ownership'
 import { getDekForUser } from '@/lib/crypto/keys'
@@ -21,6 +21,7 @@ import {
 import { uuidSchema } from '@/lib/validations/utils'
 import { generateShareToken, hashShareToken } from '@/lib/utils/share-token'
 import { getRequestOrigin } from '@/lib/utils/request-origin'
+import { dateToReferenceMonth } from '@/lib/utils/date'
 import type { ActionResult } from '@/lib/actions/types'
 
 // ─── Pessoas ──────────────────────────────────────────────────────────────────
@@ -112,8 +113,17 @@ export async function deletePersonIfEmpty(id: string): Promise<ActionResult> {
 
 // ─── Lançamentos ──────────────────────────────────────────────────────────────
 
-function entryDateToReferenceMonth(entryDate: string): string {
-  return entryDate.slice(0, 7) + '-01'
+// Cobrança aberta: `null` e 'open' são equivalentes (pré-migration ficaram como null).
+const openChargeStatus = or(eq(debtorEntries.status, 'open'), isNull(debtorEntries.status))
+
+class ChargeAlreadySettledError extends Error {}
+
+// Revalida antes de recusar: a aba que errou está com a lista velha, e é a
+// revalidação que faz o "feche e abra de novo" mostrar a cobrança já quitada.
+function chargeAlreadySettled(personId: string, message: string): ActionResult {
+  revalidatePath('/devedores')
+  revalidatePath(`/devedores/${personId}`)
+  return { ok: false, code: 'charge_already_settled', message }
 }
 
 export type CreateDebtChargeInput = {
@@ -139,7 +149,7 @@ export async function createDebtCharge(data: CreateDebtChargeInput) {
     amount: encryptField(String(data.amount), dek),
     description: encryptField(data.description.trim(), dek),
     entryDate: data.entryDate,
-    referenceMonth: entryDateToReferenceMonth(data.entryDate),
+    referenceMonth: dateToReferenceMonth(data.entryDate),
     notes: encryptOptional(data.notes?.trim() || null, dek),
   })
 
@@ -174,7 +184,7 @@ export async function createDebtChargeFromTransaction(data: CreateDebtChargeFrom
     amount: encryptField(String(data.amount), dek),
     description: encryptField(data.description.trim(), dek),
     entryDate: data.entryDate,
-    referenceMonth: entryDateToReferenceMonth(data.entryDate),
+    referenceMonth: dateToReferenceMonth(data.entryDate),
     notes: encryptOptional(data.notes?.trim() || null, dek),
     sourceTransactionId: data.sourceTransactionId,
   })
@@ -199,7 +209,15 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
 
   const entry = await db.query.debtorEntries.findFirst({
     where: and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)),
-    columns: { type: true, personId: true, incomeId: true, referenceMonth: true, amount: true },
+    columns: {
+      type: true,
+      personId: true,
+      incomeId: true,
+      referenceMonth: true,
+      amount: true,
+      description: true,
+      settledByPaymentId: true,
+    },
   })
 
   if (!entry) throw new Error('Lançamento não encontrado')
@@ -221,7 +239,7 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
   // derivá-lo de entryDate moveria a entrada de mês no fluxo de caixa sem o usuário pedir.
   const referenceMonth = entry.incomeId
     ? entry.referenceMonth
-    : entryDateToReferenceMonth(data.entryDate)
+    : dateToReferenceMonth(data.entryDate)
 
   const entryValues = {
     amount: encryptField(amount, dek),
@@ -232,33 +250,67 @@ export async function updateDebtEntry(data: UpdateDebtEntryInput) {
     updatedAt: new Date(),
   }
 
-  if (entry.incomeId) {
-    const person = await db.query.people.findFirst({
-      where: and(eq(people.id, entry.personId), eq(people.userId, userId)),
-      columns: { name: true },
-    })
-    if (!person) throw new Error('Pessoa não encontrada')
+  // O rótulo da entrada (`incomes.source`) é editável pelo usuário no dashboard:
+  // só é regravado quando a descrição do lançamento mudou de fato.
+  const descriptionChanged = decryptField(entry.description, dek) !== description
 
-    // Mesmo formato usado ao criar a entrada em createDebtPayment/settleCharge.
-    const source = encryptField(`${decryptField(person.name, dek)} — ${description}`, dek)
-
-    await db.transaction(async (tx) => {
+  await db.transaction(async (tx) => {
+    if (entry.incomeId) {
+      const incomeValues: { amount: string; source?: string } = {
+        amount: encryptField(amount, dek),
+      }
+      if (descriptionChanged) {
+        const person = await tx.query.people.findFirst({
+          where: and(eq(people.id, entry.personId), eq(people.userId, userId)),
+          columns: { name: true },
+        })
+        if (!person) throw new Error('Pessoa não encontrada')
+        // Mesmo formato usado ao criar a entrada em createDebtPayment/settleCharge.
+        incomeValues.source = encryptField(
+          `${decryptField(person.name, dek)} — ${description}`,
+          dek
+        )
+      }
       await tx
         .update(incomes)
-        .set({ source, amount: encryptField(amount, dek) })
-        .where(and(eq(incomes.id, entry.incomeId!), eq(incomes.userId, userId)))
+        .set(incomeValues)
+        .where(and(eq(incomes.id, entry.incomeId), eq(incomes.userId, userId)))
+    }
 
-      await tx
-        .update(debtorEntries)
-        .set(entryValues)
-        .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
-    })
-  } else {
-    await db
+    await tx
       .update(debtorEntries)
       .set(entryValues)
       .where(and(eq(debtorEntries.id, data.id), eq(debtorEntries.userId, userId)))
-  }
+
+    // Ajuste de conciliação do pagamento: recalcular depois de editar o pagamento
+    // ou uma cobrança quitada por ele. Nunca apagar — zerado ele continua sendo o
+    // vínculo que permite recalcular numa edição seguinte (zerado some das listas).
+    const paymentId =
+      entry.type === 'payment' ? data.id : entry.type === 'charge' ? entry.settledByPaymentId : null
+    if (!paymentId) return
+
+    const linked = await tx
+      .select({ id: debtorEntries.id, type: debtorEntries.type, amount: debtorEntries.amount })
+      .from(debtorEntries)
+      .where(
+        and(
+          or(eq(debtorEntries.id, paymentId), eq(debtorEntries.settledByPaymentId, paymentId)),
+          eq(debtorEntries.userId, userId)
+        )
+      )
+    const adjustment = linked.find((r) => r.type === 'adjustment')
+    if (!adjustment) return
+
+    const cents = (type: string) =>
+      linked
+        .filter((r) => r.type === type)
+        .reduce((sum, r) => sum + Math.round(toAmount(decryptField(r.amount, dek)) * 100), 0)
+    const diffCents = Math.max(0, cents('charge') - cents('payment'))
+    await tx
+      .update(debtorEntries)
+      .set({ amount: encryptField((-diffCents / 100).toFixed(2), dek), updatedAt: new Date() })
+      .where(and(eq(debtorEntries.id, adjustment.id), eq(debtorEntries.userId, userId)))
+  })
 
   revalidatePath('/devedores')
   revalidatePath(`/devedores/${entry.personId}`)
@@ -280,7 +332,7 @@ export type CreateDebtPaymentInput = {
   notes?: string
 }
 
-export async function createDebtPayment(data: CreateDebtPaymentInput) {
+export async function createDebtPayment(data: CreateDebtPaymentInput): Promise<ActionResult> {
   const userId = await requireUserId()
   debtPaymentSchema.parse(data)
 
@@ -298,85 +350,92 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
   let incomeId: string | null = null
   let paymentEntryId: string | null = null
 
-  await db.transaction(async (tx) => {
-    if (data.createIncome && data.referenceMonth) {
-      const [created] = await tx
-        .insert(incomes)
+  try {
+    await db.transaction(async (tx) => {
+      if (data.createIncome && data.referenceMonth) {
+        const [created] = await tx
+          .insert(incomes)
+          .values({
+            userId,
+            source: encryptField(
+              `${decryptField(person.name, dek)} — ${data.description.trim()}`,
+              dek
+            ),
+            amount: encryptField(data.amount, dek),
+            referenceMonth: data.referenceMonth,
+          })
+          .returning({ id: incomes.id })
+        incomeId = created.id
+      }
+
+      const [payment] = await tx
+        .insert(debtorEntries)
         .values({
           userId,
-          source: encryptField(
-            `${decryptField(person.name, dek)} — ${data.description.trim()}`,
-            dek
-          ),
-          amount: encryptField(data.amount, dek),
-          referenceMonth: data.referenceMonth,
+          personId: data.personId,
+          type: 'payment',
+          amount: encryptField(String(data.amount), dek),
+          description: encryptField(data.description.trim(), dek),
+          entryDate: data.entryDate,
+          referenceMonth: data.referenceMonth ?? dateToReferenceMonth(data.entryDate),
+          notes: encryptOptional(data.notes?.trim() || null, dek),
+          incomeId,
         })
-        .returning({ id: incomes.id })
-      incomeId = created.id
-    }
+        .returning({ id: debtorEntries.id })
+      paymentEntryId = payment.id
 
-    const [payment] = await tx
-      .insert(debtorEntries)
-      .values({
-        userId,
-        personId: data.personId,
-        type: 'payment',
-        amount: encryptField(String(data.amount), dek),
-        description: encryptField(data.description.trim(), dek),
-        entryDate: data.entryDate,
-        referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
-        notes: encryptOptional(data.notes?.trim() || null, dek),
-        incomeId,
-      })
-      .returning({ id: debtorEntries.id })
-    paymentEntryId = payment.id
-
-    if (data.settleChargeIds && data.settleChargeIds.length > 0) {
-      const chargeRows = await tx
-        .select({ amount: debtorEntries.amount })
-        .from(debtorEntries)
-        .where(
-          and(
-            inArray(debtorEntries.id, data.settleChargeIds),
-            eq(debtorEntries.userId, userId),
-            eq(debtorEntries.type, 'charge')
+      if (data.settleChargeIds && data.settleChargeIds.length > 0) {
+        const chargeIds = [...new Set(data.settleChargeIds)]
+        // Só cobranças ainda abertas: sem o filtro de status, um pagamento feito
+        // numa aba velha re-aponta a cobrança para si e apagá-lo reabriria uma
+        // dívida que o pagamento original quitou.
+        const settledRows = await tx
+          .update(debtorEntries)
+          .set({ status: 'settled', settledByPaymentId: paymentEntryId })
+          .where(
+            and(
+              inArray(debtorEntries.id, chargeIds),
+              eq(debtorEntries.userId, userId),
+              eq(debtorEntries.type, 'charge'),
+              openChargeStatus
+            )
           )
-        )
-      const chargesTotal = chargeRows.reduce(
-        (sum, r) => sum + toAmount(decryptField(r.amount, dek)),
-        0
-      )
-
-      await tx
-        .update(debtorEntries)
-        .set({ status: 'settled', settledByPaymentId: paymentEntryId })
-        .where(
-          and(
-            inArray(debtorEntries.id, data.settleChargeIds),
-            eq(debtorEntries.userId, userId),
-            eq(debtorEntries.type, 'charge')
-          )
+          .returning({ amount: debtorEntries.amount })
+        // Lança dentro da transação: desfaz o pagamento (e a entrada) já inseridos.
+        if (settledRows.length !== chargeIds.length) throw new ChargeAlreadySettledError()
+        const chargesTotal = settledRows.reduce(
+          (sum, r) => sum + toAmount(decryptField(r.amount, dek)),
+          0
         )
 
-      if (data.reconcileRemainder) {
-        const diffCents = Math.round((chargesTotal - toAmount(data.amount)) * 100)
-        if (diffCents > 0) {
-          const adjustmentAmount = (-diffCents / 100).toFixed(2)
-          await tx.insert(debtorEntries).values({
-            userId,
-            personId: data.personId,
-            type: 'adjustment',
-            amount: encryptField(adjustmentAmount, dek),
-            description: encryptField('Abatimento — conciliação de pagamento', dek),
-            entryDate: data.entryDate,
-            referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
-            status: null,
-            settledByPaymentId: paymentEntryId,
-          })
+        if (data.reconcileRemainder) {
+          const diffCents = Math.round((chargesTotal - toAmount(data.amount)) * 100)
+          if (diffCents > 0) {
+            const adjustmentAmount = (-diffCents / 100).toFixed(2)
+            await tx.insert(debtorEntries).values({
+              userId,
+              personId: data.personId,
+              type: 'adjustment',
+              amount: encryptField(adjustmentAmount, dek),
+              description: encryptField('Abatimento — conciliação de pagamento', dek),
+              entryDate: data.entryDate,
+              referenceMonth: data.referenceMonth ?? dateToReferenceMonth(data.entryDate),
+              status: null,
+              settledByPaymentId: paymentEntryId,
+            })
+          }
         }
       }
+    })
+  } catch (err) {
+    if (err instanceof ChargeAlreadySettledError) {
+      return chargeAlreadySettled(
+        data.personId,
+        'Uma das cobranças selecionadas já foi quitada. Feche e abra de novo.'
+      )
     }
-  })
+    throw err
+  }
 
   revalidatePath('/devedores')
   revalidatePath(`/devedores/${data.personId}`)
@@ -384,6 +443,8 @@ export async function createDebtPayment(data: CreateDebtPaymentInput) {
     revalidatePath('/dashboard')
     revalidatePath('/panorama')
   }
+
+  return { ok: true, data: undefined }
 }
 
 export type SettleChargeInput = {
@@ -423,53 +484,70 @@ export async function settleCharge(data: SettleChargeInput): Promise<ActionResul
     return { ok: false, code: 'entry_not_a_charge', message: 'Lançamento não é uma cobrança' }
   }
   if (charge.status === 'settled') {
-    return { ok: false, code: 'charge_already_settled', message: 'Cobrança já está quitada' }
+    return chargeAlreadySettled(data.personId, 'Cobrança já está quitada')
   }
 
   let incomeId: string | null = null
 
-  await db.transaction(async (tx) => {
-    if (data.createIncome && data.referenceMonth) {
-      const person = await tx.query.people.findFirst({
-        where: and(eq(people.userId, userId), eq(people.id, data.personId)),
-        columns: { name: true },
-      })
-      if (!person) throw new Error('Pessoa não encontrada')
-      const [created] = await tx
-        .insert(incomes)
+  try {
+    await db.transaction(async (tx) => {
+      if (data.createIncome && data.referenceMonth) {
+        const person = await tx.query.people.findFirst({
+          where: and(eq(people.userId, userId), eq(people.id, data.personId)),
+          columns: { name: true },
+        })
+        if (!person) throw new Error('Pessoa não encontrada')
+        const [created] = await tx
+          .insert(incomes)
+          .values({
+            userId,
+            source: encryptField(
+              `${decryptField(person.name, dek)} — ${decryptField(charge.description, dek)}`,
+              dek
+            ),
+            amount: encryptField(decryptField(charge.amount, dek), dek),
+            referenceMonth: data.referenceMonth,
+          })
+          .returning({ id: incomes.id })
+        incomeId = created.id
+      }
+
+      const [payment] = await tx
+        .insert(debtorEntries)
         .values({
           userId,
-          source: encryptField(
-            `${decryptField(person.name, dek)} — ${decryptField(charge.description, dek)}`,
-            dek
-          ),
+          personId: data.personId,
+          type: 'payment',
           amount: encryptField(decryptField(charge.amount, dek), dek),
-          referenceMonth: data.referenceMonth,
+          description: encryptField(decryptField(charge.description, dek), dek),
+          entryDate: data.entryDate,
+          referenceMonth: data.referenceMonth ?? dateToReferenceMonth(data.entryDate),
+          notes: encryptOptional(data.notes?.trim() || null, dek),
+          incomeId,
         })
-        .returning({ id: incomes.id })
-      incomeId = created.id
+        .returning({ id: debtorEntries.id })
+
+      // A checagem de status lá em cima roda fora da transação: o filtro aqui
+      // fecha a janela de corrida (duas abas quitando a mesma cobrança).
+      const updated = await tx
+        .update(debtorEntries)
+        .set({ status: 'settled', settledByPaymentId: payment.id })
+        .where(
+          and(
+            eq(debtorEntries.id, data.chargeId),
+            eq(debtorEntries.userId, userId),
+            openChargeStatus
+          )
+        )
+        .returning({ id: debtorEntries.id })
+      if (updated.length === 0) throw new ChargeAlreadySettledError()
+    })
+  } catch (err) {
+    if (err instanceof ChargeAlreadySettledError) {
+      return chargeAlreadySettled(data.personId, 'Cobrança já está quitada')
     }
-
-    const [payment] = await tx
-      .insert(debtorEntries)
-      .values({
-        userId,
-        personId: data.personId,
-        type: 'payment',
-        amount: encryptField(decryptField(charge.amount, dek), dek),
-        description: encryptField(decryptField(charge.description, dek), dek),
-        entryDate: data.entryDate,
-        referenceMonth: data.referenceMonth ?? entryDateToReferenceMonth(data.entryDate),
-        notes: encryptOptional(data.notes?.trim() || null, dek),
-        incomeId,
-      })
-      .returning({ id: debtorEntries.id })
-
-    await tx
-      .update(debtorEntries)
-      .set({ status: 'settled', settledByPaymentId: payment.id })
-      .where(and(eq(debtorEntries.id, data.chargeId), eq(debtorEntries.userId, userId)))
-  })
+    throw err
+  }
 
   revalidatePath('/devedores')
   revalidatePath(`/devedores/${data.personId}`)

@@ -200,7 +200,7 @@ export async function getMonthIncomes(userId: string, referenceMonth: string) {
 
 // ─── Investimentos do mês ────────────────────────────────────────────────────
 
-export async function getMonthInvestments(userId: string, referenceMonth: string) {
+async function getMonthInvestments(userId: string, referenceMonth: string) {
   const [rows, dek] = await Promise.all([
     db.query.investments.findMany({
       where: and(eq(investments.userId, userId), eq(investments.referenceMonth, referenceMonth)),
@@ -278,7 +278,7 @@ export async function getDashboardData(
 
 // ─── Billing cycle queries ────────────────────────────────────────────────────
 
-export async function getTransactionsByDateRange(
+async function getTransactionsByDateRange(
   userId: string,
   startDate: string,
   endDate: string,
@@ -312,7 +312,7 @@ export async function getTransactionsByDateRange(
   }))
 }
 
-export async function getFixedExpensesByBillingCycle(
+async function getFixedExpensesByBillingCycle(
   userId: string,
   yearMonth: string,
   closingDay: number,

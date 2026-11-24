@@ -11,17 +11,9 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { formatMonthShort } from '@/lib/utils/date'
+import { formatAxisCurrency, formatCurrency } from '@/lib/utils/currency'
 
 type DataPoint = { month: string; total: number; aporte?: number }
-
-function formatCurrencyShort(value: number) {
-  if (value >= 1000) return `R$${(value / 1000).toFixed(1)}k`
-  return `R$${value.toFixed(0)}`
-}
-
-function formatCurrencyFull(value: number) {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-}
 
 export function PatrimonyChart({ data }: { data: DataPoint[] }) {
   if (data.length === 0) {
@@ -51,7 +43,7 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis dataKey="month" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
         <YAxis
-          tickFormatter={formatCurrencyShort}
+          tickFormatter={formatAxisCurrency}
           tick={{ fontSize: 12 }}
           tickLine={false}
           axisLine={false}
@@ -61,7 +53,7 @@ export function PatrimonyChart({ data }: { data: DataPoint[] }) {
           formatter={(value: number, name: string) => {
             if (name === '__fill__') return ['', '']
             return [
-              formatCurrencyFull(value),
+              formatCurrency(value),
               name === 'total' ? 'Patrimônio total' : 'Capital alocado',
             ]
           }}

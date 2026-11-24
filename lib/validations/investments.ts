@@ -70,6 +70,7 @@ export const withdrawalSchema = withdrawalBase
 // upsertInvestment receives referenceMonth as YYYY-MM-01 (converted by the form)
 export const upsertInvestmentActionSchema = z
   .object({
+    mode: z.enum(['create', 'edit']),
     investmentTypeId: uuidSchema,
     referenceMonth: referenceMonthSchema,
     amount: nullishNonNegativeAmountSchema,

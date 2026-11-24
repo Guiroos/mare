@@ -1,4 +1,4 @@
-import { NumericInput } from '@/components/ui/numeric-input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Chip } from '@/components/ui/chip'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils/cn'
@@ -69,7 +69,8 @@ export function HeroAmountCard({
           <p className={cn('text-caption opacity-60', heroLabel.investimento)}>Aporte</p>
           <div className="flex items-baseline gap-2">
             <span className={cn('text-h3', heroLabel.investimento)}>R$</span>
-            <NumericInput
+            <CurrencyInput
+              currency={false}
               name="amount"
               defaultValue={defaultAmount}
               error={!!errors.amount}
@@ -90,7 +91,8 @@ export function HeroAmountCard({
           </p>
           <div className="flex items-baseline gap-2">
             <span className={cn('text-body opacity-70', heroLabel.investimento)}>R$</span>
-            <NumericInput
+            <CurrencyInput
+              currency={false}
               name="yieldAmount"
               defaultValue={defaultYield}
               error={!!errors.yieldAmount}
@@ -113,7 +115,8 @@ export function HeroAmountCard({
       </p>
       <div className="flex items-baseline gap-2">
         <span className={cn('text-h3', heroLabel[primaryType])}>R$</span>
-        <NumericInput
+        <CurrencyInput
+          currency={false}
           name={resolvedType === 'parcelado' ? 'totalAmount' : 'amount'}
           defaultValue={defaultAmount}
           error={!!(errors.amount ?? errors.totalAmount)}

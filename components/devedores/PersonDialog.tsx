@@ -6,14 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { toast } from 'sonner'
 import { createPerson, updatePerson, archivePerson } from '@/lib/actions/debtors'
 import { personSchema } from '@/lib/validations/debtors'
 import { formatZodErrors } from '@/lib/validations/utils'
 import { formatCurrency } from '@/lib/utils/currency'
-import { useMediaQuery } from '@/hooks/use-media-query'
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog'
 
 type Props =
   | { mode: 'create' }
@@ -41,7 +39,6 @@ export function PersonDialog(props: Props) {
   const [isArchiving, startArchiveTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
-  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v)
@@ -185,33 +182,12 @@ export function PersonDialog(props: Props) {
       </Button>
     ) : null
 
-  if (isDesktop) {
-    return (
-      <>
-        {trigger}
-        <Dialog open={open} onOpenChange={handleOpenChange}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
-            </DialogHeader>
-            {form}
-          </DialogContent>
-        </Dialog>
-      </>
-    )
-  }
-
   return (
     <>
       {trigger}
-      <Drawer open={open} onOpenChange={handleOpenChange}>
-        <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>{title}</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 pb-6">{form}</div>
-        </DrawerContent>
-      </Drawer>
+      <ResponsiveDialog open={open} onOpenChange={handleOpenChange} title={title}>
+        {form}
+      </ResponsiveDialog>
     </>
   )
 }

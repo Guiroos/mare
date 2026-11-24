@@ -733,3 +733,60 @@ describe('deleteInvestmentType', () => {
     expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/metas')
   })
 })
+
+describe('upsertInvestment', () => {
+  const entry = (typeId: string, over: Record<string, unknown> = {}) => ({
+    mode: 'create' as const,
+    investmentTypeId: typeId,
+    referenceMonth: '2025-01-01',
+    amount: null,
+    yieldAmount: null,
+    ...over,
+  })
+
+  async function rowsFor(typeId: string) {
+    return db.query.investments.findMany({
+      where: and(
+        eq(schema.investments.userId, userId),
+        eq(schema.investments.investmentTypeId, typeId)
+      ),
+    })
+  }
+
+  it('create: segundo registro no mesmo mês devolve entry_exists e preserva o primeiro', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Tipo Upsert Create' })
+    const { upsertInvestment } = await import('@/lib/actions/investments')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptOptional } = await import('@/lib/crypto/fields')
+
+    expect(await upsertInvestment(entry(type.id, { yieldAmount: '30.00' }))).toEqual({
+      ok: true,
+      data: undefined,
+    })
+    const second = await upsertInvestment(entry(type.id, { amount: '500.00' }))
+
+    expect(second).toMatchObject({ ok: false, code: 'entry_exists' })
+    const rows = await rowsFor(type.id)
+    expect(rows).toHaveLength(1)
+    const dek = await getDekForUser(userId)
+    expect(decryptOptional(rows[0].yieldAmount, dek)).toBe('30.00')
+    expect(rows[0].amount).toBeNull()
+  })
+
+  it('edit: sobrescreve o registro existente do mês', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Tipo Upsert Edit' })
+    const { upsertInvestment } = await import('@/lib/actions/investments')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptOptional } = await import('@/lib/crypto/fields')
+
+    await upsertInvestment(entry(type.id, { yieldAmount: '30.00' }))
+    const result = await upsertInvestment(entry(type.id, { mode: 'edit', amount: '500.00' }))
+
+    expect(result).toEqual({ ok: true, data: undefined })
+    const rows = await rowsFor(type.id)
+    expect(rows).toHaveLength(1)
+    const dek = await getDekForUser(userId)
+    expect(decryptOptional(rows[0].amount, dek)).toBe('500.00')
+    expect(rows[0].yieldAmount).toBeNull()
+  })
+})

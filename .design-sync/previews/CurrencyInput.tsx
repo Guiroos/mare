@@ -25,3 +25,10 @@ export const ComErro = () => (
     </Field>
   </div>
 )
+
+export const EmHeroCard = () => (
+  <div className="flex max-w-sm items-center gap-3">
+    <span className="text-h2 text-text-secondary">R$</span>
+    <CurrencyInput name="aporte" defaultValue="900" currency={false} className="text-h2" />
+  </div>
+)
