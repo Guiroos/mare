@@ -3,6 +3,7 @@
 import { SensitiveAmount } from '@/components/providers/PrivacyMode'
 import { cn } from '@/lib/utils/cn'
 import { formatMonthAbbr } from '@/lib/utils/date'
+import { AnnualTotals } from '@/lib/utils/panorama-totals'
 
 type MonthRow = {
   month: string
@@ -12,19 +13,15 @@ type MonthRow = {
   balance: number
 }
 
+// `totals` é a soma dos 12 meses da própria tabela (annualTotals), não o YTD dos cards.
 export function PanoramaTable({
   overview,
-  totalIncomes,
-  totalExpensesYTD,
-  totalInvested,
-  finalBalance,
+  totals,
 }: {
   overview: MonthRow[]
-  totalIncomes: number
-  totalExpensesYTD: number
-  totalInvested: number
-  finalBalance: number
+  totals: AnnualTotals
 }) {
+  const { totalIncomes, totalExpenses, totalInvested, balance: finalBalance } = totals
   return (
     <>
       {/* Desktop table */}
@@ -72,7 +69,7 @@ export function PanoramaTable({
                 <SensitiveAmount value={totalIncomes} />
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-negative">
-                <SensitiveAmount value={totalExpensesYTD} />
+                <SensitiveAmount value={totalExpenses} />
               </td>
               <td className="px-4 py-3 text-right tabular-nums text-accent">
                 <SensitiveAmount value={totalInvested} />
@@ -150,7 +147,7 @@ export function PanoramaTable({
             <div>
               <span className="block">Gastos</span>
               <span className="font-semibold tabular-nums text-negative">
-                <SensitiveAmount value={totalExpensesYTD} />
+                <SensitiveAmount value={totalExpenses} />
               </span>
             </div>
             <div>

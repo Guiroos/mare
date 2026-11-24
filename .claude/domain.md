@@ -71,7 +71,7 @@ Referenciado por `CLAUDE.md` via `@`. Para o domínio de fatura (regime de cart�
 ## Panorama
 
 - **activeMonths**: `overview.filter(m => m.month <= currentYearMonth())` — nunca `m.totalIncomes > 0`
-- tfoot usa `totalExpensesYTD`; saldo: `income - expenses - invested`; média de investimentos usa `monthsWithInvestment` como divisor
+- Totais do Panorama vêm de `lib/utils/panorama-totals.ts` e têm **dois períodos**: `annualTotals` (12 meses — rodapé "Total" da tabela, soma a coluna que encabeça) e `annualTotalsToDate` (meses decorridos — cards "Acumulada", com `monthsElapsed`/`monthsWithInvestment` como divisores). Nunca passar um conjunto à superfície do outro (#125); saldo: `income - expenses - invested`
 - Comparações YTD: filtrar `prevOverview` pelos meses ativos do ano atual (`.slice(5)` para extrair `MM` antes de montar o Set)
 - `getAnnualOverview` soma `transactions` **e** `fixedExpenses` para despesas mensais — toda action que revalida `/dashboard` por dado financeiro (incomes, transactions, fixedExpenses, investments, withdrawals) deve também chamar `revalidatePath('/panorama')`; exceção: budget overrides em `categories.ts`
 

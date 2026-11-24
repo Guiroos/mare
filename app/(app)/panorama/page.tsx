@@ -9,6 +9,7 @@ import { getPatrimonyTimeline } from '@/lib/queries/investments'
 import { getUserCreditMode } from '@/lib/queries/fatura'
 import { getCreditAccounts } from '@/lib/queries/categories'
 import { currentYearMonth, normalizeYearParam } from '@/lib/utils/date'
+import { annualTotals, annualTotalsToDate } from '@/lib/utils/panorama-totals'
 import { Card } from '@/components/ui/card'
 import { AnnualStackedChart } from '@/components/charts/AnnualStackedChart'
 import { PatrimonyEvolutionChart } from '@/components/charts/PatrimonyEvolutionChart'
@@ -54,13 +55,10 @@ export default async function PanoramaPage({
       getPatrimonyTimeline(userId),
     ])
 
-  const nowYM = currentYearMonth()
-  const activeOverview = overview.filter((m) => m.month <= nowYM)
-
-  const totalIncomes = overview.reduce((sum, m) => sum + m.totalIncomes, 0)
-  const totalExpensesYTD = activeOverview.reduce((sum, m) => sum + m.totalExpenses, 0)
-  const totalInvested = overview.reduce((sum, m) => sum + m.totalInvested, 0)
-  const finalBalance = totalIncomes - totalExpensesYTD - totalInvested
+  // Dois conjuntos, nomeados pelo período: a tabela soma a coluna (12 meses),
+  // os cards são YTD. Nunca passar um no lugar do outro (#125).
+  const tableTotals = annualTotals(overview)
+  const ytdTotals = annualTotalsToDate(overview, currentYearMonth())
 
   const allGroupNames = Array.from(
     new Set(expensesByGroup.flatMap((m) => m.groups.map((g) => g.groupName)))
@@ -95,13 +93,7 @@ export default async function PanoramaPage({
         </div>
       </div>
 
-      <AnnualSummaryCards
-        overview={overview}
-        prevOverview={prevOverview}
-        year={year}
-        totalIncomes={totalIncomes}
-        totalInvested={totalInvested}
-      />
+      <AnnualSummaryCards prevOverview={prevOverview} year={year} totals={ytdTotals} />
 
       <Card padding="md">
         <PatrimonyEvolutionChart
@@ -116,13 +108,7 @@ export default async function PanoramaPage({
         <div className="px-5 py-4">
           <h2 className="text-body font-semibold text-text-primary">Tabela mensal</h2>
         </div>
-        <PanoramaTable
-          overview={overview}
-          totalIncomes={totalIncomes}
-          totalExpensesYTD={totalExpensesYTD}
-          totalInvested={totalInvested}
-          finalBalance={finalBalance}
-        />
+        <PanoramaTable overview={overview} totals={tableTotals} />
       </Card>
 
       {/* Section 2 — Expenses by group chart */}
