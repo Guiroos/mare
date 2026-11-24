@@ -4,16 +4,15 @@ import { ChevronUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrencyShort } from '@/lib/utils/currency'
-import { currentYearMonth } from '@/lib/utils/date'
 import { SensitiveAmount, usePrivacyMode } from '@/components/providers/PrivacyMode'
 import { OverviewMonth } from '@/lib/queries/panorama'
+import { annualTotals, AnnualTotalsToDate } from '@/lib/utils/panorama-totals'
 
 interface Props {
-  overview: OverviewMonth[]
   prevOverview: OverviewMonth[]
   year: number
-  totalIncomes: number
-  totalInvested: number
+  /** YTD (annualTotalsToDate): receita, despesa e aporte dos mesmos meses já ocorridos. */
+  totals: AnnualTotalsToDate<OverviewMonth>
 }
 
 interface MetricCardProps {
@@ -58,37 +57,32 @@ function changePct(curr: number, prev: number, usePrevAbs = false): number | nul
   return ((curr - prev) / (usePrevAbs ? Math.abs(prev) : prev)) * 100
 }
 
-export function AnnualSummaryCards({
-  overview,
-  prevOverview,
-  year,
-  totalIncomes,
-  totalInvested,
-}: Props) {
+export function AnnualSummaryCards({ prevOverview, year, totals }: Props) {
   const { isPrivate } = usePrivacyMode()
 
-  // Meses já ocorridos: determina por data, não por presença de receita.
-  // Filtrar por totalIncomes > 0 quebra quando não há receitas no ano (só parcelas).
-  const nowYearMonth = currentYearMonth()
-  const active = overview.filter((m) => m.month <= nowYearMonth)
-  const monthsElapsed = active.length
-  const activeMonthKeys = new Set(active.map((m) => m.month.slice(5)))
+  const {
+    totalIncomes,
+    totalExpenses: totalExpensesYTD,
+    totalInvested,
+    balance,
+    activeMonths,
+    monthsElapsed,
+    monthsWithInvestment,
+  } = totals
+  const activeMonthKeys = new Set(activeMonths.map((m) => m.month.slice(5)))
 
-  const totalExpensesYTD = active.reduce((s, m) => s + m.totalExpenses, 0)
-
-  const balance = totalIncomes - totalExpensesYTD - totalInvested
-
-  const prevSamePeriod = prevOverview.filter((m) => activeMonthKeys.has(m.month.slice(5)))
-  const prevIncomes = prevSamePeriod.reduce((s, m) => s + m.totalIncomes, 0)
-  const prevExpenses = prevSamePeriod.reduce((s, m) => s + m.totalExpenses, 0)
-  const prevInvested = prevSamePeriod.reduce((s, m) => s + m.totalInvested, 0)
-  const prevBalance = prevIncomes - prevExpenses - prevInvested
+  const prev = annualTotals(prevOverview.filter((m) => activeMonthKeys.has(m.month.slice(5))))
+  const {
+    totalIncomes: prevIncomes,
+    totalExpenses: prevExpenses,
+    totalInvested: prevInvested,
+    balance: prevBalance,
+  } = prev
 
   const avgExpense = monthsElapsed > 0 ? totalExpensesYTD / monthsElapsed : 0
   const projectedIncome = monthsElapsed > 0 ? (totalIncomes / monthsElapsed) * 12 : 0
   const taxaPoupanca = totalIncomes > 0 ? Math.round((balance / totalIncomes) * 100) : 0
   const taxaInvestimento = totalIncomes > 0 ? Math.round((totalInvested / totalIncomes) * 100) : 0
-  const monthsWithInvestment = overview.filter((m) => m.totalInvested > 0).length
 
   const incomeChangePct = changePct(totalIncomes, prevIncomes)
   const expenseChangePct = changePct(totalExpensesYTD, prevExpenses)
