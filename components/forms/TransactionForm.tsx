@@ -301,7 +301,9 @@ export function TransactionForm({
 
     if (type === 'avulso') {
       if (integralBlockReason) {
-        setErrors({ split: integralBlockReason })
+        // O painel de divisão já exibe o motivo ao vivo; copiá-lo em errors.split
+        // duplicaria a frase e a cópia ficaria obsoleta ao editar.
+        setErrors({})
         return
       }
       const amountToUse =
@@ -367,7 +369,9 @@ export function TransactionForm({
       })
     } else if (type === 'parcelado') {
       if (integralBlockReason) {
-        setErrors({ split: integralBlockReason })
+        // O painel de divisão já exibe o motivo ao vivo; copiá-lo em errors.split
+        // duplicaria a frase e a cópia ficaria obsoleta ao editar.
+        setErrors({})
         return
       }
       const totalAmountToUse =
