@@ -11,6 +11,8 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/currency'
 import {
+  computeYourShareCents,
+  integralSubmitBlockReason,
   resolveSplitAmounts,
   selectSubmittableSplits,
   SplitEntry,
@@ -115,8 +117,8 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
 
   // Soma o mesmo conjunto que o submit: linha sem pessoa não vira cobrança e
   // não pode descontar da sua parte.
-  const totalSplitCents = selectSubmittableSplits(resolved).reduce((s, e) => s + e.amountCents, 0)
-  const yourShareCents = totalCents - totalSplitCents
+  const yourShareCents = computeYourShareCents(totalCents, resolved)
+  const integralBlockReason = integral ? integralSubmitBlockReason(totalCents, resolved) : null
 
   const usedPersonIds = new Set(entries.map((e) => e.personId).filter(Boolean))
 
@@ -252,6 +254,7 @@ export function SplitSection({ people, totalCents, onChange, onIntegralChange }:
             {formatCurrency(yourShareCents / 100)}
           </span>
         </div>
+        {integralBlockReason && <p className="text-caption text-negative">{integralBlockReason}</p>}
       </div>
     </div>
   )

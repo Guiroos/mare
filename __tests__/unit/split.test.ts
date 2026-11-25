@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { computeEqualShare, resolveSplitAmounts, selectSubmittableSplits } from '@/lib/utils/split'
+import {
+  computeEqualShare,
+  computeYourShareCents,
+  integralSubmitBlockReason,
+  resolveSplitAmounts,
+  selectSubmittableSplits,
+} from '@/lib/utils/split'
 
 describe('computeEqualShare', () => {
   it('divide o total entre as pessoas mais você', () => {
@@ -91,5 +97,32 @@ describe('selectSubmittableSplits', () => {
     const ok = { uid: 'a', personId: 'p1', amountCents: 3000 }
     const orfa = { uid: 'b', personId: '', amountCents: 3000 }
     expect(selectSubmittableSplits([ok, orfa])).toEqual([ok])
+  })
+})
+
+describe('integralSubmitBlockReason / computeYourShareCents', () => {
+  const share = (personId: string, amountCents: number) => ({
+    uid: personId,
+    personId,
+    amountCents,
+  })
+
+  it('bloqueia quando as partes cobrem exatamente o total', () => {
+    expect(integralSubmitBlockReason(12000, [share('p1', 12000)])).not.toBeNull()
+  })
+
+  it('bloqueia quando as partes excedem o total', () => {
+    expect(integralSubmitBlockReason(12000, [share('p1', 13000)])).not.toBeNull()
+    expect(computeYourShareCents(12000, [share('p1', 13000)])).toBe(-1000)
+  })
+
+  it('não bloqueia quando sobra parte sua', () => {
+    expect(integralSubmitBlockReason(12000, [share('p1', 6000)])).toBeNull()
+    expect(computeYourShareCents(12000, [share('p1', 6000)])).toBe(6000)
+  })
+
+  it('ignora linha sem pessoa ou sem valor, como o submit', () => {
+    expect(computeYourShareCents(12000, [share('', 12000), share('p1', 0)])).toBe(12000)
+    expect(integralSubmitBlockReason(12000, [share('', 12000)])).toBeNull()
   })
 })

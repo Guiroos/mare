@@ -53,6 +53,7 @@ import type {
   SaidaSubType,
 } from './transaction/types'
 import type { TransactionSplit } from '@/lib/actions/transactions'
+import { computeYourShareCents, integralSubmitBlockReason, SplitEntry } from '@/lib/utils/split'
 
 type FormType = 'avulso' | 'fixo' | 'parcelado' | 'entrada' | 'investimento' | 'resgate'
 
@@ -142,9 +143,18 @@ export function TransactionForm({
 
   const totalCents = Math.round(parseFloat(previewAmount || '0') * 100)
   const totalSplitCents = splits.reduce((s, e) => s + Math.round(parseFloat(e.amount) * 100), 0)
-  const yourShareCents = Math.max(0, totalCents - totalSplitCents)
+  const splitEntries: SplitEntry[] = splits.map((e, i) => ({
+    uid: String(i),
+    personId: e.personId,
+    amountCents: Math.round(parseFloat(e.amount) * 100),
+  }))
+  const integralBlockReason = splitIntegral
+    ? integralSubmitBlockReason(totalCents, splitEntries)
+    : null
   const effectivePreviewAmount =
-    splitIntegral && splits.length > 0 ? (yourShareCents / 100).toFixed(2) : previewAmount
+    splitIntegral && splits.length > 0
+      ? (computeYourShareCents(totalCents, splitEntries) / 100).toFixed(2)
+      : previewAmount
 
   const resetForm = () => {
     setKey((k) => k + 1)
@@ -290,6 +300,10 @@ export function TransactionForm({
     }
 
     if (type === 'avulso') {
+      if (integralBlockReason) {
+        setErrors({ split: integralBlockReason })
+        return
+      }
       const amountToUse =
         splitIntegral && splits.length > 0 ? effectivePreviewAmount : str('amount')
       const result = transactionSchema.safeParse({
@@ -352,6 +366,10 @@ export function TransactionForm({
         }
       })
     } else if (type === 'parcelado') {
+      if (integralBlockReason) {
+        setErrors({ split: integralBlockReason })
+        return
+      }
       const totalAmountToUse =
         splitIntegral && splits.length > 0 ? effectivePreviewAmount : str('totalAmount')
       const result = installmentSchema.safeParse({
