@@ -276,7 +276,7 @@ function encontrarBotoesSemNome(source: string): number[] {
     const tag = lerTagAberta(source, m.index)
     if (!tag || tag.autoFechada) continue
     // Fecha no </Button> correspondente, contando aninhamento do mesmo nome.
-    const nome = tag.nome.replace(/\./g, '\\.')
+    const nome = tag.nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     const re = new RegExp(`<${nome}(?=[\\s>/])|</${nome}>`, 'g')
     re.lastIndex = tag.fimTag
     let nivel = 1
