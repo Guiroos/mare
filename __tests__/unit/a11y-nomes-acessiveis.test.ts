@@ -270,12 +270,14 @@ function semIconesAutoFechados(corpo: string): string {
 
 function encontrarBotoesSemNome(source: string): number[] {
   const linhas: number[] = []
-  const abertura = /<(button|Button)(?=[\s>/])/g
+  // Inclui Close/Trigger dos primitivos Radix, que renderizam <button> (ex.: o X do DialogContent).
+  const abertura = /<(button|Button|[A-Z]\w*Primitive\.(?:Close|Trigger))(?=[\s>/])/g
   for (const m of source.matchAll(abertura)) {
     const tag = lerTagAberta(source, m.index)
     if (!tag || tag.autoFechada) continue
     // Fecha no </Button> correspondente, contando aninhamento do mesmo nome.
-    const re = new RegExp(`<${tag.nome}(?=[\\s>/])|</${tag.nome}>`, 'g')
+    const nome = tag.nome.replace(/\./g, '\\.')
+    const re = new RegExp(`<${nome}(?=[\\s>/])|</${nome}>`, 'g')
     re.lastIndex = tag.fimTag
     let nivel = 1
     let fimCorpo = -1
@@ -350,8 +352,18 @@ describe('Gate repo-wide — botão só de ícone tem nome acessível (#131)', (
     expect(infratores).toEqual([])
   })
 
-  it('controle positivo: o DialogClose do DS (sr-only) não é acusado', () => {
+  it('controle positivo: o X do DialogContent (sr-only) é examinado e não é acusado', () => {
     const dialog = readFileSync(join(process.cwd(), 'components/ui/dialog.tsx'), 'utf-8')
     expect(encontrarBotoesSemNome(dialog)).toEqual([])
+    // Sem o sr-only o detector tem de acusar — senão o controle passa com o detector cego.
+    const semNome = dialog.replace(/<span className="sr-only">Fechar<\/span>/, '')
+    expect(semNome).not.toBe(dialog)
+    expect(encontrarBotoesSemNome(semNome)).not.toEqual([])
+  })
+
+  it('fixture: DialogPrimitive.Close só de ícone é acusado', () => {
+    expect(
+      encontrarBotoesSemNome('<DialogPrimitive.Close className="x"><X /></DialogPrimitive.Close>')
+    ).toEqual([1])
   })
 })
