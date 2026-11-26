@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join, relative } from 'node:path'
 
 // ─── Botões só de ícone sem nome acessível (#106) ──────────────────────────
 //
@@ -198,5 +198,172 @@ describe('SplitSection — os dois botões "X" têm nomes distintos (#129)', () 
     expect(gatilhos.every((g) => (g.match(/</g) ?? []).length === 2)).toBe(true)
     expect(rotulos.every(Boolean)).toBe(true)
     expect(new Set(rotulos).size).toBe(rotulos.length)
+  })
+})
+
+// ─── Gate repo-wide: nenhum botão só de ícone sem nome (#131) ──────────────
+//
+// As asserções acima ancoram em 9 sites conhecidos e só protegem esses. Este
+// gate varre `components/` e `app/` inteiros: todo <button>/<Button> cujo
+// corpo é só ícone(s) auto-fechado(s) precisa de aria-label, aria-labelledby
+// ou title na tag de abertura. (Um filho `sr-only` já tira o botão da lista:
+// o <span> com texto não é ícone.)
+//
+// O parser anda caractere a caractere pela tag de abertura respeitando `{}` e
+// aspas. A regex `<Button([^>]*?)>` fecha a tag no `>` da arrow function de
+// `onClick={() => removePerson(uid)}` (SplitSection) e classifica o botão como
+// "com texto" — falso negativo exatamente num dos sites que o gate trava.
+//
+// Limite conhecido: corpo com ícone dentro de expressão (`{a ? <X /> : <Y />}`)
+// sobra `{a ? : }` como resto e não é tratado como só-ícone. Nenhum site atual
+// usa isso; se aparecer, estender `soIcones`.
+
+interface TagAberta {
+  nome: string
+  fimTag: number // índice logo após o `>` que fecha a tag de abertura
+  attrs: string
+  autoFechada: boolean
+}
+
+function lerTagAberta(src: string, inicio: number): TagAberta | null {
+  const m = /^<([A-Za-z][\w.]*)/.exec(src.slice(inicio))
+  if (!m) return null
+  let i = inicio + m[0].length
+  let chaves = 0
+  let aspas: string | null = null
+  const attrsDe = i
+  for (; i < src.length; i++) {
+    const c = src[i]
+    if (aspas) {
+      if (c === '\\') i++
+      else if (c === aspas) aspas = null
+      continue
+    }
+    if (c === '"' || c === "'" || c === '`') aspas = c
+    else if (c === '{') chaves++
+    else if (c === '}') chaves--
+    else if (c === '>' && chaves === 0) {
+      const attrs = src.slice(attrsDe, i)
+      const autoFechada = attrs.trimEnd().endsWith('/')
+      return { nome: m[1], fimTag: i + 1, attrs, autoFechada }
+    }
+  }
+  return null
+}
+
+// Remove componentes auto-fechados (`<Pencil className="..." />`) e devolve o resto.
+function semIconesAutoFechados(corpo: string): string {
+  let resto = ''
+  let i = 0
+  while (i < corpo.length) {
+    if (corpo[i] === '<' && /[A-Z]/.test(corpo[i + 1] ?? '')) {
+      const tag = lerTagAberta(corpo, i)
+      if (tag?.autoFechada) {
+        i = tag.fimTag
+        continue
+      }
+    }
+    resto += corpo[i++]
+  }
+  return resto
+}
+
+function encontrarBotoesSemNome(source: string): number[] {
+  const linhas: number[] = []
+  // Inclui Close/Trigger dos primitivos Radix, que renderizam <button> (ex.: o X do DialogContent).
+  const abertura = /<(button|Button|[A-Z]\w*Primitive\.(?:Close|Trigger))(?=[\s>/])/g
+  for (const m of source.matchAll(abertura)) {
+    const tag = lerTagAberta(source, m.index)
+    if (!tag || tag.autoFechada) continue
+    // Fecha no </Button> correspondente, contando aninhamento do mesmo nome.
+    const nome = tag.nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`<${nome}(?=[\\s>/])|</${nome}>`, 'g')
+    re.lastIndex = tag.fimTag
+    let nivel = 1
+    let fimCorpo = -1
+    for (let r = re.exec(source); r; r = re.exec(source)) {
+      nivel += r[0].startsWith('</') ? -1 : 1
+      if (nivel === 0) {
+        fimCorpo = r.index
+        break
+      }
+    }
+    if (fimCorpo < 0) continue
+    const corpo = source.slice(tag.fimTag, fimCorpo)
+    const soIcones = /<[A-Z]/.test(corpo) && semIconesAutoFechados(corpo).trim() === ''
+    if (!soIcones) continue
+    if (/\b(aria-label|aria-labelledby|title)\s*=/.test(tag.attrs)) continue
+    linhas.push(source.slice(0, m.index).split('\n').length)
+  }
+  return linhas
+}
+
+function listarTsx(dir: string): string[] {
+  return readdirSync(join(process.cwd(), dir), { withFileTypes: true, recursive: true })
+    .filter((e) => e.isFile() && e.name.endsWith('.tsx'))
+    .map((e) => join(e.parentPath, e.name))
+}
+
+describe('Gate repo-wide — botão só de ícone tem nome acessível (#131)', () => {
+  describe('detector (fixtures)', () => {
+    it('acusa botão só de ícone sem nome', () => {
+      expect(encontrarBotoesSemNome('<Button size="icon"><X className="h-4" /></Button>')).toEqual([
+        1,
+      ])
+    })
+
+    it('acusa quando o onClick tem arrow function (o `>` que engana a regex ingênua)', () => {
+      const src = `<Button\n  variant="ghost"\n  onClick={() => removePerson(entry.uid)}\n>\n  <X className="h-4" />\n</Button>`
+      expect(encontrarBotoesSemNome(src)).toEqual([1])
+    })
+
+    it('aceita aria-label, aria-labelledby e title na tag de abertura', () => {
+      for (const attr of ['aria-label="Fechar"', 'aria-labelledby="x"', 'title="Fechar"']) {
+        expect(encontrarBotoesSemNome(`<Button ${attr}><X /></Button>`)).toEqual([])
+      }
+    })
+
+    it('não aceita aria-label colocado no ícone em vez do botão', () => {
+      expect(encontrarBotoesSemNome('<Button><X aria-label="Fechar" /></Button>')).toEqual([1])
+    })
+
+    it('ignora botão com texto, com sr-only ou com ícone + texto', () => {
+      expect(encontrarBotoesSemNome('<button><X /> Fechar</button>')).toEqual([])
+      expect(
+        encontrarBotoesSemNome('<button><X /><span className="sr-only">Fechar</span></button>')
+      ).toEqual([])
+      expect(encontrarBotoesSemNome('<Button><Plus />{label}</Button>')).toEqual([])
+    })
+
+    it('trata botões aninhados pelo fechamento correto', () => {
+      const src = '<Button aria-label="a"><X /></Button>\n<Button><Y /></Button>'
+      expect(encontrarBotoesSemNome(src)).toEqual([2])
+    })
+  })
+
+  it('nenhum <button>/<Button> só de ícone sem nome em components/ e app/', () => {
+    const infratores: string[] = []
+    for (const arquivo of [...listarTsx('components'), ...listarTsx('app')]) {
+      const source = readFileSync(arquivo, 'utf-8')
+      for (const linha of encontrarBotoesSemNome(source)) {
+        infratores.push(`${relative(process.cwd(), arquivo)}:${linha}`)
+      }
+    }
+    expect(infratores).toEqual([])
+  })
+
+  it('controle positivo: o X do DialogContent (sr-only) é examinado e não é acusado', () => {
+    const dialog = readFileSync(join(process.cwd(), 'components/ui/dialog.tsx'), 'utf-8')
+    expect(encontrarBotoesSemNome(dialog)).toEqual([])
+    // Sem o sr-only o detector tem de acusar — senão o controle passa com o detector cego.
+    const semNome = dialog.replace(/<span className="sr-only">Fechar<\/span>/, '')
+    expect(semNome).not.toBe(dialog)
+    expect(encontrarBotoesSemNome(semNome)).not.toEqual([])
+  })
+
+  it('fixture: DialogPrimitive.Close só de ícone é acusado', () => {
+    expect(
+      encontrarBotoesSemNome('<DialogPrimitive.Close className="x"><X /></DialogPrimitive.Close>')
+    ).toEqual([1])
   })
 })
