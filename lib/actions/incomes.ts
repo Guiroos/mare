@@ -46,7 +46,7 @@ export type UpdateIncomeInput = {
   tripId?: string
 }
 
-export async function updateIncome(data: UpdateIncomeInput) {
+export async function updateIncome(data: UpdateIncomeInput): Promise<ActionResult> {
   const userId = await requireUserId()
   const parsed = updateIncomeActionSchema.parse(data)
   if (parsed.tripId) {
@@ -69,6 +69,24 @@ export async function updateIncome(data: UpdateIncomeInput) {
       throw new Error('Só resgates para o caixa podem ser vinculados a uma viagem')
     }
   }
+
+  // Entrada de rolagem (resgate 'reinvest') carrega investmentReturnCapital, e o invariante
+  // capital <= amount vive em updateWithdrawal. Editar só `amount` aqui o quebraria e deixaria
+  // investmentWithdrawals.amount no valor antigo. destination 'income' não grava capital
+  // (continua editável); entrada comum também não.
+  const [existing] = await db
+    .select({ investmentReturnCapital: incomes.investmentReturnCapital })
+    .from(incomes)
+    .where(and(eq(incomes.id, parsed.id), eq(incomes.userId, userId)))
+    .limit(1)
+  if (existing?.investmentReturnCapital != null) {
+    return {
+      ok: false,
+      code: 'income_is_derived',
+      message:
+        'Esta entrada veio de um resgate com reinvestimento. Edite o resgate em Investimentos.',
+    }
+  }
   const dek = await getDekForUser(userId)
 
   await db
@@ -83,6 +101,7 @@ export async function updateIncome(data: UpdateIncomeInput) {
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/viagens')
+  return { ok: true, data: undefined }
 }
 
 export async function deleteIncome(id: string): Promise<ActionResult> {

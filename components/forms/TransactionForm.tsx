@@ -226,7 +226,11 @@ export function TransactionForm({
         setErrors({})
         startTransition(async () => {
           try {
-            await updateIncome({ id: editContext.entityId, ...result.data })
+            const res = await updateIncome({ id: editContext.entityId, ...result.data })
+            if (!res.ok) {
+              toast.error(res.message)
+              return
+            }
             onSuccess?.()
           } catch {
             toast.error('Erro ao salvar. Tente novamente.')

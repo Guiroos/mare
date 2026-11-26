@@ -109,3 +109,73 @@ describe('deleteIncome', () => {
     expect(result).toMatchObject({ ok: false, code: 'not_found' })
   })
 })
+
+describe('updateIncome', () => {
+  async function rollover(name: string) {
+    const type = await createInvestmentType(db, userId, { name })
+    await db.insert(schema.investments).values({
+      userId,
+      investmentTypeId: type.id,
+      referenceMonth: '2025-01-01',
+      amount: '3000.00',
+      yieldAmount: null,
+      excludeFromCashFlow: false,
+    })
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: name,
+      amount: '3450.00',
+      date: '2025-06-01',
+      destination: 'reinvest',
+    })
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: eq(schema.investmentWithdrawals.investmentTypeId, type.id),
+    })
+    return withdrawal!.incomeId!
+  }
+
+  it('recusa editar a entrada de uma rolagem — o capital ficaria maior que o valor', async () => {
+    const incomeId = await rollover('CDB update income')
+    const before = await db.query.incomes.findFirst({ where: eq(schema.incomes.id, incomeId) })
+
+    const { updateIncome } = await import('@/lib/actions/incomes')
+    const result = await updateIncome({
+      id: incomeId,
+      source: 'Resgate investimento CDB update income',
+      amount: '200.00',
+    })
+
+    expect(result).toMatchObject({ ok: false, code: 'income_is_derived' })
+    const after = await db.query.incomes.findFirst({ where: eq(schema.incomes.id, incomeId) })
+    expect(after?.amount).toBe(before?.amount)
+    expect(after?.investmentReturnCapital).toBe(before?.investmentReturnCapital)
+  })
+
+  it('entrada de resgate para o caixa e entrada comum continuam editáveis', async () => {
+    const type = await createInvestmentType(db, userId, { name: 'Tesouro update income' })
+    const { createWithdrawal } = await import('@/lib/actions/investments')
+    await createWithdrawal({
+      investmentTypeId: type.id,
+      investmentTypeName: 'Tesouro update income',
+      amount: '500.00',
+      date: '2025-06-02',
+      destination: 'income',
+    })
+    const withdrawal = await db.query.investmentWithdrawals.findFirst({
+      where: eq(schema.investmentWithdrawals.investmentTypeId, type.id),
+    })
+    const plain = await createIncome(db, userId)
+
+    const { updateIncome } = await import('@/lib/actions/incomes')
+    const r1 = await updateIncome({
+      id: withdrawal!.incomeId!,
+      source: 'Resgate editado',
+      amount: '450.00',
+    })
+    const r2 = await updateIncome({ id: plain.id, source: 'Salário editado', amount: '10.00' })
+
+    expect(r1).toEqual({ ok: true, data: undefined })
+    expect(r2).toEqual({ ok: true, data: undefined })
+  })
+})
