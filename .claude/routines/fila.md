@@ -68,19 +68,38 @@ gh api "repos/Guiroos/mare/pulls/<n>" --jq '{state, merged}'
 
 Os comandos são REST de propósito: no sandbox das Routines o GraphQL do GitHub responde 403, e `gh issue list/view/edit` e `gh pr list/view/create` dependem dele. O endpoint `/issues` também devolve PRs — daí o `select(.pull_request | not)`.
 
-## Ciclo de review sem webhook
+## Ciclo de review
 
-Na v1 a sessão de implementação se inscrevia no PR (`subscribe_pr_activity`, via conector `Claude_Code_Remote`) e corrigia 2–5 min depois do review. A v2 não tem o conector — não dá para configurá-lo nem na v1 nem na v2 — então o ciclo passa a ser por **status de commit**, que é mecânico e sobrevive a sessão morta:
+Dois caminhos, nessa ordem de rapidez:
 
-1. A Routine `review` grava em todo head que olha um status `claude-review` com `description` em um destes formatos exatos:
-   - `sem achados`
-   - `achados: <N> (<B> bloqueantes)`
-   - `só merge de main`
-   - `pulado: <motivo>`
-2. A Routine `implementacao`, no início de cada execução, procura PRs abertos cujo **head** tem `claude-review` = `achados: …`. Para esses, o head foi revisado com achados e ninguém respondeu ainda: ela corrige, empurra commit novo, e o head novo fica sem status — o review seguinte o pega.
-3. **Rodada** = um status `achados: …` num commit do PR. Implementação corrige no máximo 2 rodadas; na 3ª, comenta no PR `Precisa de humano: 3ª rodada de review com achados` e não toca mais. Review, a partir da 3ª rodada, só levanta bloqueante de comportamento (ver `review.md`).
+- **Webhook (rápido).** A sessão de implementação que abre o PR se inscreve nele (`subscribe_pr_activity`) e corrige 1–2 min depois do review. Funciona na v2 mesmo sem o conector `Claude_Code_Remote` — medido em 2026-11-25: #227 (review 14:58Z → commit 15:00Z) e #228 (18:00Z → 18:01Z). A premissa da v2 de que o webhook tinha acabado estava errada.
+- **Marca de review (robusto).** Cobre o que o webhook perde: sessão que morreu, evento que não chegou, e principalmente a pergunta "este commit já foi revisado?", que o webhook não responde.
 
-**"Já revisado" é só o status.** A v1 também contava "review seu com o mesmo `commit_id`" — e a implementação responde às threads com a mesma identidade, criando um review-wrapper com `commit_id` = head corrigido. Todo commit de correção parecia revisado e não era (#120 e #123 esperaram 2 dias; o bot reclamou disso em #169, #171, #173). 9 PRs mergearam sem review, e 3 deles (#174, #182, #193) precisaram de correção humana antes do merge.
+**A marca é um comentário fixo no PR, não status de commit.** O desenho de 2026-11-24 usava `POST /statuses` com `context=claude-review`; no sandbox das Routines o proxy recusa essa escrita (HTTP 403) e nenhuma ferramenta `mcp__github__*` grava status. No primeiro dia, nenhuma das 3 execuções de review conseguiu marcar, o #224 foi revisado 3 vezes sem mudança, e o #227 foi tratado como "rodada 1" na sua 2ª rodada.
+
+Cada PR tem **um** comentário da Routine `review`, criado na primeira revisão e editado nas seguintes (nunca um comentário novo por rodada):
+
+```
+<!-- claude-review -->
+**Review automático** — estado por commit. A Routine `review` atualiza este comentário a cada execução; não edite à mão.
+
+| Commit | Rodada | Resultado |
+| --- | --- | --- |
+| `<sha7>` | <n> | <resultado> |
+```
+
+- A primeira linha `<!-- claude-review -->` é o que identifica o comentário. Achar: `gh api "repos/Guiroos/mare/issues/<n>/comments" --jq '.[] | select(.body|startswith("<!-- claude-review -->")) | {id, body}'`.
+- Criar com `mcp__github__add_issue_comment`; editar com `mcp__github__update_issue_comment` (ou `gh api -X PATCH repos/Guiroos/mare/issues/comments/<id>`). Uma linha por commit revisado, a mais nova embaixo.
+- `<resultado>` em um destes formatos exatos — é contrato entre `review.md` e `implementacao.md`:
+  - `sem achados`
+  - `achados: <N> (<B> bloqueantes)`
+  - `só merge de main`
+
+**Revisado = o SHA curto do head está na tabela.** Review seu com o mesmo `commit_id` **não** conta: a implementação responde às threads com a mesma identidade, e cada resposta vira um review-wrapper no head corrigido. Na v1 essa regra fazia todo commit de correção parecer revisado (#120 e #123 esperaram 2 dias; o bot reclamou disso em #169, #171, #173); 9 PRs mergearam sem review, e 3 deles (#174, #182, #193) precisaram de correção humana antes do merge.
+
+**Rodada** = número de linhas `achados: …` na tabela. A implementação corrige no máximo 2 rodadas; na 3ª, comenta no PR `Precisa de humano: 3ª rodada de review com achados` e não toca mais. O review, a partir da 3ª rodada, só levanta bloqueante de comportamento (ver `review.md`).
+
+**Pendente de resposta** = a última linha da tabela é do head atual e diz `achados: …`. Se o webhook já respondeu, o head mudou e a linha deixou de ser do head — não há nada a fazer.
 
 ## Cadência
 
@@ -95,7 +114,7 @@ Na v1 a sessão de implementação se inscrevia no PR (`subscribe_pr_activity`, 
 | 14:56 | `review-de-pr-v2` | ⤴ |
 | dia 1, 16:23 | `calibragem-mensal` | `23 16 1 * *` |
 
-Pares `implementação → review` com ~2h entre eles; a implementação seguinte responde ao review anterior (ver "Ciclo de review sem webhook"). A tabela é a intenção; se divergir da UI de Routines, a UI é o que roda — corrigir um dos dois.
+Pares `implementação → review` com ~2h entre eles. A correção do review normalmente vem pelo webhook em minutos; a implementação seguinte só pega o que ficou pendente (ver "Ciclo de review"). A tabela é a intenção; se divergir da UI de Routines, a UI é o que roda — corrigir um dos dois.
 
 Duas execuções no mesmo dia tornam a reserva crítica: é `claude-wip` que impede a segunda de pegar a issue que a primeira está implementando. Execução que não consegue aplicar a label **para**.
 

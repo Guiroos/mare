@@ -134,7 +134,7 @@ Regras, tokens e inventário completo: **@.claude/ds-components.md**
 Quatro Routines agendadas (auditoria, implementação, review de PR, calibragem mensal) trabalham sobre a fila de issues `claude-audit`. Os prompts são versionados em `.claude/routines/` — a Routine só manda ler o arquivo — e mudam por PR. Nada ali é importado aqui de propósito: **sessão interativa não precisa ler esses arquivos**, salvo quando o trabalho for sobre as próprias Routines ou uma revisão de código seguindo o critério delas.
 
 - `.claude/audit.md` — julgamento: o que é bug aqui, o que não reportar, candidatos já falsificados, rotação por dia, exigências de todo achado. Ler ao fazer `/code-review` ou auditoria manual
-- `.claude/routines/fila.md` — estado da fila: labels (`claude-ready`, `claude-wip`, `claude-bloqueada`), higiene de issues presas, ciclo de review por status `claude-review`, cadência
+- `.claude/routines/fila.md` — estado da fila: labels (`claude-ready`, `claude-wip`, `claude-bloqueada`), higiene de issues presas, ciclo de review (webhook + comentário de marca no PR), cadência
 - `.claude/routines/{auditoria,implementacao,review,calibragem}.md` — o processo de cada Routine
 
 ## Acompanhamento de PR (check-ins automáticos)
