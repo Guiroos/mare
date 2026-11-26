@@ -72,7 +72,7 @@ export async function updateIncome(data: UpdateIncomeInput): Promise<ActionResul
 
   // Entrada de rolagem (resgate 'reinvest') carrega investmentReturnCapital, e o invariante
   // capital <= amount vive em updateWithdrawal. Editar só `amount` aqui o quebraria e deixaria
-  // investmentWithdrawals.amount no valor antigo. destination 'income' não grava capital
+  // investmentWithdrawals.amount no valor antigo. destination 'income' não grava mais capital
   // (continua editável); entrada comum também não.
   const [existing] = await db
     .select({ investmentReturnCapital: incomes.investmentReturnCapital })
@@ -83,8 +83,7 @@ export async function updateIncome(data: UpdateIncomeInput): Promise<ActionResul
     return {
       ok: false,
       code: 'income_is_derived',
-      message:
-        'Esta entrada veio de um resgate com reinvestimento. Edite o resgate em Investimentos.',
+      message: 'Esta entrada veio de um resgate. Edite o resgate em Investimentos.',
     }
   }
   const dek = await getDekForUser(userId)
