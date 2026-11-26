@@ -883,13 +883,13 @@ describe('edição de gasto dividido propaga para as cobranças', () => {
       name: 'Geladeira',
       totalAmount: '200.00',
       totalInstallments: 2,
-      startDate: '2026-03-20',
+      startDate: '2026-03-25',
       categoryId,
       accountId,
       splits: [{ personId, amount: '100.00' }],
     })
     const group = await db.query.installmentGroups.findFirst({
-      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-03-20')),
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-03-25')),
     })
 
     await updateInstallmentGroup({
@@ -907,6 +907,7 @@ describe('edição de gasto dividido propaga para as cobranças', () => {
       const [c] = await db.query.debtorEntries.findMany({
         where: eq(schema.debtorEntries.sourceTransactionId, t.id),
       })
+      expect(c).toBeDefined()
       expect(c.entryDate).toBe(t.date)
       expect(c.referenceMonth).toBe(t.referenceMonth)
     }
