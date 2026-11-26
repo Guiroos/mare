@@ -8,7 +8,7 @@ Este arquivo é o seu prompt inteiro; a Routine só manda lê-lo. Mudança de pr
 
 Leia com a ferramenta Read, ARQUIVO INTEIRO e sem `limit` (se vier truncado, continue com `offset` até a última linha), mesmo que pareça já estar no contexto:
 
-- `.claude/routines/fila.md` — estados e transições de label, higiene, ciclo de review por status, cadência.
+- `.claude/routines/fila.md` — estados e transições de label, higiene, ciclo de review (webhook + comentário de marca), cadência.
 - `.claude/audit.md` — seção "Exigências de todo achado" (a exigência 8 decide entre `closes #N` e `refs #N`).
 
 O `CLAUDE.md` já vem carregado. Os arquivos de `.claude/` da área que você for mexer (`db.md`, `crypto.md`, `domain.md`, `domain-fatura.md`, `auth.md`, `testing.md`, `ds-components.md`) você lê no PASSO 5, antes de escrever código.
@@ -27,13 +27,13 @@ Antes de pegar issue nova, cuide dos PRs abertos pelas Routines — só branches
 
 ```bash
 gh api "repos/Guiroos/mare/pulls?state=open&per_page=50" --jq '.[] | select(.head.ref|startswith("claude/issue-")) | {number, sha: .head.sha, ref: .head.ref}'
-gh api "repos/Guiroos/mare/commits/<sha>/statuses" --jq '[.[] | select(.context=="claude-review")][0].description'
+gh api "repos/Guiroos/mare/issues/<n>/comments" --jq '.[] | select(.body|startswith("<!-- claude-review -->")) | .body'
 gh api "repos/Guiroos/mare/pulls/<n>" --jq '{mergeable_state}'
 ```
 
 Para cada PR:
 
-1. **Head com `achados: …`** → há review sem resposta. Conte as rodadas (`fila.md` § "Ciclo de review sem webhook"): se esta for a 3ª, comente `Precisa de humano: 3ª rodada de review com achados` no PR e siga para o próximo. Senão:
+1. **Pendente de resposta** — a última linha do comentário de marca é do head atual (SHA curto) e diz `achados: …`. Normalmente o webhook da sessão que abriu o PR já respondeu e o head mudou; se não mudou, a resposta é sua. Conte as rodadas (`fila.md` § "Ciclo de review"): se esta for a 3ª, comente `Precisa de humano: 3ª rodada de review com achados` no PR e siga para o próximo. Senão:
    - Leia o review inteiro (`pulls/<n>/reviews` e `pulls/<n>/comments` do head).
    - Corrija o que estiver **dentro do escopo da issue**. O que o review pedir fora dele não entra no PR: responda na thread propondo issue de follow-up, com o motivo.
    - Nit que você decidir não aplicar: responda na thread com o motivo. Bloqueante você não recusa sozinho — se discordar, responda com a evidência e deixe para o humano.
@@ -95,7 +95,7 @@ Se não conseguir deixar tudo verde, NÃO abra PR. Comente na issue o que travou
 
 ## PASSO 7 — Doc versionada no mesmo PR
 
-Invoque a skill `session-review` sobre o escopo da branch e commite junto o que ela rotear. O alvo não é "documentar a mudança": é achar **afirmação já escrita** que deixou de ser verdade — contagem de fases, lista de arquivos, símbolo exportado fora da § API do `crypto.md`, convenção que a mudança contradiz. Na v1 isso só acontecia quando o review cobrava (#136, `883f162`, follow-ups do #157), e a execução de 2026-11-24 (#221) declarou não ter rodado.
+Invoque a skill `session-review` sobre o escopo da branch e commite junto o que ela rotear. Se a skill não estiver disponível na sessão, faça a mesma triagem à mão: leia os destinos que `.claude/commands/session-review.md` lista e confira cada um contra `git diff origin/main...HEAD`. Diga no PR qual dos dois caminhos usou. O alvo não é "documentar a mudança": é achar **afirmação já escrita** que deixou de ser verdade — contagem de fases, lista de arquivos, símbolo exportado fora da § API do `crypto.md`, convenção que a mudança contradiz. Na v1 isso só acontecia quando o review cobrava (#136, `883f162`, follow-ups do #157), e a execução de 2026-11-24 (#221) declarou não ter rodado.
 
 Registre no PR, em "Doc", o que foi roteado — ou `nada a rotear` com uma linha do porquê. Não deixe a seção vazia.
 
