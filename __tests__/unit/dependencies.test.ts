@@ -21,17 +21,14 @@ function rootConfigFiles(): string[] {
     .map((entry) => join(ROOT, entry))
 }
 
-// Pontos de entrada que só rodam em tempo de build — nunca são importados pelo
-// servidor em runtime. Uma dependência de produção cujos ÚNICOS importadores
-// estão aqui está classificada errada (deveria ser devDependency): infla a
-// árvore de produção do lockfile e corrompe `npm audit --omit=dev` (issue #102).
-// `next.config.mjs` já casa com `rootConfigFiles()` (a substring `.config.`
-// aparece em `next.config.mjs`). `app/sw.ts` NÃO — está dentro de `app/`
-// (varrido pela outra checagem como se fosse runtime), então entra aqui
-// explicitamente: compila para `public/sw.js`, artefato estático, e não é
-// módulo de servidor.
+// Pontos de entrada que só rodam em tempo de build, na máquina de build — nunca
+// em produção. Uma dependência de produção cujos ÚNICOS importadores estão aqui
+// está classificada errada (deveria ser devDependency): infla a árvore de
+// produção do lockfile e corrompe `npm audit --omit=dev` (issue #102).
+// `app/sw.ts` NÃO entra: compila para `public/sw.js`, que executa no navegador
+// do usuário — `serwist` é dependência de runtime (#149).
 function buildEntryPoints(): string[] {
-  return [...rootConfigFiles(), join(ROOT, 'app', 'sw.ts')]
+  return rootConfigFiles()
 }
 
 function escapeRegExp(value: string): string {
@@ -83,6 +80,37 @@ describe('package.json dependencies', () => {
       .filter((dep) => !runtimeContents.some((content) => importSpecifierRegex(dep).test(content)))
 
     expect(buildOnly).toEqual([])
+  })
+
+  // Direção inversa (#149): devDependency importada por código que roda em
+  // produção (Client Component, service worker) some de `npm audit --omit=dev`.
+  // Só `rootConfigFiles()` é ferramenta pura de build; `app/sw.ts` vira
+  // `public/sw.js` e executa no navegador, então conta como runtime.
+  it('no devDependency is imported from runtime code', () => {
+    const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8'))
+    const devDependencies = Object.keys(pkg.devDependencies as Record<string, string>)
+
+    const configFiles = new Set(rootConfigFiles())
+    // `dotenv` roda à mão em scripts/ e no seed de dev (tsx), nunca em produção.
+    const devOnlyImporters = (file: string) =>
+      file.startsWith(join(ROOT, 'scripts') + '/') ||
+      file === join(ROOT, 'lib', 'db', 'seed-dev.ts')
+
+    const runtimeFiles = SCAN_DIRS.flatMap((dir) => collectFiles(join(ROOT, dir)))
+      .filter((file) => !configFiles.has(file))
+      .filter((file) => !devOnlyImporters(file))
+    // Comentários citam pacotes entre crases (ex: `@serwist/next/config`) sem importá-los.
+    const contents = runtimeFiles.map((file) =>
+      readFileSync(file, 'utf-8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+    )
+
+    const misclassified = devDependencies.filter((dep) =>
+      contents.some((content) => importSpecifierRegex(dep).test(content))
+    )
+
+    expect(misclassified).toEqual([])
   })
 
   // Os pacotes `@vitest/*` declaram `peerDependencies: { vitest: "<versão exata>" }`.
