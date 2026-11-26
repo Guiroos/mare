@@ -14,11 +14,13 @@ import {
 } from 'recharts'
 import { formatMonthShort, currentYearMonth, currentYear } from '@/lib/utils/date'
 import { formatCurrency, formatCurrencyShort } from '@/lib/utils/currency'
+import { annualTotalsToDate } from '@/lib/utils/panorama-totals'
 
 type OverviewMonth = {
   month: string
   totalIncomes: number
   totalExpenses: number
+  totalInvested: number
   balance: number
 }
 
@@ -139,7 +141,7 @@ export function PatrimonyEvolutionChart({ overview, patrimonyTimeline, year }: P
     }
   })
 
-  const activeMonths = isPastYear ? overview : overview.filter((m) => m.month <= nowYM)
+  const { activeMonths } = annualTotalsToDate(overview, nowYM)
 
   const bestMonth =
     activeMonths.length > 0
