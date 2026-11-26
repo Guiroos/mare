@@ -795,3 +795,122 @@ describe('updateInstallmentGroup — troca de conta', () => {
     )
   })
 })
+
+// ─── Edição propaga nome/data para as cobranças do split (#153) ──────────────
+
+describe('edição de gasto dividido propaga para as cobranças', () => {
+  it('updateTransaction regrava description, entryDate e referenceMonth da cobrança', async () => {
+    const { createTransaction, updateTransaction } = await import('@/lib/actions/transactions')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    await createTransaction({
+      name: 'Jantar antigo',
+      amount: '200.00',
+      date: '2025-09-30',
+      categoryId,
+      accountId,
+      splits: [{ personId, amount: '100.00' }],
+    })
+    const tx = await db.query.transactions.findFirst({
+      where: (t, { and, eq: eqFn }) => and(eqFn(t.userId, userId), eqFn(t.date, '2025-09-30')),
+    })
+
+    vi.mocked(revalidatePath).mockClear()
+    await updateTransaction({
+      id: tx!.id,
+      name: 'Jantar novo',
+      amount: '200.00',
+      date: '2025-10-02',
+      categoryId,
+      accountId,
+    })
+
+    const charges = await db.query.debtorEntries.findMany({
+      where: eq(schema.debtorEntries.sourceTransactionId, tx!.id),
+    })
+    expect(charges).toHaveLength(1)
+    expect(decryptField(charges[0].description, dek)).toBe('Jantar novo')
+    expect(charges[0].entryDate).toBe('2025-10-02')
+    expect(charges[0].referenceMonth).toBe('2025-10-01')
+    expect(decryptField(charges[0].amount, dek)).toBe('100.00')
+    expect(vi.mocked(revalidatePath)).toHaveBeenCalledWith('/devedores')
+  })
+
+  it('updateInstallmentGroup renomeia as cobranças parcela a parcela', async () => {
+    const { createInstallmentPurchase, updateInstallmentGroup } =
+      await import('@/lib/actions/transactions')
+    const { getDekForUser } = await import('@/lib/crypto/keys')
+    const { decryptField } = await import('@/lib/crypto/fields')
+    const dek = await getDekForUser(userId)
+
+    await createInstallmentPurchase({
+      name: 'Sofá velho',
+      totalAmount: '300.00',
+      totalInstallments: 3,
+      startDate: '2026-01-12',
+      categoryId,
+      accountId,
+      splits: [{ personId, amount: '150.00' }],
+    })
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-01-12')),
+    })
+
+    await updateInstallmentGroup({ id: group!.id, name: 'Sofá novo', categoryId, accountId })
+
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+    const names: string[] = []
+    for (const t of txs) {
+      const [c] = await db.query.debtorEntries.findMany({
+        where: eq(schema.debtorEntries.sourceTransactionId, t.id),
+      })
+      names.push(decryptField(c.description, dek))
+    }
+    expect(names).toEqual(['Sofá novo (1/3)', 'Sofá novo (2/3)', 'Sofá novo (3/3)'])
+  })
+
+  it('updateInstallmentGroup com troca de conta move entryDate/referenceMonth das cobranças', async () => {
+    const { createInstallmentPurchase, updateInstallmentGroup } =
+      await import('@/lib/actions/transactions')
+    const card = await createAccount(db, userId, { type: 'credit', closingDay: 8 })
+
+    await createInstallmentPurchase({
+      name: 'Geladeira',
+      totalAmount: '200.00',
+      totalInstallments: 2,
+      startDate: '2026-03-25',
+      categoryId,
+      accountId,
+      splits: [{ personId, amount: '100.00' }],
+    })
+    const group = await db.query.installmentGroups.findFirst({
+      where: (g, { and, eq: eqFn }) => and(eqFn(g.userId, userId), eqFn(g.startDate, '2026-03-25')),
+    })
+
+    await updateInstallmentGroup({
+      id: group!.id,
+      name: 'Geladeira',
+      categoryId,
+      accountId: card.id,
+    })
+
+    const txs = await db.query.transactions.findMany({
+      where: eq(schema.transactions.installmentGroupId, group!.id),
+      orderBy: (t, { asc }) => asc(t.installmentNumber),
+    })
+    for (const t of txs) {
+      const [c] = await db.query.debtorEntries.findMany({
+        where: eq(schema.debtorEntries.sourceTransactionId, t.id),
+      })
+      expect(c).toBeDefined()
+      expect(c.entryDate).toBe(t.date)
+      expect(c.referenceMonth).toBe(t.referenceMonth)
+    }
+    expect(txs[0].referenceMonth).toBe('2026-04-01')
+  })
+})

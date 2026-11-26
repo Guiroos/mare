@@ -385,22 +385,37 @@ export async function updateTransaction(data: UpdateTransactionInput) {
 
   const dek = await getDekForUser(userId)
 
-  await db
-    .update(transactions)
-    .set({
-      name: encryptField(data.name, dek),
-      amount: encryptField(data.amount, dek),
-      date: data.date,
-      referenceMonth: dateToReferenceMonth(data.date),
-      categoryId: data.categoryId,
-      accountId: data.accountId,
-      tripId: data.tripId ?? null,
-    })
-    .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)))
+  await db.transaction(async (tx) => {
+    await tx
+      .update(transactions)
+      .set({
+        name: encryptField(data.name, dek),
+        amount: encryptField(data.amount, dek),
+        date: data.date,
+        referenceMonth: dateToReferenceMonth(data.date),
+        categoryId: data.categoryId,
+        accountId: data.accountId,
+        tripId: data.tripId ?? null,
+      })
+      .where(and(eq(transactions.id, data.id), eq(transactions.userId, userId)))
+
+    // Cobranças do split são cópia de nome/data da transação (ver createTransaction):
+    // sem isto a cobrança fica com a descrição e o mês antigos. O valor não é tocado.
+    await tx
+      .update(debtorEntries)
+      .set({
+        description: encryptField(data.name, dek),
+        entryDate: data.date,
+        referenceMonth: dateToReferenceMonth(data.date),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(debtorEntries.sourceTransactionId, data.id), eq(debtorEntries.userId, userId)))
+  })
 
   revalidatePath('/dashboard')
   revalidatePath('/panorama')
   revalidatePath('/viagens')
+  revalidatePath('/devedores')
 }
 
 // ─── Edição de compra parcelada ───────────────────────────────────────────────
@@ -488,7 +503,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
     await Promise.all(
       childTransactions.map((t) => {
         const offset = (t.installmentNumber ?? 1) - 1
-        const schedule = baseReferenceMonth
+        const schedule: { referenceMonth?: string; date?: string } = baseReferenceMonth
           ? (() => {
               const refMonth = addMonths(baseReferenceMonth, offset)
               const date =
@@ -501,20 +516,34 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
               }
             })()
           : {}
-        return tx
-          .update(transactions)
-          .set({
-            name: encryptField(
-              `${data.name} (${t.installmentNumber}/${group.totalInstallments})`,
-              dek
+        const installmentName = `${data.name} (${t.installmentNumber}/${group.totalInstallments})`
+        return Promise.all([
+          tx
+            .update(transactions)
+            .set({
+              name: encryptField(installmentName, dek),
+              categoryId: data.categoryId,
+              accountId: data.accountId,
+              tripId: data.tripId ?? null,
+              ...schedule,
+              ...(amountUpdates[t.id] ? { amount: encryptField(amountUpdates[t.id], dek) } : {}),
+            })
+            .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId))),
+          // Cobranças do split desta parcela: mesmo nome e, se a conta mudou, mesmo calendário.
+          // O valor de cada cobrança não é tocado (decisão de produto, fora da #153).
+          tx
+            .update(debtorEntries)
+            .set({
+              description: encryptField(installmentName, dek),
+              ...(schedule.date && schedule.referenceMonth
+                ? { entryDate: schedule.date, referenceMonth: schedule.referenceMonth }
+                : {}),
+              updatedAt: new Date(),
+            })
+            .where(
+              and(eq(debtorEntries.sourceTransactionId, t.id), eq(debtorEntries.userId, userId))
             ),
-            categoryId: data.categoryId,
-            accountId: data.accountId,
-            tripId: data.tripId ?? null,
-            ...schedule,
-            ...(amountUpdates[t.id] ? { amount: encryptField(amountUpdates[t.id], dek) } : {}),
-          })
-          .where(and(eq(transactions.id, t.id), eq(transactions.userId, userId)))
+        ])
       })
     )
   })
@@ -523,6 +552,7 @@ export async function updateInstallmentGroup(data: UpdateInstallmentGroupInput) 
   revalidatePath('/panorama')
   revalidatePath('/parcelas')
   revalidatePath('/viagens')
+  revalidatePath('/devedores')
 }
 
 export async function deleteInstallmentGroup(id: string) {
