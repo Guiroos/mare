@@ -40,6 +40,7 @@ type Income = {
   amount: string
   tripId: string | null
   canLinkTrip: boolean
+  investmentReturnCapital: string | null
 }
 
 // Entradas não têm coluna `date`: entram datadas no dia 1º do mês de referência,
@@ -164,7 +165,7 @@ function IncomeRow({ income }: { income: Income }) {
       </span>
 
       <RowActions
-        onEdit={() => setEditOpen(true)}
+        onEdit={income.investmentReturnCapital == null ? () => setEditOpen(true) : undefined}
         onDelete={async () => {
           const result = await deleteIncome(income.id)
           if (!result.ok) toast.error(result.message)
