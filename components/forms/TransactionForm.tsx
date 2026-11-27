@@ -187,6 +187,8 @@ export function TransactionForm({
       accountId,
       accountName: acc?.name ?? '',
       excludeFromCashFlow,
+      installments,
+      destination,
       investmentTypeId,
       investmentTypeName: investmentTypes?.find((t) => t.id === investmentTypeId)?.name ?? '',
     })
@@ -199,6 +201,8 @@ export function TransactionForm({
     previewAmount,
     effectivePreviewAmount,
     excludeFromCashFlow,
+    installments,
+    destination,
     onFormChange,
     categoryGroups,
     accounts,

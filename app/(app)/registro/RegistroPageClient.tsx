@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { BudgetBar } from '@/components/ui/budget-bar'
 import { cn } from '@/lib/utils/cn'
 import { formatCurrency } from '@/lib/utils/currency'
+import { cashFlowDelta } from '@/lib/utils/cash-flow'
 
 type CategorySpend = { budget: number; spent: number; name: string }
 
@@ -63,12 +64,16 @@ function RegistroPreviewPanel({
   currentBalance,
   categoryIndexMap,
   investmentBalances,
+  investmentCapitals,
+  viaFaturaAccountIds,
 }: {
   state: PreviewState | null
   categorySpends: Record<string, CategorySpend>
   currentBalance: number
   categoryIndexMap: Record<string, number>
   investmentBalances: Record<string, number>
+  investmentCapitals: Record<string, number>
+  viaFaturaAccountIds: string[]
 }) {
   if (!state || (!state.name && !state.amount)) {
     return (
@@ -88,9 +93,16 @@ function RegistroPreviewPanel({
   const isDebit =
     state.primaryType === 'saida' ||
     (state.primaryType === 'investimento' && !state.excludeFromCashFlow)
-  const isCredit = state.primaryType === 'entrada' || state.primaryType === 'resgate'
-  const signedAmount = isCredit ? amountNum : isDebit ? -amountNum : 0
-  const projectedBalance = currentBalance + signedAmount
+  const delta = cashFlowDelta({
+    primaryType: state.primaryType,
+    subType: state.subType,
+    amount: amountNum,
+    installments: state.installments,
+    destination: state.destination,
+    excludeFromCashFlow: state.excludeFromCashFlow,
+    typeCapital: investmentCapitals[state.investmentTypeId ?? ''] ?? 0,
+    viaFatura: viaFaturaAccountIds.includes(state.accountId),
+  })
 
   const initial = (state.name || state.categoryName || '?')[0].toUpperCase()
   const avatarIdx = (categoryIndexMap[state.categoryId] ?? 0) % AVATAR_PALETTE.length
@@ -197,21 +209,23 @@ function RegistroPreviewPanel({
         )}
 
       {/* Saldo após lançamento */}
-      {amountNum > 0 && (isDebit || isCredit) && (
+      {amountNum > 0 && !(state.primaryType === 'investimento' && state.excludeFromCashFlow) && (
         <Card padding="md">
           <p className="mb-1 text-caption font-semibold text-text-tertiary">
             Saldo após lançamento
           </p>
           <p className="text-h1 font-semibold tabular-nums text-text-primary">
-            {formatCurrency(projectedBalance)}
+            {formatCurrency(currentBalance + delta)}
           </p>
           <p
             className={cn(
               'mt-0.5 text-small tabular-nums',
-              isDebit ? 'text-negative-text' : 'text-positive-text'
+              delta < 0 ? 'text-negative-text' : 'text-positive-text'
             )}
           >
-            {isDebit ? '−' : '+'} {formatCurrency(amountNum)} de {formatCurrency(currentBalance)}
+            {delta === 0
+              ? `Não altera o saldo do mês (${formatCurrency(currentBalance)})`
+              : `${delta < 0 ? '−' : '+'} ${formatCurrency(Math.abs(delta))} de ${formatCurrency(currentBalance)}`}
           </p>
         </Card>
       )}
@@ -253,6 +267,8 @@ export function RegistroPageClient({ formData }: { formData: FormDataType }) {
           currentBalance={formData.currentBalance}
           categoryIndexMap={categoryIndexMap}
           investmentBalances={formData.investmentBalances}
+          investmentCapitals={formData.investmentCapitals}
+          viaFaturaAccountIds={formData.viaFaturaAccountIds}
         />
       </div>
     </div>

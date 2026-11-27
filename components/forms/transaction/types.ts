@@ -29,6 +29,8 @@ export type PreviewState = {
   accountId: string
   accountName: string
   excludeFromCashFlow: boolean
+  installments: number
+  destination: string
   investmentTypeId?: string
   investmentTypeName?: string
 }
