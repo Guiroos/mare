@@ -91,11 +91,10 @@ export function CreditModeSection({
           </Field>
         )}
 
-        <p role="status" className="text-small text-negative">
-          {error}
-        </p>
-
-        <div className="flex justify-end">
+        <div className="flex items-center justify-end gap-3">
+          <p role="status" className="text-small text-negative">
+            {error}
+          </p>
           <Button
             variant="primary"
             size="md"

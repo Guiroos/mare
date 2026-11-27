@@ -23,7 +23,8 @@ describe.each(CASOS)('$file — região viva e foco preservado (#159)', ({ file,
   const src = readFileSync(join(process.cwd(), file), 'utf-8')
 
   it('não monta a região viva atrás do booleano que ela anuncia', () => {
-    expect(src).not.toMatch(new RegExp(`\\{${estado} &&\\s*<[^>]*role="status"`))
+    // `\(?` cobre a forma que o Prettier produz ao quebrar a linha (`&& (` + <span>); `?` cobre o ternário
+    expect(src).not.toMatch(new RegExp(`\\{${estado}\\s*(&&|\\?)\\s*\\(?\\s*<[^>]*role="status"`))
   })
 
   it('tem região role="status" sempre montada', () => {
