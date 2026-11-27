@@ -34,6 +34,7 @@ export function CreditModeSection({
   }
 
   function handleSave() {
+    if (isPending) return
     setError(null)
     startTransition(async () => {
       try {
@@ -90,14 +91,19 @@ export function CreditModeSection({
           </Field>
         )}
 
-        {error && <p className="text-small text-negative">{error}</p>}
+        <p role="status" className="text-small text-negative">
+          {error}
+        </p>
 
         <div className="flex justify-end">
           <Button
             variant="primary"
             size="md"
+            className="aria-disabled:pointer-events-none aria-disabled:opacity-45"
             onClick={handleSave}
-            disabled={!isDirty || isPending || (isFatura && !activeFrom)}
+            aria-disabled={isPending}
+            aria-busy={isPending}
+            disabled={!isDirty || (isFatura && !activeFrom)}
           >
             {isPending ? 'Salvando…' : 'Salvar'}
           </Button>

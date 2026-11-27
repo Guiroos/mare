@@ -15,6 +15,7 @@ export function CopyFixedExpensesButton({ referenceMonth, prevReferenceMonth }: 
   const [message, setMessage] = useState('')
 
   const handleCopy = () => {
+    if (isPending) return
     setMessage('')
     startTransition(async () => {
       try {
@@ -36,14 +37,17 @@ export function CopyFixedExpensesButton({ referenceMonth, prevReferenceMonth }: 
       <Button
         size="sm"
         variant="outline"
-        className="gap-1.5"
-        disabled={isPending}
+        className="gap-1.5 aria-disabled:pointer-events-none aria-disabled:opacity-45"
+        aria-disabled={isPending}
+        aria-busy={isPending}
         onClick={handleCopy}
       >
         <Copy className="h-3.5 w-3.5" />
         {isPending ? 'Copiando...' : 'Copiar do mês anterior'}
       </Button>
-      {message && <span className="text-caption text-text-secondary">{message}</span>}
+      <span role="status" className="text-caption text-text-secondary">
+        {message}
+      </span>
     </div>
   )
 }
