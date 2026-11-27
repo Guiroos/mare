@@ -7,7 +7,7 @@ import {
 } from '@/lib/queries/categories'
 import { getInvestmentTypes, getInvestmentBalances } from '@/lib/queries/investments'
 import { getDashboardData } from '@/lib/queries/dashboard'
-import { getUserCreditMode } from '@/lib/queries/fatura'
+import { getUserCreditMode, isFaturaMonth } from '@/lib/queries/fatura'
 import { getActivePeople } from '@/lib/queries/debtors'
 import { getActiveTrips } from '@/lib/queries/trips'
 import { currentYearMonth, yearMonthToReferenceMonth } from '@/lib/utils/date'
@@ -51,6 +51,14 @@ export async function getRegistrationFormData() {
   )
 
   const investmentBalances = Object.fromEntries(balances.map((b) => [b.id, b.currentBalance]))
+  // Total aportado por tipo — base do capital de um resgate por rolagem
+  const investmentCapitals = Object.fromEntries(balances.map((b) => [b.id, b.totalAmount]))
+
+  // Cartões cuja compra não move o saldo do mês: mesmo predicado de getDashboardData
+  // (mês sob fatura e ao menos uma conta de crédito). Vazio fora do regime.
+  const viaFaturaAccountIds = isFaturaMonth(month, faturaCtx)
+    ? (faturaCtx?.creditAccountIds ?? [])
+    : []
 
   return {
     categoryGroups,
@@ -60,6 +68,8 @@ export async function getRegistrationFormData() {
     currentBalance: summary.balance,
     people,
     investmentBalances,
+    investmentCapitals,
+    viaFaturaAccountIds,
     trips,
   }
 }
