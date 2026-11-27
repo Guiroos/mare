@@ -31,3 +31,30 @@ describe('Segment — aria-pressed amarrado ao estado (#107)', () => {
     expect(segment).toMatch(/^\s*aria-pressed=\{isActive\}$/m)
   })
 })
+
+// ─── Field / CurrencyInput — estado obrigatório exposto a leitor de tela (#166) ─
+//
+// `<Field required>` só desenhava um asterisco; o controle declarava
+// `required=false` na árvore de acessibilidade. A asserção prende a expressão
+// (`!!required`), não a presença do atributo: `aria-required={true}` literal
+// passaria num `toMatch(/aria-required/)` e anunciaria todo `<Field>` como
+// obrigatório. `CurrencyInput` tem interface fechada (sem `...props`), então a
+// prop precisa estar declarada **e** repassada ao `<input>` visível.
+
+const field = readFileSync(join(process.cwd(), 'components/ui/field.tsx'), 'utf-8')
+const currencyInput = readFileSync(join(process.cwd(), 'components/ui/currency-input.tsx'), 'utf-8')
+
+describe('Field — aria-required amarrado a `required` (#166)', () => {
+  it('clona aria-required ligado a `!!required`, não a um literal fixo nem comentado', () => {
+    expect(field).toMatch(/^\s*'aria-required': !!required,$/m)
+  })
+})
+
+describe('CurrencyInput — repassa aria-required ao input visível (#166)', () => {
+  it('declara a prop na interface', () => {
+    expect(currencyInput).toMatch(/^\s*'aria-required'\?: boolean$/m)
+  })
+  it('repassa ao <input> visível', () => {
+    expect(currencyInput).toMatch(/^\s*aria-required=\{ariaRequired\}$/m)
+  })
+})

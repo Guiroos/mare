@@ -15,6 +15,7 @@ interface ControlProps {
   id?: string
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-required'?: boolean
 }
 
 export function Field({ label, hint, error, required, children, className = '' }: FieldProps) {
@@ -27,6 +28,7 @@ export function Field({ label, hint, error, required, children, className = '' }
         id: controlId,
         'aria-describedby': hasDescription ? descId : undefined,
         'aria-invalid': !!error,
+        'aria-required': !!required,
       })
     : children
 

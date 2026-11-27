@@ -19,6 +19,7 @@ interface CurrencyInputProps {
   preserveExplicitZero?: boolean
   'aria-describedby'?: string
   'aria-invalid'?: boolean
+  'aria-required'?: boolean
 }
 
 function parseToCents(value: string | number | undefined): number {
@@ -57,6 +58,7 @@ export function CurrencyInput({
   preserveExplicitZero = false,
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
+  'aria-required': ariaRequired,
 }: CurrencyInputProps) {
   const [cents, setCents] = useState(() => parseToCents(defaultValue))
   const [hasExplicitValue, setHasExplicitValue] = useState(() =>
@@ -86,6 +88,7 @@ export function CurrencyInput({
         placeholder={placeholder ?? (currency ? 'R$ 0,00' : '0,00')}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid}
+        aria-required={ariaRequired}
         className={cn(inputBase, error && inputErrorCls, className)}
       />
       <input
